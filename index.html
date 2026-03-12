@@ -1226,11 +1226,9 @@ function recalcularCuentas(){
   const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
   const entregado = parseFloat(document.getElementById('input-entregado').value)||0;
 
-  // Solo guardar si es el día actual (no sobreescribir días pasados)
-  if(hoy === fechaHoy()){
-    const manual = { base, papeleria, neki, gasto, entregado };
-    lsSet('sup_manual_'+hoy, JSON.stringify(manual));
-  }
+  // Guardar siempre (incluyendo días pasados editados)
+  const manual = { base, papeleria, neki, gasto, entregado };
+  lsSet('sup_manual_'+hoy, JSON.stringify(manual));
 
   // General: cuotas cobradas hoy + saldoQuedaba de renovaciones hoy (todo lo que entró)
   let general = 0;
@@ -3741,7 +3739,7 @@ function renderResumenSemanal(){
   rangoEl.textContent = rango;
   semEl.textContent = resumenSemOffset===0 ? 'Semana actual' : resumenSemOffset===-1 ? 'Semana pasada' : 'Hace '+(Math.abs(resumenSemOffset))+' semanas';
   prestEl.textContent = '$'+totalPrestado.toLocaleString('es-CO');
-  prestDiasEl.textContent = diasConPrestado > 0 ? diasConPrestamo+' día'+(diasConPrestamo!==1?'s':'') : 'Sin préstamos';
+  prestDiasEl.textContent = diasConPrestamo > 0 ? diasConPrestamo+' día'+(diasConPrestamo!==1?'s':'') : 'Sin préstamos';
   papEl.textContent = '$'+totalPapeleria.toLocaleString('es-CO');
   papDiasEl.textContent = diasConPapeleria > 0 ? diasConPapeleria+' día'+(diasConPapeleria!==1?'s':'') : 'Sin registros';
 }
