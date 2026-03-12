@@ -2113,7 +2113,7 @@ function renderClientes(){
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <div class="cliente-nombre">👤 ${c.nombre}</div>
             ${c.cedula ? `<div style="font-size:11px;color:#888;font-weight:700;margin-top:1px">🪪 ${c.cedula}</div>` : ""}
-            ${pagadoHoy > 0 ? `<div style="background:#00c853;color:black;border-radius:8px;padding:2px 10px;font-size:14px;font-weight:900;white-space:nowrap">+${fmt(pagadoHoy)} ${hoy===fechaHoy()?'hoy':'el '+hoy.split('-').reverse().slice(0,2).join('/')}</div>` : ''}
+            ${pagadoHoy > 0 ? `<div style="background:#00c853;color:black;border-radius:8px;padding:2px 10px;font-size:14px;font-weight:900;white-space:nowrap">+${fmt(pagadoHoy)}</div>` : ''}
           </div>
           <div class="cliente-sub">
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
