@@ -2295,8 +2295,14 @@ function importarDatos(event){
       if(datos.credenciales && datos.credenciales.usuario){
         lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
       }
+      if(datos.manuales){
+        Object.keys(datos.manuales).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.manuales[k]));
+        });
+      }
       renderClientes();
       try{ renderHistorial(); }catch(e){}
+      try{ cargarDesdeSupervisor(); }catch(e){}
       actualizarInfoCopia();
       showToast('OK: ' + (datos.clientes||[]).length + ' clientes restaurados');
     } catch(err){
