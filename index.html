@@ -830,6 +830,14 @@ body {
           <div id="det-saldo" style="font-size:18px;font-weight:900;color:#ff3d3d;margin-top:2px"></div>
         </div>
       </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #f0f0f0">
+        <div style="padding:10px 0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">💸 NUEVO SALDO</div>
+          <div id="det-nuevo-saldo-inline" style="font-size:18px;font-weight:900;color:#ff3d3d;margin-top:2px">—</div>
+        </div>
+        <div style="padding:10px 0 10px 10px"></div>
+      </div>
     </div>
   </div>
 
@@ -2121,6 +2129,7 @@ function renderClientes(){
           <div class="cliente-det-item"><div class="cliente-det-label">💵 Total a cobrar</div><div class="cliente-det-val" style="color:#5b8dee">${fmt(c.prestamo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00a844">${fmt(pagado)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff3d3d':'#00c853'}">${fmt(c.saldo)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">➡️ Nuevo saldo</div><div class="cliente-det-val" id="nuevo-saldo-inline-${c.id}" style="color:#aaa">—</div></div>
           ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div>`:''}
         </div>
         ${c.saldo>0?`
@@ -2128,7 +2137,7 @@ function renderClientes(){
           <input type="number" class="cuota-input" id="cuota-input-${c.id}"
             placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
             value="${(()=>{const fa=getFechaActiva();const pagoDelDia=(c.pagos||[]).find(p=>p.fecha===fa);return pagoDelDia?pagoDelDia.monto:'';})()}"
-            oninput="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value)"
+            oninput="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value);(function(){const v=parseFloat(document.getElementById('cuota-input-${c.id}').value)||0;const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){const n=Math.max(0,${c.saldo}-v);el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00a844':'#ff3d3d'):'#aaa';}})();"
             onfocus="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value)"
             onblur="setTimeout(()=>ocultarBarraCuota(),300)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
@@ -2754,6 +2763,8 @@ function abrirDetalle(id){
 
   document.getElementById('det-abonar-input').value = '';
   document.getElementById('det-nuevo-saldo').textContent = fmt(c.saldo);
+  const inlineReset = document.getElementById('det-nuevo-saldo-inline');
+  if(inlineReset){ inlineReset.textContent = '—'; inlineReset.style.color = '#ff3d3d'; }
   document.getElementById('det-historial-box').style.display = 'none';
 
   // (correcciones quitadas)
@@ -2776,6 +2787,11 @@ function actualizarNuevoSaldo(){
   const nuevo = Math.max(0, c.saldo - v);
   document.getElementById('det-nuevo-saldo').textContent = fmt(nuevo);
   document.getElementById('det-nuevo-saldo').style.color = nuevo === 0 ? '#00a844' : '#ff3d3d';
+  const inlineEl = document.getElementById('det-nuevo-saldo-inline');
+  if(inlineEl){
+    inlineEl.textContent = v > 0 ? fmt(nuevo) : '—';
+    inlineEl.style.color = nuevo === 0 ? '#00a844' : '#ff3d3d';
+  }
 }
 
 function abonarDesdeDetalle(){
