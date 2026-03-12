@@ -3182,7 +3182,7 @@ function imprimirListaClientes(){
 
   function generarPDF(){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 5;
@@ -3207,28 +3207,28 @@ function imprimirListaClientes(){
     doc.text('SALDO TOTAL: $'+totalSaldo.toLocaleString('es-CO')+' | CUOTAS HOY: $'+totalCuotas.toLocaleString('es-CO')+' | RECAUDADO: $'+recaudadoHoy.toLocaleString('es-CO')+' | PAGARON HOY: '+pagaronHoy+' clientes', margin, y+4);
     y += 7;
 
-    // CABECERA TABLA - portrait letter = 215.9mm ancho, usable = ~206mm
+    // CABECERA TABLA - portrait A4 = 210mm ancho, usable = ~200mm
+    // Orden: # | CLIENTE | CÉDULA | TELÉFONO | TOTAL | SALDO | CUOTA | HOY | EST
     const cols = [
-      {label:'#',      w:6 },
-      {label:'CLIENTE',w:40},
-      {label:'CED',    w:18},
-      {label:'TEL',    w:24},
-      {label:'TIPO',   w:13},
-      {label:'TOTAL',  w:18},
-      {label:'SALDO',  w:18},
-      {label:'CUOTA',  w:14},
-      {label:'ESTADO', w:27},
-      {label:'HOY',    w:14},
+      {label:'#',        w:6  },
+      {label:'CLIENTE',  w:52 },
+      {label:'CÉDULA',   w:22 },
+      {label:'TELÉFONO', w:28 },
+      {label:'TOTAL',    w:20 },
+      {label:'SALDO',    w:20 },
+      {label:'CUOTA',    w:18 },
+      {label:'HOY',      w:18 },
+      {label:'EST',      w:16 },
     ];
-    const rowH = 5.5;
+    const rowH = 6.5;
 
-    doc.setFillColor(50,50,50);
+    doc.setFillColor(26,37,47);
     doc.rect(margin, y, pageW-margin*2, rowH, 'F');
     doc.setTextColor(255,255,255);
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica','bold');
-    let cx = margin+1;
-    cols.forEach(col=>{ doc.text(col.label, cx, y+4); cx+=col.w; });
+    let cx = margin+2;
+    cols.forEach(col=>{ doc.text(col.label, cx, y+4.5); cx+=col.w; });
     y += rowH;
 
     // FILAS
@@ -3236,69 +3236,77 @@ function imprimirListaClientes(){
       if(y+rowH > pageH-12){
         doc.addPage();
         y = margin;
-        doc.setFillColor(50,50,50);
+        doc.setFillColor(26,37,47);
         doc.rect(margin, y, pageW-margin*2, rowH, 'F');
         doc.setTextColor(255,255,255);
-        doc.setFontSize(6);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica','bold');
-        let cxH=margin+1;
-        cols.forEach(col=>{ doc.text(col.label,cxH,y+4); cxH+=col.w; });
+        let cxH=margin+2;
+        cols.forEach(col=>{ doc.text(col.label,cxH,y+4.5); cxH+=col.w; });
         y+=rowH;
       }
 
       const pagadoHoy = (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
       const cuota = c.cuotaSugerida||0;
-      const cuotaDelDia = pagadoHoy > 0 ? pagadoHoy : cuota;
       const dias = calcularAtraso(c);
-      const estadoTxt = dias>0 ? dias+'d atraso' : dias<0 ? Math.abs(dias)+'d adelanto' : 'Al dia';
+      // Estado como número: negativo = adelanto, positivo = atraso, 0 = al día
+      const estadoNum = dias === 0 ? '0' : dias > 0 ? String(dias) : String(dias);
 
-      if(i%2===0){ doc.setFillColor(248,248,248); doc.rect(margin,y,pageW-margin*2,rowH,'F'); }
+      if(i%2===0){ doc.setFillColor(245,245,245); doc.rect(margin,y,pageW-margin*2,rowH,'F'); }
+      // Fondo rojo suave para atraso
+      if(dias > 0){ doc.setFillColor(253,232,232); doc.rect(margin,y,pageW-margin*2,rowH,'F'); }
 
       const vals = [
         String(i+1),
-        (c.nombre||'').substring(0,26),
-        c.cedula||'',
-        c.tel||'',
-        c.tipo==='diario'?'Diario':'Semanal',
+        (c.nombre||'').substring(0,28),
+        c.cedula||'-',
+        c.tel||'-',
         '$'+c.prestamo.toLocaleString('es-CO'),
         '$'+c.saldo.toLocaleString('es-CO'),
-        cuotaDelDia>0?'$'+cuotaDelDia.toLocaleString('es-CO'):'-',
-        estadoTxt,
+        cuota>0?'$'+cuota.toLocaleString('es-CO'):'-',
         pagadoHoy>0?'$'+pagadoHoy.toLocaleString('es-CO'):'-',
+        estadoNum,
       ];
 
-      doc.setFontSize(6);
-      cx=margin+1;
+      doc.setFontSize(7.5);
+      cx=margin+2;
       vals.forEach((val,vi)=>{
-        if(vi===6){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
-        else if(vi===8){ doc.setTextColor(dias>0?170:0, dias<=0?120:0, 0); doc.setFont('helvetica','bold'); }
-        else if(vi===9&&pagadoHoy>0){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
+        if(vi===5){ doc.setTextColor(150,0,0); doc.setFont('helvetica','bold'); }
+        else if(vi===7&&pagadoHoy>0){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
+        else if(vi===8){ 
+          doc.setTextColor(dias>0?170:0, dias<=0?100:0, 0); 
+          doc.setFont('helvetica','bold'); 
+        }
         else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
-        doc.text(val, cx, y+4);
+        doc.text(val, cx, y+4.5);
         cx+=cols[vi].w;
       });
-      doc.setDrawColor(220,220,220);
+      doc.setDrawColor(210,210,210);
       doc.line(margin, y+rowH, pageW-margin, y+rowH);
       y+=rowH;
     });
 
     // FILA TOTALES
-    doc.setFillColor(220,230,255);
+    doc.setFillColor(26,37,47);
     doc.rect(margin, y, pageW-margin*2, rowH, 'F');
     doc.setFont('helvetica','bold');
-    doc.setFontSize(6);
-    cx=margin+1;
-    const tots=['','TOTALES','','','',
+    doc.setFontSize(7.5);
+    cx=margin+2;
+    const tots=[
+      '',
+      'TOTALES',
+      '','',
       '',
       '$'+totalSaldo.toLocaleString('es-CO'),
       '$'+totalCuotas.toLocaleString('es-CO'),
-      '',
-      '$'+recaudadoHoy.toLocaleString('es-CO')];
+      '$'+recaudadoHoy.toLocaleString('es-CO'),
+      ''
+    ];
     tots.forEach((val,vi)=>{
-      if(vi===6) doc.setTextColor(180,0,0);
-      else if(vi===9) doc.setTextColor(0,130,0);
-      else doc.setTextColor(0,0,0);
-      doc.text(val, cx, y+4);
+      if(vi===5) doc.setTextColor(255,180,180);
+      else if(vi===7) doc.setTextColor(180,255,180);
+      else doc.setTextColor(255,255,255);
+      doc.text(val, cx, y+4.5);
       cx+=cols[vi].w;
     });
 
