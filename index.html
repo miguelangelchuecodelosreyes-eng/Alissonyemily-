@@ -200,7 +200,7 @@ body {
 .cuota-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
 .cuota-input { flex:1; border:2px solid #e5e7eb; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; outline:none; text-align:right; }
 .cuota-input:focus { border-color:#5b8dee; }
-.btn-pagar-cuota { background:#00a844; color:white; border:none; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; }
+.btn-pagar-cuota { background:#00a844; color:white; border:none; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
 
 .historial-pagos-titulo { font-size:11px; font-weight:900; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
 .pago-item { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
@@ -860,12 +860,12 @@ body {
     <div style="font-size:13px;font-weight:900;color:#333;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">VALOR A ABONAR</div>
     <div style="display:flex;gap:10px;align-items:center">
       <input type="number" id="det-abonar-input" placeholder="Ingrese el valor"
-        style="flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
+        style="flex:1;min-width:0;border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
         oninput="actualizarNuevoSaldo()">
-      <button onclick="abonarDesdeDetalle()" style="background:#555;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">ABONAR</button>
-      <button onclick="generarCartonImagen()" style="background:#1a56db;color:white;border:none;border-radius:12px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer">📋 CARTÓN</button>
+      <button onclick="abonarDesdeDetalle()" style="flex-shrink:0;background:#00a844;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">💰 PAGAR</button>
     </div>
-    <div style="margin-top:10px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff3d3d">$0</span></div>
+    <div style="margin-top:8px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff3d3d">$0</span></div>
+    <button onclick="generarCartonImagen()" style="width:100%;margin-top:10px;background:#1a56db;color:white;border:none;border-radius:12px;padding:13px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER CARTÓN DE CUENTA</button>
   </div>
 
   <!-- Botones acción -->
@@ -2148,16 +2148,16 @@ function renderClientes(){
           ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div>`:''}
         </div>
         ${c.saldo>0?`
-        <div class="cuota-row">
-          <input type="number" class="cuota-input" id="cuota-input-${c.id}"
+        <div class="cuota-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="number" class="cuota-input" style="flex:1;min-width:100px;" id="cuota-input-${c.id}"
             placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
             value="${(()=>{const fa=getFechaActiva();const pagoDelDia=(c.pagos||[]).find(p=>p.fecha===fa);return pagoDelDia?pagoDelDia.monto:'';})()}"
             oninput="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value);(function(){const v=parseFloat(document.getElementById('cuota-input-${c.id}').value)||0;const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){const n=Math.max(0,${c.saldo}-v);el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00a844':'#ff3d3d'):'#aaa';}})();"
             onfocus="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value)"
             onblur="setTimeout(()=>ocultarBarraCuota(),300)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
-          <button class="btn-pagar-cuota" onclick="pagarCuotaYAvanzar('${c.id}')">💰 Pagar</button>
-          <button class="btn-pagar-cuota" onclick="abrirCartonCliente('${c.id}')" style="background:#1a56db;padding:12px 8px;font-size:12px;">📋 Cartón</button>
+          <button class="btn-pagar-cuota" style="flex:1;" onclick="pagarCuotaYAvanzar('${c.id}')">💰 Pagar</button>
+          <button class="btn-pagar-cuota" style="flex:1;background:#1a56db;" onclick="abrirCartonCliente('${c.id}')">📋 Cartón</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button onclick="abrirRenovar('${c.id}')" style="flex:1;padding:12px;background:#fff7e6;color:#e06500;border:2px solid #ffd580;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">🔄 Renovar</button>
