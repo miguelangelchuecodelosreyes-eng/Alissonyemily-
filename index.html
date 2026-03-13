@@ -657,6 +657,22 @@ body {
       <span>👥 Ver clientes</span><span id="historial-flecha">▼</span>
     </button>
   </div>
+
+  <!-- BUSCAR HISTORIAL POR CÉDULA -->
+  <div style="margin:0 14px 10px">
+    <div style="font-size:12px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🔍 Buscar historial de cliente anterior</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="input-buscar-hist-cedula" inputmode="numeric"
+        placeholder="Número de cédula"
+        style="flex:1;min-width:0;border:2px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
+        onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();buscarHistorialPorCedula();}">
+      <button onclick="buscarHistorialPorCedula()"
+        style="flex-shrink:0;background:#7c3aed;color:white;border:none;border-radius:12px;padding:11px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
+        🔍 Buscar
+      </button>
+    </div>
+  </div>
   <div id="historial-clientes-panel" style="display:none;margin:0 14px 12px">
     <div style="margin-bottom:10px">
       <input type="text" id="buscador-historial"
@@ -873,6 +889,9 @@ body {
     <button onclick="verAbonosDetalle()" style="background:#5b8dee;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
     <button onclick="renovarDesdeDetalle()" style="background:#ff3d3d;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">RENOVAR</button>
   </div>
+  <div style="margin:10px 14px 0">
+    <button id="btn-ver-hist-cedula" onclick="verHistorialDesdeDetalle()" style="display:none;width:100%;background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER HISTORIAL COMPLETO DE ESTE CLIENTE</button>
+  </div>
 
 
   </div>
@@ -913,22 +932,38 @@ body {
   <div class="modal">
     <div class="modal-titulo" id="modal-cliente-titulo">➕ Nuevo Cliente</div>
 
-    <div class="modal-campo">
-      <label class="modal-label">👤 Nombre completo</label>
-      <input type="text" class="modal-input" id="mc-nombre" placeholder="Nombre del cliente">
-    </div>
+    <!-- CÉDULA + BUSCAR -->
     <div class="modal-campo">
       <label class="modal-label">🪪 Número de cédula</label>
-      <input type="text" class="modal-input" id="mc-cedula" placeholder="Cédula del cliente" inputmode="numeric">
+      <div style="display:flex;gap:8px">
+        <input type="text" class="modal-input" id="mc-cedula" placeholder="Cédula del cliente" inputmode="numeric"
+          style="flex:1;min-width:0"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();buscarClientePorCedula();}">
+        <button id="mc-btn-buscar" onclick="buscarClientePorCedula()" style="flex-shrink:0;background:#1d4ed8;color:white;border:none;border-radius:12px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
+          🔍 Buscar
+        </button>
+      </div>
     </div>
-    <div class="modal-campo">
-      <label class="modal-label">📱 Teléfono</label>
-      <input type="tel" class="modal-input" id="mc-tel" placeholder="Número de teléfono">
-    </div>
+
+    <!-- RESULTADO BÚSQUEDA -->
+    <div id="mc-resultado-busqueda" style="display:none;border-radius:14px;padding:12px 14px;margin-bottom:4px"></div>
+
+    <!-- CAMPOS (ocultos hasta buscar) -->
+    <div id="mc-campos-cliente" style="display:none">
+      <div class="modal-campo">
+        <label class="modal-label">👤 Nombre completo</label>
+        <input type="text" class="modal-input" id="mc-nombre" placeholder="Nombre del cliente">
+      </div>
+      <div class="modal-campo">
+        <label class="modal-label">📱 Teléfono</label>
+        <input type="tel" class="modal-input" id="mc-tel" placeholder="Número de teléfono">
+      </div>
     <div class="modal-campo">
       <label class="modal-label">📍 Dirección</label>
       <input type="text" class="modal-input" id="mc-dir" placeholder="Dirección">
     </div>
+    </div><!-- fin mc-campos-cliente -->
+
     <div class="modal-campo">
       <label class="modal-label">💰 Valor del préstamo</label>
       <input type="number" class="modal-input" id="mc-prestamo" placeholder="0" oninput="actualizarResumenPrestamo()">
@@ -1617,10 +1652,27 @@ function abrirModalCliente(id){
       actualizarResumenPrestamo();
     }
   } else {
+    // Nuevo cliente: resetear todo y mostrar solo cédula+buscar
     ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
-    document.getElementById('mc-tipo').value='semanal';
+    document.getElementById('mc-tipo').value='diario';
     document.getElementById('prestamo-resumen').style.display='none';
     document.getElementById('dias-prestamo-info').style.display='none';
+    // Ocultar campos y resultado hasta que busquen
+    const resBusq = document.getElementById('mc-resultado-busqueda');
+    const camposC = document.getElementById('mc-campos-cliente');
+    if(resBusq){ resBusq.style.display='none'; resBusq.innerHTML=''; }
+    if(camposC){ camposC.style.display='none'; }
+  }
+  // Al editar, mostrar campos directamente y ocultar botón Buscar
+  const btnBuscar = document.getElementById('mc-btn-buscar');
+  if(id){
+    const camposC = document.getElementById('mc-campos-cliente');
+    if(camposC) camposC.style.display='block';
+    const resBusq = document.getElementById('mc-resultado-busqueda');
+    if(resBusq) resBusq.style.display='none';
+    if(btnBuscar) btnBuscar.style.display='none';
+  } else {
+    if(btnBuscar) btnBuscar.style.display='block';
   }
   // Resetear panel de posición
   document.getElementById('mc-posicion-tipo').value='';
@@ -1701,6 +1753,15 @@ function guardarCliente(){
     }
   }
   saveClientes(clientes);
+
+  // Archivar en historial en tiempo real si tiene cédula (por si lo eliminan luego)
+  if(editandoId){
+    const cActualizado = getClientes().find(x=>x.id===editandoId);
+    if(cActualizado && cActualizado.cedula){
+      archivarClienteEnHistorial(cActualizado);
+    }
+  }
+
   renderClientes();
   cerrarModal('modal-cliente-overlay');
   showToast('✅ Cliente guardado');
@@ -1783,6 +1844,9 @@ function pagarCuota(id){
   clientes[idx].pagos=clientes[idx].pagos||[];
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
   saveClientes(clientes);
+  // Archivar en historial si tiene cédula
+  const cActPago = getClientes().find(x=>x.id===id);
+  if(cActPago && cActPago.cedula) archivarClienteEnHistorial(cActPago);
   inputEl.value='';
   renderClientes();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
@@ -1895,16 +1959,90 @@ function editarMontoRenovacion(clienteId, ri, valorActual){
 function eliminarCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
+
+  // Si no tiene cédula, pedirla antes de continuar
+  if(!c.cedula || c.cedula.trim()===''){
+    pedirCedulaYEliminar(id);
+    return;
+  }
+
   confirmarAccion(
     '🗑️ Eliminar cliente',
-    `¿Eliminar a ${c.nombre} completamente?\n\nSe borrará todo su historial de pagos y préstamos. Esto no se puede deshacer.`,
+    `¿Eliminar a ${c.nombre}?\n\nSus datos quedarán guardados en el historial con la cédula ${c.cedula}.`,
     '#ff3d3d',
     () => {
-      saveClientes(getClientes().filter(x=>x.id!==id));
+      const clientes = getClientes();
+      const cDel = clientes.find(x=>x.id===id);
+      if(cDel) archivarClienteEnHistorial(cDel);
+      saveClientes(clientes.filter(x=>x.id!==id));
       renderClientes();
-      showToast('🗑️ Cliente eliminado');
+      showToast('✅ Cliente eliminado y guardado en historial');
     }
   );
+}
+
+function pedirCedulaYEliminar(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-pedir-cedula';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+      <div style="font-size:18px;font-weight:900;color:#dc2626;margin-bottom:6px">⚠️ Falta la cédula</div>
+      <div style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.6">
+        <b>${c.nombre}</b> no tiene cédula registrada.<br>
+        Ingresa su cédula para guardar el historial correctamente:
+      </div>
+      <input type="text" id="input-cedula-eliminar" inputmode="numeric"
+        placeholder="Número de cédula"
+        style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;margin-bottom:16px"
+        oninput="this.style.borderColor=this.value.trim().length>3?'#00a844':'#e5e7eb'">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button onclick="document.getElementById('modal-pedir-cedula').remove()"
+          style="padding:14px;background:#f5f5f5;color:#555;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          Cancelar
+        </button>
+        <button onclick="confirmarEliminarConCedula('${id}')"
+          style="padding:14px;background:#dc2626;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          🗑️ Eliminar
+        </button>
+      </div>
+      <button onclick="eliminarSinCedula('${id}')"
+        style="width:100%;margin-top:10px;padding:12px;background:white;color:#aaa;border:1px solid #e5e7eb;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+        Eliminar sin guardar historial
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(()=>{ const el=document.getElementById('input-cedula-eliminar'); if(el) el.focus(); },100);
+}
+
+function confirmarEliminarConCedula(id){
+  const cedula = (document.getElementById('input-cedula-eliminar')?.value||'').trim();
+  const input = document.getElementById('input-cedula-eliminar');
+  if(!cedula || cedula.length < 4){
+    if(input){ input.style.borderColor='#dc2626'; input.focus(); }
+    showToast('⚠️ Ingresa una cédula válida');
+    return;
+  }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(x=>x.id===id);
+  if(idx < 0) return;
+  clientes[idx].cedula = cedula;
+  saveClientes(clientes);
+  archivarClienteEnHistorial(clientes[idx]);
+  saveClientes(getClientes().filter(x=>x.id!==id));
+  document.getElementById('modal-pedir-cedula')?.remove();
+  renderClientes();
+  showToast('✅ Guardado en historial con cédula ' + cedula);
+}
+
+function eliminarSinCedula(id){
+  document.getElementById('modal-pedir-cedula')?.remove();
+  saveClientes(getClientes().filter(x=>x.id!==id));
+  renderClientes();
+  showToast('🗑️ Cliente eliminado (sin historial)');
 }
 
 function compartirClienteWA(id){
@@ -2209,7 +2347,8 @@ function exportarDatos(){
     fechaExportacion: new Date().toISOString(),
     clientes: JSON.parse(lsGet('clientes_v1')||'[]'),
     historial: JSON.parse(lsGet('hist_v3')||'[]'),
-    credenciales: JSON.parse(lsGet('cobrador_credenciales')||'{}')
+    credenciales: JSON.parse(lsGet('cobrador_credenciales')||'{}'),
+    historial_cedulas: JSON.parse(lsGet('historial_cedulas_v1')||'[]')
   };
   const json = JSON.stringify(datos, null, 2);
   const blob = new Blob([json], {type:'application/json'});
@@ -2245,6 +2384,9 @@ function importarDatos(event){
       lsSet('hist_v3', JSON.stringify(datos.historial||[]));
       if(datos.credenciales && datos.credenciales.usuario){
         lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
+      }
+      if(datos.historial_cedulas){
+        lsSet('historial_cedulas_v1', JSON.stringify(datos.historial_cedulas));
       }
       if(datos.manuales){
         Object.keys(datos.manuales).forEach(k=>{
@@ -2786,6 +2928,13 @@ function abrirDetalle(id){
 
   // (correcciones quitadas)
 
+  // Mostrar botón historial si tiene cédula con registros previos
+  const btnHist = document.getElementById('btn-ver-hist-cedula');
+  if(btnHist){
+    const histExiste = c.cedula && getHistorialCedulas().some(h=>h.cedula===c.cedula);
+    btnHist.style.display = histExiste ? 'block' : 'none';
+  }
+
   document.getElementById('pantalla-detalle-cliente').style.display = 'block';
   document.getElementById('pantalla-detalle-cliente').scrollTop = 0;
   document.getElementById('app').style.display = 'none';
@@ -2821,6 +2970,9 @@ function abonarDesdeDetalle(){
   clientes[idx].pagos = clientes[idx].pagos || [];
   clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
   saveClientes(clientes);
+  // Archivar en historial si tiene cédula
+  const cActDet = getClientes().find(x=>x.id===clienteDetalleId);
+  if(cActDet && cActDet.cedula) archivarClienteEnHistorial(cActDet);
   showToast(`✅ Abono de ${fmt(monto)} registrado`);
   abrirDetalle(clienteDetalleId); // refrescar
 }
@@ -3239,6 +3391,13 @@ function generarCartonWA(id){
 
 
 
+
+function verHistorialDesdeDetalle(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c || !c.cedula){ showToast('Este cliente no tiene cédula registrada'); return; }
+  verHistorialCompleto(c.cedula);
+}
+
 // Abrir cartón desde lista de clientes (sin entrar al detalle)
 function abrirCartonCliente(id){
   clienteDetalleId = id;
@@ -3517,6 +3676,376 @@ function descargarCarton(){
   a.href = document.getElementById('canvas-carton').toDataURL('image/png');
   a.click();
 }
+
+
+// ===== HISTORIAL PERMANENTE POR CÉDULA =====
+
+function getHistorialCedulas(){
+  try{ return JSON.parse(lsGet('historial_cedulas_v1')||'[]'); }catch(e){ return []; }
+}
+function saveHistorialCedulas(h){ lsSet('historial_cedulas_v1', JSON.stringify(h)); }
+
+function archivarClienteEnHistorial(c){
+  if(!c || !c.cedula) return;
+  const hist = getHistorialCedulas();
+  const pagado = (c.pagos||[]).reduce((s,p)=>s+p.monto, 0);
+  const entrada = {
+    cedula: c.cedula,
+    nombre: c.nombre,
+    tel: c.tel||'',
+    dir: c.dir||'',
+    fechaArchivado: fechaHoy(),
+    // Ciclos: historial de renovaciones + ciclo actual
+    ciclos: [
+      // Ciclo actual
+      {
+        num: (c.renovaciones||0) + 1,
+        fechaInicio: c.fechaRenovacion || c.fechaCreado || fechaHoy(),
+        fechaFin: fechaHoy(),
+        capital: c.capital||0,
+        prestamo: c.prestamo||0,
+        pagado: pagado,
+        saldoFinal: c.saldo||0,
+        pagos: [...(c.pagos||[])],
+        tipo: c.tipo||'diario',
+        cuota: c.cuotaSugerida||0,
+        cancelado: c.saldo===0
+      },
+      // Ciclos anteriores (renovaciones)
+      ...(c.historialRenovaciones||[]).map(r => ({
+        num: r.numRenovacion,
+        fechaInicio: r.fechaCreado || r.fechaRenovacion || '',
+        fechaFin: r.fecha,
+        capital: r.capitalCiclo||0,
+        prestamo: r.prestamoCiclo||0,
+        pagado: r.totalCancelado||0,
+        saldoFinal: r.saldoQuedaba||0,
+        pagos: r.pagos||[],
+        tipo: r.tipo||'diario',
+        cuota: r.cuotaSugerida||0,
+        cancelado: r.saldoQuedaba===0
+      }))
+    ]
+  };
+  // Buscar si ya existe un registro para esa cédula
+  const idx = hist.findIndex(h => h.cedula === c.cedula);
+  if(idx >= 0){
+    // Agregar los ciclos al existente (evitar duplicados por fecha)
+    entrada.ciclos.forEach(cicloNuevo => {
+      const existe = hist[idx].ciclos.some(cx => cx.fechaInicio === cicloNuevo.fechaInicio && cx.num === cicloNuevo.num);
+      if(!existe) hist[idx].ciclos.push(cicloNuevo);
+    });
+    hist[idx].nombre = c.nombre;
+    hist[idx].tel = c.tel||hist[idx].tel;
+    hist[idx].dir = c.dir||hist[idx].dir;
+    hist[idx].fechaArchivado = fechaHoy();
+  } else {
+    hist.push(entrada);
+  }
+  saveHistorialCedulas(hist);
+}
+
+function buscarHistorialCedula(cedula){ /* legacy - no usado */ }
+
+
+function buscarHistorialPorCedula(){
+  const cedula = (document.getElementById('input-buscar-hist-cedula')?.value||'').trim();
+  if(!cedula || cedula.length < 3){
+    showToast('⚠️ Ingresa un número de cédula');
+    return;
+  }
+  const hist = getHistorialCedulas();
+  const registro = hist.find(h => h.cedula === cedula);
+  if(!registro){
+    showToast('❌ No hay historial registrado para la cédula ' + cedula);
+    return;
+  }
+  verHistorialCompleto(cedula);
+}
+
+function buscarClientePorCedula(){
+  const cedula = (document.getElementById('mc-cedula')?.value||'').trim();
+  const resultado = document.getElementById('mc-resultado-busqueda');
+  const campos = document.getElementById('mc-campos-cliente');
+  if(!resultado || !campos) return;
+
+  if(!cedula || cedula.length < 3){
+    resultado.style.display = 'block';
+    resultado.style.background = '#fff7ed';
+    resultado.style.border = '2px solid #fed7aa';
+    resultado.innerHTML = '<div style="text-align:center;font-size:14px;font-weight:700;color:#c2410c">⚠️ Ingresa un número de cédula válido</div>';
+    campos.style.display = 'none';
+    return;
+  }
+
+  const hist = getHistorialCedulas();
+  const registro = hist.find(h => h.cedula === cedula);
+
+  // Mostrar campos siempre
+  campos.style.display = 'block';
+
+  if(registro){
+    // Cliente encontrado — llenar campos automáticamente
+    const nombreEl = document.getElementById('mc-nombre');
+    const telEl    = document.getElementById('mc-tel');
+    const dirEl    = document.getElementById('mc-dir');
+    if(nombreEl) nombreEl.value = registro.nombre || '';
+    if(telEl)    telEl.value    = registro.tel     || '';
+    if(dirEl)    dirEl.value    = registro.dir     || '';
+
+    const totalPrestado = registro.ciclos.reduce((s,c)=>s+c.prestamo,0);
+    const totalPagado   = registro.ciclos.reduce((s,c)=>s+c.pagado,0);
+    const ultCiclo      = registro.ciclos.slice().sort((a,b)=>b.num-a.num)[0];
+    const ultimaFecha   = ultCiclo?.fechaFin || ultCiclo?.fechaInicio || '';
+
+    // Resumen compacto
+    let ciclosHTML = registro.ciclos.slice().sort((a,b)=>b.num-a.num).slice(0,3).map(ciclo=>{
+      const color = ciclo.cancelado ? '#059669' : '#dc2626';
+      const estado = ciclo.cancelado ? '✅ Cancelado' : '🔴 Debe: '+fmt(ciclo.saldoFinal);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e0e7ff;font-size:12px">
+        <span style="color:#374151;font-weight:700">Préstamo #${ciclo.num} · ${fmt(ciclo.prestamo)}</span>
+        <span style="font-weight:900;color:${color}">${estado}</span>
+      </div>`;
+    }).join('');
+
+    resultado.style.display = 'block';
+    resultado.style.background = '#eff6ff';
+    resultado.style.border = '2px solid #60a5fa';
+    resultado.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-size:28px">📋</div>
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#1d4ed8">${registro.nombre}</div>
+          <div style="font-size:12px;color:#555">Última vez: ${ultimaFecha ? fechaBonita(ultimaFecha) : '—'}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+        <div style="background:white;border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#666;font-weight:700">PRÉSTAMOS</div>
+          <div style="font-size:20px;font-weight:900;color:#1d4ed8">${registro.ciclos.length}</div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#666;font-weight:700">TOTAL PRESTADO</div>
+          <div style="font-size:14px;font-weight:900;color:#d97706">${fmt(totalPrestado)}</div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#666;font-weight:700">TOTAL PAGADO</div>
+          <div style="font-size:14px;font-weight:900;color:#059669">${fmt(totalPagado)}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:900;color:#1d4ed8;margin-bottom:4px;text-transform:uppercase">Últimos préstamos:</div>
+      ${ciclosHTML}
+      ${registro.ciclos.length>3 ? `<div style="text-align:center;font-size:11px;color:#888;margin-top:4px">y ${registro.ciclos.length-3} más...</div>` : ''}
+    `;
+  } else {
+    // Cliente nuevo
+    // Limpiar campos
+    ['mc-nombre','mc-tel','mc-dir'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    resultado.style.display = 'block';
+    resultado.style.background = '#f0fdf4';
+    resultado.style.border = '2px solid #86efac';
+    resultado.innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:28px">🆕</div>
+        <div style="font-size:16px;font-weight:900;color:#166534;margin-top:4px">¡Cliente nuevo!</div>
+        <div style="font-size:13px;color:#555;margin-top:2px">No hay registros anteriores con esta cédula.<br>Completa los datos abajo.</div>
+      </div>
+    `;
+  }
+}
+
+function verHistorialCompleto(cedula){
+  const hist = getHistorialCedulas();
+  const registro = hist.find(h => h.cedula === cedula);
+  if(!registro){ showToast('No hay historial para esta cédula'); return; }
+
+  const ciclosOrdenados = registro.ciclos.slice().sort((a,b)=> b.num - a.num);
+  const totalPrestado   = registro.ciclos.reduce((s,c)=>s+c.prestamo, 0);
+  const totalPagado     = registro.ciclos.reduce((s,c)=>s+c.pagado,   0);
+  const totalCiclos     = registro.ciclos.length;
+
+  // ── Función: analizar constancia de pagos de un ciclo ──
+  function analizarConstancia(pagos, cuota, tipo){
+    if(!pagos || pagos.length === 0) return { emoji:'⚪', texto:'Sin pagos', color:'#999', detalle:'' };
+    const ordenados = pagos.slice().sort((a,b)=> a.fecha > b.fecha ? 1 : -1);
+    // Calcular días entre cada pago consecutivo
+    const intervalos = [];
+    for(let i=1; i<ordenados.length; i++){
+      const d1 = new Date(ordenados[i-1].fecha+'T00:00:00');
+      const d2 = new Date(ordenados[i].fecha+'T00:00:00');
+      const dias = Math.round((d2-d1)/(1000*60*60*24));
+      intervalos.push(dias);
+    }
+    const esperado = tipo==='semanal' ? 7 : 1;
+    const promedio = intervalos.length > 0 ? intervalos.reduce((s,x)=>s+x,0)/intervalos.length : esperado;
+    const atrasados = intervalos.filter(d => d > esperado+1).length;
+    const pct = intervalos.length > 0 ? Math.round((1 - atrasados/intervalos.length)*100) : 100;
+
+    let emoji, texto, color;
+    if(pct >= 90)     { emoji='🟢'; texto='Muy puntual';   color='#059669'; }
+    else if(pct >= 70){ emoji='🟡'; texto='Regular';        color='#d97706'; }
+    else if(pct >= 50){ emoji='🟠'; texto='Poco puntual';  color='#ea580c'; }
+    else               { emoji='🔴'; texto='Muy atrasado';  color='#dc2626'; }
+
+    const detalle = intervalos.length > 0
+      ? `Promedio cada ${promedio.toFixed(1)} días · ${atrasados} pagos tardíos de ${intervalos.length}`
+      : 'Un solo pago';
+    return { emoji, texto, color, detalle, pct };
+  }
+
+  // ── Construir HTML de cada ciclo ──
+  function htmlCiclo(ciclo){
+    const pagosOrd = (ciclo.pagos||[]).slice().sort((a,b)=> a.fecha>b.fecha?1:-1);
+    const constancia = analizarConstancia(pagosOrd, ciclo.cuota, ciclo.tipo);
+    const colorBorde = ciclo.cancelado ? '#059669' : '#dc2626';
+    const estadoLabel = ciclo.cancelado
+      ? '<span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:900">✅ CANCELADO</span>'
+      : `<span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:900">🔴 SALDO: ${fmt(ciclo.saldoFinal)}</span>`;
+
+    // Calcular días que tardó en pagar
+    const diasTotal = (ciclo.fechaInicio && ciclo.fechaFin && ciclo.fechaFin !== ciclo.fechaInicio)
+      ? Math.round((new Date(ciclo.fechaFin+'T00:00:00') - new Date(ciclo.fechaInicio+'T00:00:00'))/(1000*60*60*24))
+      : null;
+    const cuotasEsperadas = ciclo.cuota > 0 ? Math.ceil(ciclo.prestamo / ciclo.cuota) : '?';
+
+    // Pagos detallados con saldo acumulado
+    let saldoAcum = ciclo.prestamo;
+    const pagosHTML = pagosOrd.map((p, i) => {
+      saldoAcum = Math.max(0, saldoAcum - p.monto);
+      // Calcular días desde el pago anterior
+      let diasDesde = '';
+      if(i > 0){
+        const prev = new Date(pagosOrd[i-1].fecha+'T00:00:00');
+        const curr = new Date(p.fecha+'T00:00:00');
+        const d = Math.round((curr-prev)/(1000*60*60*24));
+        const esperado = ciclo.tipo==='semanal' ? 7 : 1;
+        const tarde = d > esperado+1;
+        diasDesde = `<span style="font-size:10px;color:${tarde?'#dc2626':'#059669'};font-weight:700;margin-left:4px">(+${d}d${tarde?' ⚠️':''})</span>`;
+      }
+      return `<div style="display:grid;grid-template-columns:24px 1fr auto auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #f5f5f5">
+        <span style="font-size:11px;color:#aaa;font-weight:700;text-align:right">${i+1}</span>
+        <span style="font-size:12px;color:#374151">${p.fecha ? p.fecha.slice(5).replace('-','/') : '—'}${diasDesde}</span>
+        <span style="font-size:13px;font-weight:900;color:#059669">${fmt(p.monto)}</span>
+        <span style="font-size:11px;color:${saldoAcum>0?'#dc2626':'#059669'};font-weight:700">${fmt(saldoAcum)}</span>
+      </div>`;
+    }).join('');
+
+    return `
+    <div style="border:2px solid ${colorBorde}30;border-left:4px solid ${colorBorde};border-radius:14px;overflow:hidden;margin-bottom:12px">
+      <!-- Encabezado del ciclo -->
+      <div style="background:${colorBorde}10;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-weight:900;color:#111;font-size:15px">Préstamo #${ciclo.num}</span>
+          ${diasTotal ? `<span style="font-size:11px;color:#666;margin-left:8px">${diasTotal} días</span>` : ''}
+        </div>
+        ${estadoLabel}
+      </div>
+      <!-- Datos principales -->
+      <div style="padding:10px 14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="font-size:12px;color:#555">
+            📅 <b>Entregado:</b> ${ciclo.fechaInicio ? fechaBonita(ciclo.fechaInicio) : '—'}
+          </div>
+          <div style="font-size:12px;color:#555">
+            🏁 <b>Cerrado:</b> ${ciclo.fechaFin ? fechaBonita(ciclo.fechaFin) : '—'}
+          </div>
+          <div style="font-size:12px;color:#555">
+            💰 <b>Capital:</b> ${fmt(ciclo.capital)} → ${fmt(ciclo.prestamo)}
+          </div>
+          <div style="font-size:12px;color:#555">
+            📆 <b>Cuota:</b> ${fmt(ciclo.cuota)} × ${cuotasEsperadas}
+          </div>
+          <div style="font-size:12px;color:#059669">
+            ✅ <b>Pagó:</b> ${fmt(ciclo.pagado)} (${pagosOrd.length} pagos)
+          </div>
+          <div style="font-size:12px;color:${ciclo.saldoFinal>0?'#dc2626':'#059669'}">
+            ${ciclo.saldoFinal>0?'🔴':'✅'} <b>Saldo:</b> ${fmt(ciclo.saldoFinal)}
+          </div>
+        </div>
+        <!-- Constancia -->
+        <div style="background:${constancia.color}15;border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">${constancia.emoji}</span>
+          <div>
+            <div style="font-size:13px;font-weight:900;color:${constancia.color}">${constancia.texto}</div>
+            <div style="font-size:11px;color:#666">${constancia.detalle}</div>
+          </div>
+          ${constancia.pct !== undefined ? `<div style="margin-left:auto;font-size:18px;font-weight:900;color:${constancia.color}">${constancia.pct}%</div>` : ''}
+        </div>
+        <!-- Detalle pagos -->
+        ${pagosOrd.length > 0 ? `
+        <details>
+          <summary style="font-size:12px;font-weight:900;color:#1d4ed8;cursor:pointer;padding:4px 0">
+            📋 Ver ${pagosOrd.length} pagos detallados
+          </summary>
+          <div style="margin-top:6px;background:#fafafa;border-radius:8px;padding:6px 8px;max-height:200px;overflow-y:auto">
+            <div style="display:grid;grid-template-columns:24px 1fr auto auto;gap:6px;padding:4px 0;margin-bottom:4px">
+              <span style="font-size:10px;color:#aaa;font-weight:700">#</span>
+              <span style="font-size:10px;color:#aaa;font-weight:700">FECHA</span>
+              <span style="font-size:10px;color:#aaa;font-weight:700">ABONO</span>
+              <span style="font-size:10px;color:#aaa;font-weight:700">RESTA</span>
+            </div>
+            ${pagosHTML}
+          </div>
+        </details>` : '<div style="font-size:12px;color:#aaa;text-align:center;padding:6px">Sin pagos registrados</div>'}
+      </div>
+    </div>`;
+  }
+
+  // ── Construir modal completo ──
+  const ciclosHTML = ciclosOrdenados.map(c => htmlCiclo(c)).join('');
+
+  const modalHTML = `
+  <div id="modal-hist-cedula-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;overflow-y:auto;padding:12px;box-sizing:border-box" onclick="if(event.target===this)this.remove()">
+    <div style="background:#f8faff;border-radius:20px;max-width:500px;margin:0 auto;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:16px 18px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:white;font-weight:900;font-size:17px">📋 ${registro.nombre}</div>
+          <div style="color:rgba(255,255,255,0.75);font-size:12px">C.C. ${registro.cedula} · ${registro.tel||'Sin tel'}</div>
+        </div>
+        <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
+          style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
+      </div>
+
+      <!-- Resumen general -->
+      <div style="padding:14px 16px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:10px;color:#666;font-weight:700;text-transform:uppercase">Préstamos</div>
+            <div style="font-size:24px;font-weight:900;color:#1d4ed8">${totalCiclos}</div>
+          </div>
+          <div style="background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:10px;color:#666;font-weight:700;text-transform:uppercase">Prestado</div>
+            <div style="font-size:16px;font-weight:900;color:#d97706">${fmt(totalPrestado)}</div>
+          </div>
+          <div style="background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:10px;color:#666;font-weight:700;text-transform:uppercase">Pagado</div>
+            <div style="font-size:16px;font-weight:900;color:#059669">${fmt(totalPagado)}</div>
+          </div>
+          <div style="background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:10px;color:#666;font-weight:700;text-transform:uppercase">Ganancia</div>
+            <div style="font-size:16px;font-weight:900;color:#7c3aed">${fmt(totalPagado - registro.ciclos.reduce((s,c)=>s+c.capital,0))}</div>
+          </div>
+        </div>
+
+        <!-- Ciclos -->
+        <div style="font-size:12px;font-weight:900;color:#374151;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+          Historial de préstamos (más reciente primero)
+        </div>
+        ${ciclosHTML}
+      </div>
+    </div>
+  </div>`;
+
+  // Remover modal anterior si existe
+  document.getElementById('modal-hist-cedula-overlay')?.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
 
 // ===== GENERAR PDF LISTA DE CLIENTES =====
 function imprimirListaClientes(){
@@ -3858,12 +4387,14 @@ function descargarBackupDirecto(){
     const v=lsGet('sup_manual_'+f);
     if(v) manuales['sup_manual_'+f]=JSON.parse(v);
   });
+  const historialCedulas=JSON.parse(lsGet('historial_cedulas_v1')||'[]');
   const backup={
     version:2,
     fecha_backup:new Date().toISOString(),
     clientes, historial, credenciales,
     porcentaje_interes:porcentaje,
-    manuales
+    manuales,
+    historial_cedulas: historialCedulas
   };
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
