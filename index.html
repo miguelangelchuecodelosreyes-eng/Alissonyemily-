@@ -342,6 +342,22 @@ body {
   </div>
   <div style="padding:10px 14px 0">
     <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e5e7eb;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#5b8dee'" onblur="this.style.borderColor='#e5e7eb'">
+
+    <!-- HISTORIAL POR CÉDULA -->
+    <div style="margin-top:10px;background:#f5f3ff;border-radius:14px;padding:12px 14px;border:2px solid #ddd6fe">
+      <div style="font-size:11px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 Historial por cédula</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="input-buscar-hist-cedula" inputmode="numeric"
+          placeholder="Número de cédula"
+          style="flex:1;min-width:0;border:2px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;outline:none;letter-spacing:1px;background:white"
+          onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();buscarHistorialPorCedula();}">
+        <button onclick="buscarHistorialPorCedula()"
+          style="flex-shrink:0;background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          Buscar
+        </button>
+      </div>
+    </div>
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e5e7eb">
@@ -658,21 +674,6 @@ body {
     </button>
   </div>
 
-  <!-- BUSCAR HISTORIAL POR CÉDULA -->
-  <div style="margin:0 14px 10px">
-    <div style="font-size:12px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🔍 Buscar historial de cliente anterior</div>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="input-buscar-hist-cedula" inputmode="numeric"
-        placeholder="Número de cédula"
-        style="flex:1;min-width:0;border:2px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
-        onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();buscarHistorialPorCedula();}">
-      <button onclick="buscarHistorialPorCedula()"
-        style="flex-shrink:0;background:#7c3aed;color:white;border:none;border-radius:12px;padding:11px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
-        🔍 Buscar
-      </button>
-    </div>
-  </div>
   <div id="historial-clientes-panel" style="display:none;margin:0 14px 12px">
     <div style="margin-bottom:10px">
       <input type="text" id="buscador-historial"
@@ -3751,16 +3752,221 @@ function buscarHistorialCedula(cedula){ /* legacy - no usado */ }
 function buscarHistorialPorCedula(){
   const cedula = (document.getElementById('input-buscar-hist-cedula')?.value||'').trim();
   if(!cedula || cedula.length < 3){
-    showToast('⚠️ Ingresa un número de cédula');
+    showToast('⚠️ Ingresa el número de cédula');
     return;
   }
+
   const hist = getHistorialCedulas();
   const registro = hist.find(h => h.cedula === cedula);
-  if(!registro){
-    showToast('❌ No hay historial registrado para la cédula ' + cedula);
+
+  if(registro){
+    verHistorialCompleto(cedula);
     return;
   }
-  verHistorialCompleto(cedula);
+
+  // No tiene historial — mostrar opción de crear
+  document.getElementById('modal-hist-cedula-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-hist-cedula-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px;width:100%;max-width:380px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:40px">🔍</div>
+        <div style="font-size:17px;font-weight:900;color:#374151;margin-top:6px">Cédula: ${cedula}</div>
+        <div style="font-size:15px;font-weight:700;color:#dc2626;margin-top:4px">Este cliente no tiene historial registrado</div>
+      </div>
+      <button onclick="abrirCrearHistorialManual('${cedula}')"
+        style="width:100%;padding:14px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px">
+        ➕ Crear historial manualmente
+      </button>
+      <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
+        style="width:100%;padding:12px;background:#f5f5f5;color:#888;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+        Cancelar
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function abrirCrearHistorialManual(cedula){
+  document.getElementById('modal-hist-cedula-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-hist-cedula-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;overflow-y:auto;padding:16px;box-sizing:border-box';
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px;max-width:420px;margin:0 auto;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+      <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:16px 18px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:white;font-weight:900;font-size:16px">➕ Crear historial</div>
+          <div style="color:rgba(255,255,255,0.75);font-size:12px">Cédula: ${cedula}</div>
+        </div>
+        <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
+          style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:7px 13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">👤 Nombre</label>
+          <input id="hm-nombre" type="text" placeholder="Nombre completo"
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📱 Teléfono</label>
+          <input id="hm-tel" type="tel" placeholder="Teléfono (opcional)"
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📅 Fecha préstamo</label>
+          <input id="hm-fecha" type="date" value="${fechaHoy()}"
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💰 Capital</label>
+            <input id="hm-capital" type="number" placeholder="0"
+              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
+              oninput="calcularTotalManual()">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📊 Interés %</label>
+            <input id="hm-interes" type="number" placeholder="20" value="20"
+              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
+              oninput="calcularTotalManual()">
+          </div>
+        </div>
+        <div style="background:#f0f9ff;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:800;color:#1d4ed8" id="hm-total-preview">
+          Total: $0
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💳 Cuota</label>
+          <input id="hm-cuota" type="number" placeholder="0"
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">✅ ¿Canceló?</label>
+          <select id="hm-cancelado"
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            <option value="si">✅ Sí canceló</option>
+            <option value="no">🔴 Quedó debiendo</option>
+          </select>
+        </div>
+        <button onclick="guardarHistorialManual('${cedula}')"
+          style="width:100%;padding:15px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">
+          💾 Guardar historial
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function calcularTotalManual(){
+  const capital = parseFloat(document.getElementById('hm-capital')?.value)||0;
+  const pct     = parseFloat(document.getElementById('hm-interes')?.value)||20;
+  const total   = capital + capital*(pct/100);
+  const el = document.getElementById('hm-total-preview');
+  if(el) el.textContent = 'Total: $' + total.toLocaleString('es-CO');
+}
+
+function guardarHistorialManual(cedula){
+  const nombre   = (document.getElementById('hm-nombre')?.value||'').trim();
+  const tel      = (document.getElementById('hm-tel')?.value||'').trim();
+  const fecha    = document.getElementById('hm-fecha')?.value || fechaHoy();
+  const capital  = parseFloat(document.getElementById('hm-capital')?.value)||0;
+  const pct      = parseFloat(document.getElementById('hm-interes')?.value)||20;
+  const cuota    = parseFloat(document.getElementById('hm-cuota')?.value)||0;
+  const cancelado= document.getElementById('hm-cancelado')?.value === 'si';
+  const total    = capital + capital*(pct/100);
+
+  if(!nombre){ showToast('⚠️ Ingresa el nombre'); return; }
+  if(!capital){ showToast('⚠️ Ingresa el capital'); return; }
+
+  const hist = getHistorialCedulas();
+  const existeIdx = hist.findIndex(h => h.cedula === cedula);
+
+  const cicloNuevo = {
+    num: 1,
+    fechaInicio: fecha,
+    fechaFin: fechaHoy(),
+    capital,
+    prestamo: total,
+    pagado: cancelado ? total : 0,
+    saldoFinal: cancelado ? 0 : total,
+    pagos: [],
+    tipo: 'diario',
+    cuota,
+    cancelado
+  };
+
+  if(existeIdx >= 0){
+    const maxNum = hist[existeIdx].ciclos.reduce((m,c)=>Math.max(m,c.num),0);
+    cicloNuevo.num = maxNum + 1;
+    hist[existeIdx].ciclos.push(cicloNuevo);
+    hist[existeIdx].nombre = nombre;
+    hist[existeIdx].tel = tel || hist[existeIdx].tel;
+  } else {
+    hist.push({ cedula, nombre, tel, dir:'', fechaArchivado: fechaHoy(), ciclos:[cicloNuevo] });
+  }
+
+  saveHistorialCedulas(hist);
+  document.getElementById('modal-hist-cedula-overlay')?.remove();
+  showToast('✅ Historial creado para ' + nombre);
+
+  // Mostrar el historial recién creado
+  setTimeout(()=> verHistorialCompleto(cedula), 300);
+}
+
+
+function prestarAClienteHistorial(cedula, nombre, tel, dir){
+  // Cerrar modal historial
+  document.getElementById('modal-hist-cedula-overlay')?.remove();
+
+  // Verificar si ya es cliente activo con esa cédula
+  const activo = getClientes().find(c => c.cedula === cedula);
+  if(activo && activo.saldo > 0){
+    showToast('⚠️ ' + nombre + ' ya tiene un préstamo activo de ' + fmt(activo.saldo));
+    return;
+  }
+
+  // Abrir modal de nuevo cliente con datos prellenados
+  abrirModalCliente(null);
+
+  // Llenar campos con los datos del historial
+  setTimeout(()=>{
+    const cedulaEl = document.getElementById('mc-cedula');
+    const nombreEl = document.getElementById('mc-nombre');
+    const telEl    = document.getElementById('mc-tel');
+    const dirEl    = document.getElementById('mc-dir');
+    const campos   = document.getElementById('mc-campos-cliente');
+    const resBusq  = document.getElementById('mc-resultado-busqueda');
+
+    if(cedulaEl) cedulaEl.value = cedula;
+    if(nombreEl) nombreEl.value = nombre;
+    if(telEl)    telEl.value    = tel||'';
+    if(dirEl)    dirEl.value    = dir||'';
+    if(campos)   campos.style.display = 'block';
+
+    // Mostrar banner azul de cliente conocido
+    if(resBusq){
+      const hist = getHistorialCedulas();
+      const reg = hist.find(h => h.cedula === cedula);
+      const nPrestamos = reg ? reg.ciclos.length : 0;
+      const totalPagado = reg ? reg.ciclos.reduce((s,c)=>s+c.pagado,0) : 0;
+      resBusq.style.display = 'block';
+      resBusq.style.background = '#eff6ff';
+      resBusq.style.border = '2px solid #60a5fa';
+      resBusq.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">📋</span>
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#1d4ed8">${nombre} — cliente conocido</div>
+            <div style="font-size:12px;color:#555">${nPrestamos} préstamo(s) · Total pagado: ${fmt(totalPagado)}</div>
+          </div>
+        </div>`;
+    }
+  }, 150);
 }
 
 function buscarClientePorCedula(){
@@ -4002,13 +4208,19 @@ function verHistorialCompleto(cedula){
     <div style="background:#f8faff;border-radius:20px;max-width:500px;margin:0 auto;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
 
       <!-- Header -->
-      <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:16px 18px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="color:white;font-weight:900;font-size:17px">📋 ${registro.nombre}</div>
-          <div style="color:rgba(255,255,255,0.75);font-size:12px">C.C. ${registro.cedula} · ${registro.tel||'Sin tel'}</div>
+      <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <div style="color:white;font-weight:900;font-size:17px">📋 ${registro.nombre}</div>
+            <div style="color:rgba(255,255,255,0.75);font-size:12px">C.C. ${registro.cedula} · ${registro.tel||'Sin tel'}</div>
+          </div>
+          <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
+            style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
         </div>
-        <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
-          style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
+        <button onclick="prestarAClienteHistorial('${registro.cedula}','${registro.nombre}','${registro.tel||''}','${registro.dir||''}')"
+          style="width:100%;padding:13px;background:#00a844;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">
+          💵 PRESTAR A ESTE CLIENTE
+        </button>
       </div>
 
       <!-- Resumen general -->
