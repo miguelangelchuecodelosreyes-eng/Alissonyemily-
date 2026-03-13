@@ -676,7 +676,7 @@ body {
       <div style="font-size:14px;font-weight:800;color:#111">📤 Exportar datos</div>
       <div style="font-size:12px;color:#888;font-weight:600">Descarga un archivo con todos tus datos actuales</div>
       <button onclick="exportarDatos()" style="width:100%;padding:14px;background:#00a844;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px">📥 Descargar copia de seguridad</button>
-      <button onclick="guardarEnDrive()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4285F4,#34A853);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px">🟢 Guardar en Google Drive</button>
+
     </div>
 
     <!-- Importar -->
@@ -3752,61 +3752,3 @@ document.addEventListener('DOMContentLoaded',()=>{
 </body>
 </html>
 
-<script>
-// ===== GOOGLE DRIVE BACKUP =====
-const DRIVE_CLIENT_ID = '940730873293-dvi6riv9la8aqeb8oidjllj9mcsrolnm.apps.googleusercontent.com';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-
-function guardarEnDrive(){
-  if(!window.google || !window.google.accounts){
-    showToast('⏳ Cargando Google...');
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = () => iniciarDriveAuth();
-    document.head.appendChild(s);
-    return;
-  }
-  iniciarDriveAuth();
-}
-
-function iniciarDriveAuth(){
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: DRIVE_CLIENT_ID,
-    scope: DRIVE_SCOPE,
-    callback: (resp) => {
-      if(resp.error){ showToast('❌ Error al conectar con Google'); return; }
-      subirBackupDrive(resp.access_token);
-    }
-  });
-  client.requestAccessToken();
-}
-
-function subirBackupDrive(token){
-  const clientes = getClientes();
-  const config = lsGet('cobrador_config') || '{}';
-  const data = JSON.stringify({ clientes, config }, null, 2);
-  const fecha = new Date().toISOString().slice(0,10);
-  const nombre = 'backup-alisson-emily-' + fecha + '.json';
-  const blob = new Blob([data], { type:'application/json' });
-  const meta = JSON.stringify({ name: nombre, mimeType:'application/json' });
-  const form = new FormData();
-  form.append('metadata', new Blob([meta],{type:'application/json'}));
-  form.append('file', blob);
-  showToast('⏳ Subiendo a Drive...');
-  fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-    method:'POST',
-    headers:{ Authorization:'Bearer ' + token },
-    body: form
-  })
-  .then(r => r.json())
-  .then(res => {
-    if(res.id){
-      showToast('✅ Backup guardado en Google Drive');
-      document.getElementById('ultima-copia-info').textContent = '☁️ Última copia en Drive: ' + new Date().toLocaleString('es-CO');
-    } else {
-      showToast('❌ Error al guardar en Drive');
-    }
-  })
-  .catch(() => showToast('❌ Error de conexión'));
-}
-</script>
