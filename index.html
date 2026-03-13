@@ -261,4 +261,3491 @@ body {
 .cancelado-cell-val   { font-size:13px; font-weight:800; }
 .cancelado-total { display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb; }
 .cancelado-total-label { font-size:12px; font-weight:800; color:#555; }
-.cance
+.cancelado-total-val   { font-size:16px; font-weight:900; color:#00a844; }
+.cancelado-resumen-global { background:linear-gradient(135deg,#00a844,#00c853); border-radius:14px; padding:14px 16px; margin-bottom:14px; color:white; }
+.cancelado-resumen-titulo { font-size:11px; font-weight:900; letter-spacing:2px; text-transform:uppercase; opacity:0.8; margin-bottom:10px; }
+.cancelado-resumen-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; }
+.cancelado-resumen-row span:first-child { font-size:13px; opacity:0.9; font-weight:700; }
+.cancelado-resumen-row span:last-child  { font-size:18px; font-weight:900; }
+
+.empty-clientes { text-align:center; padding:40px 20px; color:#bbb; font-size:14px; font-weight:700; }
+
+/* DRAG AND DROP */
+.cliente-card { touch-action: pan-y; }
+.cliente-card.dragging { opacity:0.5; transform:scale(0.98); box-shadow:0 8px 30px rgba(0,0,0,0.2); border:2px dashed #5b8dee; }
+.cliente-card.drag-over { border-top:3px solid #5b8dee; }
+.drag-handle { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#ccc; display:none; }
+.cliente-card-header { position:relative; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="pantalla-login">
+  <div class="login-logo">💰</div>
+  <div class="login-title">Alisson & Emily</div>
+  <div class="login-sub">✨ Gestión de cuentas ✨</div>
+  <div class="login-card">
+    <label class="login-label">👤 Usuario</label>
+    <input type="text" class="login-input" id="login-usuario" placeholder="Usuario" autocomplete="username"
+      onkeydown="if(event.key==='Enter')document.getElementById('login-clave').focus()">
+    <label class="login-label">🔒 Contraseña</label>
+    <input type="password" class="login-input" id="login-clave" placeholder="••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')entrar()">
+    <button class="login-btn" onclick="entrar()">🔓 Entrar</button>
+    <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<!-- BARRA FIJA: aparece cuando se ingresa cuota -->
+<div id="cuota-barra-fija" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;z-index:9999;background:linear-gradient(135deg,#111827,#1f2937);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.5)">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div id="cuota-barra-nombre" style="font-size:16px;font-weight:900;color:white"></div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;margin-top:1px">Ingresando cuota</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px">Nuevo saldo</div>
+      <div id="cuota-barra-saldo" style="font-size:26px;font-weight:900;color:#ff5e5e">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>💰 Alisson & Emily</h1>
+      <div class="header-fecha" id="header-fecha"></div>
+    </div>
+    <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab activo" onclick="irA('clientes')"  id="tab-clientes">👥 Clientes</button>
+    <button class="nav-tab" onclick="irA('detalles')"         id="tab-detalles">📋 Detalles</button>
+    <button class="nav-tab" onclick="irA('prestamos')"        id="tab-prestamos">💸 Préstamos</button>
+    <button class="nav-tab" onclick="irA('cuentas')"          id="tab-cuentas">💰 Cuentas</button>
+    <button class="nav-tab" onclick="irA('ajustes')"          id="tab-ajustes">⚙️ Ajustes</button>
+  </div>
+</div>
+
+<!-- ======= CLIENTES ======= -->
+<div class="pantalla activa" id="pantalla-clientes">
+  <div class="clientes-header">
+    <div class="clientes-titulo">👥 Mis Clientes</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="imprimirListaClientes()" style="background:#FFD700;color:#111;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
+      <button class="btn-nuevo-cliente" onclick="abrirModalCliente()">➕ Nuevo</button>
+    </div>
+  </div>
+  <div style="padding:10px 14px 0">
+    <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e5e7eb;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#5b8dee'" onblur="this.style.borderColor='#e5e7eb'">
+  </div>
+  <!-- Resumen rápido clientes -->
+  <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e5e7eb">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;text-transform:uppercase">Resumen general</div>
+      <div style="font-size:11px;font-weight:800;color:#e06500" id="resumen-porcentaje-label">📈 20%</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#f0f5ff;border-radius:10px;padding:10px 12px;text-align:center">
+        <div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase;margin-bottom:2px">👥 Clientes activos</div>
+        <div id="clientes-count" style="font-size:26px;font-weight:900;color:#5b8dee">0</div>
+      </div>
+      <div style="background:#e8fff2;border-radius:10px;padding:10px 12px;text-align:center;border:1.5px solid #b2f0c8">
+        <div style="font-size:10px;color:#00a844;font-weight:700;text-transform:uppercase;margin-bottom:2px" id="label-pagaron-hoy">✅ Pagaron hoy</div>
+        <div id="clientes-pagaron-hoy" style="font-size:26px;font-weight:900;color:#00a844">0</div>
+      </div>
+    </div>
+  </div>
+  <!-- Botones PDF y Backup -->
+  <div style="margin:10px 14px 0;display:flex;gap:8px">
+    <button onclick="generarPDFRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+      📄 PDF Ruta
+    </button>
+    <button onclick="descargarBackupDirecto()" style="flex:1;padding:13px;background:linear-gradient(135deg,#00874a,#00b84a);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+      💾 Backup
+    </button>
+  </div>
+
+  <div id="clientes-lista"></div>
+</div>
+
+<!-- ======= CUENTAS ======= -->
+<div class="pantalla" id="pantalla-cuentas">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 10px 0">
+
+    <!-- ENTRADAS -->
+    <div style="background:white;border-radius:14px;overflow:hidden;border:1.5px solid #c7d7fd">
+      <div style="background:#5b8dee;padding:5px 10px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
+      <div style="padding:5px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:#888">📅 Fecha</span>
+        <span style="font-size:11px;font-weight:800;color:#5b8dee" id="vista-fecha">—</span>
+      </div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:#555">💵 Base</span>
+        <input type="number" id="input-base" placeholder="0" inputmode="numeric"
+          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
+          oninput="recalcularCuentas()">
+      </div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;background:#f0fff4">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#00a844">📦 General</span>
+          <span style="font-size:14px;font-weight:800;color:#111" id="vista-general">$0</span>
+        </div>
+        <div id="general-detalle" style="font-size:9px;font-weight:700;text-align:right;margin-top:1px"></div>
+      </div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:#555">📋 Papelería</span>
+        <input type="number" id="input-papeleria" placeholder="0" inputmode="numeric"
+          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
+          oninput="recalcularCuentas()">
+      </div>
+      <div style="padding:5px 8px;background:#e8f0fe;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;font-weight:900;color:#5b8dee">TOTAL</span>
+        <span style="font-size:16px;font-weight:900;color:#5b8dee" id="total-entradas">$0</span>
+      </div>
+    </div>
+
+    <!-- SALIDAS -->
+    <div style="background:white;border-radius:14px;overflow:hidden;border:1.5px solid #ffc5c5">
+      <div style="background:#ff3d3d;padding:5px 10px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📤 SALIDAS</div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;background:#fff8f0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#e06500">📤 Préstamos</span>
+          <span style="font-size:14px;font-weight:800;color:#111" id="vista-prestamos">$0</span>
+        </div>
+        <div id="prestamos-detalle" style="font-size:9px;color:#e06500;font-weight:700;text-align:right;margin-top:1px"></div>
+      </div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:#555">💳 Neki</span>
+        <input type="number" id="input-neki" placeholder="0" inputmode="numeric"
+          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
+          oninput="recalcularCuentas()">
+      </div>
+      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:#555">💸 Gasto</span>
+        <input type="number" id="input-gasto" placeholder="0" inputmode="numeric"
+          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
+          oninput="recalcularCuentas()">
+      </div>
+      <div style="padding:5px 8px;background:#fff0f0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;font-weight:900;color:#ff3d3d">TOTAL</span>
+        <span style="font-size:16px;font-weight:900;color:#ff3d3d" id="total-salidas">$0</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- IDs ocultos para compatibilidad -->
+  <span id="vista-base" style="display:none">$0</span>
+  <span id="vista-papeleria" style="display:none">$0</span>
+  <span id="vista-neki" style="display:none">$0</span>
+  <span id="vista-gasto" style="display:none">$0</span>
+
+  <div class="resultado-final">
+    <div class="resultado-header">🧮 Resultado del día</div>
+    <div class="resultado-body">
+      <div class="resultado-linea"><span>Total entradas</span><span id="r-entradas">$0</span></div>
+      <div class="resultado-linea"><span>Total salidas</span><span id="r-salidas">$0</span></div>
+      <div class="resultado-caja positivo" id="caja-resultado">
+        <div class="resultado-caja-label positivo" id="resultado-label">LO QUE QUEDA</div>
+        <div class="resultado-caja-num positivo" id="resultado-num">$0</div>
+      </div>
+      <div class="resultado-sep"></div>
+      <div class="entregado-row">
+        <div class="entregado-label">🏦 Entregado a oficina</div>
+        <input type="number" id="input-entregado" placeholder="0"
+          style="background:transparent;border:none;border-bottom:2px solid rgba(255,255,255,0.3);color:white;font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;text-align:right;width:140px;outline:none;padding:4px 0"
+          oninput="recalcularCuentas()" inputmode="numeric">
+      </div>
+      <div class="descuadre-caja neutro" id="caja-descuadre">
+        <div class="descuadre-label neutro" id="descuadre-label">DESCUADRE</div>
+        <div class="descuadre-num neutro" id="descuadre-num">—</div>
+      </div>
+      <div class="resultado-sep"></div>
+      <div class="entregado-row">
+        <div class="entregado-label">❌ Cancelados</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <div style="font-size:18px;font-weight:800;color:#fff" id="vista-cancelados">—</div>
+          <div id="cancelados-detalle" style="font-size:11px;color:#aaa;font-weight:700;text-align:right"></div>
+        </div>
+      </div>
+      <div class="descuadre-caja neutro" id="caja-pleno">
+        <div class="descuadre-label neutro" id="pleno-label">PLENO</div>
+        <div class="descuadre-num neutro" id="pleno-num">—</div>
+      </div>
+
+      <!-- CLIENTES NUEVOS Y RENOVACIONES DEL DÍA -->
+      <div id="bloque-nuevos-renovaciones" style="display:none">
+        <div class="resultado-sep"></div>
+        <div id="bloque-nuevos" style="display:none;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:900;color:#00c853;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">🆕 CLIENTES NUEVOS HOY</div>
+          <div id="lista-nuevos-hoy"></div>
+        </div>
+        <div id="bloque-renovaciones" style="display:none">
+          <div style="font-size:11px;font-weight:900;color:#f59e0b;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">🔄 RENOVACIONES HOY</div>
+          <div id="lista-renovaciones-hoy"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones guardar y compartir -->
+  <div class="botones" style="margin-top:14px">
+    <button class="btn btn-guardar" onclick="guardarDia()">💾 Guardar día</button>
+    <button class="btn btn-limpiar" onclick="limpiarCuentas()">🗑️ Limpiar</button>
+  </div>
+  <div class="botones-compartir" style="margin-top:10px">
+    <button class="btn-wa" onclick="compartirWA(null)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.126 1.529 5.863L.057 23.428a.5.5 0 00.609.61l5.692-1.479A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.927 9.927 0 01-5.031-1.368l-.361-.214-3.741.972.994-3.639-.235-.374A9.927 9.927 0 012.062 12C2.062 6.515 6.515 2.062 12 2.062S21.938 6.515 21.938 12 17.485 21.938 12 21.938z"/></svg>
+      Compartir por WhatsApp
+    </button>
+    <button class="btn-copiar" onclick="copiarTexto(null)">📋</button>
+  </div>
+
+
+  <!-- RESUMEN SEMANAL PRÉSTAMOS Y PAPELERÍA -->
+  <div id="bloque-resumen-semanal" style="margin:14px 0 0;background:white;border-radius:16px;overflow:hidden;border:1.5px solid #e5e7eb;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;font-weight:900;color:white;letter-spacing:1px;">📊 RESUMEN SEMANAL</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:700;" id="resumen-sem-rango">—</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#f0f0f0;">
+      <div style="background:white;padding:14px 16px;">
+        <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:4px;">📤 PRESTADO</div>
+        <div style="font-size:22px;font-weight:900;color:#e06500;" id="resumen-sem-prestado">$0</div>
+        <div style="font-size:11px;font-weight:700;color:#bbb;" id="resumen-sem-prestado-dias">0 días</div>
+      </div>
+      <div style="background:white;padding:14px 16px;">
+        <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:4px;">📋 PAPELERÍA</div>
+        <div style="font-size:22px;font-weight:900;color:#5b8dee;" id="resumen-sem-papeleria">$0</div>
+        <div style="font-size:11px;font-weight:700;color:#bbb;" id="resumen-sem-papeleria-dias">0 días</div>
+      </div>
+    </div>
+    <div style="background:#f8f9ff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;">
+      <button onclick="cambiarSemanaResumen(-1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">← Ant.</button>
+      <div style="font-size:12px;font-weight:800;color:#666;" id="resumen-sem-semana">Semana actual</div>
+      <button onclick="cambiarSemanaResumen(1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">Sig. →</button>
+    </div>
+  </div>
+
+  <div class="historial-seccion">
+    <div class="historial-titulo">📅 Días guardados</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+      <input type="date" id="filtro-historial-fecha"
+        style="flex:1;padding:10px 12px;border:2px solid #e5e7eb;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
+        oninput="renderHistorial()"
+        onfocus="this.style.borderColor='#5b8dee'"
+        onblur="this.style.borderColor='#e5e7eb'">
+      <button onclick="document.getElementById('filtro-historial-fecha').value='';renderHistorial();"
+        style="padding:10px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e5e7eb;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
+        Ver todos
+      </button>
+    </div>
+    <div id="historial-lista"></div>
+  </div>
+</div>
+
+<!-- ======= SEMANA ======= -->
+<div class="pantalla" id="pantalla-semana">
+  <div class="semana-card">
+    <div class="semana-header">
+      <div>
+        <div class="semana-header-titulo">📊 Resumen semanal</div>
+        <div class="semana-header-rango" id="semana-rango">Esta semana</div>
+      </div>
+    </div>
+    <div class="semana-body" id="semana-body"><div class="empty-hist">Guarda días para ver el resumen</div></div>
+  </div>
+  <div style="margin:14px 14px 0;display:flex;gap:10px;">
+    <button class="btn btn-guardar" style="flex:1" onclick="cambiarSemana(-1)">← Anterior</button>
+    <button class="btn btn-limpiar" style="flex:1" onclick="cambiarSemana(1)">Siguiente →</button>
+  </div>
+  <div id="semana-dias-lista"></div>
+</div>
+
+<!-- ======= DETALLES ======= -->
+<div class="pantalla" id="pantalla-detalles">
+
+  <!-- Filtro de fecha -->
+  <div style="margin:14px 14px 0;display:flex;gap:8px;align-items:center">
+    <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e5e7eb;display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
+      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#5b8dee;flex:1" oninput="renderDetalles()">
+    </div>
+    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:#5b8dee;border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+    <button onclick="imprimirReporteDia()" style="background:#FFD700;border:none;color:#111;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
+  </div>
+
+  <!-- Resumen total -->
+  <div style="margin:10px 14px 0;background:linear-gradient(135deg,#111827,#1f2937);border-radius:20px;padding:16px 18px">
+    <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">📊 Resumen general</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;letter-spacing:1px">💰 Total cuotas</div>
+        <div id="res-total-cuotas" style="font-size:22px;font-weight:900;color:#00c853;margin-top:4px">$0</div>
+        <div id="res-num-cuotas" style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700">0 pagos</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;letter-spacing:1px">❌ Cancelados</div>
+        <div id="res-total-cancelados" style="font-size:22px;font-weight:900;color:#ff5e5e;margin-top:4px">0</div>
+        <div id="res-monto-cancelados" style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700">$0 total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista cuotas del día / todas -->
+  <div style="margin:12px 14px 0">
+    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">💰 Cuotas cobradas</div>
+    <div id="lista-cuotas-det"></div>
+  </div>
+
+  <!-- Lista cancelados -->
+  <div style="margin:12px 14px 0">
+    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">❌ Clientes cancelados</div>
+    <div id="lista-cancelados-det"></div>
+  </div>
+
+</div>
+
+<!-- ======= PRÉSTAMOS ======= -->
+<div class="pantalla" id="pantalla-prestamos">
+
+  <!-- Resumen total prestado -->
+  <div style="margin:14px 14px 0;background:linear-gradient(135deg,#111827,#1f2937);border-radius:20px;padding:16px 18px">
+    <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">💸 Resumen de préstamos</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;letter-spacing:1px">🆕 Nuevos hoy</div>
+        <div id="pres-nuevos-hoy" style="font-size:22px;font-weight:900;color:#00c853;margin-top:4px">$0</div>
+        <div id="pres-num-nuevos" style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700">0 clientes</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;letter-spacing:1px">🔄 Renovados hoy</div>
+        <div id="pres-renovados-hoy" style="font-size:22px;font-weight:900;color:#f59e0b;margin-top:4px">$0</div>
+        <div id="pres-num-renovados" style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700">0 clientes</div>
+      </div>
+    </div>
+    <!-- Total histórico prestado -->
+    <div style="margin-top:12px;background:rgba(91,141,238,0.3);border-radius:14px;padding:14px 16px;border:1.5px solid rgba(91,141,238,0.5)">
+      <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">📊 Total prestado históricamente</div>
+      <div id="pres-total-historico" style="font-size:30px;font-weight:900;color:white">$0</div>
+      <div id="pres-detalle-historico" style="font-size:12px;color:rgba(255,255,255,0.5);font-weight:700;margin-top:2px"></div>
+    </div>
+  </div>
+
+  <!-- Nuevos del día -->
+  <div style="margin:12px 14px 0">
+    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">🆕 Clientes nuevos hoy</div>
+    <div id="lista-nuevos-prestamos"></div>
+  </div>
+
+  <!-- Renovaciones del día -->
+  <div style="margin:12px 14px 0">
+    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">🔄 Renovaciones hoy</div>
+    <div id="lista-renovaciones-prestamos"></div>
+  </div>
+
+  <!-- Todos los clientes con su total prestado -->
+  <div style="margin:12px 14px 0">
+    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">📋 Historial por cliente</div>
+    <div id="lista-historico-prestamos"></div>
+  </div>
+
+</div>
+
+<!-- ======= AJUSTES ======= -->
+<div class="pantalla" id="pantalla-ajustes">
+
+  <!-- COPIA DE SEGURIDAD -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo titulo-verde">💾 Copia de seguridad</div>
+
+    <!-- Info -->
+    <div style="padding:12px 16px;background:#f0fff4;border-bottom:1px solid #e5e7eb">
+      <div style="font-size:13px;font-weight:700;color:#00a844">¿Para qué sirve?</div>
+      <div style="font-size:12px;color:#555;font-weight:600;margin-top:4px;line-height:1.5">Guarda todos tus clientes, pagos e historial en un archivo. Si cambias de celular o borras Chrome, puedes restaurarlos fácilmente.</div>
+    </div>
+
+    <!-- Exportar -->
+    <div class="campo" style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:8px">
+      <div style="font-size:14px;font-weight:800;color:#111">📤 Exportar datos</div>
+      <div style="font-size:12px;color:#888;font-weight:600">Descarga un archivo con todos tus datos actuales</div>
+      <button onclick="exportarDatos()" style="width:100%;padding:14px;background:#00a844;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px">📥 Descargar copia de seguridad</button>
+    </div>
+
+    <!-- Importar -->
+    <div class="campo" style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:8px;border-top:1px solid #f0f0f0">
+      <div style="font-size:14px;font-weight:800;color:#111">📂 Restaurar datos</div>
+      <div style="font-size:12px;color:#888;font-weight:600">Carga una copia guardada anteriormente</div>
+      <label style="width:100%;padding:14px;background:#f0f5ff;color:#5b8dee;border:2px solid #b8ceff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;display:block;margin-top:4px">
+        📂 Seleccionar archivo de copia
+        <input type="file" accept=".json" onchange="importarDatos(event)" style="display:none">
+      </label>
+    </div>
+
+    <!-- Última copia -->
+    <div style="padding:10px 16px 14px;border-top:1px solid #f0f0f0">
+      <div id="ultima-copia-info" style="font-size:12px;color:#aaa;font-weight:600;text-align:center">No hay copias registradas aún</div>
+    </div>
+  </div>
+
+  <!-- CONFIGURACIÓN -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo titulo-oscuro">⚙️ Configuración</div>
+    <div class="campo">
+      <div class="campo-label" style="font-size:13px;color:#bbb">🔒 Modificaciones solo desde supervisor</div>
+    </div>
+  </div>
+
+  <!-- PORCENTAJE DE INTERÉS -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo" style="background:linear-gradient(135deg,#e06500,#f59e0b)">📈 Porcentaje de interés</div>
+    <div style="padding:16px">
+      <div style="font-size:13px;color:#666;font-weight:600;margin-bottom:12px">Define el porcentaje que se aplica a todos los préstamos nuevos. El porcentaje actual es:</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="flex:1;position:relative">
+          <input type="number" id="input-porcentaje" min="1" max="100" step="0.5"
+            style="width:100%;border:2px solid #ffd580;border-radius:14px;padding:14px 44px 14px 16px;font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;outline:none;color:#e06500;text-align:center;background:#fff7e6"
+            oninput="previsualizarPorcentaje()">
+          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:900;color:#e06500">%</span>
+        </div>
+      </div>
+      <!-- Preview cálculo -->
+      <div id="preview-porcentaje" style="display:none;background:#fff7e6;border-radius:12px;padding:12px 14px;border:2px solid #ffd580;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:900;color:#e06500;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Ejemplo con $1.000</div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0">
+          <span style="color:#888;font-weight:700">Capital</span><span id="prev-capital" style="font-weight:900;color:#333">$1.000</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0">
+          <span style="color:#888;font-weight:700">Interés</span><span id="prev-interes" style="font-weight:900;color:#e06500">$0</span>
+        </div>
+        <div style="height:1px;background:#ffd580;margin:6px 0"></div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;padding:3px 0">
+          <span style="color:#111;font-weight:900">Total a cobrar</span><span id="prev-total" style="font-weight:900;color:#111">$0</span>
+        </div>
+      </div>
+      <button onclick="guardarPorcentaje()" style="width:100%;padding:14px;background:linear-gradient(135deg,#e06500,#f59e0b);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">💾 Guardar porcentaje</button>
+      <div id="porcentaje-actual-info" style="text-align:center;margin-top:10px;font-size:13px;color:#aaa;font-weight:700"></div>
+    </div>
+  </div>
+
+</div>
+</div><!-- fin app -->
+
+<!-- PANTALLA DETALLES CLIENTE -->
+<div id="pantalla-detalle-cliente" style="display:none;position:fixed;inset:0;background:#f0f5ff;z-index:200;max-width:600px;margin:0 auto;overflow-y:auto;padding-bottom:40px">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#111827,#1f2937);padding:18px 16px 14px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10">
+    <button onclick="cerrarDetalle()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:10px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">← Volver</button>
+    <div>
+      <div id="det-nombre" style="font-size:17px;font-weight:900;color:white"></div>
+      <div id="det-cedula" style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:600"></div>
+    </div>
+  </div>
+
+  <!-- Ficha principal -->
+  <div style="margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+    <div style="background:#111827;padding:10px 16px">
+      <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase">📋 Datos del préstamo</div>
+    </div>
+    <div style="padding:0 16px">
+
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <span style="font-size:13px;font-weight:700;color:#888">F. REGISTRO</span>
+        <span id="det-f-registro" style="font-size:13px;font-weight:800;color:#333"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <span style="font-size:13px;font-weight:700;color:#888">INICIÓ</span>
+        <span id="det-inicio" style="font-size:13px;font-weight:800;color:#5b8dee"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <span style="font-size:13px;font-weight:700;color:#888">FINAL</span>
+        <span id="det-final" style="font-size:13px;font-weight:800;color:#5b8dee"></span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">VALOR</div>
+          <div id="det-valor" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">TOTAL</div>
+          <div id="det-total" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">MODO</div>
+          <div id="det-modo" style="font-size:16px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">N° CUOTAS</div>
+          <div id="det-ncuotas" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">V. CUOTA</div>
+          <div id="det-vcuota" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">PORCENTAJE</div>
+          <div id="det-porcentaje-val" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px">20%</div>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">DÍAS ATRASO</div>
+          <div id="det-dias-atraso" style="font-size:18px;font-weight:900;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">DÍAS VENCIDOS</div>
+          <div id="det-dias-vencidos" style="font-size:18px;font-weight:900;margin-top:2px"></div>
+        </div>
+      </div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:4px">ÚLT. ABONO</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span id="det-ult-monto" style="font-size:18px;font-weight:900;color:#00a844"></span>
+          <span id="det-ult-fecha" style="font-size:13px;font-weight:700;color:#5b8dee"></span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">U/A (últ. abonos)</div>
+          <div id="det-ua" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">D.D (días / total)</div>
+          <div id="det-dd" style="font-size:18px;font-weight:900;color:#5b8dee;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">ABONOS</div>
+          <div id="det-abonos" style="font-size:18px;font-weight:900;color:#00a844;margin-top:2px"></div>
+        </div>
+        <div style="padding:10px 0 10px 10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">SALDO</div>
+          <div id="det-saldo" style="font-size:18px;font-weight:900;color:#ff3d3d;margin-top:2px"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #f0f0f0">
+        <div style="padding:10px 0;border-right:1px solid #f0f0f0;padding-right:10px">
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase">💸 NUEVO SALDO</div>
+          <div id="det-nuevo-saldo-inline" style="font-size:18px;font-weight:900;color:#ff3d3d;margin-top:2px">—</div>
+        </div>
+        <div style="padding:10px 0 10px 10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Abonar -->
+  <div style="margin:14px 14px 0;background:white;border-radius:20px;padding:16px;border:1px solid #e5e7eb;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+    <div style="font-size:13px;font-weight:900;color:#333;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">VALOR A ABONAR</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="number" id="det-abonar-input" placeholder="Ingrese el valor"
+        style="flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
+        oninput="actualizarNuevoSaldo()">
+      <button onclick="abonarDesdeDetalle()" style="background:#555;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">ABONAR</button>
+    </div>
+    <div style="margin-top:10px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff3d3d">$0</span></div>
+  </div>
+
+  <!-- Botones acción -->
+  <div style="margin:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button onclick="verAbonosDetalle()" style="background:#5b8dee;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
+    <button onclick="renovarDesdeDetalle()" style="background:#ff3d3d;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">RENOVAR</button>
+  </div>
+
+
+  </div>
+
+
+  <!-- Historial abonos (oculto por defecto) -->
+  <div id="det-historial-box" style="display:none;margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e5e7eb">
+    <div style="background:#5b8dee;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
+      <button onclick="document.getElementById('det-historial-box').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+    </div>
+    <div id="det-historial-lista" style="padding:0 16px"></div>
+    <div style="background:#e8fff2;padding:10px 16px;display:flex;justify-content:space-between;border-top:2px solid #b2f0c8">
+      <span style="font-size:12px;font-weight:900;color:#00a844;text-transform:uppercase">Total abonado</span>
+      <span id="det-historial-total" style="font-size:18px;font-weight:900;color:#00a844"></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL ORDENAR CLIENTES -->
+<div class="modal-overlay" id="modal-ordenar-overlay" onclick="cerrarModalSi(event,'modal-ordenar-overlay')">
+  <div class="modal">
+    <div class="modal-titulo">📋 Ordenar Clientes</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <button onclick="ordenarClientes('nombre')" style="padding:14px;background:#f0f5ff;color:#5b8dee;border:2px solid #b8ceff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔤 Ordenar por nombre (A-Z)</button>
+      <button onclick="ordenarClientes('saldo-desc')" style="padding:14px;background:#fff0f0;color:#ff3d3d;border:2px solid #ffcaca;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔴 Mayor saldo primero</button>
+      <button onclick="ordenarClientes('saldo-asc')" style="padding:14px;background:#f0fff4;color:#00a844;border:2px solid #b2f0c8;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🟢 Menor saldo primero</button>
+      <button onclick="ordenarClientes('fecha-nuevo')" style="padding:14px;background:#fff7e6;color:#e06500;border:2px solid #ffd580;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🆕 Más reciente primero</button>
+      <button onclick="ordenarClientes('fecha-viejo')" style="padding:14px;background:#f8f9ff;color:#7c3aed;border:2px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">📅 Más antiguo primero</button>
+      <button onclick="ordenarClientes('atraso')" style="padding:14px;background:#111827;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">⏰ Mayor atraso primero</button>
+    </div>
+    <button onclick="cerrarModal('modal-ordenar-overlay')" style="width:100%;padding:14px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cliente-overlay" onclick="cerrarModalSi(event,'modal-cliente-overlay')">
+  <div class="modal">
+    <div class="modal-titulo" id="modal-cliente-titulo">➕ Nuevo Cliente</div>
+
+    <div class="modal-campo">
+      <label class="modal-label">👤 Nombre completo</label>
+      <input type="text" class="modal-input" id="mc-nombre" placeholder="Nombre del cliente">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">🪪 Número de cédula</label>
+      <input type="text" class="modal-input" id="mc-cedula" placeholder="Cédula del cliente" inputmode="numeric">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">📱 Teléfono</label>
+      <input type="tel" class="modal-input" id="mc-tel" placeholder="Número de teléfono">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">📍 Dirección</label>
+      <input type="text" class="modal-input" id="mc-dir" placeholder="Dirección">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">💰 Valor del préstamo</label>
+      <input type="number" class="modal-input" id="mc-prestamo" placeholder="0" oninput="actualizarResumenPrestamo()">
+    </div>
+    <div class="modal-campo" id="campo-interes-personalizado">
+      <label class="modal-label">📊 Interés % (dejar vacío = usar el global)</label>
+      <input type="number" class="modal-input" id="mc-interes" placeholder="Ej: 20" min="0" max="100" oninput="actualizarResumenPrestamo()">
+    </div>
+
+    <!-- RESUMEN CON 20% -->
+    <div class="prestamo-resumen" id="prestamo-resumen" style="display:none">
+      <div class="prestamo-res-row">
+        <span>Capital prestado</span>
+        <span id="pr-capital">$0</span>
+      </div>
+      <div class="prestamo-res-row">
+        <span id="pr-interes-label">Interés 20%</span>
+        <span id="pr-interes">$0</span>
+      </div>
+      <div class="prestamo-res-divider"></div>
+      <div class="prestamo-res-row total">
+        <span style="font-weight:900;color:#111">💵 Total a cobrar</span>
+        <span id="pr-total">$0</span>
+      </div>
+    </div>
+
+    <div class="modal-campo" style="margin-top:14px">
+      <label class="modal-label">📅 Tipo de pago</label>
+      <select class="modal-select" id="mc-tipo" onchange="actualizarDiasPrestamo()">
+        <option value="semanal">📅 Semanal</option>
+        <option value="diario">☀️ Diario</option>
+      </select>
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">💳 Cuota sugerida (opcional)</label>
+      <input type="number" class="modal-input" id="mc-cuota" placeholder="0" oninput="actualizarDiasPrestamo()">
+    </div>
+    <!-- Días del préstamo calculados -->
+    <div id="dias-prestamo-info" style="display:none;background:#f8f0ff;border-radius:12px;padding:12px 14px;margin-top:4px;border:2px solid #d8b4fe">
+      <div style="font-size:11px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⏱ Duración del préstamo</div>
+      <div id="dias-prestamo-texto" style="font-size:16px;font-weight:900;color:#7c3aed"></div>
+      <div id="dias-prestamo-sub" style="font-size:12px;color:#a78bfa;font-weight:700;margin-top:2px"></div>
+    </div>
+
+    <!-- ORDENAR POSICIÓN -->
+    <div style="margin-top:16px">
+      <button onclick="togglePosicion()" id="btn-toggle-posicion"
+        style="width:100%;padding:13px;background:#f8f9ff;color:#5b8dee;border:2px solid #b8ceff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+        <span>📋 ¿Dónde va en la lista?</span>
+        <span id="posicion-btn-arrow" style="font-size:18px">›</span>
+      </button>
+      <!-- Panel expandible -->
+      <div id="panel-posicion" style="display:none;margin-top:8px;background:#f8f9ff;border-radius:14px;padding:14px;border:2px solid #b8ceff">
+        <!-- Botones Antes / Después -->
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button onclick="seleccionarPosicion('antes')" id="btn-pos-antes"
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f0f5ff;color:#5b8dee;border:2px solid #b8ceff">
+            ⬆️ Antes de...
+          </button>
+          <button onclick="seleccionarPosicion('despues')" id="btn-pos-despues"
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f0f5ff;color:#5b8dee;border:2px solid #b8ceff">
+            ⬇️ Después de...
+          </button>
+        </div>
+        <!-- Lista de clientes para referencia -->
+        <div id="lista-posicion-clientes" style="display:none;max-height:220px;overflow-y:auto;border-radius:10px;border:1.5px solid #e5e7eb;background:white">
+          <div id="lista-posicion-items"></div>
+        </div>
+        <!-- Resultado seleccionado -->
+        <div id="posicion-seleccionada-info" style="display:none;margin-top:8px;padding:10px 12px;background:#e8fff2;border-radius:10px;border:1.5px solid #00c853">
+          <div style="font-size:13px;font-weight:900;color:#00a844" id="posicion-texto-resultado">—</div>
+        </div>
+        <input type="hidden" id="mc-posicion-tipo" value="">
+        <input type="hidden" id="mc-posicion-ref-id" value="">
+      </div>
+    </div>
+
+    <input type="hidden" id="mc-id">
+    <div class="modal-btns">
+      <button class="modal-btn-ok" onclick="guardarCliente()">💾 Guardar</button>
+      <button class="modal-btn-cancel" onclick="cerrarModal('modal-cliente-overlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENOVAR -->
+<div class="modal-overlay" id="modal-renovar-overlay" onclick="cerrarModalSi(event,'modal-renovar-overlay')">
+  <div class="modal">
+    <div class="modal-titulo">🔄 Renovar Préstamo</div>
+    <div class="renovar-info" id="renovar-info"></div>
+    <div class="modal-campo">
+      <label class="modal-label">💰 Nuevo valor del préstamo</label>
+      <input type="number" class="modal-input" id="ren-prestamo" placeholder="0" oninput="actualizarResumenRenovar()">
+    </div>
+    <div class="prestamo-resumen" id="renovar-resumen" style="display:none">
+      <div class="prestamo-res-row"><span>Préstamo (capital)</span><span id="rr-capital" style="color:#5b8dee">$0</span></div>
+      <div class="prestamo-res-row"><span>Interés 20%</span><span id="rr-interes" style="color:#e07b00">$0</span></div>
+      <div class="prestamo-res-divider"></div>
+      <div class="prestamo-res-row total"><span style="font-weight:900;color:#111">💵 Total a cobrar</span><span id="rr-total">$0</span></div>
+      <div class="prestamo-res-divider"></div>
+      <div class="prestamo-res-row"><span style="color:#888">Saldo del cliente</span><span id="rr-saldo-ant" style="color:#00a844;font-weight:900">$0</span></div>
+      <!-- Lo que tú debes entregar al cliente físicamente -->
+      <div style="margin-top:10px;border-radius:12px;padding:14px 16px;text-align:center" id="rr-diferencia-box">
+        <div id="rr-diferencia-label" style="font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px"></div>
+        <div id="rr-diferencia-monto" style="font-size:32px;font-weight:900"></div>
+        <div id="rr-diferencia-sub" style="font-size:12px;margin-top:6px;font-weight:700;opacity:0.75"></div>
+      </div>
+    </div>
+    <div class="modal-campo" style="margin-top:14px">
+      <label class="modal-label">📅 Tipo de pago</label>
+      <select class="modal-select" id="ren-tipo">
+        <option value="semanal">📅 Semanal</option>
+        <option value="diario">☀️ Diario</option>
+      </select>
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">💳 Nueva cuota sugerida (opcional)</label>
+      <input type="number" class="modal-input" id="ren-cuota" placeholder="0">
+    </div>
+    <input type="hidden" id="ren-id">
+    <div class="modal-btns">
+      <button class="modal-btn-ok" onclick="confirmarRenovar()">🔄 Renovar</button>
+      <button class="modal-btn-cancel" onclick="cerrarModal('modal-renovar-overlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL CANCELADOS -->
+<div class="modal-overlay" id="modal-cancelados-overlay" onclick="cerrarModalSi(event,'modal-cancelados-overlay')">
+  <div class="modal">
+    <div class="modal-titulo">📋 Historial de cancelados</div>
+    <div id="cancelados-cliente-nombre" style="font-size:14px;color:#888;font-weight:700;margin-top:-14px;margin-bottom:16px;"></div>
+    <div id="cancelados-body"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" style="flex:1" onclick="cerrarModal('modal-cancelados-overlay')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLAVE -->
+<div class="modal-overlay" id="modal-clave-overlay" onclick="cerrarModalSi(event,'modal-clave-overlay')">
+  <div class="modal">
+    <div class="modal-titulo">🔑 Cambiar clave</div>
+    <div class="modal-campo">
+      <label class="modal-label">Clave actual</label>
+      <input type="password" class="modal-input" id="clave-actual" placeholder="••••">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">Nueva clave</label>
+      <input type="password" class="modal-input" id="clave-nueva" placeholder="••••">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">Repetir nueva clave</label>
+      <input type="password" class="modal-input" id="clave-confirmar" placeholder="••••">
+    </div>
+    <div class="login-error" id="clave-error" style="display:none;margin-bottom:8px">—</div>
+    <div class="modal-btns">
+      <button class="modal-btn-ok" onclick="guardarClave()">✅ Guardar</button>
+      <button class="modal-btn-cancel" onclick="cerrarModal('modal-clave-overlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN PERSONALIZADO -->
+<div class="modal-overlay" id="modal-confirmar-overlay">
+  <div class="modal" style="padding:28px 20px 24px">
+    <div id="modal-confirmar-titulo" style="font-size:18px;font-weight:900;color:#111;margin-bottom:10px"></div>
+    <div id="modal-confirmar-msg" style="font-size:14px;color:#555;font-weight:600;line-height:1.6;margin-bottom:20px;white-space:pre-line"></div>
+    <div style="display:flex;gap:10px">
+      <button id="modal-confirmar-ok" style="flex:2;padding:15px;background:#ff3d3d;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Sí, continuar</button>
+      <button onclick="cerrarModal('modal-confirmar-overlay')" style="flex:1;padding:15px;background:#f0f5ff;color:#888;border:2px solid #b8ceff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== UTILS =====
+function fmt(n) { return '$' + Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function val(id) { return parseFloat(document.getElementById(id).value)||0; }
+function fechaHoy() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fechaBonita(f) {
+  if(!f) return '';
+  const [y,m,d]=f.split('-');
+  const mes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${parseInt(d)} de ${mes[parseInt(m)-1]} de ${y}`;
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.opacity='0',2600);
+}
+function cerrarModal(id) { document.getElementById(id).classList.remove('visible'); }
+function cerrarModalSi(e,id) { if(e.target===document.getElementById(id)) cerrarModal(id); }
+
+// ===== STORAGE CON FALLBACK (funciona desde administrador de archivos) =====
+window._memStorage = {};
+// ===== FECHA ACTIVA GLOBAL =====
+window._fechaActiva = null;
+function getFechaActiva(){ return window._fechaActiva || fechaHoy(); }
+function setFechaActiva(f){ window._fechaActiva = f; }
+
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return window._memStorage[k]||null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} window._memStorage[k]=v; }
+function lsRemove(k){ try{ localStorage.removeItem(k); }catch(e){} delete window._memStorage[k]; }
+
+// ===== LOGIN =====
+function getCredencialesCobrador(){ 
+  try{ return JSON.parse(lsGet('cobrador_credenciales')||'{"usuario":"alissonyemily","clave":"1234"}'); }
+  catch(e){ return {"usuario":"alissonyemily","clave":"1234"}; }
+}
+function entrar() {
+  const u=document.getElementById('login-usuario').value.trim();
+  const c=document.getElementById('login-clave').value;
+  const creds=getCredencialesCobrador();
+  const err=document.getElementById('login-error');
+  if(u===creds.usuario && c===creds.clave){
+    err.style.display='none';
+    lsSet('cobrador_sesion','ok');
+    document.getElementById('pantalla-login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('login-clave').value='';
+    document.getElementById('login-usuario').value='';
+    iniciarApp();
+  } else {
+    err.style.display='block';
+    document.getElementById('login-clave').value='';
+    setTimeout(()=>err.style.display='none',3000);
+  }
+}
+function cerrarSesion() {
+  confirmarAccion(
+    '🚪 Cerrar sesión',
+    '¿Segura que quieres cerrar sesión?',
+    '#5b8dee',
+    () => {
+      lsRemove('cobrador_sesion');
+      document.getElementById('app').style.display='none';
+      document.getElementById('pantalla-login').style.display='flex';
+    }
+  );
+}
+
+// ===== NAV =====
+function irA(p) {
+  document.querySelectorAll('.pantalla').forEach(x=>x.classList.remove('activa'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
+  document.getElementById('pantalla-'+p).classList.add('activa');
+  document.getElementById('tab-'+p).classList.add('activo');
+  if(p==='clientes') renderClientes();
+  if(p==='cuentas') setTimeout(cargarDesdeSupervisor, 100);
+  if(p==='detalles'){
+    // Solo resetear a hoy si no viene de cargarDia
+    if(!document.getElementById('det-filtro-fecha').value){
+      document.getElementById('det-filtro-fecha').value = fechaHoy();
+    }
+    renderDetalles();
+  }
+  if(p==='prestamos') renderPrestamos();
+  if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); }
+}
+
+// ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
+function cargarDesdeSupervisor(){
+  const hoy = getFechaActiva();
+  // Mostrar fecha en cuentas
+  const vistaFecha = document.getElementById('vista-fecha');
+  if(vistaFecha) vistaFecha.textContent = fechaBonita(hoy);
+  const manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+  document.getElementById('input-base').value      = manual.base      || '';
+  document.getElementById('input-papeleria').value = manual.papeleria || '';
+  document.getElementById('input-neki').value      = manual.neki      || '';
+  document.getElementById('input-gasto').value     = manual.gasto     || '';
+  document.getElementById('input-entregado').value = manual.entregado || '';
+  recalcularCuentas();
+}
+
+function recalcularCuentas(){
+  const hoy = getFechaActiva();
+  const clientes = getClientes();
+
+  const base      = parseFloat(document.getElementById('input-base').value)||0;
+  const papeleria = parseFloat(document.getElementById('input-papeleria').value)||0;
+  const neki      = parseFloat(document.getElementById('input-neki').value)||0;
+  const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
+  const entregado = parseFloat(document.getElementById('input-entregado').value)||0;
+
+  // Guardar siempre (incluyendo días pasados editados)
+  const manual = { base, papeleria, neki, gasto, entregado };
+  lsSet('sup_manual_'+hoy, JSON.stringify(manual));
+
+  // General: cuotas cobradas hoy + saldoQuedaba de renovaciones hoy (todo lo que entró)
+  let general = 0;
+  clientes.forEach(c=>{
+    (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
+    const hist = c.historialRenovaciones||[];
+    if(hist.length>0 && hist[0].fecha===hoy){
+      general += hist[0].saldoQuedaba || 0;
+    }
+  });
+
+  // Préstamos: capital entregado a nuevos/renovados hoy
+  let prestamos = 0;
+  clientes.forEach(c=>{
+    if((c.fechaCreado===hoy&&!(c.renovaciones>0))||c.fechaRenovacion===hoy) prestamos+=c.capital||0;
+  });
+
+  // Cancelados: saldo cerrado hoy (pagos del día en cancelados + saldoQuedaba en renovaciones)
+  let cancelados = 0;
+  clientes.forEach(c=>{
+    if(c.saldo===0 && (c.pagos||[]).some(p=>p.fecha===hoy)){
+      cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+    }
+    const hist = c.historialRenovaciones||[];
+    if(hist.length>0 && hist[0].fecha===hoy){
+      cancelados += hist[0].saldoQuedaba || 0;
+    }
+  });
+
+  const pleno = general - cancelados;
+
+  document.getElementById('vista-fecha').textContent   = fechaBonita(hoy);
+  document.getElementById('vista-general').textContent = fmt(general);
+  // Mostrar detalle pleno + cancelados bajo el General
+  const gdet = document.getElementById('general-detalle');
+  if(gdet){
+    if(cancelados>0){
+      gdet.innerHTML = `🎯 Pleno: ${fmt(pleno)} &nbsp;|&nbsp; ❌ Cancel.: ${fmt(cancelados)}`;
+    } else {
+      gdet.textContent = '';
+    }
+  }
+  document.getElementById('vista-prestamos').textContent = fmt(prestamos);
+  document.getElementById('vista-cancelados').textContent = cancelados>0 ? fmt(cancelados) : '—';
+
+  const ent = base + general + papeleria;
+  const sal = prestamos + neki + gasto;
+  const res = ent - sal;
+
+  document.getElementById('total-entradas').textContent = fmt(ent);
+  document.getElementById('total-salidas').textContent  = fmt(sal);
+  document.getElementById('r-entradas').textContent     = fmt(ent);
+  document.getElementById('r-salidas').textContent      = fmt(sal);
+
+  // Resultado
+  const caja=document.getElementById('caja-resultado'),lbl=document.getElementById('resultado-label'),num=document.getElementById('resultado-num');
+  if(res>0){caja.className='resultado-caja positivo';lbl.className='resultado-caja-label positivo';lbl.textContent='✅ LO QUE QUEDA';num.className='resultado-caja-num positivo';num.textContent=fmt(res);}
+  else if(res<0){caja.className='resultado-caja negativo';lbl.className='resultado-caja-label negativo';lbl.textContent='RESULTADO';num.className='resultado-caja-num negativo';num.textContent='-'+fmt(res);}
+  else{caja.className='resultado-caja neutro';lbl.className='resultado-caja-label neutro';lbl.textContent='RESULTADO';num.className='resultado-caja-num neutro';num.textContent='$0';}
+
+  // Pleno
+  const cp=document.getElementById('caja-pleno'),lp=document.getElementById('pleno-label'),np=document.getElementById('pleno-num');
+  if(!cancelados){cp.className='descuadre-caja neutro';lp.className='descuadre-label neutro';lp.textContent='PLENO';np.className='descuadre-num neutro';np.textContent='—';}
+  else{cp.className=pleno>=0?'descuadre-caja ok':'descuadre-caja mal';lp.className=pleno>=0?'descuadre-label ok':'descuadre-label mal';lp.textContent='🎯 PLENO';np.className=pleno>=0?'descuadre-num ok':'descuadre-num mal';np.textContent=pleno>=0?fmt(pleno):'-'+fmt(Math.abs(pleno));}
+
+  // Descuadre
+  const cd=document.getElementById('caja-descuadre'),ld=document.getElementById('descuadre-label'),nd=document.getElementById('descuadre-num');
+  if(!entregado){cd.className='descuadre-caja neutro';ld.className='descuadre-label neutro';ld.textContent='DESCUADRE';nd.className='descuadre-num neutro';nd.textContent='—';}
+  else{const desc=res-entregado;if(desc===0){cd.className='descuadre-caja ok';ld.className='descuadre-label ok';ld.textContent='✅ CUADRA PERFECTO';nd.className='descuadre-num ok';nd.textContent='$0';}else if(desc>0){cd.className='descuadre-caja mal';ld.className='descuadre-label mal';ld.textContent='FALTA ENTREGAR';nd.className='descuadre-num mal';nd.textContent=fmt(desc);}else{cd.className='descuadre-caja mal';ld.className='descuadre-label mal';ld.textContent='DESCUADRE';nd.className='descuadre-num mal';nd.textContent='-'+fmt(desc);}}
+
+  renderNuevosRenovacionesHoy();
+  window._datosHoy = {fecha:hoy,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:res};
+}
+
+function guardarDia(){
+  const d = getDatos();
+  if(d.base===0 && d.general===0 && d.papeleria===0){
+    showToast('⚠️ Ingresa al menos un valor antes de guardar'); return;
+  }
+  let h = JSON.parse(lsGet('hist_v3')||'[]');
+  // Si ya existe el día, reemplazar
+  const idx = h.findIndex(x=>x.fecha===d.fecha);
+  if(idx>=0) h[idx]=d; else h.unshift(d);
+  lsSet('hist_v3', JSON.stringify(h));
+  renderHistorial();
+  renderResumenSemanal();
+
+  // Después de guardar, resetear SIEMPRE a la fecha de hoy en todas las pestañas
+  const hoy = fechaHoy();
+  setFechaActiva(hoy);
+
+  // Actualizar input de fecha en Préstamos
+  const presInput = document.getElementById('pres-filtro-fecha');
+  if(presInput) presInput.value = hoy;
+
+  // Actualizar input de fecha en Detalles
+  const detInput = document.getElementById('det-filtro-fecha');
+  if(detInput) detInput.value = hoy;
+
+  // Recargar cuentas con la fecha de hoy
+  setTimeout(() => {
+    cargarDesdeSupervisor();
+    renderPrestamos();
+    renderDetalles();
+  }, 50);
+
+  showToast('✅ Día guardado correctamente');
+}
+
+function limpiarCuentas(){
+  confirmarAccion(
+    '🗑️ Limpiar campos',
+    '¿Limpiar base, papelería, neki y gasto de hoy?\n\nLos valores de clientes no se borran.',
+    '#888',
+    () => {
+      const hoy = fechaHoy();
+      lsRemove('sup_manual_'+hoy);
+      document.getElementById('input-base').value = '';
+      document.getElementById('input-papeleria').value = '';
+      document.getElementById('input-neki').value = '';
+      document.getElementById('input-gasto').value = '';
+      document.getElementById('input-entregado').value = '';
+      recalcularCuentas();
+      showToast('🗑️ Campos limpiados');
+    }
+  );
+}
+
+function renderNuevosRenovacionesHoy(){
+  const hoy = getFechaActiva();
+  const clientes = getClientes();
+  const nuevos = clientes.filter(c=>c.fechaCreado===hoy&&!(c.renovaciones>0));
+  const renovaciones = clientes.filter(c=>c.fechaRenovacion===hoy);
+  const bloque=document.getElementById('bloque-nuevos-renovaciones');
+  const bloqueNuevos=document.getElementById('bloque-nuevos');
+  const bloqueRenovaciones=document.getElementById('bloque-renovaciones');
+  if(!nuevos.length&&!renovaciones.length){bloque.style.display='none';return;}
+  bloque.style.display='block';
+  if(nuevos.length){bloqueNuevos.style.display='block';document.getElementById('lista-nuevos-hoy').innerHTML=nuevos.map(c=>`<div class="cliente-nuevo-row nuevo"><div class="cliente-nuevo-nombre">👤 ${c.nombre}</div><div class="cliente-nuevo-monto nuevo">${fmt(c.capital||0)}</div></div>`).join('');}else{bloqueNuevos.style.display='none';}
+  if(renovaciones.length){bloqueRenovaciones.style.display='block';document.getElementById('lista-renovaciones-hoy').innerHTML=renovaciones.map(c=>`<div class="cliente-nuevo-row renovacion"><div class="cliente-nuevo-nombre">👤 ${c.nombre}</div><div class="cliente-nuevo-monto renovacion">${fmt(c.capital||0)}</div></div>`).join('');}else{bloqueRenovaciones.style.display='none';}
+}
+
+function getDatos(){
+  if(window._datosHoy) return window._datosHoy;
+  // Fallback: leer directo de inputs si están disponibles
+  const hoy = fechaHoy();
+  const base      = parseFloat(document.getElementById('input-base')?.value)||0;
+  const papeleria = parseFloat(document.getElementById('input-papeleria')?.value)||0;
+  const neki      = parseFloat(document.getElementById('input-neki')?.value)||0;
+  const gasto     = parseFloat(document.getElementById('input-gasto')?.value)||0;
+  const entregado = parseFloat(document.getElementById('input-entregado')?.value)||0;
+  return {fecha:hoy,base,general:0,papeleria,prestamos:0,neki,gasto,entregado,cancelados:0,totalEntradas:base+papeleria,totalSalidas:neki+gasto,resultado:base+papeleria-neki-gasto};
+}
+
+function generarTexto(h){
+  const rs=h.resultado>=0?fmt(h.resultado):'-'+fmt(h.resultado);
+  let dt='';
+  if(h.entregado>0){const d=h.resultado-h.entregado;if(d===0)dt='\n   ✅ Cuadra perfecto';else if(d>0)dt=`\n   ⚠️ Falta entregar: ${fmt(d)}`;else dt=`\n   ⚠️ Descuadre: -${fmt(d)}`;}
+  return `📒 *MIS CUENTAS DEL DÍA*\n📅 *${fechaBonita(h.fecha)}*\n━━━━━━━━━━━━━━━━━━━━\n💰 *ENTRADAS*\n   💵 Base:          ${fmt(h.base)}\n   📦 General:       ${fmt(h.general)}\n   📋 Papelería:     ${fmt(h.papeleria)}\n   ➕ *TOTAL:        ${fmt(h.totalEntradas)}*\n━━━━━━━━━━━━━━━━━━━━\n📤 *SALIDAS*\n   📤 Préstamos:     ${fmt(h.prestamos)}\n   💳 Neki:          ${fmt(h.neki)}\n   💸 Gasto:         ${fmt(h.gasto)}\n   ➖ *TOTAL:        ${fmt(h.totalSalidas)}*\n━━━━━━━━━━━━━━━━━━━━\n📊 *RESULTADO: ${rs}*${h.cancelados>0?`\n❌ *Cancelados: ${fmt(h.cancelados)}*\n🎯 *Pleno: ${h.general-h.cancelados>=0?fmt(h.general-h.cancelados):'-'+fmt(h.general-h.cancelados)}*`:''}${h.entregado>0?`\n🏦 *Entregado: ${fmt(h.entregado)}*${dt}`:''}`;
+}
+
+function compartirWA(h){const d=h||getDatos();window.open('https://wa.me/?text='+encodeURIComponent(generarTexto(d)),'_blank');}
+function copiarTexto(h){const d=h||getDatos(),t=generarTexto(d);if(navigator.clipboard){navigator.clipboard.writeText(t).then(()=>showToast('📋 ¡Copiado!'));}else{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('📋 ¡Copiado!');}}
+
+function eliminarDia(i){
+  if(!confirm('¿Eliminar este día?'))return;
+  let h=JSON.parse(lsGet('hist_v3')||'[]');
+  h.splice(i,1); lsSet('hist_v3',JSON.stringify(h));
+  renderHistorial(); renderResumenSemanal(); showToast('🗑️ Eliminado');
+}
+
+function cargarDia(fecha){
+  // Setear fecha activa global
+  setFechaActiva(fecha);
+  // Actualizar Detalles
+  document.getElementById('det-filtro-fecha').value = fecha;
+  // Actualizar Préstamos
+  const presInput = document.getElementById('pres-filtro-fecha');
+  if(presInput) presInput.value = fecha;
+  // Ir a Detalles y luego recargar cuentas con la nueva fecha
+  irA('detalles');
+  // Recargar cuentas en background con la fecha correcta
+  setTimeout(cargarDesdeSupervisor, 50);
+  showToast('📅 Viendo el ' + fechaBonita(fecha));
+}
+
+function renderHistorial(){
+  const h=JSON.parse(lsGet('hist_v3')||'[]');
+  const el=document.getElementById('historial-lista');
+  if(!h.length){el.innerHTML='<div class="empty-hist">📭 Aún no hay días guardados</div>';return;}
+  const filtroEl=document.getElementById('filtro-historial-fecha');
+  const filtroFecha=filtroEl?filtroEl.value:'';
+  const hFiltrado=filtroFecha?h.filter(d=>d.fecha===filtroFecha):h;
+  if(!hFiltrado.length){el.innerHTML='<div class="empty-hist">🔍 No hay día guardado para esa fecha</div>';return;}
+  el.innerHTML=hFiltrado.map((d,i)=>{
+    const pos=d.resultado>=0,nt=pos?fmt(d.resultado):'-'+fmt(Math.abs(d.resultado)),hs=encodeURIComponent(JSON.stringify(d));
+    return `<div class="historial-item">
+      <div class="h-top">
+        <div class="h-fecha">📅 ${fechaBonita(d.fecha)}</div>
+        <div class="h-num ${pos?'pos':'neg'}">${nt}</div>
+      </div>
+      <div class="h-grid">
+        <div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#5b8dee">${fmt(d.totalEntradas)}</div></div>
+        <div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff3d3d">${fmt(d.totalSalidas)}</div></div>
+        <div class="h-cell"><div class="h-cell-label">${d.entregado>0?'Entregado':'Resultado'}</div><div class="h-cell-val" style="color:${pos?'#00c853':'#ff3d3d'}">${d.entregado>0?fmt(d.entregado):nt}</div></div>
+      </div>
+      <div class="h-actions">
+        <button class="h-btn h-btn-wa" onclick="compartirWA(JSON.parse(decodeURIComponent('${hs}')))">📲 WhatsApp</button>
+        <button class="h-btn" onclick="cargarDia('${d.fecha}')" style="background:#5b8dee;color:white;border:none;font-weight:800">✏️ Ver y editar cuotas</button>
+        <button class="h-btn h-btn-del" onclick="eliminarDia(${i})">🗑️ Borrar día</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== SEMANA =====
+let semanaOffset=0;
+function getLunes(off){
+  const h=new Date(),d=h.getDay(),diff=d===0?-6:1-d,l=new Date(h);
+  l.setDate(h.getDate()+diff+(off*7)); l.setHours(0,0,0,0); return l;
+}
+function cambiarSemana(dir){semanaOffset+=dir;renderSemana();}
+function renderSemana(){
+  const l=getLunes(semanaOffset),dom=new Date(l);dom.setDate(l.getDate()+6);
+  const ff=d=>`${d.getDate()}/${d.getMonth()+1}`;
+  document.getElementById('semana-rango').textContent=`${ff(l)} – ${ff(dom)}`;
+  const hist=JSON.parse(lsGet('hist_v3')||'[]');
+  const dias=[];
+  for(let i=0;i<7;i++){const d=new Date(l);d.setDate(l.getDate()+i);const iso=d.toISOString().split('T')[0];const r=hist.find(h=>h.fecha===iso);if(r)dias.push(r);}
+  if(!dias.length){document.getElementById('semana-body').innerHTML='<div class="empty-hist">No hay días guardados esta semana</div>';document.getElementById('semana-dias-lista').innerHTML='';return;}
+  const te=dias.reduce((s,h)=>s+(h.totalEntradas||0),0),ts=dias.reduce((s,h)=>s+(h.totalSalidas||0),0),tp=dias.reduce((s,h)=>s+(h.prestamos||0),0),tr=dias.reduce((s,h)=>s+(h.resultado||0),0);
+  document.getElementById('semana-body').innerHTML=`
+    <div class="semana-stat"><div class="semana-stat-label">📅 Días trabajados</div><div class="semana-stat-val morado">${dias.length} días</div></div>
+    <div class="semana-stat"><div class="semana-stat-label">💰 Total entradas</div><div class="semana-stat-val verde">${fmt(te)}</div></div>
+    <div class="semana-stat"><div class="semana-stat-label">📤 Total prestado</div><div class="semana-stat-val naranja">${fmt(tp)}</div></div>
+    <div class="semana-stat"><div class="semana-stat-label">📤 Total salidas</div><div class="semana-stat-val rojo">${fmt(ts)}</div></div>
+    <div class="semana-stat"><div class="semana-stat-label">📊 Resultado semana</div><div class="semana-stat-val ${tr>=0?'verde':'rojo'}">${tr>=0?fmt(tr):'-'+fmt(tr)}</div></div>`;
+  document.getElementById('semana-dias-lista').innerHTML=`<div class="historial-seccion"><div class="historial-titulo">Detalle por día</div>${dias.map(h=>{const pos=h.resultado>=0,nt=pos?fmt(h.resultado):'-'+fmt(h.resultado);return`<div class="historial-item"><div class="h-top" style="cursor:default"><div class="h-fecha">📅 ${fechaBonita(h.fecha)}</div><div class="h-num ${pos?'pos':'neg'}">${nt}</div></div><div class="h-grid"><div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#5b8dee">${fmt(h.totalEntradas)}</div></div><div class="h-cell"><div class="h-cell-label">Prestado</div><div class="h-cell-val" style="color:#e07b00">${fmt(h.prestamos||0)}</div></div><div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff3d3d">${fmt(h.totalSalidas)}</div></div></div></div>`;}).join('')}</div>`;
+}
+
+// ===== CLIENTES =====
+function getClientes(){return JSON.parse(lsGet('clientes_v1')||'[]');}
+function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c));}
+
+// Cálculo préstamo con porcentaje configurable
+function getPorcentaje(){ return parseFloat(lsGet('porcentaje_interes')||'20')||20; }
+function calcPrestamo(capital){ const pct=getPorcentaje()/100; const interes=capital*pct; return {capital,interes,total:capital+interes}; }
+
+function previsualizarPorcentaje(){
+  const v=parseFloat(document.getElementById('input-porcentaje').value)||0;
+  const prev=document.getElementById('preview-porcentaje');
+  if(v>0){
+    const interes=Math.round(1000*(v/100));
+    const total=1000+interes;
+    document.getElementById('prev-interes').textContent='$'+interes.toLocaleString('es-CO');
+    document.getElementById('prev-total').textContent='$'+total.toLocaleString('es-CO');
+    prev.style.display='block';
+  } else {
+    prev.style.display='none';
+  }
+}
+
+function guardarPorcentaje(){
+  const inputEl=document.getElementById('input-porcentaje');
+  const v=parseFloat(inputEl.value);
+  if(!v||v<=0||v>200){ showToast('⚠️ Ingresa un porcentaje válido (1–200)'); return; }
+  lsSet('porcentaje_interes', String(v));
+  showToast('✅ Porcentaje actualizado a '+v+'%');
+  document.getElementById('porcentaje-actual-info').textContent='Porcentaje actual: '+v+'%';
+  const pctLbl=document.getElementById('resumen-porcentaje-label');
+  if(pctLbl) pctLbl.textContent='📈 '+v+'%';
+  renderClientes();
+}
+
+function actualizarInfoPorcentaje(){
+  const pct=getPorcentaje();
+  const el=document.getElementById('input-porcentaje');
+  const info=document.getElementById('porcentaje-actual-info');
+  if(el){ el.value=pct; }
+  if(info){ info.textContent='Porcentaje actual: '+pct+'%'; }
+  previsualizarPorcentaje();
+}
+
+function actualizarResumenPrestamo(){
+  const v=parseFloat(document.getElementById('mc-prestamo').value)||0;
+  const res=document.getElementById('prestamo-resumen');
+  const mcInteresEl=document.getElementById('mc-interes');
+  const pctPersonalizado=mcInteresEl&&mcInteresEl.value!==''?parseFloat(mcInteresEl.value):null;
+  const pct=pctPersonalizado!==null?pctPersonalizado:getPorcentaje();
+  const lbl=document.getElementById('pr-interes-label');
+  if(lbl) lbl.textContent=`Interés ${pct}%`;
+  if(v>0){
+    const interes=v*(pct/100);
+    const total=v+interes;
+    document.getElementById('pr-capital').textContent=fmt(v);
+    document.getElementById('pr-interes').textContent=fmt(interes);
+    document.getElementById('pr-total').textContent=fmt(total);
+    res.style.display='block';
+  } else { res.style.display='none'; }
+  actualizarDiasPrestamo();
+}
+
+function actualizarDiasPrestamo(){
+  const capital=parseFloat(document.getElementById('mc-prestamo').value)||0;
+  const cuota=parseFloat(document.getElementById('mc-cuota').value)||0;
+  const tipo=document.getElementById('mc-tipo').value||'diario';
+  const mcInteresEl=document.getElementById('mc-interes');
+  const pctPersonalizado=mcInteresEl&&mcInteresEl.value!==''?parseFloat(mcInteresEl.value):null;
+  const pct=pctPersonalizado!==null?pctPersonalizado:getPorcentaje();
+  const infoEl=document.getElementById('dias-prestamo-info');
+  const textoEl=document.getElementById('dias-prestamo-texto');
+  const subEl=document.getElementById('dias-prestamo-sub');
+  if(capital>0 && cuota>0){
+    const total=capital+(capital*(pct/100));
+    const nCuotas=Math.ceil(total/cuota);
+    textoEl.textContent=tipo==='diario'?`${nCuotas} días`:`${nCuotas} semanas`;
+    subEl.textContent=`${fmt(total)} ÷ ${fmt(cuota)} = ${nCuotas} cuota${nCuotas!==1?'s':''} ${tipo==='diario'?'diarias':'semanales'}`;
+    infoEl.style.display='block';
+  } else {
+    infoEl.style.display='none';
+  }
+}
+
+function actualizarResumenRenovar(){
+  const v=parseFloat(document.getElementById('ren-prestamo').value)||0;
+  const res=document.getElementById('renovar-resumen');
+  const id=document.getElementById('ren-id').value;
+  const c=getClientes().find(x=>x.id===id);
+  const saldoAnt=c?c.saldo:0;
+  if(v>0){
+    const p=calcPrestamo(v);
+    document.getElementById('rr-capital').textContent=fmt(p.capital);
+    document.getElementById('rr-interes').textContent=fmt(p.interes);
+    document.getElementById('rr-total').textContent=fmt(p.total);
+    document.getElementById('rr-saldo-ant').textContent=fmt(saldoAnt);
+
+    // El cliente ya tiene su saldo a favor (lo que debe).
+    // Tú solo le entregas: CAPITAL - saldo que ya tiene
+    // Ejemplo: capital=500, saldo=285 → tú entregas 215
+    // Los intereses NO se entregan, solo se cobran después.
+    const aEntregar = p.capital - saldoAnt;
+    const box   = document.getElementById('rr-diferencia-box');
+    const lbl   = document.getElementById('rr-diferencia-label');
+    const monto = document.getElementById('rr-diferencia-monto');
+
+    if(aEntregar > 0){
+      // Tú le das dinero para completar su préstamo
+      box.style.background='#e8f4ff';
+      box.style.border='2px solid #5b8dee';
+      lbl.style.color='#5b8dee';
+      lbl.textContent='💸 Tú le entregas al cliente';
+      monto.style.color='#5b8dee';
+      monto.textContent=fmt(aEntregar);
+      document.getElementById('rr-diferencia-sub').textContent=`Capital ${fmt(p.capital)} − Saldo ${fmt(saldoAnt)} = ${fmt(aEntregar)}`;
+    } else if(aEntregar < 0){
+      // El cliente te da dinero (su saldo cubre y sobra)
+      box.style.background='#fff7e6';
+      box.style.border='2px solid #e07b00';
+      lbl.style.color='#e07b00';
+      lbl.textContent='⬆️ Cliente te entrega';
+      monto.style.color='#e07b00';
+      monto.textContent=fmt(Math.abs(aEntregar));
+      document.getElementById('rr-diferencia-sub').textContent=`Saldo ${fmt(saldoAnt)} − Capital ${fmt(p.capital)} = ${fmt(Math.abs(aEntregar))}`;
+    } else {
+      box.style.background='#f0fff4';
+      box.style.border='2px solid #00c853';
+      lbl.style.color='#00a844';
+      lbl.textContent='✅ Cuadra exacto';
+      monto.style.color='#00a844';
+      monto.textContent='$0';
+      document.getElementById('rr-diferencia-sub').textContent='El saldo cubre exactamente el capital';
+    }
+    res.style.display='block';
+  } else { res.style.display='none'; }
+}
+
+let editandoId=null;
+
+function abrirModalCliente(id){
+  editandoId=id||null;
+  document.getElementById('modal-cliente-titulo').textContent=id?'✏️ Editar Cliente':'➕ Nuevo Cliente';
+  if(id){
+    const c=getClientes().find(x=>x.id===id);
+    if(c){
+      document.getElementById('mc-nombre').value=c.nombre||'';
+      document.getElementById('mc-cedula').value=c.cedula||'';
+      document.getElementById('mc-tel').value=c.tel||'';
+      document.getElementById('mc-dir').value=c.dir||'';
+      document.getElementById('mc-prestamo').value=c.capital||'';
+      document.getElementById('mc-tipo').value=c.tipo||'semanal';
+      document.getElementById('mc-cuota').value=c.cuotaSugerida||'';
+      const mcInt=document.getElementById('mc-interes');
+      if(mcInt) mcInt.value=c.pctInteres!==undefined?c.pctInteres:'';
+      document.getElementById('mc-id').value=c.id;
+      actualizarResumenPrestamo();
+    }
+  } else {
+    ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
+    document.getElementById('mc-tipo').value='semanal';
+    document.getElementById('prestamo-resumen').style.display='none';
+    document.getElementById('dias-prestamo-info').style.display='none';
+  }
+  // Resetear panel de posición
+  document.getElementById('mc-posicion-tipo').value='';
+  document.getElementById('mc-posicion-ref-id').value='';
+  document.getElementById('panel-posicion').style.display='none';
+  document.getElementById('posicion-btn-arrow').textContent='›';
+  document.getElementById('lista-posicion-clientes').style.display='none';
+  document.getElementById('posicion-seleccionada-info').style.display='none';
+  document.getElementById('btn-pos-antes').style.background='#f0f5ff';
+  document.getElementById('btn-pos-antes').style.color='#5b8dee';
+  document.getElementById('btn-pos-despues').style.background='#f0f5ff';
+  document.getElementById('btn-pos-despues').style.color='#5b8dee';
+  document.getElementById('modal-cliente-overlay').classList.add('visible');
+}
+
+function guardarCliente(){
+  const nombre=document.getElementById('mc-nombre').value.trim();
+  if(!nombre){showToast('⚠️ El nombre es obligatorio');return;}
+  const capital=parseFloat(document.getElementById('mc-prestamo').value)||0;
+  const mcInteresEl=document.getElementById('mc-interes');
+  const pctPersonalizado=mcInteresEl&&mcInteresEl.value!==''?parseFloat(mcInteresEl.value):null;
+  const pct=pctPersonalizado!==null?pctPersonalizado:getPorcentaje();
+  const interes=capital*(pct/100);
+  const totalPrestamo=capital+interes;
+  const p={capital,interes,total:totalPrestamo,pct};
+  let clientes=getClientes();
+  const posicionTipo=document.getElementById('mc-posicion-tipo').value;
+  const posicionRefId=document.getElementById('mc-posicion-ref-id').value;
+
+  if(editandoId){
+    const idx=clientes.findIndex(c=>c.id===editandoId);
+    if(idx>=0){
+      clientes[idx].nombre=nombre;
+      clientes[idx].cedula=document.getElementById('mc-cedula').value.trim();
+      clientes[idx].tel=document.getElementById('mc-tel').value.trim();
+      clientes[idx].dir=document.getElementById('mc-dir').value.trim();
+      clientes[idx].capital=capital;
+      clientes[idx].interes=p.interes;
+      clientes[idx].prestamo=p.total;
+      clientes[idx].pctInteres=p.pct;
+      clientes[idx].tipo=document.getElementById('mc-tipo').value;
+      clientes[idx].cuotaSugerida=parseFloat(document.getElementById('mc-cuota').value)||0;
+      const pagado=(clientes[idx].pagos||[]).reduce((s,x)=>s+x.monto,0);
+      clientes[idx].saldo=Math.max(0,p.total-pagado);
+      // Reordenar si eligió posición
+      if(posicionTipo && posicionRefId){
+        const cliente=clientes.splice(idx,1)[0];
+        const refIdx=clientes.findIndex(c=>c.id===posicionRefId);
+        if(refIdx>=0){
+          const insertAt=posicionTipo==='antes'?refIdx:refIdx+1;
+          clientes.splice(insertAt,0,cliente);
+        } else {
+          clientes.push(cliente);
+        }
+      }
+    }
+  } else {
+    const nuevoCliente={
+      id:Date.now().toString(), nombre,
+      cedula:document.getElementById('mc-cedula').value.trim(),
+      tel:document.getElementById('mc-tel').value.trim(),
+      dir:document.getElementById('mc-dir').value.trim(),
+      capital, interes:p.interes, prestamo:p.total, pctInteres:p.pct,
+      tipo:document.getElementById('mc-tipo').value,
+      cuotaSugerida:parseFloat(document.getElementById('mc-cuota').value)||0,
+      saldo:p.total, pagos:[], fechaCreado:fechaHoy(), renovaciones:0
+    };
+    if(posicionTipo && posicionRefId){
+      const refIdx=clientes.findIndex(c=>c.id===posicionRefId);
+      if(refIdx>=0){
+        const insertAt=posicionTipo==='antes'?refIdx:refIdx+1;
+        clientes.splice(insertAt,0,nuevoCliente);
+      } else {
+        clientes.push(nuevoCliente);
+      }
+    } else {
+      clientes.push(nuevoCliente);
+    }
+  }
+  saveClientes(clientes);
+  renderClientes();
+  cerrarModal('modal-cliente-overlay');
+  showToast('✅ Cliente guardado');
+}
+
+function abrirRenovar(id){
+  const c=getClientes().find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('ren-id').value=id;
+  document.getElementById('ren-prestamo').value='';
+  document.getElementById('ren-cuota').value=c.cuotaSugerida||'';
+  document.getElementById('ren-tipo').value=c.tipo||'semanal';
+  document.getElementById('renovar-resumen').style.display='none';
+  const totalCancelado=(c.historialRenovaciones||[]).reduce((s,r)=>s+r.totalCancelado,0)+(c.prestamo-c.saldo);
+  document.getElementById('renovar-info').innerHTML=`
+    <div class="renovar-info-titulo">📋 Estado actual</div>
+    <div class="renovar-info-row"><span>Cliente</span><span>${c.nombre}</span></div>
+    <div class="renovar-info-row"><span>Préstamo actual</span><span>${fmt(c.prestamo)}</span></div>
+    <div class="renovar-info-row"><span>Saldo pendiente</span><span style="color:${c.saldo>0?'#ff3d3d':'#00c853'}">${fmt(c.saldo)}</span></div>
+    <div class="renovar-info-row"><span>Ya cancelado este ciclo</span><span style="color:#00a844">${fmt(c.prestamo-c.saldo)}</span></div>
+    <div class="renovar-info-row"><span>Renovaciones anteriores</span><span>${c.renovaciones||0}</span></div>
+    <div class="renovar-info-row"><span>💰 Total cancelado histórico</span><span style="color:#00a844;font-size:16px">${fmt(totalCancelado)}</span></div>`;
+  cerrarModal('modal-cliente-overlay');
+  document.getElementById('modal-renovar-overlay').classList.add('visible');
+}
+
+function confirmarRenovar(){
+  const id=document.getElementById('ren-id').value;
+  const capital=parseFloat(document.getElementById('ren-prestamo').value)||0;
+  if(!capital){showToast('⚠️ Ingresa el nuevo valor');return;}
+  const p=calcPrestamo(capital);
+  const clientes=getClientes();
+  const idx=clientes.findIndex(c=>c.id===id);
+  if(idx<0)return;
+  const c=clientes[idx];
+  const totalCancelado=c.saldo; // saldo que quedaba = lo que se canceló al renovar
+  // Guardar en historial de renovaciones
+  const entradaHistorial={
+    numRenovacion:(c.renovaciones||0)+1,
+    fecha:fechaHoy(),
+    prestamoCiclo:c.prestamo,
+    capitalCiclo:c.capital||c.prestamo,
+    interesCiclo:c.interes||0,
+    pagos:[...(c.pagos||[])],
+    totalCancelado,
+    saldoQuedaba:c.saldo,
+    nuevoCapital:capital,
+    nuevoTotal:p.total,
+    // Datos del ciclo anterior para poder deshacer
+    tipo: c.tipo,
+    cuotaSugerida: c.cuotaSugerida||0,
+    fechaCreado: c.fechaCreado,
+    fechaRenovacion: c.fechaRenovacion||null
+  };
+  clientes[idx].historialRenovaciones=clientes[idx].historialRenovaciones||[];
+  clientes[idx].historialRenovaciones.unshift(entradaHistorial);
+  clientes[idx].capital=capital;
+  clientes[idx].interes=p.interes;
+  clientes[idx].prestamo=p.total;
+  clientes[idx].saldo=p.total;
+  clientes[idx].tipo=document.getElementById('ren-tipo').value;
+  clientes[idx].cuotaSugerida=parseFloat(document.getElementById('ren-cuota').value)||0;
+  clientes[idx].pagos=[];
+  clientes[idx].renovaciones=(c.renovaciones||0)+1;
+  clientes[idx].fechaRenovacion=fechaHoy();
+  saveClientes(clientes);
+  renderClientes();
+  cerrarModal('modal-renovar-overlay');
+  showToast('🔄 Préstamo renovado correctamente');
+}
+
+function pagarCuota(id){
+  const inputEl=document.getElementById('cuota-input-'+id);
+  const monto=parseFloat(inputEl.value)||0;
+  if(monto<=0){showToast('⚠️ Ingresa un valor mayor a 0');return;}
+  const clientes=getClientes();
+  const idx=clientes.findIndex(c=>c.id===id);
+  if(idx<0)return;
+  clientes[idx].saldo=Math.max(0,clientes[idx].saldo-monto);
+  clientes[idx].pagos=clientes[idx].pagos||[];
+  clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
+  saveClientes(clientes);
+  inputEl.value='';
+  renderClientes();
+  showToast(`✅ Pago de ${fmt(monto)} registrado`);
+}
+
+function pagarCuotaYAvanzar(id){
+  const inputEl=document.getElementById('cuota-input-'+id);
+  const monto=parseFloat(inputEl ? inputEl.value : 0)||0;
+  if(monto<=0){showToast('⚠️ Ingresa un valor mayor a 0');return;}
+  const clientes=getClientes();
+  const idx=clientes.findIndex(c=>c.id===id);
+  if(idx<0)return;
+  clientes[idx].saldo=Math.max(0,clientes[idx].saldo-monto);
+  clientes[idx].pagos=clientes[idx].pagos||[];
+  clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
+  saveClientes(clientes);
+  showToast(`✅ Pago de ${fmt(monto)} registrado`);
+
+  // Buscar siguiente ANTES de renderizar, usando los datos guardados
+  const activos=getClientes().filter(c=>c.saldo>0);
+  const idxActual=activos.findIndex(c=>c.id===id);
+  const siguiente=activos[idxActual+1];
+
+  renderClientes();
+
+  if(siguiente){
+    setTimeout(()=>{
+      const bodyNext=document.getElementById('cbody-'+siguiente.id);
+      if(bodyNext) bodyNext.style.display='block';
+      const card=document.getElementById('card-'+siguiente.id);
+      if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+      setTimeout(()=>{
+        const inputNext=document.getElementById('cuota-input-'+siguiente.id);
+        if(inputNext){ inputNext.focus(); inputNext.select(); }
+      },350);
+    },150);
+  } else {
+    setTimeout(()=>showToast('🎉 Último cliente de la lista'),200);
+  }
+}
+
+function navegarCliente(idActual, direccion){
+  const todos=getClientes().filter(c=>c.saldo>0);
+  const idx=todos.findIndex(c=>c.id===idActual);
+  const destino=todos[idx+direccion];
+  if(!destino){
+    showToast(direccion>0 ? '✅ Ya estás en el último cliente' : '✅ Ya estás en el primer cliente');
+    return;
+  }
+  // Cerrar el actual
+  const bodyActual=document.getElementById('cbody-'+idActual);
+  if(bodyActual) bodyActual.style.display='none';
+  // Abrir el destino
+  const bodyNext=document.getElementById('cbody-'+destino.id);
+  if(bodyNext) bodyNext.style.display='block';
+  const card=document.getElementById('card-'+destino.id);
+  if(card) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
+  setTimeout(()=>{
+    const inp=document.getElementById('cuota-input-'+destino.id);
+    if(inp){ inp.focus(); inp.select(); }
+  },300);
+}
+
+function scrollToCliente(id){
+  const body=document.getElementById('cbody-'+id);
+  if(body) body.style.display='block';
+  const card=document.getElementById('card-'+id);
+  if(card) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
+}
+
+function verCancelados(id){
+  const c=getClientes().find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('cancelados-cliente-nombre').textContent='👤 '+c.nombre;
+  const hist=c.historialRenovaciones||[];
+  const totalHistorico=hist.reduce((s,r)=>s+r.totalCancelado,0);
+
+  let html='';
+
+  hist.forEach(r=>{
+    html+=`<div style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1.5px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:900;color:#5b8dee">Cancelación #${r.numRenovacion}</div>
+        <div style="font-size:12px;color:#aaa;font-weight:700;margin-top:3px">${fechaBonita(r.fecha)}</div>
+      </div>
+      <div style="font-size:22px;font-weight:900;color:#00a844">${fmt(r.totalCancelado)}</div>
+    </div>`;
+  });
+
+  if(!hist.length){html+='<div style="text-align:center;padding:20px;color:#bbb;font-size:14px;font-weight:700">Sin cancelaciones registradas</div>';}
+  document.getElementById('cancelados-body').innerHTML=html;
+  cerrarModal('modal-cliente-overlay');
+  document.getElementById('modal-cancelados-overlay').classList.add('visible');
+}
+
+function editarMontoRenovacion(clienteId, ri, valorActual){
+  const nuevoVal = prompt('Ingresa el monto correcto que canceló:', valorActual);
+  if(!nuevoVal) return;
+  const monto = parseFloat(nuevoVal);
+  if(isNaN(monto) || monto <= 0){ showToast('⚠️ Monto inválido'); return; }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteId);
+  if(idx<0) return;
+  clientes[idx].historialRenovaciones[ri].totalCancelado = monto;
+  saveClientes(clientes);
+  showToast('✅ Monto corregido a ' + fmt(monto));
+  verCancelados(clienteId);
+}
+
+function eliminarCliente(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  confirmarAccion(
+    '🗑️ Eliminar cliente',
+    `¿Eliminar a ${c.nombre} completamente?\n\nSe borrará todo su historial de pagos y préstamos. Esto no se puede deshacer.`,
+    '#ff3d3d',
+    () => {
+      saveClientes(getClientes().filter(x=>x.id!==id));
+      renderClientes();
+      showToast('🗑️ Cliente eliminado');
+    }
+  );
+}
+
+function compartirClienteWA(id){
+  const c=getClientes().find(x=>x.id===id);
+  if(!c)return;
+  const pagado=c.prestamo-c.saldo;
+  const texto=`👤 *${c.nombre}*\n📱 ${c.tel||'Sin tel'}\n📍 ${c.dir||'Sin dirección'}\n━━━━━━━━━━━━━━━━━━\n💰 Préstamo: ${fmt(c.capital)} + 20% = *${fmt(c.prestamo)}*\n📅 Tipo: ${c.tipo==='semanal'?'Semanal':'Diario'}\n✅ Pagado: ${fmt(pagado)}\n🔴 Saldo: *${fmt(c.saldo)}*`;
+  window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank');
+}
+
+function mostrarBarraCuota(nombre, saldoActual, valorInput){
+  const barra = document.getElementById('cuota-barra-fija');
+  const nombreEl = document.getElementById('cuota-barra-nombre');
+  const saldoEl = document.getElementById('cuota-barra-saldo');
+  if(!barra) return;
+  barra.style.display = 'block';
+  nombreEl.textContent = '👤 ' + nombre;
+  const cuota = parseFloat(valorInput)||0;
+  const nuevoSaldo = cuota > 0 ? Math.max(0, saldoActual - cuota) : saldoActual;
+  saldoEl.textContent = nuevoSaldo === 0 ? '✅ $0 ¡Cancelado!' : fmt(nuevoSaldo);
+  saldoEl.style.color = nuevoSaldo === 0 ? '#00c853' : '#ff5e5e';
+}
+
+function ocultarBarraCuota(){
+  const barra = document.getElementById('cuota-barra-fija');
+  if(barra) barra.style.display = 'none';
+}
+
+function toggleBody(id){
+  const b=document.getElementById('cbody-'+id);
+  const card=document.getElementById('card-'+id);
+  if(b.style.display==='none'||!b.style.display){
+    b.style.display='block';
+    if(card) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+    // Auto-focus cuota input
+    setTimeout(()=>{
+      const inp=document.getElementById('cuota-input-'+id);
+      if(inp) inp.focus();
+    },200);
+  } else {
+    b.style.display='none';
+  }
+}
+
+let clienteActualIdx = 0; // para avance automático
+
+function togglePosicion(){
+  const panel = document.getElementById('panel-posicion');
+  const arrow = document.getElementById('posicion-btn-arrow');
+  if(panel.style.display === 'none'){
+    panel.style.display = 'block';
+    arrow.textContent = '⌄';
+  } else {
+    panel.style.display = 'none';
+    arrow.textContent = '›';
+  }
+}
+
+function seleccionarPosicion(tipo){
+  const clientes = getClientes().filter(c => c.saldo > 0);
+  const editId = document.getElementById('mc-id').value;
+
+  // Highlight botón activo
+  document.getElementById('btn-pos-antes').style.background = tipo==='antes' ? '#5b8dee' : '#f0f5ff';
+  document.getElementById('btn-pos-antes').style.color = tipo==='antes' ? 'white' : '#5b8dee';
+  document.getElementById('btn-pos-despues').style.background = tipo==='despues' ? '#5b8dee' : '#f0f5ff';
+  document.getElementById('btn-pos-despues').style.color = tipo==='despues' ? 'white' : '#5b8dee';
+
+  document.getElementById('mc-posicion-tipo').value = tipo;
+  document.getElementById('mc-posicion-ref-id').value = '';
+  document.getElementById('posicion-seleccionada-info').style.display = 'none';
+
+  // Filtrar el cliente que se está editando de la lista
+  const lista = clientes.filter(c => c.id !== editId);
+
+  const contenedor = document.getElementById('lista-posicion-items');
+  if(!lista.length){
+    contenedor.innerHTML = '<div style="padding:14px;text-align:center;color:#bbb;font-size:13px;font-weight:700">No hay otros clientes</div>';
+  } else {
+    contenedor.innerHTML = lista.map((c, i) => `
+      <div onclick="elegirClienteReferencia('${c.id}','${c.nombre}','${tipo}')"
+        style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0${i===lista.length-1?';border-bottom:none':''}; cursor:pointer; active-background:#f0f5ff">
+        <div style="min-width:24px;height:24px;background:#e5e7eb;color:#555;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;color:#111">${c.nombre}</div>
+          <div style="font-size:11px;color:#aaa;font-weight:600">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Saldo: <span style="color:#ff3d3d">${fmt(c.saldo)}</span></div>
+        </div>
+        <span style="font-size:18px;color:#5b8dee">›</span>
+      </div>`).join('');
+  }
+
+  document.getElementById('lista-posicion-clientes').style.display = 'block';
+}
+
+function elegirClienteReferencia(refId, refNombre, tipo){
+  document.getElementById('mc-posicion-ref-id').value = refId;
+  document.getElementById('mc-posicion-tipo').value = tipo;
+  const texto = tipo === 'antes'
+    ? `⬆️ Se pondrá ANTES de: ${refNombre}`
+    : `⬇️ Se pondrá DESPUÉS de: ${refNombre}`;
+  document.getElementById('posicion-texto-resultado').textContent = texto;
+  document.getElementById('posicion-seleccionada-info').style.display = 'block';
+  document.getElementById('lista-posicion-clientes').style.display = 'none';
+}
+
+function abrirModalOrdenar(){
+  document.getElementById('modal-ordenar-overlay').classList.add('visible');
+}
+
+function ordenarClientes(criterio){
+  const clientes = getClientes();
+  const hoy = fechaHoy();
+  clientes.sort((a,b)=>{
+    if(criterio==='nombre') return (a.nombre||'').localeCompare(b.nombre||'');
+    if(criterio==='saldo-desc') return (b.saldo||0)-(a.saldo||0);
+    if(criterio==='saldo-asc') return (a.saldo||0)-(b.saldo||0);
+    if(criterio==='fecha-nuevo') return (b.fechaCreado||'').localeCompare(a.fechaCreado||'');
+    if(criterio==='fecha-viejo') return (a.fechaCreado||'').localeCompare(b.fechaCreado||'');
+    if(criterio==='atraso'){
+      return calcularAtraso(b) - calcularAtraso(a);
+    }
+    return 0;
+  });
+  saveClientes(clientes);
+  cerrarModal('modal-ordenar-overlay');
+  renderClientes();
+  showToast('✅ Clientes ordenados');
+}
+
+function avanzarSiguienteCliente(idActual){
+  const todosClientes=getClientes().filter(c=>c.saldo>0);
+  const idx=todosClientes.findIndex(c=>c.id===idActual);
+  const siguiente=todosClientes[idx+1];
+  if(siguiente){
+    // Cerrar el actual y abrir el siguiente
+    const bodyActual=document.getElementById('cbody-'+idActual);
+    if(bodyActual) bodyActual.style.display='none';
+    const bodyNext=document.getElementById('cbody-'+siguiente.id);
+    if(bodyNext){
+      bodyNext.style.display='block';
+      const card=document.getElementById('card-'+siguiente.id);
+      if(card) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
+      // Enfocar el input de cuota del siguiente
+      const inputNext=document.getElementById('cuota-input-'+siguiente.id);
+      if(inputNext) setTimeout(()=>inputNext.focus(),300);
+    }
+  } else {
+    showToast('✅ Último cliente de la lista');
+  }
+}
+
+function renderClientes(){
+  const todosClientes=getClientes();
+  const busq=(document.getElementById('buscar-cliente')||{}).value||'';
+  const busqLow=busq.toLowerCase().trim();
+  // Solo mostrar clientes con saldo > 0 (los cancelados van a Detalles)
+  const clientes=todosClientes.filter(c=>c.saldo>0).filter(c=>{
+    if(!busqLow) return true;
+    return (c.nombre||"").toLowerCase().includes(busqLow)||(c.cedula||"").includes(busqLow);
+  });
+
+  // Actualizar contador y clientes que pagaron hoy
+  const hoyCheck = getFechaActiva();
+  const countEl=document.getElementById('clientes-count');
+  if(countEl) countEl.textContent=clientes.length;
+
+  const pagaronHoy = clientes.filter(c=>(c.pagos||[]).some(p=>p.fecha===hoyCheck)).length;
+  const pagaronEl=document.getElementById('clientes-pagaron-hoy');
+  if(pagaronEl) pagaronEl.textContent=pagaronHoy;
+  const labelPagaron=document.getElementById('label-pagaron-hoy');
+  if(labelPagaron){
+    const esHoy = hoyCheck === fechaHoy();
+    labelPagaron.textContent = esHoy ? '✅ Pagaron hoy' : '✅ Pagaron el '+hoyCheck.split('-').reverse().slice(0,2).join('/');
+  }
+
+  const pctLbl=document.getElementById('resumen-porcentaje-label');
+  if(pctLbl) pctLbl.textContent=`📈 ${getPorcentaje()}%`;
+
+  const el=document.getElementById('clientes-lista');
+  if(!clientes.length){
+    el.innerHTML='<div class="empty-clientes">👥 No hay clientes activos<br><span style="font-size:12px;opacity:0.6;">Los cancelados aparecen en 📋 Detalles</span></div>';
+    return;
+  }
+  el.innerHTML=clientes.map((c,numeroCliente)=>{    const debe=c.saldo>0;
+    const pagado=c.prestamo-c.saldo;
+    const ultPagos=(c.pagos||[]);
+    const totalCancelado=(c.historialRenovaciones||[]).reduce((s,r)=>s+r.totalCancelado,0)+pagado;
+    const fechaPrestamo = c.fechaRenovacion || c.fechaCreado || '';
+    const diasAtraso = debe ? calcularAtraso(c) : 0;
+    // Calcular si pagó en la fecha activa
+    const hoy = getFechaActiva();
+    // Cuota a mostrar: lo que pagó ese día si existe, si no la cuota sugerida
+    const pagoDelDiaActivo = (c.pagos||[]).find(p=>p.fecha===hoy);
+    const cuotaDia = pagoDelDiaActivo ? pagoDelDiaActivo.monto : (c.cuotaSugerida || 0);
+    const pagadoHoy = (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+    const atrasoColor = diasAtraso <= 0 ? '#00a844' : diasAtraso <= 2 ? '#e07b00' : '#ff3d3d';
+    const atrasoLabel = diasAtraso > 0
+      ? `⏰ ${diasAtraso} día${diasAtraso>1?'s':''} atrasado`
+      : diasAtraso < 0
+        ? `⭐ ${Math.abs(diasAtraso)} día${Math.abs(diasAtraso)>1?'s':''} adelantado`
+        : `✅ Al día`;
+    // Calcular número de días del préstamo (cuotas × días entre pagos)
+    const nCuotas = cuotaDia > 0 ? Math.ceil(c.prestamo / cuotaDia) : 0;
+    const diasStr = nCuotas > 0 ? (c.tipo==='diario' ? `${nCuotas} días` : `${nCuotas} semanas`) : '';
+    const cuotasPagadas = ultPagos.length;
+    return `
+    <div class="cliente-card" id="card-${c.id}">
+      <div class="cliente-card-header" onclick="toggleBody('${c.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px 10px 12px;cursor:pointer">
+        <!-- Número del cliente -->
+        <div style="min-width:30px;height:30px;background:#5b8dee;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0">${numeroCliente+1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="cliente-nombre">👤 ${c.nombre}</div>
+            ${c.cedula ? `<div style="font-size:11px;color:#888;font-weight:700;margin-top:1px">🪪 ${c.cedula}</div>` : ""}
+            ${pagadoHoy > 0 ? `<div style="background:#00c853;color:black;border-radius:8px;padding:2px 10px;font-size:14px;font-weight:900;white-space:nowrap">+${fmt(pagadoHoy)}</div>` : ''}
+          </div>
+          <div class="cliente-sub">
+            <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
+            ${fechaPrestamo ? `<span style="color:#aaa">📅 ${fechaBonita(fechaPrestamo).split(' de ').slice(0,2).join(' de ')}</span>` : ''}
+            ${diasStr ? `<span style="color:#7c3aed;font-weight:800">⏱ ${diasStr}</span>` : ''}
+          </div>
+          ${debe ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:10px">
+          ${cuotaDia > 0 ? `<div style="background:#e8f0ff;border:1.5px solid #5b8dee;border-radius:10px;padding:3px 10px;font-size:15px;font-weight:900;color:#2563eb">${fmt(cuotaDia)}</div>` : ''}
+          <div>
+            <div class="saldo-label">SALDO</div>
+            <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
+          </div>
+        </div>
+      </div>
+      <div class="cliente-body" id="cbody-${c.id}" style="display:none">
+        ${c.dir?`<div class="cliente-dir">📍 ${c.dir}</div>`:''}
+        <div class="cliente-detalle">
+          <div class="cliente-det-item"><div class="cliente-det-label">💰 Capital</div><div class="cliente-det-val">${fmt(c.capital||0)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">📈 Interés ${getPorcentaje()}%</div><div class="cliente-det-val" style="color:#e07b00">${fmt(c.interes||0)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">💵 Total a cobrar</div><div class="cliente-det-val" style="color:#5b8dee">${fmt(c.prestamo)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00a844">${fmt(pagado)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff3d3d':'#00c853'}">${fmt(c.saldo)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">➡️ Nuevo saldo</div><div class="cliente-det-val" id="nuevo-saldo-inline-${c.id}" style="color:#aaa">—</div></div>
+          ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div>`:''}
+        </div>
+        ${c.saldo>0?`
+        <div class="cuota-row">
+          <input type="number" class="cuota-input" id="cuota-input-${c.id}"
+            placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
+            value="${(()=>{const fa=getFechaActiva();const pagoDelDia=(c.pagos||[]).find(p=>p.fecha===fa);return pagoDelDia?pagoDelDia.monto:'';})()}"
+            oninput="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value);(function(){const v=parseFloat(document.getElementById('cuota-input-${c.id}').value)||0;const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){const n=Math.max(0,${c.saldo}-v);el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00a844':'#ff3d3d'):'#aaa';}})();"
+            onfocus="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value)"
+            onblur="setTimeout(()=>ocultarBarraCuota(),300)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
+          <button class="btn-pagar-cuota" onclick="pagarCuotaYAvanzar('${c.id}')">💰 Pagar</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="abrirRenovar('${c.id}')" style="flex:1;padding:12px;background:#fff7e6;color:#e06500;border:2px solid #ffd580;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">🔄 Renovar</button>
+          <button onclick="verAbonosCliente('${c.id}')" style="flex:1;padding:12px;background:#e8f8f0;color:#00a844;border:2px solid #b2f0c8;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">💰 Abonos</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="navegarCliente('${c.id}',-1)" style="flex:1;padding:11px;background:#e8f0ff;color:#2563eb;border:2px solid #93c5fd;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">‹ Anterior</button>
+          <button onclick="navegarCliente('${c.id}',1)" style="flex:1;padding:11px;background:#fff7e6;color:#e06500;border:2px solid #ffd580;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">Siguiente ›</button>
+        </div>`:`<div style="text-align:center;padding:10px;color:#00a844;font-weight:800;font-size:14px;">✅ Préstamo cancelado</div>`}
+        <div class="cliente-acciones">
+          <button class="btn-acc btn-acc-wa"      onclick="compartirClienteWA('${c.id}')">📲 WA</button>
+        </div>
+        <button onclick="verCancelados('${c.id}')" style="width:100%;margin-top:8px;padding:10px;background:#f0fff4;color:#00a844;border:2px solid #b2f0c8;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-align:center">
+          📋 Ver cancelados y renovaciones
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  setTimeout(initDrag, 50);
+}
+
+// ===== CLAVE =====
+function abrirModalClave(){
+  ['clave-actual','clave-nueva','clave-confirmar'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('clave-error').style.display='none';
+  document.getElementById('modal-clave-overlay').classList.add('visible');
+}
+function guardarClave(){
+  const a=document.getElementById('clave-actual').value,n=document.getElementById('clave-nueva').value,c=document.getElementById('clave-confirmar').value;
+  const e=document.getElementById('clave-error');
+  if(a!==getClave()){e.textContent='❌ Clave actual incorrecta';e.style.display='block';return;}
+  if(n.length<4){e.textContent='❌ Mínimo 4 caracteres';e.style.display='block';return;}
+  if(n!==c){e.textContent='❌ Las claves no coinciden';e.style.display='block';return;}
+  lsSet('app_clave',n);
+  cerrarModal('modal-clave-overlay');
+  showToast('✅ Clave actualizada');
+}
+
+function borrarTodo(){
+  if(!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.'))return;
+  lsRemove('hist_v3'); lsRemove('clientes_v1');
+  renderHistorial(); renderClientes(); showToast('🗑️ Datos borrados');
+}
+
+// ===== COPIA DE SEGURIDAD =====
+function exportarDatos(){
+  const datos = {
+    version: '1.0',
+    fechaExportacion: new Date().toISOString(),
+    clientes: JSON.parse(lsGet('clientes_v1')||'[]'),
+    historial: JSON.parse(lsGet('hist_v3')||'[]'),
+    credenciales: JSON.parse(lsGet('cobrador_credenciales')||'{}')
+  };
+  const json = JSON.stringify(datos, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g,'-');
+  a.href = url;
+  a.download = `copia-cuentas-${fecha}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  // Guardar fecha de última copia
+  lsSet('ultima_copia', new Date().toISOString());
+  actualizarInfoCopia();
+  showToast('✅ Copia descargada correctamente');
+}
+
+function importarDatos(event){
+  const file = event.target.files[0];
+  if(!file){ return; }
+  if(!confirm('Esto REEMPLAZARA todos los datos actuales. Estas seguro?')){
+    event.target.value=''; return;
+  }
+  function procesarTexto(texto){
+    try {
+      texto = texto.replace(/^﻿/, '').trim();
+      const datos = JSON.parse(texto);
+      if(!datos.version || !datos.clientes){
+        showToast('Error: Archivo no valido'); return;
+      }
+      lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
+      lsSet('hist_v3', JSON.stringify(datos.historial||[]));
+      if(datos.credenciales && datos.credenciales.usuario){
+        lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
+      }
+      if(datos.manuales){
+        Object.keys(datos.manuales).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.manuales[k]));
+        });
+      }
+      renderClientes();
+      try{ renderHistorial(); }catch(e){}
+      try{ cargarDesdeSupervisor(); }catch(e){}
+      actualizarInfoCopia();
+      showToast('OK: ' + (datos.clientes||[]).length + ' clientes restaurados');
+    } catch(err){
+      showToast('Error al leer: ' + err.message);
+    }
+    event.target.value='';
+  }
+  if(file.text){
+    file.text().then(procesarTexto).catch(function(){
+      var reader = new FileReader();
+      reader.onerror = function(){ showToast('No se pudo leer el archivo'); };
+      reader.onload = function(e){ procesarTexto(e.target.result); };
+      reader.readAsText(file, 'UTF-8');
+    });
+  } else {
+    var reader = new FileReader();
+    reader.onerror = function(){ showToast('No se pudo leer el archivo'); };
+    reader.onload = function(e){ procesarTexto(e.target.result); };
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+
+function actualizarInfoCopia(){
+  const el = document.getElementById('ultima-copia-info');
+  if(!el) return;
+  const ultima = lsGet('ultima_copia');
+  if(ultima){
+    const d = new Date(ultima);
+    el.textContent = '✅ Última copia: ' + d.toLocaleDateString('es-CO') + ' a las ' + d.toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+    el.style.color = '#00a844';
+  } else {
+    el.textContent = 'No hay copias registradas aún';
+    el.style.color = '#aaa';
+  }
+}
+
+// ===== DÍAS ATRASADO SIN DOMINGOS =====
+function diasHabilesDesde(fechaStr){
+  // Solo cuenta días hábiles desde inicio (sin domingos)
+  if(!fechaStr) return 0;
+  const inicio = new Date(fechaStr + 'T00:00:00');
+  const hoy    = new Date();
+  hoy.setHours(0,0,0,0);
+  if(inicio >= hoy) return 0;
+  let dias = 0;
+  const cur = new Date(inicio);
+  cur.setDate(cur.getDate()+1);
+  while(cur <= hoy){
+    if(cur.getDay() !== 0) dias++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return dias;
+}
+
+function calcularAtraso(cliente){
+  // Retorna número: positivo = atrasado, 0 = al día, negativo = adelantado
+  if(!cliente || cliente.saldo <= 0) return 0;
+  const fechaInicio = cliente.fechaRenovacion || cliente.fechaCreado || '';
+  if(!fechaInicio) return 0;
+
+  // Días hábiles transcurridos desde el inicio del préstamo
+  const diasTranscurridos = diasHabilesDesde(fechaInicio);
+
+  // Total pagado en este ciclo
+  const totalPagado = (cliente.pagos || []).reduce((s,p) => s + p.monto, 0);
+
+  // Si tiene cuota sugerida, calcular cuántas cuotas cubre lo pagado
+  // Si no tiene cuota, contar número de pagos
+  let cuotasCubiertas;
+  if(cliente.cuotaSugerida > 0){
+    cuotasCubiertas = Math.floor(totalPagado / cliente.cuotaSugerida);
+  } else {
+    cuotasCubiertas = (cliente.pagos || []).length;
+  }
+
+  // Atraso = días que debió pagar - cuotas cubiertas
+  return diasTranscurridos - cuotasCubiertas;
+}
+
+// ===== SINCRONIZAR CUENTAS DESDE CLIENTES =====
+function sincronizarDesdeclientes(){
+  const hoy = document.getElementById('fecha').value || fechaHoy();
+  const clientes = getClientes();
+
+  // General = suma de todas las cuotas cobradas HOY
+  let totalCuotas = 0;
+  let detalleCuotas = [];
+  // Cancelados = clientes cuyo saldo llegó a 0 HOY (último pago hoy y saldo=0)
+  let totalCancelados = 0;
+  let detalleCancelados = [];
+  // Préstamos nuevos del día = clientes creados hoy
+  let totalPrestamosNuevos = 0;
+  let detallePrestamos = [];
+
+  clientes.forEach(c => {
+    // Cuotas cobradas hoy
+    const pagosDia = (c.pagos||[]).filter(p => p.fecha === hoy);
+    const sumPagosDia = pagosDia.reduce((s,p) => s+p.monto, 0);
+    if(sumPagosDia > 0){
+      totalCuotas += sumPagosDia;
+      detalleCuotas.push(`${c.nombre}: ${fmt(sumPagosDia)}`);
+    }
+    // Cancelados: saldo=0 y último pago fue hoy
+    if(c.saldo === 0 && c.pagos && c.pagos.length > 0 && c.pagos[0].fecha === hoy){
+      totalCancelados++;
+      detalleCancelados.push(c.nombre);
+    }
+    // Préstamos nuevos: creados hoy o renovados hoy
+    if(c.fechaCreado === hoy){
+      totalPrestamosNuevos += c.capital||0;
+      detallePrestamos.push(`${c.nombre}: ${fmt(c.capital||0)}`);
+    } else if(c.fechaRenovacion === hoy){
+      totalPrestamosNuevos += c.capital||0;
+      detallePrestamos.push(`${c.nombre} (renov): ${fmt(c.capital||0)}`);
+    }
+  });
+
+  // Actualizar campos
+  document.getElementById('general').value = totalCuotas || '';
+  document.getElementById('general-detalle').textContent = '';
+
+  document.getElementById('prestamos').value = totalPrestamosNuevos || '';
+  document.getElementById('prestamos-detalle').textContent = '';
+
+  document.getElementById('cancelados').value = totalCancelados || '';
+  document.getElementById('cancelados-detalle').textContent = '';
+
+  calcular();
+  renderNuevosRenovacionesHoy();
+  showToast(`🔄 Sincronizado: cuotas ${fmt(totalCuotas)}, cancelados ${totalCancelados}`);
+}
+
+// ===== DRAG AND DROP CLIENTES =====
+let dragSrcIdx = null;
+
+function initDrag(){
+  const lista = document.getElementById('clientes-lista');
+  const cards = lista.querySelectorAll('.cliente-card');
+
+  cards.forEach((card, idx) => {
+    // Touch para móvil
+    let longPressTimer;
+    let isDragging = false;
+    let startY, currentCard;
+
+    card.addEventListener('touchstart', e => {
+      longPressTimer = setTimeout(() => {
+        isDragging = true;
+        dragSrcIdx = idx;
+        card.classList.add('dragging');
+        navigator.vibrate && navigator.vibrate(50);
+      }, 500);
+      startY = e.touches[0].clientY;
+    }, {passive:true});
+
+    card.addEventListener('touchmove', e => {
+      clearTimeout(longPressTimer);
+      if(!isDragging) return;
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      const elements = document.elementsFromPoint(e.touches[0].clientX, y);
+      const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
+      lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
+      if(target) target.classList.add('drag-over');
+    }, {passive:false});
+
+    card.addEventListener('touchend', e => {
+      clearTimeout(longPressTimer);
+      if(!isDragging){ isDragging=false; return; }
+      card.classList.remove('dragging');
+      lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
+
+      const y = e.changedTouches[0].clientY;
+      const elements = document.elementsFromPoint(e.changedTouches[0].clientX, y);
+      const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
+      if(target){
+        const allCards = [...lista.querySelectorAll('.cliente-card')];
+        const targetIdx = allCards.indexOf(target);
+        if(targetIdx !== -1 && dragSrcIdx !== null && targetIdx !== dragSrcIdx){
+          const clientes = getClientes();
+          const [moved] = clientes.splice(dragSrcIdx, 1);
+          clientes.splice(targetIdx, 0, moved);
+          saveClientes(clientes);
+          renderClientes();
+          showToast('✅ Cliente movido');
+        }
+      }
+      isDragging = false;
+      dragSrcIdx = null;
+    });
+  });
+}
+
+// ===== PANTALLA DETALLES =====
+function renderDetalles(){
+  const filtroInput = document.getElementById('det-filtro-fecha');
+  // Por defecto siempre hoy
+  if(!filtroInput.value){
+    filtroInput.value = fechaHoy();
+  }
+  const filtroFecha = filtroInput.value;
+  // Sincronizar fecha activa global para que imprimirListaClientes use la misma fecha
+  setFechaActiva(filtroFecha);
+  const clientes = getClientes();
+
+  // Recopilar todas las cuotas
+  let todasCuotas = [];
+  let cancelados = [];
+
+  clientes.forEach(c => {
+    (c.pagos||[]).forEach(p => {
+      if(p.fecha === filtroFecha){
+        todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario' });
+      }
+    });
+    // Cancelados: saldo = 0 en ciclo actual
+    if(c.saldo === 0 && (c.pagos||[]).length > 0){
+      const ultPago = c.pagos[0];
+      if(ultPago.fecha === filtroFecha){
+        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: ultPago.fecha, totalPagado: c.prestamo-(c.saldo), capital: c.capital||0, pagos: c.pagos.length, saldoQuedaba: 0 });
+      }
+    }
+    // Renovaciones
+    (c.historialRenovaciones||[]).forEach(r => {
+      if(r.fecha === filtroFecha){
+        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: r.fecha, totalPagado: r.saldoQuedaba, capital: r.capitalCiclo||0, pagos: r.pagos?.length||0, saldoQuedaba: r.saldoQuedaba, esRenovacion: true, nuevoTotal: r.nuevoTotal });
+      }
+    });
+  });
+
+  // Ordenar por fecha más reciente
+  todasCuotas.sort((a,b) => b.fecha.localeCompare(a.fecha));
+  cancelados.sort((a,b) => b.fecha.localeCompare(a.fecha));
+
+  // Totales
+  const totalCuotas = todasCuotas.reduce((s,c) => s+c.monto, 0);
+  const montoCancelados = cancelados.reduce((s,c) => s+c.totalPagado, 0);
+
+  document.getElementById('res-total-cuotas').textContent = fmt(totalCuotas);
+  document.getElementById('res-num-cuotas').textContent = todasCuotas.length + ' pago' + (todasCuotas.length!==1?'s':'');
+  document.getElementById('res-total-cancelados').textContent = cancelados.length;
+  document.getElementById('res-monto-cancelados').textContent = fmt(montoCancelados) + ' total';
+
+  // Agrupar cuotas por fecha
+  const cuotasPorFecha = {};
+  todasCuotas.forEach(c => {
+    if(!cuotasPorFecha[c.fecha]) cuotasPorFecha[c.fecha] = [];
+    cuotasPorFecha[c.fecha].push(c);
+  });
+
+  const listaCuotas = document.getElementById('lista-cuotas-det');
+  if(!todasCuotas.length){
+    listaCuotas.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #e5e7eb">📭 No hay cuotas en esta fecha</div>';
+  } else {
+    listaCuotas.innerHTML = Object.entries(cuotasPorFecha).map(([fecha, cuotas]) => {
+      const totalDia = cuotas.reduce((s,c) => s+c.monto, 0);
+      return `<div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+        <div style="background:#f0f5ff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e5e7eb">
+          <div style="font-size:13px;font-weight:800;color:#5b8dee">📅 ${fechaBonita(fecha)}</div>
+          <div style="font-size:15px;font-weight:900;color:#00a844">${fmt(totalDia)}</div>
+        </div>
+        ${cuotas.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5f5">
+          <div onclick="abrirDetalle('${c.clienteId}')" style="flex:1;cursor:pointer">
+            <div style="font-size:14px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
+            <div style="font-size:11px;color:#aaa;font-weight:600;margin-top:1px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:17px;font-weight:900;color:#00a844">+${fmt(c.monto)}</div>
+            <button onclick="eliminarCuotaDeDetalle('${c.clienteId}','${c.fecha}',${c.monto})" style="background:#fff0f0;border:1.5px solid #ffcaca;color:#ff3d3d;border-radius:8px;padding:6px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  // Cancelados
+  const listaCancelados = document.getElementById('lista-cancelados-det');
+  if(!cancelados.length){
+    listaCancelados.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #e5e7eb;margin-bottom:14px">📭 No hay cancelados' + (filtroFecha ? ' en esta fecha' : '') + '</div>';
+  } else {
+    listaCancelados.innerHTML = cancelados.map(c => `
+      <div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+        <div style="background:#fff0f0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffcaca">
+          <div style="font-size:11px;font-weight:900;color:#ff3d3d;letter-spacing:1px;text-transform:uppercase">${c.esRenovacion ? '🔄 Renovado (ciclo cerrado)' : '✅ Cancelado completo'}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:12px;color:#aaa;font-weight:700">📅 ${fechaBonita(c.fecha)}</div>
+            <button onclick="eliminarCanceladoDeDetalle('${c.clienteId}',${c.esRenovacion||false})" style="background:#fff0f0;border:1.5px solid #ffcaca;color:#ff3d3d;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
+          </div>
+        </div>
+        <div style="padding:12px 14px" onclick="abrirDetalle('${c.clienteId}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
+              <div style="font-size:12px;color:#aaa;font-weight:600;margin-top:2px">${c.pagos} cuota${c.pagos!==1?'s':''} pagadas</div>
+              ${c.esRenovacion && c.saldoQuedaba > 0 ? `<div style="font-size:12px;color:#e07b00;font-weight:700;margin-top:2px">⚠️ Quedaba: ${fmt(c.saldoQuedaba)}</div>` : ''}
+              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#5b8dee;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:#aaa;font-weight:700">Capital</div>
+              <div style="font-size:13px;font-weight:800;color:#888">${fmt(c.capital)}</div>
+              <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:4px">Cancelado</div>
+              <div style="font-size:17px;font-weight:900;color:#00a844">${fmt(c.totalPagado)}</div>
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ===== ELIMINAR DESDE PANTALLA DETALLES (cualquier fecha) =====
+function eliminarCuotaDeDetalle(clienteId, fecha, monto){
+  const cl = getClientes();
+  const cliente = cl.find(c=>c.id===clienteId);
+  if(!cliente) return;
+  confirmarAccion(
+    '🗑️ Eliminar cuota',
+    `¿Eliminar la cuota de ${fmt(monto)} de ${cliente.nombre}?\n\nEl monto se devolverá al saldo del cliente.`,
+    '#ff3d3d',
+    () => {
+      const cl2 = getClientes();
+      const idx = cl2.findIndex(c=>c.id===clienteId);
+      if(idx<0) return;
+      const pi = cl2[idx].pagos.findIndex(p=>p.fecha===fecha && p.monto===monto);
+      if(pi<0){ showToast('⚠️ No se encontró la cuota'); return; }
+      cl2[idx].pagos.splice(pi,1);
+      cl2[idx].saldo += monto;
+      saveClientes(cl2);
+      showToast(`✅ Cuota de ${fmt(monto)} eliminada`);
+      renderDetalles();
+    }
+  );
+}
+
+function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
+  const cl = getClientes();
+  const cliente = cl.find(c=>c.id===clienteId);
+  if(!cliente) return;
+  const fechaFiltro = document.getElementById('det-filtro-fecha').value || fechaHoy();
+
+  if(esRenovacion){
+    const hist = cliente.historialRenovaciones||[];
+    if(!hist.length || hist[0].fecha !== fechaFiltro){ showToast('⛔ No hay renovación de esa fecha para eliminar'); return; }
+    confirmarAccion(
+      '🗑️ Eliminar renovación de hoy',
+      `¿Eliminar la renovación de ${cliente.nombre}?\n\nSe restaurará el préstamo anterior del cliente.`,
+      '#ff3d3d',
+      () => {
+        const cl2 = getClientes();
+        const idx = cl2.findIndex(c=>c.id===clienteId);
+        if(idx<0) return;
+        const u = cl2[idx].historialRenovaciones[0];
+        cl2[idx].capital = u.capitalCiclo || 0;
+        cl2[idx].interes = u.interesCiclo || 0;
+        cl2[idx].prestamo = u.prestamoCiclo;
+        cl2[idx].saldo = u.saldoQuedaba;
+        cl2[idx].pagos = u.pagos || [];
+        cl2[idx].tipo = u.tipo || cl2[idx].tipo;
+        cl2[idx].cuotaSugerida = u.cuotaSugerida || cl2[idx].cuotaSugerida;
+        cl2[idx].fechaCreado = u.fechaCreado || cl2[idx].fechaCreado;
+        cl2[idx].fechaRenovacion = u.fechaRenovacion || null;
+        cl2[idx].renovaciones = Math.max(0,(cl2[idx].renovaciones||1)-1);
+        cl2[idx].historialRenovaciones = cl2[idx].historialRenovaciones.slice(1);
+        saveClientes(cl2);
+        showToast('✅ Renovación eliminada, préstamo anterior restaurado');
+        renderDetalles();
+      }
+    );
+  } else {
+    // Cancelado normal (saldo = 0): verificar que el último pago sea de hoy
+    const pagos = cliente.pagos||[];
+    if(!pagos.length || pagos[0].fecha !== hoy){ showToast('⛔ Solo se pueden eliminar cancelados del día de hoy'); return; }
+    confirmarAccion(
+      '🗑️ Eliminar cancelado de hoy',
+      `¿Eliminar el cancelado de ${cliente.nombre}?\n\nSe restaurará el saldo del cliente a ${fmt(cliente.prestamo)}.`,
+      '#ff3d3d',
+      () => {
+        const cl2 = getClientes();
+        const idx = cl2.findIndex(c=>c.id===clienteId);
+        if(idx<0) return;
+        cl2[idx].saldo = cl2[idx].prestamo;
+        cl2[idx].pagos = [];
+        saveClientes(cl2);
+        showToast('↩️ Cancelado deshecho — cliente volvió a la lista');
+        renderDetalles();
+        renderClientes();
+      }
+    );
+  }
+}
+
+// ===== PANTALLA DETALLE CLIENTE =====
+let clienteDetalleId = null;
+
+function calcularFechaFinal(fechaInicio, tipo, nCuotas){
+  if(!fechaInicio || !nCuotas) return '';
+  const d = new Date(fechaInicio + 'T00:00:00');
+  let dias = 0, agregados = 0;
+  while(agregados < nCuotas){
+    d.setDate(d.getDate()+1);
+    if(tipo === 'diario' && d.getDay() !== 0) agregados++;
+    else if(tipo === 'semanal'){ if(d.getDay() === 1) agregados++; } // cada lunes
+    else agregados++;
+  }
+  return d.toISOString().split('T')[0];
+}
+
+function diasVencidos(fechaInicio, tipo, pagos){
+  // Cuántos días de pago han pasado sin recibir cuota
+  if(!fechaInicio) return 0;
+  const inicio = new Date(fechaInicio + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let diasEsperados = 0;
+  const cur = new Date(inicio);
+  cur.setDate(cur.getDate()+1);
+  while(cur <= hoy){
+    if(tipo === 'diario' && cur.getDay() !== 0) diasEsperados++;
+    else if(tipo === 'semanal' && cur.getDay() === 1) diasEsperados++;
+    cur.setDate(cur.getDate()+1);
+  }
+  const cuotasPagadas = (pagos||[]).length;
+  return Math.max(0, diasEsperados - cuotasPagadas);
+}
+
+function verAbonosCliente(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  const pagos = c.pagos||[];
+  const boxId = 'abonos-inline-'+id;
+
+  // Si ya está visible, ocultarlo (toggle)
+  const existing = document.getElementById(boxId);
+  if(existing){
+    existing.remove();
+    return;
+  }
+
+  // Construir el panel inline dentro de la tarjeta
+  const html = `<div id="${boxId}" style="margin:10px 0 4px;background:#f8f9ff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb">
+    <div style="background:#5b8dee;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:11px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
+      <button onclick="document.getElementById('${boxId}').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+    </div>
+    <div style="padding:0 14px">
+      ${pagos.length ? pagos.map((p,i)=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0${i===pagos.length-1?';border-bottom:none':''}">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#333">📅 ${fechaBonita(p.fecha)}</div>
+            <div style="font-size:11px;color:#aaa;font-weight:600">Cuota #${pagos.length-i}</div>
+          </div>
+          <div style="font-size:17px;font-weight:900;color:#00a844">+${fmt(p.monto)}</div>
+        </div>`).join('') : '<div style="text-align:center;padding:20px;color:#bbb;font-size:14px;font-weight:700">📭 Sin abonos aún</div>'}
+    </div>
+    <div style="background:#e8fff2;padding:10px 14px;display:flex;justify-content:space-between;border-top:2px solid #b2f0c8">
+      <span style="font-size:12px;font-weight:900;color:#00a844;text-transform:uppercase">✅ Total abonado</span>
+      <span style="font-size:18px;font-weight:900;color:#00a844">${fmt(pagos.reduce((s,p)=>s+p.monto,0))}</span>
+    </div>
+  </div>`;
+
+  // Insertar después del botón de abonos (dentro del cbody)
+  const cbody = document.getElementById('cbody-'+id);
+  if(cbody){
+    const btnRow = cbody.querySelector('[onclick*="verAbonosCliente"]').closest('div');
+    btnRow.insertAdjacentHTML('afterend', html);
+    setTimeout(()=>document.getElementById(boxId).scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
+
+function abrirDetalle(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  clienteDetalleId = id;
+
+  const pagado = c.prestamo - c.saldo;
+  const fechaInicio = c.fechaRenovacion || c.fechaCreado || fechaHoy();
+  const nCuotas = c.cuotaSugerida > 0 ? Math.ceil(c.prestamo / c.cuotaSugerida) : (c.pagos||[]).length;
+  const diasAtraso = calcularAtraso(c);
+  const dvencidos = diasAtraso > 0 ? diasAtraso : 0;
+  const ultPago = (c.pagos||[])[0];
+  const cuotasPagadas = (c.pagos||[]).length;
+  const fechaFinal = calcularFechaFinal(fechaInicio, c.tipo||'diario', nCuotas);
+
+  document.getElementById('det-nombre').textContent = '👤 ' + c.nombre;
+  document.getElementById('det-cedula').textContent = c.cedula ? '🪪 ' + c.cedula : (c.tel ? '📱 ' + c.tel : '');
+  document.getElementById('det-f-registro').textContent = fechaInicio.replace('T',' ');
+  document.getElementById('det-inicio').textContent = fechaBonita(fechaInicio);
+  document.getElementById('det-final').textContent = fechaFinal ? fechaBonita(fechaFinal) : '—';
+  document.getElementById('det-valor').textContent = fmt(c.capital||0);
+  document.getElementById('det-total').textContent = fmt(c.prestamo);
+  document.getElementById('det-modo').textContent = (c.tipo||'diario')==='diario' ? '☀️ DIARIO' : '📅 SEMANAL';
+  document.getElementById('det-ncuotas').textContent = nCuotas || '—';
+  document.getElementById('det-vcuota').textContent = c.cuotaSugerida > 0 ? fmt(c.cuotaSugerida) : '—';
+  const detPct=document.getElementById('det-porcentaje-val');
+  if(detPct) detPct.textContent=getPorcentaje()+'%';
+
+  const dAtrasoEl = document.getElementById('det-dias-atraso');
+  if(diasAtraso > 0){
+    dAtrasoEl.textContent = diasAtraso + ' día' + (diasAtraso>1?'s':'') + ' atrasado';
+    dAtrasoEl.style.color = diasAtraso <= 2 ? '#e07b00' : '#ff3d3d';
+  } else if(diasAtraso < 0){
+    dAtrasoEl.textContent = Math.abs(diasAtraso) + ' día' + (Math.abs(diasAtraso)>1?'s':'') + ' adelantado';
+    dAtrasoEl.style.color = '#00a844';
+  } else {
+    dAtrasoEl.textContent = 'Al día ✅';
+    dAtrasoEl.style.color = '#00a844';
+  }
+
+  const dvEl = document.getElementById('det-dias-vencidos');
+  dvEl.textContent = dvencidos;
+  dvEl.style.color = dvencidos === 0 ? '#00a844' : '#ff3d3d';
+
+  document.getElementById('det-ult-monto').textContent = ultPago ? fmt(ultPago.monto) : '—';
+  document.getElementById('det-ult-fecha').textContent = ultPago ? fechaBonita(ultPago.fecha) : 'Sin abonos';
+  document.getElementById('det-ua').textContent = cuotasPagadas;
+  document.getElementById('det-dd').textContent = `${cuotasPagadas} de ${nCuotas||'?'}`;
+  document.getElementById('det-abonos').textContent = fmt(pagado);
+  document.getElementById('det-saldo').textContent = fmt(c.saldo);
+  document.getElementById('det-saldo').style.color = c.saldo > 0 ? '#ff3d3d' : '#00a844';
+
+  document.getElementById('det-contacto-nombre').textContent = c.nombre;
+  document.getElementById('det-contacto-tel').textContent = c.tel || '—';
+  document.getElementById('det-contacto-dir').textContent = c.dir || '—';
+
+  document.getElementById('det-abonar-input').value = '';
+  document.getElementById('det-nuevo-saldo').textContent = fmt(c.saldo);
+  const inlineReset = document.getElementById('det-nuevo-saldo-inline');
+  if(inlineReset){ inlineReset.textContent = '—'; inlineReset.style.color = '#ff3d3d'; }
+  document.getElementById('det-historial-box').style.display = 'none';
+
+  // (correcciones quitadas)
+
+  document.getElementById('pantalla-detalle-cliente').style.display = 'block';
+  document.getElementById('pantalla-detalle-cliente').scrollTop = 0;
+  document.getElementById('app').style.display = 'none';
+}
+
+function cerrarDetalle(){
+  document.getElementById('pantalla-detalle-cliente').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  renderClientes();
+}
+
+function actualizarNuevoSaldo(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c) return;
+  const v = parseFloat(document.getElementById('det-abonar-input').value)||0;
+  const nuevo = Math.max(0, c.saldo - v);
+  document.getElementById('det-nuevo-saldo').textContent = fmt(nuevo);
+  document.getElementById('det-nuevo-saldo').style.color = nuevo === 0 ? '#00a844' : '#ff3d3d';
+  const inlineEl = document.getElementById('det-nuevo-saldo-inline');
+  if(inlineEl){
+    inlineEl.textContent = v > 0 ? fmt(nuevo) : '—';
+    inlineEl.style.color = nuevo === 0 ? '#00a844' : '#ff3d3d';
+  }
+}
+
+function abonarDesdeDetalle(){
+  const monto = parseFloat(document.getElementById('det-abonar-input').value)||0;
+  if(monto <= 0){ showToast('⚠️ Ingresa un valor mayor a 0'); return; }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
+  if(idx<0) return;
+  clientes[idx].saldo = Math.max(0, clientes[idx].saldo - monto);
+  clientes[idx].pagos = clientes[idx].pagos || [];
+  clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
+  saveClientes(clientes);
+  showToast(`✅ Abono de ${fmt(monto)} registrado`);
+  abrirDetalle(clienteDetalleId); // refrescar
+}
+
+function verAbonosDetalle(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c) return;
+  const pagos = c.pagos||[];
+  const box = document.getElementById('det-historial-box');
+  const lista = document.getElementById('det-historial-lista');
+
+  if(!pagos.length){
+    lista.innerHTML='<div style="text-align:center;padding:20px;color:#bbb;font-size:14px;font-weight:700">📭 Sin abonos aún</div>';
+  } else {
+    lista.innerHTML = pagos.map((p,i)=>`
+      <div style="border-bottom:1px solid #f0f0f0${i===pagos.length-1?';border-bottom:none':''}">
+        <!-- Fila normal -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0" id="cuota-row-${i}">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#333">📅 ${fechaBonita(p.fecha)}</div>
+            <div style="font-size:11px;color:#aaa;font-weight:600">Cuota #${pagos.length-i}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:17px;font-weight:900;color:#00a844">+${fmt(p.monto)}</div>
+            <button onclick="mostrarEditarCuota(${i})" style="background:#f0f5ff;border:1.5px solid #b8ceff;color:#5b8dee;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
+            <button onclick="deshacerCuota(${i})" style="background:#fff0f0;border:1.5px solid #ffcaca;color:#ff3d3d;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">↩️</button>
+          </div>
+        </div>
+        <!-- Panel editar (oculto) -->
+        <div id="cuota-edit-${i}" style="display:none;background:#f8f9ff;border-radius:12px;padding:12px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:900;color:#5b8dee;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✏️ Editar cuota #${pagos.length-i}</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Monto</div>
+              <input type="number" id="edit-monto-${i}" value="${p.monto}" style="width:100%;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;outline:none">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Fecha</div>
+              <input type="date" id="edit-fecha-${i}" value="${p.fecha}" style="width:100%;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;color:#5b8dee">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="guardarEditarCuota(${i})" style="flex:2;background:#5b8dee;color:white;border:none;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
+            <button onclick="cancelarEditarCuota(${i})" style="flex:1;background:#f0f5ff;color:#888;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Cancelar</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  const total = pagos.reduce((s,p)=>s+p.monto,0);
+  document.getElementById('det-historial-total').textContent = fmt(total);
+  box.style.display = 'block';
+  box.scrollIntoView({behavior:'smooth'});
+}
+
+function mostrarEditarCuota(i){
+  document.querySelectorAll('[id^="cuota-edit-"]').forEach(el=>el.style.display='none');
+  document.getElementById('cuota-edit-'+i).style.display='block';
+}
+
+function cancelarEditarCuota(i){
+  document.getElementById('cuota-edit-'+i).style.display='none';
+}
+
+function guardarEditarCuota(i){
+  const nuevoMonto = parseFloat(document.getElementById('edit-monto-'+i).value)||0;
+  const nuevaFecha = document.getElementById('edit-fecha-'+i).value;
+  if(nuevoMonto <= 0){ showToast('⚠️ El monto debe ser mayor a 0'); return; }
+  if(!nuevaFecha){ showToast('⚠️ Selecciona una fecha'); return; }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
+  if(idx<0) return;
+  const montoAnterior = clientes[idx].pagos[i].monto;
+  clientes[idx].pagos[i].monto = nuevoMonto;
+  clientes[idx].pagos[i].fecha = nuevaFecha;
+  // Recalcular saldo: diferencia entre monto viejo y nuevo
+  const diff = nuevoMonto - montoAnterior;
+  clientes[idx].saldo = Math.max(0, clientes[idx].saldo - diff);
+  saveClientes(clientes);
+  showToast('✅ Cuota corregida');
+  abrirDetalle(clienteDetalleId);
+  setTimeout(verAbonosDetalle, 100);
+}
+
+function deshacerCuota(i){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c) return;
+  const p = (c.pagos||[])[i];
+  if(!p) return;
+  confirmarAccion(
+    '↩️ Eliminar cuota',
+    `¿Eliminar la cuota de ${fmt(p.monto)} del ${fechaBonita(p.fecha)}?\n\nEse monto se devolverá al saldo.`,
+    '#ff3d3d',
+    () => {
+      const cl = getClientes();
+      const idx = cl.findIndex(x=>x.id===clienteDetalleId);
+      if(idx<0) return;
+      const monto = cl[idx].pagos[i].monto;
+      cl[idx].pagos.splice(i,1);
+      cl[idx].saldo += monto;
+      saveClientes(cl);
+      showToast('↩️ Cuota eliminada, saldo restaurado');
+      abrirDetalle(clienteDetalleId);
+      setTimeout(verAbonosDetalle, 100);
+    }
+  );
+}
+
+// ===== MODAL CONFIRMACIÓN PERSONALIZADO =====
+function confirmarAccion(titulo, msg, colorBtn, accion){
+  document.getElementById('modal-confirmar-titulo').textContent = titulo;
+  document.getElementById('modal-confirmar-msg').textContent = msg;
+  const btn = document.getElementById('modal-confirmar-ok');
+  btn.style.background = colorBtn || '#ff3d3d';
+  btn.onclick = () => { cerrarModal('modal-confirmar-overlay'); accion(); };
+  document.getElementById('modal-confirmar-overlay').classList.add('visible');
+}
+
+function borrarUltimaCuota(){
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
+  if(idx<0) return;
+  const pagos = clientes[idx].pagos||[];
+  if(!pagos.length){ showToast('⚠️ No hay cuotas para borrar'); return; }
+  const ult = pagos[0];
+  confirmarAccion(
+    '🗑️ Borrar última cuota',
+    `¿Borrar la cuota de ${fmt(ult.monto)} del ${fechaBonita(ult.fecha)}?\n\nEse monto se devolverá al saldo.`,
+    '#5b8dee',
+    () => {
+      const cl = getClientes();
+      const i = cl.findIndex(c=>c.id===clienteDetalleId);
+      if(i<0) return;
+      const m = cl[i].pagos[0].monto;
+      cl[i].pagos.splice(0,1);
+      cl[i].saldo += m;
+      saveClientes(cl);
+      showToast(`↩️ Cuota de ${fmt(m)} eliminada, saldo restaurado`);
+      abrirDetalle(clienteDetalleId);
+    }
+  );
+}
+
+function deshacerCancelado(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c) return;
+  confirmarAccion(
+    '↩️ Echar atrás el cancelado',
+    `¿Deshacer el cancelado de ${c.nombre}?\n\nSe borrará el historial de cuotas y el saldo volverá a ${fmt(c.prestamo)}.\n\nÚsalo solo si fue un error.`,
+    '#e06500',
+    () => {
+      const cl = getClientes();
+      const i = cl.findIndex(x=>x.id===clienteDetalleId);
+      if(i<0) return;
+      cl[i].saldo = cl[i].prestamo;
+      cl[i].pagos = [];
+      saveClientes(cl);
+      showToast('↩️ Cancelado deshecho — cliente volvió a la lista');
+      cerrarDetalle();
+    }
+  );
+}
+
+function deshacerRenovacion(){
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
+  if(idx<0) return;
+  const c = clientes[idx];
+  const historial = c.historialRenovaciones||[];
+  if(!historial.length){ showToast('⚠️ No hay renovación para deshacer'); return; }
+  const ultima = historial[0];
+  confirmarAccion(
+    '↩️ Echar atrás el préstamo',
+    `¿Deshacer la renovación de ${c.nombre}?\n\nSe eliminará el préstamo actual (${fmt(c.prestamo)}) y se restaurará el ciclo anterior:\n• Préstamo anterior: ${fmt(ultima.prestamoCiclo)}\n• Cuotas de ese ciclo: ${(ultima.pagos||[]).length}\n\nÚsalo solo si renovaste por error.`,
+    '#ff3d3d',
+    () => {
+      const cl = getClientes();
+      const i = cl.findIndex(c=>c.id===clienteDetalleId);
+      if(i<0) return;
+      const u = cl[i].historialRenovaciones[0];
+      cl[i].capital = u.capitalCiclo || 0;
+      cl[i].interes = u.interesCiclo || 0;
+      cl[i].prestamo = u.prestamoCiclo;
+      cl[i].saldo = u.saldoQuedaba;
+      cl[i].pagos = u.pagos || [];
+      cl[i].tipo = u.tipo || cl[i].tipo;
+      cl[i].cuotaSugerida = u.cuotaSugerida || cl[i].cuotaSugerida;
+      cl[i].fechaCreado = u.fechaCreado || cl[i].fechaCreado;
+      cl[i].fechaRenovacion = u.fechaRenovacion || null;
+      cl[i].renovaciones = Math.max(0, (cl[i].renovaciones||1) - 1);
+      cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
+      saveClientes(cl);
+      showToast('↩️ Renovación deshecha, préstamo anterior restaurado');
+      abrirDetalle(clienteDetalleId);
+    }
+  );
+}
+
+function renovarDesdeDetalle(){
+  cerrarDetalle();
+  setTimeout(()=>{ abrirRenovar(clienteDetalleId); }, 200);
+}
+
+function llamarCliente(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(c && c.tel) window.location.href = 'tel:' + c.tel;
+  else showToast('⚠️ Este cliente no tiene teléfono');
+}
+
+function waCliente(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c || !c.tel){ showToast('⚠️ Este cliente no tiene teléfono'); return; }
+  const pagado = c.prestamo - c.saldo;
+  const texto = `Hola ${c.nombre}, le informamos que su saldo es de *${fmt(c.saldo)}*. Ha abonado *${fmt(pagado)}* de *${fmt(c.prestamo)}*.`;
+  window.open('https://wa.me/57'+c.tel+'?text='+encodeURIComponent(texto),'_blank');
+}
+
+// ===== PANTALLA PRÉSTAMOS =====
+function renderPrestamos(){
+  const fechaInput = document.getElementById('pres-filtro-fecha');
+  const hoy = (fechaInput && fechaInput.value) ? fechaInput.value : getFechaActiva();
+  if(fechaInput && !fechaInput.value) fechaInput.value = hoy;
+  const clientes = getClientes();
+
+  // Nuevos: clientes creados en la fecha seleccionada
+  const nuevosHoy = clientes.filter(c => c.fechaCreado === hoy && !(c.renovaciones > 0));
+  // Renovados: renovaciones de la fecha seleccionada
+  const renovadosHoy = clientes.filter(c => c.fechaRenovacion === hoy);
+
+  const totalNuevosHoy = nuevosHoy.reduce((s,c) => s + (c.capital||0), 0);
+  const totalRenovadosHoy = renovadosHoy.reduce((s,c) => s + (c.capital||0), 0);
+
+  // Total histórico: capital actual + todos los capitales de ciclos anteriores
+  let totalHistorico = 0;
+  let totalClientes = clientes.length;
+  clientes.forEach(c => {
+    totalHistorico += c.capital || 0;
+    (c.historialRenovaciones||[]).forEach(r => { totalHistorico += r.capitalCiclo || 0; });
+  });
+
+  document.getElementById('pres-nuevos-hoy').textContent = fmt(totalNuevosHoy);
+  document.getElementById('pres-num-nuevos').textContent = nuevosHoy.length + ' cliente' + (nuevosHoy.length!==1?'s':'');
+  document.getElementById('pres-renovados-hoy').textContent = fmt(totalRenovadosHoy);
+  document.getElementById('pres-num-renovados').textContent = renovadosHoy.length + ' cliente' + (renovadosHoy.length!==1?'s':'');
+  document.getElementById('pres-total-historico').textContent = fmt(totalHistorico);
+  document.getElementById('pres-detalle-historico').textContent = totalClientes + ' clientes en total';
+
+  // Lista nuevos hoy
+  const listaNuevos = document.getElementById('lista-nuevos-prestamos');
+  if(!nuevosHoy.length){
+    listaNuevos.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e5e7eb">📭 No hay clientes nuevos hoy</div>';
+  } else {
+    listaNuevos.innerHTML = nuevosHoy.map(c => `
+      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e5e7eb;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}')">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
+            <div style="font-size:12px;color:#aaa;font-weight:600;margin-top:2px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Cuota: ${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa;font-weight:700">Capital</div>
+            <div style="font-size:18px;font-weight:900;color:#00c853">${fmt(c.capital||0)}</div>
+            <div style="font-size:11px;color:#5b8dee;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 12px">
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f0f5ff;color:#5b8dee;border:1.5px solid #b8ceff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#fff0f0;color:#ff3d3d;border:1.5px solid #ffcaca;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // Lista renovados hoy
+  const listaRenovados = document.getElementById('lista-renovaciones-prestamos');
+  if(!renovadosHoy.length){
+    listaRenovados.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e5e7eb">📭 No hay renovaciones hoy</div>';
+  } else {
+    listaRenovados.innerHTML = renovadosHoy.map(c => {
+      const rInfo = (c.historialRenovaciones||[])[0];
+      return `
+      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1.5px solid #f59e0b44;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}')">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
+            <div style="font-size:12px;color:#aaa;font-weight:600;margin-top:2px">Renovación #${c.renovaciones||1} · ${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
+            ${rInfo ? `<div style="font-size:11px;color:#e07b00;font-weight:700;margin-top:2px">Anterior: ${fmt(rInfo.prestamoCiclo)} · Saldo que quedaba: ${fmt(rInfo.saldoQuedaba)}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa;font-weight:700">Nuevo capital</div>
+            <div style="font-size:18px;font-weight:900;color:#f59e0b">${fmt(c.capital||0)}</div>
+            <div style="font-size:11px;color:#5b8dee;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 12px">
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f0f5ff;color:#5b8dee;border:1.5px solid #b8ceff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#fff0f0;color:#ff3d3d;border:1.5px solid #ffcaca;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Historial por cliente: cuánto lleva prestado en total
+  const listaHistorico = document.getElementById('lista-historico-prestamos');
+  if(!clientes.length){
+    listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e5e7eb">📭 No hay clientes</div>';
+  } else {
+    // Calcular total prestado por cliente
+    const clientesConTotal = clientes.map(c => {
+      let totalPrestado = c.capital || 0;
+      (c.historialRenovaciones||[]).forEach(r => { totalPrestado += r.capitalCiclo || 0; });
+      const renovs = c.renovaciones || 0;
+      return { ...c, totalPrestado, renovs };
+    }).sort((a,b) => b.totalPrestado - a.totalPrestado);
+
+    listaHistorico.innerHTML = clientesConTotal.map(c => `
+      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e5e7eb;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+        <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
+              <div style="font-size:12px;color:#aaa;font-weight:600;margin-top:2px">${c.renovs} renovación${c.renovs!==1?'es':''} · Saldo actual: <span style="color:${c.saldo>0?'#ff3d3d':'#00a844'};font-weight:800">${fmt(c.saldo)}</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase">Total prestado</div>
+              <div style="font-size:20px;font-weight:900;color:#5b8dee">${fmt(c.totalPrestado)}</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;background:#f0f5ff;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:#666;font-weight:700">Préstamo actual</span>
+            <span style="font-size:13px;font-weight:900;color:#5b8dee">${fmt(c.prestamo)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 12px">
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f0f5ff;color:#5b8dee;border:1.5px solid #b8ceff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#fff0f0;color:#ff3d3d;border:1.5px solid #ffcaca;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ===== GENERAR PDF LISTA DE CLIENTES =====
+function imprimirListaClientes(){
+  const clientes = getClientes().filter(c => c.saldo > 0);
+  const hoy = getFechaActiva();
+  const ahora = new Date();
+  const horaStr = ahora.toLocaleString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:true});
+
+  function generarPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 2;
+    const tableW = pageW - margin*2;
+    let y = margin;
+
+    const totalSaldo   = clientes.reduce((s,c)=>s+c.saldo,0);
+    const totalCuotas  = clientes.reduce((s,c)=>s+(c.cuotaSugerida||0),0);
+    const pagaronHoy   = clientes.filter(c=>(c.pagos||[]).some(p=>p.fecha===hoy)).length;
+    const recaudadoHoy = clientes.reduce((s,c)=>s+(c.pagos||[]).filter(p=>p.fecha===hoy).reduce((x,p)=>x+p.monto,0),0);
+
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(11);
+    doc.setFont('helvetica','bold');
+    doc.text('CLIENTES - RUTA', margin, y+5);
+    y += 7;
+    doc.setFontSize(7);
+    doc.setFont('helvetica','normal');
+    doc.text('FECHA: '+hoy+' | CLIENTES ACTIVOS: '+clientes.length+' | SALDO: $'+totalSaldo.toLocaleString('es-CO')+' | CUOTAS HOY: $'+totalCuotas.toLocaleString('es-CO')+' | RECAUDADO: $'+recaudadoHoy.toLocaleString('es-CO')+' | PAGARON: '+pagaronHoy, margin, y+4);
+    y += 5;
+    doc.text('F. IMPRESION  '+horaStr, margin, y+4);
+    y += 6;
+
+    const cols = [
+      {label:'#',        w:7  },
+      {label:'CLIENTE',  w:42 },
+      {label:'CEDULA',   w:16 },
+      {label:'TELEFONO', w:28 },
+      {label:'TOTAL',    w:22 },
+      {label:'SALDO',    w:22 },
+      {label:'CUOTA',    w:20 },
+      {label:'HOY',      w:20 },
+      {label:'EST',      w:14 },
+    ];
+    const sumW = cols.reduce((s,c)=>s+c.w,0);
+    const extra = tableW - sumW;
+    cols[1].w += Math.round(extra * 0.6);
+    cols[3].w += Math.round(extra * 0.4);
+    const rowH = 8;
+    const fs = 11;
+
+    function dibujarCabecera(yPos){
+      doc.setFillColor(30,30,30);
+      doc.rect(margin, yPos, tableW, rowH+2, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica','bold');
+      let cx = margin+1.5;
+      cols.forEach(col=>{ doc.text(col.label, cx, yPos+7); cx+=col.w; });
+      return yPos + rowH + 2;
+    }
+
+    y = dibujarCabecera(y);
+
+    clientes.forEach((c,i)=>{
+      if(y+rowH > pageH-10){
+        doc.addPage();
+        y = margin;
+        y = dibujarCabecera(y);
+      }
+      const pagadoHoy = (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+      const cuota = c.cuotaSugerida||0;
+      const dias = calcularAtraso(c);
+      const estadoNum = String(dias);
+
+      if(i%2===0){ doc.setFillColor(247,247,247); doc.rect(margin,y,tableW,rowH,'F'); }
+      if(dias > 2){ doc.setFillColor(255,235,235); doc.rect(margin,y,tableW,rowH,'F'); }
+
+      const vals = [
+        String(i+1),
+        (c.nombre||'').substring(0,26),
+        c.cedula||'-',
+        c.tel||'-',
+        '$'+c.prestamo.toLocaleString('es-CO'),
+        '$'+c.saldo.toLocaleString('es-CO'),
+        cuota>0?'$'+cuota.toLocaleString('es-CO'):'-',
+        pagadoHoy>0?'$'+pagadoHoy.toLocaleString('es-CO'):'-',
+        estadoNum,
+      ];
+
+      doc.setFontSize(fs);
+      let cx = margin+1.5;
+      vals.forEach((val,vi)=>{
+        if(vi===5){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
+        else if(vi===7&&pagadoHoy>0){ doc.setTextColor(0,140,0); doc.setFont('helvetica','bold'); }
+        else if(vi===8){ doc.setTextColor(dias>0?180:0,dias<=0?120:0,0); doc.setFont('helvetica','bold'); }
+        else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
+        doc.text(val, cx, y+6.5);
+        cx+=cols[vi].w;
+      });
+      doc.setDrawColor(220,220,220);
+      doc.line(margin, y+rowH, margin+tableW, y+rowH);
+      y+=rowH;
+    });
+
+    doc.setFillColor(30,30,30);
+    doc.rect(margin, y, tableW, rowH+1, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(fs);
+    let cx = margin+1.5;
+    const tots=['','TOTALES','','','$'+clientes.reduce((s,c)=>s+c.prestamo,0).toLocaleString('es-CO'),'$'+totalSaldo.toLocaleString('es-CO'),'$'+totalCuotas.toLocaleString('es-CO'),'$'+recaudadoHoy.toLocaleString('es-CO'),''];
+    tots.forEach((val,vi)=>{
+      if(vi===5) doc.setTextColor(255,160,160);
+      else if(vi===7) doc.setTextColor(160,255,160);
+      else doc.setTextColor(255,255,255);
+      doc.text(val, cx, y+6.5);
+      cx+=cols[vi].w;
+    });
+
+    const totalPags = doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPags;p++){
+      doc.setPage(p);
+      doc.setTextColor(130,130,130);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(6);
+      doc.text('Pagina '+p+' de '+totalPags, pageW-margin-18, pageH-3);
+    }
+
+    const pdfBlob2 = doc.output('blob');
+    const pdfUrl2 = URL.createObjectURL(pdfBlob2);
+    const a2 = document.createElement('a');
+    a2.href = pdfUrl2;
+    a2.download = 'clientes_ruta_'+hoy+'.pdf';
+    document.body.appendChild(a2);
+    a2.click();
+    document.body.removeChild(a2);
+    setTimeout(()=>URL.revokeObjectURL(pdfUrl2), 30000);
+    showToast('✅ PDF descargado');
+  }
+
+  if(window.jspdf){
+    generarPDF();
+  } else {
+    showToast('⏳ Cargando generador PDF...');
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = generarPDF;
+    script.onerror = () => showToast('⚠️ Sin conexion para generar PDF');
+    document.head.appendChild(script);
+  }
+}
+
+// ===== IMPRIMIR REPORTE DEL DÍA (jsPDF - funciona en PWA) =====
+function imprimirReporteDia(){
+  const fecha = document.getElementById('det-filtro-fecha').value || fechaHoy();
+  const clientes = getClientes();
+  const ahora = new Date();
+  const horaStr = ahora.toLocaleString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:true});
+
+  // Recopilar cuotas del día
+  let filas = [];
+  let num = 1;
+  clientes.forEach(c => {
+    (c.pagos||[]).forEach(p => {
+      if(p.fecha === fecha){
+        // Usar el monto real pagado ese día como cuota del día
+        const vCuota = p.monto;
+        const totalPrestamo = c.prestamo || 0;
+        const totalPagadoHastaAhora = (c.pagos||[]).reduce((s,x)=>s+x.monto,0);
+        const saldo = Math.max(0, totalPrestamo - totalPagadoHastaAhora);
+        filas.push({
+          num: num++,
+          nombre: c.nombre,
+          cedula: c.cedula||'',
+          tel: c.tel||'',
+          total: totalPrestamo,
+          vCuota: vCuota,
+          dio: p.monto,
+          saldo: saldo
+        });
+      }
+    });
+  });
+
+  const totalRecaudado = filas.reduce((s,f)=>s+f.dio,0);
+
+  function generarPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    let y = margin;
+
+    // ENCABEZADO
+    doc.setFillColor(30,30,30);
+    doc.rect(0, 0, pageW, 24, 'F');
+    doc.setTextColor(255,215,0);
+    doc.setFontSize(14);
+    doc.setFont('helvetica','bold');
+    doc.text('REPORTE DEL DIA', margin, 11);
+    doc.setFontSize(8);
+    doc.setTextColor(200,200,200);
+    doc.text('FECHA: ' + fecha, margin, 18);
+    doc.text('IMPRESION: ' + horaStr, margin + 50, 18);
+    doc.text('CLIENTES: ' + filas.length, margin + 120, 18);
+    y = 30;
+
+    // RESUMEN
+    doc.setFillColor(240,245,255);
+    doc.rect(margin, y, pageW-margin*2, 10, 'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','bold');
+    doc.text('TOTAL RECAUDADO: $'+totalRecaudado.toLocaleString('es-CO'), margin+2, y+7);
+    y += 14;
+
+    // CABECERA TABLA
+    const cols = [
+      {label:'#',         w:8},
+      {label:'CLIENTE',   w:60},
+      {label:'CEDULA',    w:28},
+      {label:'TOTAL',     w:28},
+      {label:'V.CUOTA',   w:28},
+      {label:'DIO',       w:28},
+      {label:'SALDO',     w:28},
+    ];
+    const rowH = 7;
+
+    doc.setFillColor(50,50,50);
+    doc.rect(margin, y, pageW-margin*2, rowH, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(7);
+    doc.setFont('helvetica','bold');
+    let cx = margin+1;
+    cols.forEach(col=>{ doc.text(col.label, cx, y+5); cx+=col.w; });
+    y += rowH;
+
+    // FILAS
+    filas.forEach((f,i)=>{
+      if(y+rowH > pageH-14){
+        doc.addPage();
+        y = margin;
+        doc.setFillColor(50,50,50);
+        doc.rect(margin, y, pageW-margin*2, rowH, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(7);
+        doc.setFont('helvetica','bold');
+        let cxH=margin+1;
+        cols.forEach(col=>{ doc.text(col.label,cxH,y+5); cxH+=col.w; });
+        y+=rowH;
+      }
+
+      if(i%2===0){ doc.setFillColor(250,250,250); doc.rect(margin,y,pageW-margin*2,rowH,'F'); }
+
+      const vals = [
+        String(f.num),
+        (f.nombre||'').substring(0,32),
+        f.cedula,
+        '$'+f.total.toLocaleString('es-CO'),
+        '$'+f.vCuota.toLocaleString('es-CO'),
+        '$'+f.dio.toLocaleString('es-CO'),
+        '$'+f.saldo.toLocaleString('es-CO'),
+      ];
+
+      cx = margin+1;
+      vals.forEach((val,vi)=>{
+        if(vi===5){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
+        else if(vi===6){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
+        else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
+        doc.setFontSize(7);
+        doc.text(val, cx, y+5);
+        cx+=cols[vi].w;
+      });
+      doc.setDrawColor(220,220,220);
+      doc.line(margin, y+rowH, pageW-margin, y+rowH);
+      y+=rowH;
+    });
+
+    // FILA TOTAL
+    doc.setFillColor(220,230,255);
+    doc.rect(margin, y, pageW-margin*2, rowH, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.setTextColor(0,0,0);
+    cx=margin+1;
+    const tots=['','TOTAL RECAUDADO','','','','$'+totalRecaudado.toLocaleString('es-CO'),''];
+    tots.forEach((val,vi)=>{
+      if(vi===5) doc.setTextColor(0,130,0);
+      else doc.setTextColor(0,0,0);
+      doc.text(val, cx, y+5);
+      cx+=cols[vi].w;
+    });
+
+    // PIE DE PAGINA
+    const totalPags = doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPags;p++){
+      doc.setPage(p);
+      doc.setTextColor(150,150,150);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(6);
+      doc.text('Pagina '+p+' de '+totalPags, pageW-margin-18, pageH-4);
+    }
+
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = 'reporte_dia_'+fecha+'.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(pdfUrl), 30000);
+    showToast('✅ PDF descargado');
+  }
+
+  if(window.jspdf){
+    generarPDF();
+  } else {
+    showToast('⏳ Cargando generador PDF...');
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = generarPDF;
+    script.onerror = () => showToast('⚠️ Sin conexion para generar PDF');
+    document.head.appendChild(script);
+  }
+}
+
+// ===== BACKUP DIRECTO =====
+function descargarBackupDirecto(){
+  const clientes=JSON.parse(lsGet('clientes_v1')||'[]');
+  const historial=JSON.parse(lsGet('hist_v3')||'[]');
+  const credenciales=JSON.parse(lsGet('cobrador_credenciales')||'{}');
+  const porcentaje=lsGet('porcentaje_interes')||'20';
+  const manuales={};
+  const hoy=fechaHoy();
+  [...historial.map(h=>h.fecha),hoy].forEach(f=>{
+    const v=lsGet('sup_manual_'+f);
+    if(v) manuales['sup_manual_'+f]=JSON.parse(v);
+  });
+  const backup={
+    version:2,
+    fecha_backup:new Date().toISOString(),
+    clientes, historial, credenciales,
+    porcentaje_interes:porcentaje,
+    manuales
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const nombre='backup_alisson_emily_'+hoy+'.json';
+  a.href=url; a.download=nombre;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup descargado: '+nombre);
+}
+
+// ===== PDF RUTA COMPLETA =====
+function generarPDFRuta(){
+  const fecha = getFechaActiva();
+  const clientes = getClientes();
+  const ahora = new Date();
+  const horaImp = ahora.toLocaleDateString('es-CO')+', '+ahora.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',hour12:true});
+
+  // Construir filas solo clientes activos
+  let filas=[], recaudado=0, cuotasDia=0, pagaron=0;
+  clientes.forEach((c,i)=>{
+    if(c.saldo<=0) return;
+    const pagosDia=(c.pagos||[]).filter(p=>p.fecha===fecha);
+    const mp=pagosDia.reduce((s,p)=>s+p.monto,0);
+    const cuota=c.cuotaSugerida||0;
+    recaudado+=mp; cuotasDia+=cuota; if(mp>0) pagaron++;
+    const atraso=calcularAtraso(c);
+    filas.push({num:i+1,nombre:c.nombre||'',cedula:c.cedula||'',tel:c.tel||'',
+      tipo:c.tipo?(c.tipo.charAt(0).toUpperCase()+c.tipo.slice(1)):'Diario',
+      total:c.prestamo||0,saldo:c.saldo||0,cuota,atraso,mp});
+  });
+  const totalSaldo=filas.reduce((s,f)=>s+f.saldo,0);
+  const activos=filas.length;
+
+  function estadoStr(atraso,tipo){
+    const u=(tipo||'').toLowerCase()==='semanal'?'s':'d';
+    if(atraso>0) return atraso+u+' atraso';
+    if(atraso<0) return Math.abs(atraso)+u+' adelanto';
+    return 'Al dia';
+  }
+  function fmtN(n){ return Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+  function doPDF(){
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
+    const pW=215.9, pH=279.4, ML=10, MR=10, UW=pW-ML-MR;
+    const AZUL=[26,26,46], ROJO=[180,0,0], VERDE=[0,120,0], AZUL_E=[0,60,180];
+    const ROJO_F=[255,242,242], GRIS_A=[245,246,255];
+    let y=10;
+
+    // Encabezado
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(0,0,0);
+    doc.text('CLIENTES - RUTA', ML, y+6);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+    doc.text('FECHA: '+fecha+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos, ML, y+13);
+    doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS: $'+fmtN(cuotasDia)+'  |  RECAUDADO: $'+fmtN(recaudado)+'  |  PAGARON: '+pagaron, ML, y+20);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
+    doc.line(ML,y+23,ML+UW,y+23);
+    y+=27;
+
+    // Columnas
+    const cols=[
+      {h:'#',      w:8,  r:true},
+      {h:'CLIENTE',w:0,  r:false, auto:true},
+      {h:'TEL',    w:24, r:false},
+      {h:'TIPO',   w:16, r:false},
+      {h:'TOTAL',  w:22, r:true},
+      {h:'SALDO',  w:22, r:true},
+      {h:'CUOTA',  w:20, r:true},
+      {h:'ESTADO', w:24, r:false},
+      {h:'HOY',    w:20, r:true},
+    ];
+    const fixedW=cols.filter(c=>!c.auto).reduce((s,c)=>s+c.w,0);
+    cols[1].w=UW-fixedW;
+
+    const rowH=8.5, headH=9;
+
+    function drawHead(yy){
+      doc.setFillColor(...AZUL);
+      doc.rect(ML,yy,UW,headH,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      let cx=ML+1;
+      cols.forEach(col=>{
+        doc.text(col.h, col.r?cx+col.w-2:cx, yy+6.5, {align:col.r?'right':'left'});
+        cx+=col.w;
+      });
+      return yy+headH;
+    }
+
+    function drawFoot(yy){
+      doc.setFillColor(...AZUL);
+      doc.rect(ML,yy,UW,rowH+1,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('TOTALES', ML+1, yy+6.5);
+      let cx=ML+1;
+      cols.forEach((col,i)=>{
+        if(i===5) doc.text(fmtN(totalSaldo), cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===6) doc.text(fmtN(cuotasDia),  cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===8) doc.text(fmtN(recaudado),   cx+col.w-2, yy+6.5, {align:'right'});
+        cx+=col.w;
+      });
+    }
+
+    y=drawHead(y);
+
+    filas.forEach((f,idx)=>{
+      if(y+rowH>pH-14){
+        const np=doc.internal.getCurrentPageInfo().pageNumber;
+        const nt=doc.internal.getNumberOfPages();
+        doc.setFontSize(8); doc.setTextColor(150,150,150);
+        doc.text('Página '+np+' de '+nt+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
+        doc.addPage();
+        y=10; y=drawHead(y);
+      }
+      if(f.atraso>0){ doc.setFillColor(...ROJO_F); doc.rect(ML,y,UW,rowH,'F'); }
+      else if(idx%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,y,UW,rowH,'F'); }
+
+      const vals=[
+        String(f.num), f.nombre, f.tel||'-', f.tipo,
+        fmtN(f.total), fmtN(f.saldo),
+        f.cuota>0?fmtN(f.cuota):'-',
+        estadoStr(f.atraso,f.tipo),
+        f.mp>0?fmtN(f.mp):'-'
+      ];
+      let cx=ML+1;
+      vals.forEach((val,vi)=>{
+        const col=cols[vi];
+        doc.setFontSize(8.5); doc.setFont('helvetica', vi===1||vi===5||vi===8?'bold':'normal');
+        if(vi===5)      doc.setTextColor(...ROJO);
+        else if(vi===7) doc.setTextColor(f.atraso>0?ROJO[0]:f.atraso<0?VERDE[0]:AZUL_E[0], f.atraso>0?ROJO[1]:f.atraso<0?VERDE[1]:AZUL_E[1], f.atraso>0?ROJO[2]:f.atraso<0?VERDE[2]:AZUL_E[2]);
+        else if(vi===8 && f.mp>0) doc.setTextColor(...VERDE);
+        else doc.setTextColor(0,0,0);
+        let txt=val;
+        if(vi===1) txt=doc.splitTextToSize(val,col.w-2)[0]||val;
+        doc.text(txt, col.r?cx+col.w-2:cx, y+6, {align:col.r?'right':'left'});
+        cx+=col.w;
+      });
+      doc.setDrawColor(220,220,220); doc.setLineWidth(0.1);
+      doc.line(ML,y+rowH,ML+UW,y+rowH);
+      y+=rowH;
+    });
+
+    drawFoot(y);
+
+    const np=doc.internal.getCurrentPageInfo().pageNumber;
+    const nt=doc.internal.getNumberOfPages();
+    doc.setFontSize(8); doc.setTextColor(150,150,150);
+    doc.text('Página '+np+' de '+nt+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
+
+    const blob=doc.output('blob');
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='ruta_'+fecha+'.pdf';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    showToast('✅ PDF descargado: ruta_'+fecha+'.pdf');
+  }
+
+  if(window.jspdf){ doPDF(); }
+  else {
+    showToast('⏳ Cargando generador PDF...');
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=doPDF;
+    s.onerror=()=>showToast('⚠️ Sin conexión para generar PDF');
+    document.head.appendChild(s);
+  }
+}
+
+
+// ===== RESUMEN SEMANAL PRÉSTAMOS Y PAPELERÍA =====
+let resumenSemOffset = 0;
+
+function getLunesResumen(off){
+  const h=new Date(), d=h.getDay(), diff=d===0?-6:1-d, l=new Date(h);
+  l.setDate(h.getDate()+diff+(off*7)); l.setHours(0,0,0,0); return l;
+}
+
+function cambiarSemanaResumen(dir){
+  resumenSemOffset += dir;
+  renderResumenSemanal();
+}
+
+function renderResumenSemanal(){
+  const lunes = getLunesResumen(resumenSemOffset);
+  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
+  const fmt2 = d => d.getDate()+'/'+(d.getMonth()+1);
+  const hist = JSON.parse(lsGet('hist_v3')||'[]');
+
+  let totalPrestado=0, totalPapeleria=0, diasConPrestamo=0, diasConPapeleria=0;
+  for(let i=0;i<7;i++){
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = dia.toISOString().split('T')[0];
+    const registro = hist.find(h=>h.fecha===iso);
+    if(registro){
+      if((registro.prestamos||0)>0){ totalPrestado+=registro.prestamos; diasConPrestamo++; }
+      if((registro.papeleria||0)>0){ totalPapeleria+=registro.papeleria; diasConPapeleria++; }
+    }
+  }
+
+  const rangoEl = document.getElementById('resumen-sem-rango');
+  const semEl = document.getElementById('resumen-sem-semana');
+  const prestEl = document.getElementById('resumen-sem-prestado');
+  const prestDiasEl = document.getElementById('resumen-sem-prestado-dias');
+  const papEl = document.getElementById('resumen-sem-papeleria');
+  const papDiasEl = document.getElementById('resumen-sem-papeleria-dias');
+
+  if(!rangoEl) return;
+
+  const rango = fmt2(lunes)+' – '+fmt2(dom);
+  rangoEl.textContent = rango;
+  semEl.textContent = resumenSemOffset===0 ? 'Semana actual' : resumenSemOffset===-1 ? 'Semana pasada' : 'Hace '+(Math.abs(resumenSemOffset))+' semanas';
+  prestEl.textContent = '$'+totalPrestado.toLocaleString('es-CO');
+  prestDiasEl.textContent = diasConPrestamo > 0 ? diasConPrestamo+' día'+(diasConPrestamo!==1?'s':'') : 'Sin préstamos';
+  papEl.textContent = '$'+totalPapeleria.toLocaleString('es-CO');
+  papDiasEl.textContent = diasConPapeleria > 0 ? diasConPapeleria+' día'+(diasConPapeleria!==1?'s':'') : 'Sin registros';
+}
+
+// ===== INIT =====
+function iniciarApp(){
+  document.getElementById('header-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderHistorial();
+  renderResumenSemanal();
+  renderClientes();
+  cargarDesdeSupervisor();
+  actualizarInfoPorcentaje();
+}
+
+// Recuperar sesión activa al recargar
+document.addEventListener('DOMContentLoaded',()=>{
+  // Corrección única: usar saldoQuedaba como totalCancelado (es lo que realmente se canceló al renovar)
+  if(!lsGet('fix_cancelado_v2')){
+    try {
+      const cls = JSON.parse(lsGet('clientes_v1')||'[]');
+      let changed = false;
+      cls.forEach(c=>{
+        (c.historialRenovaciones||[]).forEach(r=>{
+          if(r.saldoQuedaba && r.saldoQuedaba !== r.totalCancelado){
+            r.totalCancelado = r.saldoQuedaba;
+            changed = true;
+          }
+        });
+      });
+      if(changed){ lsSet('clientes_v1', JSON.stringify(cls)); }
+    } catch(e){}
+    lsSet('fix_cancelado_v2','1');
+  }
+
+  if(lsGet('cobrador_sesion')==='ok'){
+    document.getElementById('pantalla-login').style.display='none';
+    document.getElementById('app').style.display='block';
+    iniciarApp();
+  }
+});
+</script>
+</body>
+</html>
