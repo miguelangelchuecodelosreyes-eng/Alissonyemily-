@@ -651,8 +651,21 @@ body {
   </div>
 
   <!-- Todos los clientes con su total prestado -->
-  <div style="margin:12px 14px 0">
-    <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-left:2px">📋 Historial por cliente</div>
+  <div style="margin:12px 14px 8px">
+    <button onclick="toggleHistorialClientes()" id="btn-ver-historial"
+      style="width:100%;padding:14px;background:linear-gradient(135deg,#5b8dee,#3a6fd8);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(91,141,238,0.3)">
+      <span>👥 Ver clientes</span><span id="historial-flecha">▼</span>
+    </button>
+  </div>
+  <div id="historial-clientes-panel" style="display:none;margin:0 14px 12px">
+    <div style="margin-bottom:10px">
+      <input type="text" id="buscador-historial"
+        placeholder="🔍 Buscar por nombre o cédula..."
+        oninput="renderPrestamos()"
+        style="width:100%;padding:12px 14px;border:2px solid #e5e7eb;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#111;background:white;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#5b8dee'"
+        onblur="this.style.borderColor='#e5e7eb'">
+    </div>
     <div id="lista-historico-prestamos"></div>
   </div>
 
@@ -850,6 +863,7 @@ body {
         style="flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
         oninput="actualizarNuevoSaldo()">
       <button onclick="abonarDesdeDetalle()" style="background:#555;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">ABONAR</button>
+      <button onclick="generarCartonImagen()" style="background:#1a56db;color:white;border:none;border-radius:12px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer">📋 CARTÓN</button>
     </div>
     <div style="margin-top:10px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff3d3d">$0</span></div>
   </div>
@@ -2143,6 +2157,7 @@ function renderClientes(){
             onblur="setTimeout(()=>ocultarBarraCuota(),300)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
           <button class="btn-pagar-cuota" onclick="pagarCuotaYAvanzar('${c.id}')">💰 Pagar</button>
+          <button class="btn-pagar-cuota" onclick="abrirCartonCliente('${c.id}')" style="background:#1a56db;padding:12px 8px;font-size:12px;">📋 Cartón</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button onclick="abrirRenovar('${c.id}')" style="flex:1;padding:12px;background:#fff7e6;color:#e06500;border:2px solid #ffd580;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">🔄 Renovar</button>
@@ -3109,16 +3124,27 @@ function renderPrestamos(){
 
   // Historial por cliente: cuánto lleva prestado en total
   const listaHistorico = document.getElementById('lista-historico-prestamos');
+  const busqueda = (document.getElementById('buscador-historial')?.value || '').toLowerCase().trim();
   if(!clientes.length){
     listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e5e7eb">📭 No hay clientes</div>';
   } else {
     // Calcular total prestado por cliente
-    const clientesConTotal = clientes.map(c => {
+    let clientesConTotal = clientes.map(c => {
       let totalPrestado = c.capital || 0;
       (c.historialRenovaciones||[]).forEach(r => { totalPrestado += r.capitalCiclo || 0; });
       const renovs = c.renovaciones || 0;
       return { ...c, totalPrestado, renovs };
     }).sort((a,b) => b.totalPrestado - a.totalPrestado);
+    if(busqueda){
+      clientesConTotal = clientesConTotal.filter(c =>
+        (c.nombre||'').toLowerCase().includes(busqueda) ||
+        (c.cedula||'').toLowerCase().includes(busqueda)
+      );
+    }
+    if(!clientesConTotal.length){
+      listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e5e7eb">🔍 No se encontró ningún cliente</div>';
+      return;
+    }
 
     listaHistorico.innerHTML = clientesConTotal.map(c => `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e5e7eb;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
@@ -3144,6 +3170,352 @@ function renderPrestamos(){
         </div>
       </div>`).join('');
   }
+}
+
+// ===== TOGGLE HISTORIAL CLIENTES =====
+function toggleHistorialClientes(){
+  const panel = document.getElementById('historial-clientes-panel');
+  const flecha = document.getElementById('historial-flecha');
+  if(!panel) return;
+  if(panel.style.display === 'none'){
+    panel.style.display = 'block';
+    flecha.textContent = '▲';
+    renderPrestamos();
+  } else {
+    panel.style.display = 'none';
+    flecha.textContent = '▼';
+  }
+}
+
+// ===== CARTON DE CUENTA POR WHATSAPP =====
+function generarCartonWA(id){
+  const clientes = getClientes();
+  const c = clientes.find(x => x.id === id);
+  if(!c) return;
+
+  const pagos = (c.pagos || []).sort((a,b) => a.fecha > b.fecha ? 1 : -1);
+  const capital = c.capital || 0;
+  const totalAPagar = c.prestamo || 0;
+  const cuota = c.cuotaSugerida || 0;
+  const fechaPrestamo = c.fechaInicio || c.fecha || '—';
+  const saldo = c.saldo || 0;
+
+  // Encabezado
+  let msg = '';
+  msg += '🪪 *CARTÓN DE COBRO*\n';
+  msg += '━━━━━━━━━━━━━━━━━━━\n';
+  msg += `👤 *${c.nombre}*\n`;
+  msg += `📅 Entregado: ${fechaPrestamo}\n`;
+  msg += `💵 Total: $${capital.toLocaleString('es-CO')} → $${totalAPagar.toLocaleString('es-CO')}\n`;
+  msg += `💳 Cuota: $${cuota.toLocaleString('es-CO')}\n`;
+  msg += '━━━━━━━━━━━━━━━━━━━\n';
+  msg += '*N°  | ABONO     | RESTA     | FECHA*\n';
+  msg += '─────────────────────────────\n';
+
+  // Filas de pagos
+  let saldoAcum = totalAPagar;
+  pagos.forEach((p, i) => {
+    const abono = p.monto || 0;
+    saldoAcum = Math.max(0, saldoAcum - abono);
+    const fechaCorta = p.fecha ? p.fecha.slice(5).replace('-','/') : '—';
+    const n = String(i+1).padStart(2,' ');
+    const ab = ('$'+abono.toLocaleString('es-CO')).padEnd(10,' ');
+    const re = ('$'+saldoAcum.toLocaleString('es-CO')).padEnd(10,' ');
+    msg += `${n}   | ${ab}| ${re}| ${fechaCorta}\n`;
+  });
+
+  // Si no hay pagos
+  if(pagos.length === 0){
+    msg += '_Sin pagos registrados aún_\n';
+  }
+
+  msg += '━━━━━━━━━━━━━━━━━━━\n';
+  msg += `🔴 *Saldo actual: $${saldo.toLocaleString('es-CO')}*\n`;
+  msg += '_Gracias por su puntualidad_ 🙏';
+
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+
+
+// Abrir cartón desde lista de clientes (sin entrar al detalle)
+function abrirCartonCliente(id){
+  clienteDetalleId = id;
+  generarCartonImagen();
+}
+
+// ===== CARTÓN VISUAL — PDF tipo cartón físico =====
+function generarCartonImagen(){
+  const c = getClientes().find(x => x.id === clienteDetalleId);
+  if(!c){ alert('Cliente no encontrado'); return; }
+
+  // ── Datos ──
+  const pagos = (c.pagos||[]).slice().sort((a,b)=> a.fecha > b.fecha ? 1 : -1);
+  const capital    = c.capital || 0;
+  const total      = c.prestamo || 0;
+  const cuota      = c.cuotaSugerida || 0;
+  const saldo      = c.saldo || 0;
+  const pagado     = total - saldo;
+
+  // Fecha entregado: limpiar formato con T
+  const rawFecha   = c.fechaRenovacion || c.fechaCreado || '';
+  const fechaLimpia = rawFecha ? rawFecha.split('T')[0] : '';
+  const fi = fechaLimpia ? fechaBonita(fechaLimpia) : '—';
+
+  // Pre-calcular saldos acumulativos
+  const saldosPagos = [];
+  let sa = total;
+  pagos.forEach(p => {
+    sa = Math.max(0, sa - (p.monto||0));
+    saldosPagos.push(sa);
+  });
+
+  const nCuotas = cuota > 0 ? Math.ceil(total / cuota) : Math.max(pagos.length, 30);
+  const numFilas = Math.max(Math.ceil(Math.max(nCuotas, pagos.length) / 2), 15);
+
+  // ── Canvas — proporciones cartón físico ──
+  const SCALE = 2; // alta resolución
+  const W = 800 * SCALE;
+  const rowH = 34 * SCALE;
+  const headerH = 260 * SCALE;
+  const thH = 40 * SCALE;
+  const footerH = 75 * SCALE;
+  const H = headerH + thH + numFilas * rowH + footerH;
+
+  const canvas = document.getElementById('canvas-carton');
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = '100%';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  const RW = W / SCALE;  // 800
+  const RH = H / SCALE;
+
+  // ── Fondo blanco ──
+  ctx.fillStyle = '#f5f7fa';
+  ctx.fillRect(0, 0, RW, RH);
+  ctx.fillStyle = '#ffffff';
+  roundRectFill(ctx, 8, 8, RW-16, RH-16, 10);
+
+  // ── Borde exterior doble ──
+  ctx.strokeStyle = '#1a3a6b';
+  ctx.lineWidth = 3.5;
+  ctx.strokeRect(8, 8, RW-16, RH-16);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(13, 13, RW-26, RH-26);
+
+  // ── Banda encabezado azul ──
+  ctx.fillStyle = '#1a3a6b';
+  roundRectFill(ctx, 8, 8, RW-16, 62, 10, true);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 22px Arial';
+  ctx.fillText('💵  ALISSON & EMILY', RW/2, 42);
+  ctx.font = '12px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillText('CARTÓN DE COBRO  ·  ' + new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'}), RW/2, 58);
+
+  // ── Info cliente — estilo exacto cartón físico ──
+  const M = 22;
+  ctx.textAlign = 'left';
+
+  // TOTAL $
+  ctx.fillStyle = '#111'; ctx.font = 'bold 16px Arial';
+  ctx.fillText('TOTAL $', RW/2 - 60, 92);
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(RW/2+10, 94); ctx.lineTo(RW-M, 94); ctx.stroke();
+  ctx.fillStyle = '#1a3a6b'; ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'right';
+  ctx.fillText(total.toLocaleString('es-CO'), RW - M - 5, 92);
+  ctx.textAlign = 'left';
+
+  function campoCarton(label, valor, y){
+    ctx.fillStyle = '#111'; ctx.font = 'bold 14px Arial';
+    ctx.fillText(label + ':', M, y);
+    const lw = ctx.measureText(label + ':').width;
+    ctx.fillStyle = '#222'; ctx.font = '600 14px Arial';
+    ctx.fillText(valor, M + lw + 8, y);
+    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(M + lw + ctx.measureText(valor).width + 14, y + 2);
+    ctx.lineTo(RW - M, y + 2);
+    ctx.stroke();
+  }
+
+  campoCarton('SEÑOR', c.nombre.toUpperCase(), 118);
+  campoCarton('DIRECCIÓN', c.dir || '—', 144);
+  campoCarton('CUOTA DIARIA', '$' + cuota.toLocaleString('es-CO'), 170);
+  campoCarton('ENTREGADO', fi, 196);
+
+  // Línea separadora
+  ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(M, 210); ctx.lineTo(RW-M, 210); ctx.stroke();
+
+  // Resumen capital/interés
+  ctx.fillStyle = '#444'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
+  ctx.fillText(
+    'Capital: $'+capital.toLocaleString('es-CO')
+    +'   ·   Interés: $'+(total-capital).toLocaleString('es-CO')
+    +'   ·   Pagado: $'+pagado.toLocaleString('es-CO')
+    +'   ·   Saldo: $'+saldo.toLocaleString('es-CO'),
+    RW/2, 230
+  );
+
+  // Línea separadora 2
+  ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(M, 244); ctx.lineTo(RW-M, 244); ctx.stroke();
+
+  // ── TABLA ──
+  const TY = 258;  // headerH/SCALE
+  const TX = M;
+  const TW = RW - M*2;
+  const half = TW / 2;
+
+  // Columnas dentro de cada mitad: N° | ABONO | RESTA | FECHA
+  const nW = 36, aW = Math.floor((half-nW)*0.30), rW = Math.floor((half-nW)*0.34), fW = half-nW-aW-rW;
+
+  function cx(col, side){
+    const base = TX + side * half;
+    return base + [0, nW, nW+aW, nW+aW+rW][col];
+  }
+  function cw(col){ return [nW,aW,rW,fW][col]; }
+
+  // Fondo encabezado tabla
+  ctx.fillStyle = '#1a3a6b';
+  ctx.fillRect(TX, TY, TW, 36);
+
+  // Textos encabezado
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center';
+  [0,1].forEach(side => {
+    ctx.fillText('N°',    cx(0,side)+nW/2, TY+25);
+    ctx.fillText('ABONO', cx(1,side)+aW/2, TY+25);
+    ctx.fillText('RESTA', cx(2,side)+rW/2, TY+25);
+    ctx.fillText('FECHA', cx(3,side)+fW/2, TY+25);
+  });
+
+  // Separador central vertical (grueso)
+  ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(TX + half, TY);
+  ctx.lineTo(TX + half, TY + 36 + numFilas * 32);
+  ctx.stroke();
+
+  // Separadores verticales internos
+  [0,1].forEach(side => {
+    [1,2,3].forEach(col => {
+      ctx.strokeStyle = '#9ba8c0'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(cx(col,side), TY); ctx.lineTo(cx(col,side), TY+36+numFilas*32); ctx.stroke();
+    });
+  });
+
+  // Filas de datos
+  for(let i=0; i<numFilas; i++){
+    const ry = TY + 36 + i * 32;
+    ctx.fillStyle = i%2===0 ? '#eef2fb' : '#ffffff';
+    ctx.fillRect(TX, ry, TW, 32);
+
+    ctx.strokeStyle = '#c5cede'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(TX, ry); ctx.lineTo(TX+TW, ry); ctx.stroke();
+
+    ctx.textAlign = 'center';
+
+    // ─ Izquierda ─
+    const idxL = i;
+    ctx.fillStyle = '#1a3a6b'; ctx.font = 'bold 13px Arial';
+    ctx.fillText(String(idxL+1), cx(0,0)+nW/2, ry+22);
+    const pL = pagos[idxL];
+    if(pL){
+      ctx.fillStyle = '#166534'; ctx.font = 'bold 13px Arial';
+      ctx.fillText('$'+pL.monto.toLocaleString('es-CO'), cx(1,0)+aW/2, ry+22);
+      ctx.fillStyle = saldosPagos[idxL]>0?'#991b1b':'#166534';
+      ctx.fillText('$'+saldosPagos[idxL].toLocaleString('es-CO'), cx(2,0)+rW/2, ry+22);
+      ctx.fillStyle = '#374151'; ctx.font = '12px Arial';
+      ctx.fillText(pL.fecha?pL.fecha.slice(5).replace('-','/'):'', cx(3,0)+fW/2, ry+22);
+    }
+
+    // ─ Derecha ─
+    const idxR = i + numFilas;
+    ctx.fillStyle = '#1a3a6b'; ctx.font = 'bold 13px Arial';
+    ctx.fillText(String(idxR+1), cx(0,1)+nW/2, ry+22);
+    const pR = pagos[idxR];
+    if(pR){
+      ctx.fillStyle = '#166534'; ctx.font = 'bold 13px Arial';
+      ctx.fillText('$'+pR.monto.toLocaleString('es-CO'), cx(1,1)+aW/2, ry+22);
+      ctx.fillStyle = saldosPagos[idxR]>0?'#991b1b':'#166534';
+      ctx.fillText('$'+saldosPagos[idxR].toLocaleString('es-CO'), cx(2,1)+rW/2, ry+22);
+      ctx.fillStyle = '#374151'; ctx.font = '12px Arial';
+      ctx.fillText(pR.fecha?pR.fecha.slice(5).replace('-','/'):'', cx(3,1)+fW/2, ry+22);
+    }
+  }
+
+  // Borde exterior tabla
+  ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 2;
+  ctx.strokeRect(TX, TY, TW, 36 + numFilas*32);
+
+  // ── Footer ──
+  const FY = TY + 36 + numFilas*32 + 8;
+  ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(M, FY); ctx.lineTo(RW-M, FY); ctx.stroke();
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = saldo>0 ? '#b91c1c' : '#166534';
+  ctx.font = 'bold 18px Arial';
+  ctx.fillText((saldo>0?'🔴':'✅') + ' SALDO: $'+saldo.toLocaleString('es-CO')+'   |   ✅ PAGADO: $'+pagado.toLocaleString('es-CO'), M, FY+24);
+
+  ctx.fillStyle = '#555'; ctx.font = '11px Arial';
+  ctx.fillText('Codeudor: _______________________________   C.C.: ________________', M, FY+46);
+
+  ctx.fillStyle = '#aaa'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
+  ctx.fillText('Gracias por su puntualidad 🙏', RW/2, FY+62);
+
+  // Mostrar modal
+  document.getElementById('modal-carton-overlay').style.display = 'flex';
+}
+
+function roundRectFill(ctx, x, y, w, h, r, onlyTop){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  if(onlyTop){ ctx.lineTo(x+w, y+h); ctx.lineTo(x, y+h); }
+  else {
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  }
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function cerrarModalCarton(e){
+  if(e.target.id==='modal-carton-overlay')
+    document.getElementById('modal-carton-overlay').style.display='none';
+}
+
+function compartirCartonImagen(){
+  const canvas = document.getElementById('canvas-carton');
+  canvas.toBlob(async function(blob){
+    if(!blob) return;
+    const file = new File([blob], 'carton_cuenta.png', {type:'image/png'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'Cartón de cuenta'}); return; }
+      catch(e){}
+    }
+    descargarCarton();
+  }, 'image/png');
+}
+
+function descargarCarton(){
+  const a = document.createElement('a');
+  a.download = 'carton_cuenta.png';
+  a.href = document.getElementById('canvas-carton').toDataURL('image/png');
+  a.click();
 }
 
 // ===== GENERAR PDF LISTA DE CLIENTES =====
@@ -3749,6 +4121,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 </script>
+
+<!-- MODAL CARTÓN IMAGEN -->
+<div id="modal-carton-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box" onclick="cerrarModalCarton(event)">
+  <div style="background:white;border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+    <div style="background:#1a56db;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+      <span style="color:white;font-weight:900;font-size:15px;font-family:'Nunito',sans-serif">📋 Cartón del Cliente</span>
+      <button onclick="document.getElementById('modal-carton-overlay').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+    </div>
+    <div style="padding:14px;text-align:center">
+      <canvas id="canvas-carton" style="width:100%;border-radius:12px;border:1px solid #e5e7eb"></canvas>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button onclick="compartirCartonImagen()" style="flex:1;background:#25D366;color:white;border:none;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📲 Enviar por WhatsApp</button>
+        <button onclick="descargarCarton()" style="background:#1a56db;color:white;border:none;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">⬇️</button>
+      </div>
+      <p style="font-size:11px;color:#999;margin-top:8px;font-family:'Nunito',sans-serif">Mantén presionada la imagen para guardarla y compartirla</p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 
