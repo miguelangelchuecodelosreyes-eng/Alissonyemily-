@@ -2457,7 +2457,8 @@ function renderDetalles(){
     if(c.saldo === 0 && (c.pagos||[]).length > 0){
       const ultPago = c.pagos[0];
       if(ultPago.fecha === filtroFecha){
-        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: ultPago.fecha, totalPagado: c.prestamo-(c.saldo), capital: c.capital||0, pagos: c.pagos.length, saldoQuedaba: 0 });
+        const pagosDelDia = (c.pagos||[]).filter(p=>p.fecha===filtroFecha).reduce((s,p)=>s+p.monto,0);
+        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: ultPago.fecha, totalPagado: pagosDelDia, capital: c.capital||0, pagos: c.pagos.length, saldoQuedaba: 0 });
       }
     }
     // Renovaciones
@@ -2532,7 +2533,7 @@ function renderDetalles(){
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
               <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
-              <div style="font-size:12px;color:#aaa;font-weight:600;margin-top:2px">${c.pagos} cuota${c.pagos!==1?'s':''} pagadas</div>
+
               ${c.esRenovacion && c.saldoQuedaba > 0 ? `<div style="font-size:12px;color:#e07b00;font-weight:700;margin-top:2px">⚠️ Quedaba: ${fmt(c.saldoQuedaba)}</div>` : ''}
               ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#5b8dee;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
             </div>
