@@ -4128,15 +4128,17 @@ function verHistorialCompleto(cedula){
       : null;
     const cuotasEsperadas = ciclo.cuota > 0 ? Math.ceil(ciclo.prestamo / ciclo.cuota) : '?';
 
-    // Pagos detallados estilo lista bonita
-    const pagosHTML = pagosOrd.map((p, i) => {
-      const num = pagosOrd.length - i;
+    // Pagos detallados estilo lista bonita (más reciente primero)
+    const pagosDesc = pagosOrd.slice().reverse();
+    const pagosHTML = pagosDesc.map((p, i) => {
+      const num = pagosOrd.length - i; // cuota más reciente = número mayor
       const fechaLinda = p.fecha ? fechaBonita(p.fecha) : '—';
-      // Calcular días desde el pago anterior
+      // Calcular días desde el pago anterior (usando pagosOrd ascendente)
+      const idxAsc = pagosOrd.length - 1 - i;
       let diasDesde = '';
-      if(i > 0){
-        const prev = new Date(pagosOrd[i-1].fecha+'T00:00:00');
-        const curr = new Date(p.fecha+'T00:00:00');
+      if(idxAsc > 0){
+        const prev = new Date(pagosOrd[idxAsc-1].fecha+'T00:00:00');
+        const curr = new Date(pagosOrd[idxAsc].fecha+'T00:00:00');
         const d = Math.round((curr-prev)/(1000*60*60*24));
         const esperado = ciclo.tipo==='semanal' ? 7 : 1;
         const tarde = d > esperado+1;
@@ -4194,18 +4196,18 @@ function verHistorialCompleto(cedula){
         </div>
         <!-- Detalle pagos -->
         ${pagosOrd.length > 0 ? `
-        <details>
-          <summary style="font-size:12px;font-weight:900;color:#1d4ed8;cursor:pointer;padding:4px 0">
-            📋 Ver ${pagosOrd.length} pagos detallados
-          </summary>
-          <div style="margin-top:6px;background:#fafafa;border-radius:8px;padding:6px 10px;max-height:300px;overflow-y:auto">
-            ${pagosHTML}
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:2px">
-              <div style="font-size:12px;font-weight:900;color:#666">✅ TOTAL ABONADO</div>
-              <div style="font-size:16px;font-weight:900;color:#00a844">${fmt(ciclo.pagado)}</div>
-            </div>
+        <div style="margin:8px 0 4px;background:#f8f9ff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb">
+          <div style="background:#5b8dee;padding:10px 14px">
+            <div style="font-size:11px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
           </div>
-        </details>` : '<div style="font-size:12px;color:#aaa;text-align:center;padding:6px">Sin pagos registrados</div>'}
+          <div style="padding:0 14px">
+            ${pagosHTML}
+          </div>
+          <div style="background:#e8fff2;padding:10px 14px;display:flex;justify-content:space-between;border-top:2px solid #b2f0c8">
+            <span style="font-size:12px;font-weight:900;color:#00a844;text-transform:uppercase">✅ Total abonado</span>
+            <span style="font-size:18px;font-weight:900;color:#00a844">${fmt(ciclo.pagado)}</span>
+          </div>
+        </div>` : '<div style="font-size:12px;color:#aaa;text-align:center;padding:6px">Sin pagos registrados</div>'}
       </div>
     </div>`;
   }
