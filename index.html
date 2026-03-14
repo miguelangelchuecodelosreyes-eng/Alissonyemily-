@@ -3728,13 +3728,24 @@ function archivarClienteEnHistorial(c){
       }))
     ]
   };
-  // Buscar si ya existe un registro para esa cédula
-  const idx = hist.findIndex(h => h.cedula === c.cedula);
+  // Buscar si ya existe un registro para esa cédula o nombre (para cédula 0000)
+  const claveBusqueda = (c.cedula && c.cedula !== '0000') ? c.cedula : null;
+  const idx = claveBusqueda
+    ? hist.findIndex(h => h.cedula === claveBusqueda)
+    : hist.findIndex(h => h.nombre === c.nombre);
   if(idx >= 0){
-    // Agregar los ciclos al existente (evitar duplicados por fecha)
+    // Agregar o actualizar ciclos
     entrada.ciclos.forEach(cicloNuevo => {
-      const existe = hist[idx].ciclos.some(cx => cx.fechaInicio === cicloNuevo.fechaInicio && cx.num === cicloNuevo.num);
-      if(!existe) hist[idx].ciclos.push(cicloNuevo);
+      const idxCiclo = hist[idx].ciclos.findIndex(cx => cx.fechaInicio === cicloNuevo.fechaInicio && cx.num === cicloNuevo.num);
+      if(idxCiclo < 0){
+        hist[idx].ciclos.push(cicloNuevo);
+      } else {
+        // Actualizar pagos del ciclo existente con los más recientes
+        hist[idx].ciclos[idxCiclo].pagos = cicloNuevo.pagos;
+        hist[idx].ciclos[idxCiclo].pagado = cicloNuevo.pagado;
+        hist[idx].ciclos[idxCiclo].saldoFinal = cicloNuevo.saldoFinal;
+        hist[idx].ciclos[idxCiclo].cancelado = cicloNuevo.cancelado;
+      }
     });
     hist[idx].nombre = c.nombre;
     hist[idx].tel = c.tel||hist[idx].tel;
@@ -4117,10 +4128,10 @@ function verHistorialCompleto(cedula){
       : null;
     const cuotasEsperadas = ciclo.cuota > 0 ? Math.ceil(ciclo.prestamo / ciclo.cuota) : '?';
 
-    // Pagos detallados con saldo acumulado
-    let saldoAcum = ciclo.prestamo;
+    // Pagos detallados estilo lista bonita
     const pagosHTML = pagosOrd.map((p, i) => {
-      saldoAcum = Math.max(0, saldoAcum - p.monto);
+      const num = pagosOrd.length - i;
+      const fechaLinda = p.fecha ? fechaBonita(p.fecha) : '—';
       // Calcular días desde el pago anterior
       let diasDesde = '';
       if(i > 0){
@@ -4131,11 +4142,12 @@ function verHistorialCompleto(cedula){
         const tarde = d > esperado+1;
         diasDesde = `<span style="font-size:10px;color:${tarde?'#dc2626':'#059669'};font-weight:700;margin-left:4px">(+${d}d${tarde?' ⚠️':''})</span>`;
       }
-      return `<div style="display:grid;grid-template-columns:24px 1fr auto auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #f5f5f5">
-        <span style="font-size:11px;color:#aaa;font-weight:700;text-align:right">${i+1}</span>
-        <span style="font-size:12px;color:#374151">${p.fecha ? p.fecha.slice(5).replace('-','/') : '—'}${diasDesde}</span>
-        <span style="font-size:13px;font-weight:900;color:#059669">${fmt(p.monto)}</span>
-        <span style="font-size:11px;color:${saldoAcum>0?'#dc2626':'#059669'};font-weight:700">${fmt(saldoAcum)}</span>
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#111">📅 ${fechaLinda}${diasDesde}</div>
+          <div style="font-size:11px;color:#888;font-weight:700;margin-top:2px">Cuota #${num}</div>
+        </div>
+        <div style="font-size:16px;font-weight:900;color:#00a844">+${fmt(p.monto)}</div>
       </div>`;
     }).join('');
 
@@ -4186,14 +4198,12 @@ function verHistorialCompleto(cedula){
           <summary style="font-size:12px;font-weight:900;color:#1d4ed8;cursor:pointer;padding:4px 0">
             📋 Ver ${pagosOrd.length} pagos detallados
           </summary>
-          <div style="margin-top:6px;background:#fafafa;border-radius:8px;padding:6px 8px;max-height:200px;overflow-y:auto">
-            <div style="display:grid;grid-template-columns:24px 1fr auto auto;gap:6px;padding:4px 0;margin-bottom:4px">
-              <span style="font-size:10px;color:#aaa;font-weight:700">#</span>
-              <span style="font-size:10px;color:#aaa;font-weight:700">FECHA</span>
-              <span style="font-size:10px;color:#aaa;font-weight:700">ABONO</span>
-              <span style="font-size:10px;color:#aaa;font-weight:700">RESTA</span>
-            </div>
+          <div style="margin-top:6px;background:#fafafa;border-radius:8px;padding:6px 10px;max-height:300px;overflow-y:auto">
             ${pagosHTML}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:2px">
+              <div style="font-size:12px;font-weight:900;color:#666">✅ TOTAL ABONADO</div>
+              <div style="font-size:16px;font-weight:900;color:#00a844">${fmt(ciclo.pagado)}</div>
+            </div>
           </div>
         </details>` : '<div style="font-size:12px;color:#aaa;text-align:center;padding:6px">Sin pagos registrados</div>'}
       </div>
