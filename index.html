@@ -25,17 +25,41 @@ body {
 /* LOGIN */
 #pantalla-login {
   min-height:100vh; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; padding:30px 24px;
-  background: linear-gradient(160deg, #2a5bc5 0%, #5b8dee 100%);
+  align-items:center; justify-content:center; padding:110px 24px 30px;
+  position:relative; overflow:hidden;
 }
-.login-logo  { font-size:70px; margin-bottom:10px; }
-.login-title { font-size:28px; font-weight:900; color:white; letter-spacing:-0.5px; text-align:center; }
-.login-sub   { font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:32px; margin-top:6px; text-align:center; }
-.login-card  { background:white; border-radius:24px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
-.login-label { font-size:12px; font-weight:800; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; display:block; }
-.login-input { width:100%; border:2px solid #e5e7eb; border-radius:12px; padding:14px 16px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:700; outline:none; transition:border-color 0.2s; margin-bottom:16px; letter-spacing:4px; text-align:center; }
-.login-input:focus { border-color:#5b8dee; }
-.login-btn { width:100%; padding:16px; background:linear-gradient(135deg,#5b8dee,#3a6fd8); color:white; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 4px 16px rgba(91,141,238,0.4); }
+.login-sky {
+  position:fixed; inset:0; z-index:0;
+  background:linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 15%,#c0392b 35%,#e67e22 50%,#f39c12 62%,#f9ca74 72%,#fdeaa8 82%,#fff8e1 100%);
+  animation:loginSunrise 8s ease-out forwards;
+}
+@keyframes loginSunrise { 0%{filter:brightness(0.3)} 40%{filter:brightness(0.7)} 100%{filter:brightness(1)} }
+.login-sun {
+  position:fixed; bottom:28%; left:50%; transform:translateX(-50%);
+  width:80px; height:80px; border-radius:50%; z-index:1;
+  background:radial-gradient(circle,#fff7c0 0%,#ffd700 40%,#ffaa00 70%,transparent 100%);
+  box-shadow:0 0 60px 30px rgba(255,200,0,0.35),0 0 120px 60px rgba(255,160,0,0.15);
+  animation:loginSunRise 8s ease-out forwards;
+}
+@keyframes loginSunRise { 0%{bottom:5%;opacity:0.2} 50%{opacity:0.8} 100%{bottom:28%;opacity:1} }
+.login-mountains { position:fixed; bottom:0; left:0; width:100%; height:35%; z-index:2; pointer-events:none; }
+.login-cloud { position:fixed; border-radius:50px; background:rgba(255,255,255,0.55); filter:blur(8px); z-index:2; animation:loginCloud linear infinite; }
+@keyframes loginCloud { from{transform:translateX(-200px)} to{transform:translateX(calc(100vw + 200px))} }
+.login-bendicion { position:fixed; top:0; left:0; right:0; z-index:10; display:flex; justify-content:center; padding:12px 16px 0; }
+.login-bendicion-box { background:rgba(0,0,0,0.38); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:11px 16px; max-width:340px; text-align:center; animation:fadeDownL 1.5s ease 0.8s both; }
+@keyframes fadeDownL { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+.login-bendicion-text { font-style:italic; font-size:11.5px; color:rgba(255,255,255,0.95); line-height:1.6; }
+.login-logo  { font-size:58px; margin-bottom:8px; position:relative; z-index:6; animation:bounceLogo 2s ease-in-out infinite alternate; }
+@keyframes bounceLogo { from{transform:translateY(0)} to{transform:translateY(-6px)} }
+.login-title { font-size:26px; font-weight:900; color:white; letter-spacing:-0.5px; text-align:center; position:relative; z-index:6; text-shadow:0 2px 10px rgba(0,0,0,0.4); }
+.login-sub   { font-size:12px; color:rgba(255,255,255,0.75); margin-bottom:20px; margin-top:5px; text-align:center; position:relative; z-index:6; letter-spacing:2px; }
+.login-card  { background:rgba(255,255,255,0.95); backdrop-filter:blur(12px); border-radius:24px; padding:26px 22px; width:100%; max-width:340px; box-shadow:0 30px 80px rgba(0,0,0,0.3); position:relative; z-index:6; animation:cardUpL 1.2s cubic-bezier(.22,1,.36,1) 0.3s both; }
+@keyframes cardUpL { from{opacity:0;transform:translateY(40px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+.login-divider { height:1px; background:linear-gradient(90deg,transparent,#e0b070,transparent); margin:0 0 16px; }
+.login-label { font-size:11px; font-weight:800; color:#8d6e63; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; display:block; }
+.login-input { width:100%; border:2px solid #e8d5c0; border-radius:12px; padding:13px 16px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:700; outline:none; transition:border-color 0.2s,box-shadow 0.2s; margin-bottom:14px; letter-spacing:4px; text-align:center; background:#fffbf7; color:#5d4037; }
+.login-input:focus { border-color:#e67e22; box-shadow:0 0 0 3px rgba(230,126,34,0.15); }
+.login-btn { width:100%; padding:15px; background:linear-gradient(135deg,#e67e22,#c0392b); color:white; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 8px 24px rgba(192,57,43,0.4); }
 .login-error { color:#ff3d3d; font-size:13px; font-weight:700; text-align:center; margin-top:10px; display:none; }
 .login-hint  { font-size:11px; color:#bbb; text-align:center; margin-top:14px; }
 
@@ -249,6 +273,7 @@ body {
 
 /* TOAST */
 #toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#111; color:white; padding:12px 22px; border-radius:14px; font-size:14px; font-weight:700; z-index:999; opacity:0; transition:opacity 0.2s; white-space:nowrap; pointer-events:none; }
+@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
 
 /* CANCELADOS HISTORIAL */
 .cancelado-item { background:#f8f9ff; border-radius:14px; padding:12px 14px; margin-bottom:8px; border:1px solid #e5e7eb; }
@@ -282,10 +307,27 @@ body {
 
 <!-- LOGIN -->
 <div id="pantalla-login">
+  <div class="login-sky"></div>
+  <div class="login-sun"></div>
+  <div class="login-cloud" style="width:160px;height:36px;top:18%;animation-duration:28s;animation-delay:-5s;opacity:0.7"></div>
+  <div class="login-cloud" style="width:100px;height:24px;top:26%;animation-duration:38s;animation-delay:-15s;opacity:0.5"></div>
+  <div class="login-cloud" style="width:200px;height:44px;top:12%;animation-duration:45s;animation-delay:-25s;opacity:0.4"></div>
+  <div class="login-mountains">
+    <svg viewBox="0 0 800 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,300 0,180 120,60 240,160 340,80 460,170 560,50 680,140 800,90 800,300" fill="#1a2a1a" opacity="0.85"/>
+      <polygon points="0,300 0,220 80,140 180,200 280,120 380,190 480,100 600,180 700,130 800,160 800,300" fill="#0d1a0d" opacity="0.7"/>
+    </svg>
+  </div>
+  <div class="login-bendicion">
+    <div class="login-bendicion-box">
+      <div class="login-bendicion-text" id="login-bendicion-text">🙏 Cargando bendición del día...</div>
+    </div>
+  </div>
   <div class="login-logo">💰</div>
   <div class="login-title">Alisson & Emily</div>
-  <div class="login-sub">✨ Gestión de cuentas ✨</div>
+  <div class="login-sub">✦ Gestión de cuentas ✦</div>
   <div class="login-card">
+    <div class="login-divider"></div>
     <label class="login-label">👤 Usuario</label>
     <input type="text" class="login-input" id="login-usuario" placeholder="Usuario" autocomplete="username"
       onkeydown="if(event.key==='Enter')document.getElementById('login-clave').focus()">
@@ -322,6 +364,9 @@ body {
     </div>
     <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
+  <div id="header-versiculo" style="margin:8px 0 2px;background:rgba(255,255,255,0.13);border-radius:10px;padding:7px 12px;font-size:11px;color:rgba(255,255,255,0.93);font-style:italic;line-height:1.5;text-align:center;border:1px solid rgba(255,255,255,0.18)">
+    <span id="header-versiculo-text"></span>
+  </div>
   <div class="nav-tabs">
     <button class="nav-tab activo" onclick="irA('clientes')"  id="tab-clientes">👥 Clientes</button>
     <button class="nav-tab" onclick="irA('detalles')"         id="tab-detalles">📋 Detalles</button>
@@ -337,27 +382,11 @@ body {
     <div class="clientes-titulo">👥 Mis Clientes</div>
     <div style="display:flex;gap:8px">
       <button onclick="imprimirListaClientes()" style="background:#FFD700;color:#111;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
-      <button class="btn-nuevo-cliente" onclick="abrirModalCliente()">➕ Nuevo</button>
+      <button class="btn-nuevo-cliente" onclick="abrirModalNuevoOHistorial()">➕ Nuevo</button>
     </div>
   </div>
   <div style="padding:10px 14px 0">
     <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e5e7eb;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#5b8dee'" onblur="this.style.borderColor='#e5e7eb'">
-
-    <!-- HISTORIAL POR CÉDULA -->
-    <div style="margin-top:10px;background:#f5f3ff;border-radius:14px;padding:12px 14px;border:2px solid #ddd6fe">
-      <div style="font-size:11px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 Historial por cédula</div>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="input-buscar-hist-cedula" inputmode="numeric"
-          placeholder="Número de cédula"
-          style="flex:1;min-width:0;border:2px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;outline:none;letter-spacing:1px;background:white"
-          onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();buscarHistorialPorCedula();}">
-        <button onclick="buscarHistorialPorCedula()"
-          style="flex-shrink:0;background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
-          Buscar
-        </button>
-      </div>
-    </div>
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e5e7eb">
@@ -725,13 +754,7 @@ body {
     </div>
   </div>
 
-  <!-- CONFIGURACIÓN -->
-  <div class="seccion" style="margin-top:14px">
-    <div class="seccion-titulo titulo-oscuro">⚙️ Configuración</div>
-    <div class="campo">
-      <div class="campo-label" style="font-size:13px;color:#bbb">🔒 Modificaciones solo desde supervisor</div>
-    </div>
-  </div>
+  <!-- CONFIGURACIÓN ELIMINADA -->
 
   <!-- PORCENTAJE DE INTERÉS -->
   <div class="seccion" style="margin-top:14px">
@@ -965,6 +988,10 @@ body {
     </div>
     </div><!-- fin mc-campos-cliente -->
 
+    <div class="modal-campo" id="mc-fecha-campo" style="display:none">
+      <label class="modal-label">📅 Fecha del préstamo</label>
+      <div style="background:#f0f5ff;border:2px solid #b8ceff;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#5b8dee" id="mc-fecha-display"></div>
+    </div>
     <div class="modal-campo">
       <label class="modal-label">💰 Valor del préstamo</label>
       <input type="number" class="modal-input" id="mc-prestamo" placeholder="0" oninput="actualizarResumenPrestamo()">
@@ -4839,9 +4866,294 @@ function renderResumenSemanal(){
   papDiasEl.textContent = diasConPapeleria > 0 ? diasConPapeleria+' día'+(diasConPapeleria!==1?'s':'') : 'Sin registros';
 }
 
+// ===== BENDICIONES DEL DÍA (365 mensajes) =====
+const BENDICIONES = [
+"🙏 Que Dios te cuide y te proteja de todo mal en este día, te dé fortaleza y sabiduría, y aleje de ti todo problema y accidente. ¡Bendecido día!",
+"✝️ Que el Señor ilumine tu camino hoy, te guarde de todo peligro en la calle y te traiga de vuelta a casa con bien. ¡Dios te bendiga!",
+"🌅 Que este nuevo día venga lleno de la gracia de Dios. Que Él sea tu escudo, tu fortaleza y tu guía en cada paso. ¡Adelante con fe!",
+"🙌 Que el Espíritu Santo te acompañe hoy, te libre de toda maldad y te llene de paz y de sabiduría para tu trabajo. ¡Bendiciones!",
+"⭐ Que Dios ponga ángeles en tu camino hoy, que te guarden de accidentes y de personas malas, y que todo te salga bien. ¡Que así sea!",
+"🌿 Que el Señor sea tu pastor hoy. Que no te falte nada, que te dé salud, fuerzas y que protejas a tu familia. ¡Dios te cuida!",
+"🕊️ Que la paz de Dios que sobrepasa todo entendimiento guarde tu corazón y tu mente. Que hoy sea un día victorioso para ti.",
+"🙏 Que Dios te guarde al salir y al entrar, que ningún mal se acerque a ti ni a los tuyos, y que su bendición te cubra todo el día.",
+"🌸 Que el favor de Dios vaya delante de ti hoy. Que las puertas se abran, que los problemas se alejen y que su amor te envuelva.",
+"✨ Que hoy tengas sabiduría para tomar las mejores decisiones, fortaleza para los desafíos y la protección de Dios en todo momento.",
+"🙌 Dios te dio un nuevo día para ser feliz, para avanzar y para hacer el bien. Que Él te guíe, te proteja y te bendiga abundantemente.",
+"🌄 Que este amanecer sea señal de que Dios renueva su misericordia sobre ti. Que hoy sea un día lleno de su gracia y protección.",
+"🛡️ Que el Señor sea tu escudo hoy. Que te libre de todo mal, de todo accidente, de toda mala intención. ¡Su poder te resguarda!",
+"🙏 Que Dios te conceda salud para trabajar, paz para vivir, amor para dar y sabiduría para guiar a los que dependen de ti. ¡Bendiciones!",
+"🌟 Que la luz de Dios ilumine cada paso que des hoy. Que ninguna oscuridad te alcance y que su amor sea tu fortaleza. ¡Ánimo!",
+"✝️ En el nombre de Dios sales y en su nombre vuelves. Que Él cuide cada momento de tu día y te traiga con bien a tu hogar.",
+"🌺 Que hoy Dios llene tu camino de bendiciones. Que donde vayas seas protegido, respetado y que todo lo que emprendas prospere.",
+"🙌 Que el Señor multiplique tus fuerzas hoy, que te dé paciencia con las personas difíciles y que su paz reine en tu corazón.",
+"🕊️ Que Dios te libre hoy de toda trampa, engaño y peligro. Que su ángel te guarde en todos tus caminos. ¡Confía en Él!",
+"🌅 Que este día que Dios te regala esté lleno de su presencia. Que sientas su mano guiándote y protegiéndote en cada momento.",
+"⭐ Que Dios ponga sabiduría en tu boca, amor en tu corazón y protección sobre tu cuerpo. ¡Que hoy sea un día de victoria!",
+"🙏 Que el Señor te guíe por sendas de justicia. Que aunque pases por dificultades, Él esté contigo y no te deje caer.",
+"🌿 Que Dios te bendiga en la mañana, en la tarde y en la noche. Que su gracia te cubra como un manto durante todo el día.",
+"🛡️ Que hoy no te alcance ningún mal. Que Dios sea tu torre fuerte y tu refugio seguro en todo momento y lugar.",
+"✨ Que el Señor te dé hoy más de lo que necesitas: salud, paz, trabajo y amor. ¡Que su bondad te sorprenda hoy!",
+"🌸 Que Dios guíe tus manos, tu mente y tus pasos hoy. Que todo lo que hagas lleve su bendición y su sello de aprobación.",
+"🙌 Que el poder de Dios vaya contigo hoy. Que ningún problema sea más grande que Su capacidad de resolverlo. ¡Ten fe!",
+"✝️ Que el Señor sea tu luz en la oscuridad y tu calma en la tormenta. Que hoy sientas que no estás solo, que Él está contigo.",
+"🌄 Que este día te traiga buenas noticias, salud para los tuyos, trabajo productivo y el cuidado constante de Dios. ¡Bendecido!",
+"🕊️ Que la misericordia de Dios sea nueva para ti hoy. Que todo lo que ayer salió mal, hoy salga perfecto bajo su guía.",
+"🌟 Que Dios te dé discernimiento para reconocer el peligro, sabiduría para evitarlo y fe para superar cualquier obstáculo.",
+"🙏 Que hoy seas guardado de accidentes de tránsito, de robos, de enfermedades y de personas de mal corazón. ¡Dios te protege!",
+"🌺 Que el Señor abra puertas de bendición para ti hoy. Que cada esfuerzo que hagas sea recompensado con sus mejores dones.",
+"🙌 Que Dios fortalezca tu cuerpo para el trabajo, tu mente para las decisiones y tu alma para los desafíos de hoy. ¡Adelante!",
+"🛡️ Que ningún arma forjada contra ti prospere hoy. Que Dios sea tu protección permanente y Su nombre sea tu refugio.",
+"🌅 Que este día empiece con Dios y termine con Dios. Que entre la salida y la llegada, Su mano poderosa te cuide siempre.",
+"⭐ Que el Señor te conceda encontrar personas buenas hoy, cerrar negocios con honestidad y regresar a casa con alegría.",
+"✝️ Que Dios guarde tu salida y tu entrada, ahora y para siempre. Que nada ni nadie te quite la paz que Él te da.",
+"🌿 Que hoy Dios te sorprenda con Su amor. Que donde vayas sientas que alguien más grande que cualquier problema te cuida.",
+"🙏 Que el Señor sea tu compañero hoy. Que en cada decisión, en cada camino, en cada momento, sientas Su presencia contigo.",
+"🌸 Que Dios te libre de toda carga innecesaria hoy. Que Su paz sea tu escudo y Su amor sea tu fuerza. ¡Bendecido seas!",
+"🕊️ Que el Espíritu de Dios te guíe hoy en cada palabra, en cada acto y en cada pensamiento. Que Su voluntad sea la tuya.",
+"✨ Que hoy Dios ponga en tu corazón alegría, en tu mente claridad y en tu camino seguridad. ¡Que todo salga bien para ti!",
+"🌄 Que este día sea testigo de la fidelidad de Dios en tu vida. Que Su protección sea visible y Su amor sea tangible.",
+"🙌 Que el Señor te guarde de todo lo malo y te acerque a todo lo bueno. Que hoy sea un día lleno de Sus bendiciones.",
+"🛡️ Que Dios sea tu escudo ante cualquier peligro hoy. Que Su ángel te acompañe en la carretera, en el trabajo y en el hogar.",
+"🌟 Que el favor de Dios vaya delante de ti como una luz brillante que ahuyenta la oscuridad y abre caminos donde no los hay.",
+"🙏 Que hoy tengas salud en tu cuerpo, paz en tu mente, amor en tu corazón y la protección de Dios sobre tu vida entera.",
+"✝️ Que Dios te libre de tropiezos y caídas hoy. Que Sus manos te sostengan cuando sientas que el camino se pone difícil.",
+"🌺 Que el Señor te bendiga con un día tranquilo, sin contratiempos, sin accidentes, sin personas que te quieran hacer mal.",
+"🌅 Que cada hora de este día esté bajo la cobertura de Dios. Que al final del día puedas decir: ¡El Señor me guardó!",
+"🕊️ Que la gracia de Dios sea suficiente para ti hoy. Que en tu debilidad Él sea tu fortaleza y en tu duda Él sea tu certeza.",
+"⭐ Que Dios te proteja hoy como un padre cuida a su hijo. Que no permita que ningún daño llegue a ti ni a tu familia.",
+"🙌 Que el Señor te conceda hoy claridad para ver las oportunidades, valentía para aprovecharlas y fe para perseverar.",
+"🌿 Que Dios guíe tus pasos hoy como lo ha hecho hasta ahora. Que Su fidelidad pasada sea garantía de Su cuidado futuro.",
+"🛡️ Que hoy sea un día en que sientas la protección de Dios de manera especial. Que nada te sorprenda sin Su permiso.",
+"✨ Que el Señor bendiga tus manos en el trabajo, tus oídos para escuchar sabiduría y tus ojos para ver Sus maravillas.",
+"🌸 Que Dios te rodee de personas buenas hoy, que te cuiden, te apoyen y te ayuden a ser mejor. ¡Que Su amor te envuelva!",
+"🙏 Que este día sea uno de esos días que recuerdes siempre porque la bondad de Dios se manifestó de manera extraordinaria.",
+"✝️ Que el Señor te libre de todo mal pensamiento, de toda tentación y de toda situación que ponga en riesgo tu bienestar.",
+"🌄 Que Dios te dé hoy paciencia para esperar, sabiduría para actuar y fe para creer que todo obra para bien. ¡Bendecido!",
+"🌟 Que la paz de Dios que sobrepasa todo entendimiento sea tuya hoy. Que ninguna preocupación robe tu alegría ni tu calma.",
+"🙌 Que el Señor multiplique cada esfuerzo que hagas hoy. Que lo poco en tus manos se convierta en mucho bajo Su bendición.",
+"🕊️ Que Dios te cuide en la madrugada, en el día y en la noche. Que Su protección no descanse y Su amor no te abandone.",
+"⭐ Que hoy Dios abra ventanas de bendición que ninguna mano pueda cerrar. Que Su favor sea visible en cada área de tu vida.",
+"🌺 Que el Señor te libre de malos encuentros, de accidentes, de enfermedades y de cualquier plan del enemigo contra ti.",
+"🙏 Que este día te encuentre con fe renovada, fuerzas recuperadas y la certeza de que Dios tiene todo bajo Su control.",
+"🛡️ Que Dios sea hoy tu compañía en la soledad, tu calma en la tormenta, tu luz en la oscuridad y tu fuerza en el cansancio.",
+"✨ Que el Señor te conceda hoy éxito en tu trabajo, armonía en tu familia, salud en tu cuerpo y paz en tu alma. ¡Amén!",
+"🌅 Que cada paso que des hoy sea guiado por la mano de Dios. Que ningún paso en falso te aleje de Su camino y Su cuidado.",
+"✝️ Que Dios te bendiga al levantarte, al salir, al trabajar y al volver. Que Su nombre sea tu protección en todo momento.",
+"🌿 Que hoy el Señor sea glorificado a través de tu vida. Que todo lo que hagas refleje Su amor y Su sabiduría. ¡Bendecido!",
+"🙌 Que Dios guarde tu mente de malos pensamientos, tu corazón de malas emociones y tu cuerpo de todo daño. ¡Su protección!",
+"🌸 Que el Señor te dé hoy más bendiciones de las que esperas. Que Su generosidad te sorprenda y Su amor te conmueva.",
+"⭐ Que hoy no haya ningún accidente en tu camino, ningún problema sin solución, ninguna carga sin alivio. ¡Dios te cuida!",
+"🕊️ Que la misericordia de Dios te alcance hoy. Que donde tú falles Él te levante, y donde triunfes Él sea glorificado.",
+"🙏 Que el Señor sea hoy tu pastor, tu guía, tu protector y tu proveedor. Que bajo Su cuidado no te falte absolutamente nada.",
+"🌄 Que Dios ponga un muro de fuego alrededor de ti hoy. Que ningún mal te alcance y que Su ángel te guarde en todo camino.",
+"🛡️ Que hoy el nombre de Dios sea tu torre fuerte. Que en Él te refugies y que Su protección sea tu experiencia diaria.",
+"✨ Que el Señor te conceda sabiduría sobrenatural hoy para enfrentar lo que no entiende la mente humana. ¡Con Dios todo es posible!",
+"🌺 Que este día seas lleno del Espíritu de Dios. Que Su amor, alegría y paz desborden de tu vida y bendigan a quienes te rodean.",
+"🙌 Que Dios te libre hoy de accidentes de tránsito, de asaltos, de enfermedades repentinas y de cualquier forma de daño.",
+"✝️ Que el Señor cuide tus pies para que no resbalen, tus manos para que no fallen y tu corazón para que no tema. ¡Él está contigo!",
+"🌟 Que hoy Dios te sorprenda con su fidelidad. Que cuando creas que no hay salida, Él abra un camino que solo Él puede abrir.",
+"🙏 Que la bendición de Dios sea como lluvia sobre tu vida hoy. Que refresque tu alma, nutra tu fe y haga florecer tus proyectos.",
+"🌅 Que este día Dios te libre de toda trampa visible e invisible. Que Sus ojos que nunca duermen estén siempre sobre ti.",
+"🕊️ Que el Señor te dé hoy más de lo que mereces y menos de lo que temes. Que Su gracia sea tu experiencia constante. ¡Amén!",
+"⭐ Que Dios guíe cada pensamiento, cada palabra y cada acción tuya hoy. Que Su voluntad perfecta se cumpla en tu vida.",
+"🌿 Que hoy el Señor te demuestre que nunca te abandona. Que en el momento que más lo necesites, Él sea más real que nunca.",
+"🛡️ Que Dios sea tu protector permanente hoy. Que Su nombre sea como un escudo ante todo lo que te amenace o te preocupe.",
+"🌸 Que el Señor te conceda encontrar alegría en lo pequeño hoy. Que puedas ver Sus bendiciones en cada detalle del día.",
+"🙌 Que Dios guarde tu vida hoy con Su mano poderosa. Que nada ni nadie pueda hacerte daño sin pasar primero por Él.",
+"✨ Que hoy el Señor abra puertas de prosperidad para ti. Que el trabajo que haces sea recompensado y tus esfuerzos valorados.",
+"✝️ Que la sangre de Cristo te proteja hoy. Que ningún mal espiritual ni físico tenga poder sobre tu vida. ¡Dios te guarda!",
+"🌄 Que este día Dios sea tu compás y tu norte. Que no te pierdas en el camino, que no tropieces con lo innecesario. ¡Adelante!",
+"🙏 Que el Señor te dé hoy un corazón tranquilo, una mente enfocada y manos trabajadoras. ¡Que su bendición esté sobre ti!",
+"🌺 Que Dios te libre hoy de personas que quieran hacerte daño, de situaciones que pongan en riesgo tu seguridad y tu paz.",
+"🕊️ Que la presencia de Dios sea tan real para ti hoy que en ningún momento te sientas solo ni desamparado. ¡Él está aquí!",
+"⭐ Que el Señor te conceda hoy poder terminar lo que empieces, resolver lo que enfrentes y descansar cuando llegue el momento.",
+"🌟 Que Dios ponga Su mano sobre cada miembro de tu familia hoy. Que los guarde, los bendiga y los traiga de vuelta con bien.",
+"🛡️ Que hoy el Señor sea glorioso en tu defensa. Que quien intente hacerte daño encuentre el poder de Dios deteniéndolo.",
+"🙌 Que este día el Señor te recuerde cuánto te ama. Que en cada momento difícil sientas Su abrazo y en cada logro Su sonrisa.",
+"🌿 Que Dios te dé hoy visión para ver más allá de los problemas, fe para creer en Sus promesas y fuerza para seguir adelante.",
+"✨ Que el Señor te guarde de todo mal hoy, que prospere en todo lo bueno, y que al final del día puedas darle gracias. ¡Amén!",
+];
+
+function getBendicionDelDia() {
+  const hoy = new Date();
+  const diaDelAnio = Math.floor((hoy - new Date(hoy.getFullYear(),0,0)) / 86400000);
+  return BENDICIONES[diaDelAnio % BENDICIONES.length];
+}
+
+// ===== BLOQUEO HORARIO (11pm - 6am) =====
+function verificarHorario() {
+  const hora = new Date().getHours();
+  // Permitido: 6am (6) hasta 10:59pm (22)
+  // Bloqueado: 11pm (23) y madrugada 0-5
+  const estaPermitido = hora >= 6 && hora <= 22;
+  if (!estaPermitido) {
+    document.getElementById('pantalla-login').style.display = 'none';
+    document.getElementById('app').style.display = 'none';
+    let bloq = document.getElementById('pantalla-bloqueada');
+    if (!bloq) {
+      bloq = document.createElement('div');
+      bloq.id = 'pantalla-bloqueada';
+      bloq.style.cssText = 'position:fixed;inset:0;background:linear-gradient(160deg,#0a0a1a,#1a1a3a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:30px;text-align:center';
+      bloq.innerHTML = `
+        <div style="font-size:60px;margin-bottom:16px">🌙</div>
+        <div style="font-size:22px;font-weight:900;color:white;margin-bottom:10px">Sistema cerrado</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;max-width:280px;margin-bottom:20px">
+          El sistema está disponible de<br>
+          <strong style="color:#ffd54f;font-size:18px">6:00 AM a 11:00 PM</strong><br>
+          Descansa y que Dios te cuide esta noche 🙏
+        </div>
+        <div style="font-size:28px;font-weight:900;color:#ffd54f" id="reloj-bloqueado"></div>
+      `;
+      document.body.appendChild(bloq);
+    }
+    bloq.style.display = 'flex';
+    // Reloj en tiempo real
+    function actualizarReloj() {
+      const n = new Date();
+      const h = String(n.getHours()).padStart(2,'0');
+      const m = String(n.getMinutes()).padStart(2,'0');
+      const s = String(n.getSeconds()).padStart(2,'0');
+      const rel = document.getElementById('reloj-bloqueado');
+      if (rel) rel.textContent = h+':'+m+':'+s;
+    }
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
+    return false; // bloqueado
+  }
+  // Hora permitida - ocultar pantalla bloqueada si existe
+  const bloq = document.getElementById('pantalla-bloqueada');
+  if (bloq) bloq.remove();
+  return true;
+}
+
+// ===== FUSIÓN +NUEVO CON HISTORIAL POR CÉDULA =====
+function abrirModalNuevoOHistorial() {
+  // Crear modal de selección
+  let overlay = document.getElementById('modal-nuevo-o-hist');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-nuevo-o-hist';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+    overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:24px 24px 0 0;padding:24px 20px 36px;width:100%;max-width:600px;animation:slideUp 0.3s ease">
+      <div style="font-size:18px;font-weight:900;color:#111;margin-bottom:6px">➕ Nuevo / Historial</div>
+      <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:20px">Ingresa la cédula del cliente</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="text" id="input-cedula-nuevo" inputmode="numeric" placeholder="Número de cédula"
+          style="flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;letter-spacing:1px"
+          onfocus="this.style.borderColor='#5b8dee'" onblur="this.style.borderColor='#e5e7eb'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();procesarCedulaNuevo();}">
+        <button onclick="procesarCedulaNuevo()"
+          style="flex-shrink:0;background:#5b8dee;color:white;border:none;border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          🔍 Buscar
+        </button>
+      </div>
+      <button onclick="document.getElementById('modal-nuevo-o-hist').remove();abrirModalCliente();"
+        style="width:100%;padding:14px;background:#f0f5ff;color:#5b8dee;border:2px solid #b8ceff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px">
+        ➕ Cliente completamente nuevo (sin cédula previa)
+      </button>
+      <button onclick="document.getElementById('modal-nuevo-o-hist').remove()"
+        style="width:100%;padding:13px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+        Cancelar
+      </button>
+    </div>`;
+  overlay.style.display = 'flex';
+  setTimeout(()=>{ const inp=document.getElementById('input-cedula-nuevo'); if(inp) inp.focus(); },100);
+}
+
+function procesarCedulaNuevo() {
+  const cedula = (document.getElementById('input-cedula-nuevo')?.value || '').trim();
+  if (!cedula || cedula.length < 4) { showToast('⚠️ Ingresa una cédula válida'); return; }
+  document.getElementById('modal-nuevo-o-hist')?.remove();
+  // Buscar si tiene historial
+  const histCedulas = getHistorialCedulas();
+  const registros = histCedulas.filter(h => h.cedula === cedula);
+  if (registros.length > 0) {
+    // Tiene historial: mostrar y preguntar si crear nuevo
+    verHistorialCompleto(cedula, true);
+  } else {
+    // No tiene historial: abrir modal nuevo con cédula prellenada
+    abrirModalCliente();
+    setTimeout(()=>{
+      const mcCedula = document.getElementById('mc-cedula');
+      if (mcCedula) {
+        mcCedula.value = cedula;
+        buscarClientePorCedula();
+      }
+    }, 200);
+  }
+}
+
+// ===== MENSAJES HEADER (bendiciones cortas, cambian cada día) =====
+const VERSICULOS = [
+  "🙏 Que Dios te cuide y te proteja de todo mal hoy.",
+  "✝️ Que el Señor sea tu escudo y tu fortaleza este día.",
+  "🌅 Que Dios bendiga tu camino y aleje todo peligro.",
+  "⭐ Que el Señor ponga ángeles cuidándote hoy.",
+  "🕊️ Que la paz de Dios guarde tu corazón hoy.",
+  "🙌 Que Dios te dé sabiduría y fortaleza este día.",
+  "🌿 Que el Señor sea tu guía en cada paso hoy.",
+  "🛡️ Que Dios te libre de todo accidente y peligro.",
+  "✨ Que el favor de Dios vaya delante de ti hoy.",
+  "🌸 Que el Señor cuide a tu familia y te traiga con bien.",
+  "🙏 Que Dios te bendiga en la salida y en la llegada.",
+  "✝️ Que ningún mal se acerque a ti ni a los tuyos hoy.",
+  "⭐ Que Dios prospere tu trabajo y bendiga tus manos.",
+  "🌄 Que el Señor sea tu compañía en este nuevo día.",
+  "🕊️ Que Dios aleje de ti todo problema y preocupación.",
+  "🙌 Que el Señor te dé salud, paz y mucha bendición.",
+  "🛡️ Que Dios te cubra con su manto de protección hoy.",
+  "🌟 Que el Señor ilumine tu camino y guíe tus pasos.",
+  "🌺 Que Dios te libre de malas personas y malas intenciones.",
+  "🙏 Que el Señor renueve tus fuerzas como las del águila.",
+  "✝️ Que Dios te cuide en la carretera y en el trabajo.",
+  "✨ Que el Señor multiplique todo lo que tienes hoy.",
+  "🌿 Que Dios ponga alegría en tu corazón este día.",
+  "⭐ Que el Señor sea tu refugio y tu fortaleza hoy.",
+  "🕊️ Que Dios te proteja de todo mal visible e invisible.",
+  "🙌 Que el Señor te bendiga y cuide a toda tu familia.",
+  "🛡️ Que Dios aleje de ti accidentes, robos y enfermedades.",
+  "🌸 Que el Señor te dé un día tranquilo y lleno de paz.",
+  "🌄 Que Dios abra puertas de bendición para ti hoy.",
+  "🙏 Que el Señor sea tu pastor y nada te falte hoy.",
+  "✝️ Que Dios te guarde al salir y al entrar este día.",
+  "⭐ Que el Señor te dé más de lo que necesitas hoy.",
+  "🌟 Que Dios cuide tu cuerpo, tu mente y tu alma hoy.",
+  "🌺 Que el Señor aleje de ti toda tristeza y todo miedo.",
+  "🙌 Que Dios bendiga tu esfuerzo y recompense tu trabajo.",
+  "🛡️ Que el Señor sea tu escudo ante cualquier peligro hoy.",
+  "🕊️ Que Dios te traiga de vuelta a casa sano y salvo.",
+  "✨ Que el Señor te sorprenda hoy con su bondad y amor.",
+  "🌿 Que Dios ponga personas buenas en tu camino hoy.",
+  "🙏 Que el Señor te proteja como el padre cuida a su hijo.",
+  "✝️ Que Dios sea tu luz cuando sientas que todo está oscuro.",
+  "⭐ Que el Señor te libre de toda trampa y engaño hoy.",
+  "🌸 Que Dios te dé paciencia, sabiduría y mucho amor hoy.",
+  "🌄 Que el Señor reine en tu hogar y en tu corazón.",
+  "🙌 Que Dios te cuide en cada segundo de este día.",
+  "🛡️ Que el Señor aleje todo lo malo y atraiga todo lo bueno.",
+  "🌟 Que Dios te bendiga con salud, trabajo y familia unida.",
+  "🕊️ Que el Señor te recuerde hoy cuánto te ama. ¡Bendecido!",
+  "✨ Que Dios cuide tus pasos y bendiga todos tus caminos.",
+  "🌺 Que el Señor te dé victoria sobre todo lo que te preocupa.",
+];
+
+function getVersiculoDelDia() {
+  const hoy = new Date();
+  const diaDelAnio = Math.floor((hoy - new Date(hoy.getFullYear(),0,0)) / 86400000);
+  // Usar día +1 para que sea diferente al del login
+  return VERSICULOS[(diaDelAnio + 1) % VERSICULOS.length];
+}
+
 // ===== INIT =====
 function iniciarApp(){
   document.getElementById('header-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Versículo del día en header
+  const vEl = document.getElementById('header-versiculo-text');
+  if(vEl) vEl.textContent = getVersiculoDelDia();
   renderHistorial();
   renderResumenSemanal();
   renderClientes();
@@ -4851,6 +5163,17 @@ function iniciarApp(){
 
 // Recuperar sesión activa al recargar
 document.addEventListener('DOMContentLoaded',()=>{
+  // Mostrar bendición en login
+  const bendEl = document.getElementById('login-bendicion-text');
+  if(bendEl) bendEl.textContent = getBendicionDelDia();
+  // Verificar horario DESPUÉS de que todo cargue
+  setTimeout(function() {
+    verificarHorario();
+  }, 100);
+  // Verificar horario cada minuto
+  setInterval(function(){
+    verificarHorario();
+  }, 60000);
   // Corrección única: usar saldoQuedaba como totalCancelado (es lo que realmente se canceló al renovar)
   if(!lsGet('fix_cancelado_v2')){
     try {
