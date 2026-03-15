@@ -302,6 +302,7 @@ body {
 .cliente-card { touch-action: pan-y; }
 .cliente-card.dragging { opacity:0.5; transform:scale(0.98); box-shadow:0 8px 30px rgba(0,0,0,0.2); border:2px dashed #1a6eff; }
 .cliente-card.drag-over { border-top:3px solid #1a6eff; }
+.cliente-card.drag-over-bottom { border-bottom:3px solid #1a6eff; }
 .drag-handle { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#ccc; display:none; }
 .cliente-card-header { position:relative; }
 </style>
@@ -2829,29 +2830,57 @@ function initDrag(){
       const y = e.touches[0].clientY;
       const elements = document.elementsFromPoint(e.touches[0].clientX, y);
       const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
-      lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
-      if(target) target.classList.add('drag-over');
+      lista.querySelectorAll('.cliente-card').forEach(c => {
+        c.classList.remove('drag-over');
+        c.classList.remove('drag-over-bottom');
+      });
+      if(target){
+        // Determinar si el dedo está en la mitad superior o inferior del target
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if(y < midY){
+          target.classList.add('drag-over');       // línea arriba = va a quedar ANTES
+        } else {
+          target.classList.add('drag-over-bottom'); // línea abajo = va a quedar DESPUÉS
+        }
+      }
     }, {passive:false});
 
     card.addEventListener('touchend', e => {
       clearTimeout(longPressTimer);
       if(!isDragging){ isDragging=false; return; }
       card.classList.remove('dragging');
-      lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
+      lista.querySelectorAll('.cliente-card').forEach(c => {
+        c.classList.remove('drag-over');
+        c.classList.remove('drag-over-bottom');
+      });
 
       const y = e.changedTouches[0].clientY;
-      const elements = document.elementsFromPoint(e.changedTouches[0].clientX, y);
+      const x = e.changedTouches[0].clientX;
+      const elements = document.elementsFromPoint(x, y);
       const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
       if(target){
         const allCards = [...lista.querySelectorAll('.cliente-card')];
         const targetIdx = allCards.indexOf(target);
         if(targetIdx !== -1 && dragSrcIdx !== null && targetIdx !== dragSrcIdx){
+          // ¿Soltó en la mitad inferior del target? → va DESPUÉS del target
+          const rect = target.getBoundingClientRect();
+          const insertAfter = y >= (rect.top + rect.height / 2);
+
           const clientes = getClientes();
           const [moved] = clientes.splice(dragSrcIdx, 1);
-          clientes.splice(targetIdx, 0, moved);
+
+          // Después del splice, el array tiene 1 elemento menos.
+          // Calcular la posición correcta de inserción:
+          let insertIdx = targetIdx;
+          if(dragSrcIdx < targetIdx) insertIdx = insertAfter ? targetIdx : targetIdx - 1;
+          else insertIdx = insertAfter ? targetIdx + 1 : targetIdx;
+
+          insertIdx = Math.max(0, Math.min(clientes.length, insertIdx));
+          clientes.splice(insertIdx, 0, moved);
           saveClientes(clientes);
           renderClientes();
-          showToast('✅ Cliente movido');
+          showToast('✅ Cliente reubicado');
         }
       }
       isDragging = false;
