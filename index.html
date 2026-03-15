@@ -1020,9 +1020,22 @@ body {
 
     <div class="modal-campo" style="margin-top:14px">
       <label class="modal-label">📅 Tipo de pago</label>
-      <select class="modal-select" id="mc-tipo" onchange="actualizarDiasPrestamo()">
+      <select class="modal-select" id="mc-tipo" onchange="actualizarDiasPrestamo();toggleDiaSemana('mc-dia-semana-row',this.value)">
         <option value="semanal">📅 Semanal</option>
         <option value="diario">☀️ Diario</option>
+      </select>
+    </div>
+    <div class="modal-campo" id="mc-dia-semana-row">
+      <label class="modal-label">📆 Día de cobro semanal</label>
+      <select class="modal-select" id="mc-dia-semana">
+        <option value="">-- Sin especificar --</option>
+        <option value="lunes">Lunes</option>
+        <option value="martes">Martes</option>
+        <option value="miercoles">Miércoles</option>
+        <option value="jueves">Jueves</option>
+        <option value="viernes">Viernes</option>
+        <option value="sabado">Sábado</option>
+        <option value="domingo">Domingo</option>
       </select>
     </div>
     <div class="modal-campo">
@@ -1102,9 +1115,22 @@ body {
     </div>
     <div class="modal-campo" style="margin-top:14px">
       <label class="modal-label">📅 Tipo de pago</label>
-      <select class="modal-select" id="ren-tipo">
+      <select class="modal-select" id="ren-tipo" onchange="toggleDiaSemana('ren-dia-semana-row',this.value)">
         <option value="semanal">📅 Semanal</option>
         <option value="diario">☀️ Diario</option>
+      </select>
+    </div>
+    <div class="modal-campo" id="ren-dia-semana-row">
+      <label class="modal-label">📆 Día de cobro semanal</label>
+      <select class="modal-select" id="ren-dia-semana">
+        <option value="">-- Sin especificar --</option>
+        <option value="lunes">Lunes</option>
+        <option value="martes">Martes</option>
+        <option value="miercoles">Miércoles</option>
+        <option value="jueves">Jueves</option>
+        <option value="viernes">Viernes</option>
+        <option value="sabado">Sábado</option>
+        <option value="domingo">Domingo</option>
       </select>
     </div>
     <div class="modal-campo">
@@ -1187,6 +1213,11 @@ function showToast(msg) {
 }
 function cerrarModal(id) { document.getElementById(id).classList.remove('visible'); }
 function cerrarModalSi(e,id) { if(e.target===document.getElementById(id)) cerrarModal(id); }
+
+function toggleDiaSemana(rowId, tipo) {
+  const row = document.getElementById(rowId);
+  if(row) row.style.display = tipo === 'semanal' ? '' : 'none';
+}
 
 // ===== STORAGE CON FALLBACK (funciona desde administrador de archivos) =====
 window._memStorage = {};
@@ -1674,6 +1705,8 @@ function abrirModalCliente(id){
       document.getElementById('mc-prestamo').value=c.capital||'';
       document.getElementById('mc-tipo').value=c.tipo||'semanal';
       document.getElementById('mc-cuota').value=c.cuotaSugerida||'';
+      document.getElementById('mc-dia-semana').value=c.diaSemana||'';
+      toggleDiaSemana('mc-dia-semana-row', c.tipo||'semanal');
       const mcInt=document.getElementById('mc-interes');
       if(mcInt) mcInt.value=c.pctInteres!==undefined?c.pctInteres:'';
       document.getElementById('mc-id').value=c.id;
@@ -1683,6 +1716,8 @@ function abrirModalCliente(id){
     // Nuevo cliente: resetear todo y mostrar solo cédula+buscar
     ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
     document.getElementById('mc-tipo').value='diario';
+    document.getElementById('mc-dia-semana').value='';
+    toggleDiaSemana('mc-dia-semana-row','diario');
     document.getElementById('prestamo-resumen').style.display='none';
     document.getElementById('dias-prestamo-info').style.display='none';
     // Ocultar campos y resultado hasta que busquen
@@ -1742,6 +1777,7 @@ function guardarCliente(){
       clientes[idx].prestamo=p.total;
       clientes[idx].pctInteres=p.pct;
       clientes[idx].tipo=document.getElementById('mc-tipo').value;
+      clientes[idx].diaSemana=document.getElementById('mc-dia-semana').value||'';
       clientes[idx].cuotaSugerida=parseFloat(document.getElementById('mc-cuota').value)||0;
       const pagado=(clientes[idx].pagos||[]).reduce((s,x)=>s+x.monto,0);
       clientes[idx].saldo=Math.max(0,p.total-pagado);
@@ -1765,6 +1801,7 @@ function guardarCliente(){
       dir:document.getElementById('mc-dir').value.trim(),
       capital, interes:p.interes, prestamo:p.total, pctInteres:p.pct,
       tipo:document.getElementById('mc-tipo').value,
+      diaSemana:document.getElementById('mc-dia-semana').value||'',
       cuotaSugerida:parseFloat(document.getElementById('mc-cuota').value)||0,
       saldo:p.total, pagos:[], fechaCreado:fechaHoy(), renovaciones:0
     };
@@ -1802,6 +1839,8 @@ function abrirRenovar(id){
   document.getElementById('ren-prestamo').value='';
   document.getElementById('ren-cuota').value=c.cuotaSugerida||'';
   document.getElementById('ren-tipo').value=c.tipo||'semanal';
+  document.getElementById('ren-dia-semana').value=c.diaSemana||'';
+  toggleDiaSemana('ren-dia-semana-row', c.tipo||'semanal');
   document.getElementById('renovar-resumen').style.display='none';
   const totalCancelado=(c.historialRenovaciones||[]).reduce((s,r)=>s+r.totalCancelado,0)+(c.prestamo-c.saldo);
   document.getElementById('renovar-info').innerHTML=`
@@ -1851,6 +1890,7 @@ function confirmarRenovar(){
   clientes[idx].prestamo=p.total;
   clientes[idx].saldo=p.total;
   clientes[idx].tipo=document.getElementById('ren-tipo').value;
+  clientes[idx].diaSemana=document.getElementById('ren-dia-semana').value||'';
   clientes[idx].cuotaSugerida=parseFloat(document.getElementById('ren-cuota').value)||0;
   clientes[idx].pagos=[];
   clientes[idx].renovaciones=(c.renovaciones||0)+1;
@@ -2289,14 +2329,16 @@ function renderClientes(){
           </div>
           <div class="cliente-sub">
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
+            ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#fff0f0;color:#cc0000;border-radius:8px;padding:2px 9px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
             ${fechaPrestamo ? `<span style="color:#aaa">📅 ${fechaBonita(fechaPrestamo).split(' de ').slice(0,2).join(' de ')}</span>` : ''}
-            ${diasStr ? `<span style="color:#7c3aed;font-weight:800">⏱ ${diasStr}</span>` : ''}
+
           </div>
           ${debe ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</div>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:10px">
-          ${cuotaDia > 0 ? `<div style="background:#e8f0ff;border:1.5px solid #5b8dee;border-radius:10px;padding:3px 10px;font-size:15px;font-weight:900;color:#2563eb">${fmt(cuotaDia)}</div>` : ''}
-          <div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-left:10px">
+          ${diasStr ? `<div style="font-size:11px;font-weight:800;color:#7c3aed;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
+          ${cuotaDia > 0 ? `<div style="background:#e8f0ff;border:1.5px solid #5b8dee;border-radius:10px;padding:3px 10px;font-size:15px;font-weight:900;color:#2563eb;text-align:center">${fmt(cuotaDia)}</div>` : ''}
+          <div style="text-align:center">
             <div class="saldo-label">SALDO</div>
             <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
           </div>
