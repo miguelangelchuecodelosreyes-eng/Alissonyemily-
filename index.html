@@ -223,7 +223,7 @@ body {
 /* CUOTA */
 .cuota-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
 .cuota-input { flex:1; border:2px solid #e5e7eb; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; outline:none; text-align:right; }
-.cuota-input:focus { border-color:#5b8dee; }
+.cuota-input:focus { border-color:#5b8dee; outline:none; -webkit-tap-highlight-color:transparent; box-shadow:none; }
 .btn-pagar-cuota { background:#00a844; color:white; border:none; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
 
 .historial-pagos-titulo { font-size:11px; font-weight:900; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
@@ -2325,7 +2325,6 @@ function renderClientes(){
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <div class="cliente-nombre">👤 ${c.nombre}</div>
             ${c.cedula ? `<div style="font-size:11px;color:#888;font-weight:700;margin-top:1px">🪪 ${c.cedula}</div>` : ""}
-            ${pagadoHoy > 0 ? `<div style="background:#00c853;color:black;border-radius:8px;padding:2px 10px;font-size:14px;font-weight:900;white-space:nowrap">+${fmt(pagadoHoy)}</div>` : ''}
           </div>
           <div class="cliente-sub">
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
@@ -2335,7 +2334,10 @@ function renderClientes(){
           </div>
           ${debe ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</div>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-left:10px">
+        <div style="min-width:60px;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0">
+          ${pagadoHoy > 0 ? `<div style="background:#00c853;color:black;border-radius:10px;padding:5px 10px;font-size:15px;font-weight:900;white-space:nowrap;text-align:center">+${fmt(pagadoHoy)}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-left:4px">
           ${diasStr ? `<div style="font-size:11px;font-weight:800;color:#7c3aed;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
           ${cuotaDia > 0 ? `<div style="background:#e8f0ff;border:1.5px solid #5b8dee;border-radius:10px;padding:3px 10px;font-size:15px;font-weight:900;color:#2563eb;text-align:center">${fmt(cuotaDia)}</div>` : ''}
           <div style="text-align:center">
@@ -2356,13 +2358,23 @@ function renderClientes(){
           ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div>`:''}
         </div>
         ${c.saldo>0?`
+        <div id="ns-bar-${c.id}" style="display:none;background:linear-gradient(135deg,#111827,#1f2937);border-radius:14px;padding:10px 16px;margin-bottom:8px;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:14px;font-weight:900;color:white">👤 ${c.nombre}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700">Ingresando cuota</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px">NUEVO SALDO</div>
+            <div id="ns-bar-saldo-${c.id}" style="font-size:26px;font-weight:900;color:#ff5e5e">—</div>
+          </div>
+        </div>
         <div class="cuota-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="number" class="cuota-input" style="flex:1;min-width:100px;" id="cuota-input-${c.id}"
+          <input type="number" class="cuota-input" style="flex:1;min-width:100px;" autocomplete="off" id="cuota-input-${c.id}"
             placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
             value="${(()=>{const fa=getFechaActiva();const pagoDelDia=(c.pagos||[]).find(p=>p.fecha===fa);return pagoDelDia?pagoDelDia.monto:'';})()}"
-            oninput="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value);(function(){const v=parseFloat(document.getElementById('cuota-input-${c.id}').value)||0;const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){const n=Math.max(0,${c.saldo}-v);el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00a844':'#ff3d3d'):'#aaa';}})();"
-            onfocus="mostrarBarraCuota('${c.nombre}',${c.saldo},this.value)"
-            onblur="setTimeout(()=>ocultarBarraCuota(),300)"
+            oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00a844':'#ff3d3d'):'#aaa';}const bs=document.getElementById('ns-bar-saldo-${c.id}');if(bs){bs.textContent=v>0?(n===0?'✅ ¡Cancelado!':'$'+n.toLocaleString('es-CO')):'—';bs.style.color=n===0?'#00c853':'#ff5e5e';}})(this);"
+            onfocus="(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='flex';})()"
+            onblur="setTimeout(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='none';},400)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
           <button class="btn-pagar-cuota" style="flex:1;" onclick="pagarCuotaYAvanzar('${c.id}')">💰 Pagar</button>
           <button class="btn-pagar-cuota" style="flex:1;background:#1a56db;" onclick="abrirCartonCliente('${c.id}')">📋 Cartón</button>
