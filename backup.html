@@ -24,35 +24,64 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 24px;
-  background: linear-gradient(180deg, #0d1b4b 0%, #1a3a6b 30%, #1a6eff 100%);
+  padding: 110px 24px 30px;
+  position: relative;
+  overflow: hidden;
 }
-.login-logo { font-size: 60px; margin-bottom: 10px; }
-.login-title { font-size: 24px; font-weight: 900; color: white; margin-bottom: 4px; }
-.login-sub { font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 2px; margin-bottom: 30px; }
+.login-sky {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 15%,#c0392b 35%,#e67e22 50%,#f39c12 62%,#f9ca74 72%,#fdeaa8 82%,#fff8e1 100%);
+  animation: loginSunrise 8s ease-out forwards;
+}
+@keyframes loginSunrise { 0%{filter:brightness(0.3)} 40%{filter:brightness(0.7)} 100%{filter:brightness(1)} }
+.login-sun {
+  position: fixed; bottom: 28%; left: 50%; transform: translateX(-50%);
+  width: 80px; height: 80px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle,#fff7c0 0%,#ffd700 40%,#ffaa00 70%,transparent 100%);
+  box-shadow: 0 0 60px 30px rgba(255,200,0,0.35),0 0 120px 60px rgba(255,160,0,0.15);
+  animation: loginSunRise 8s ease-out forwards;
+}
+@keyframes loginSunRise { 0%{bottom:5%;opacity:0.2} 50%{opacity:0.8} 100%{bottom:28%;opacity:1} }
+.login-mountains { position: fixed; bottom: 0; left: 0; width: 100%; height: 35%; z-index: 2; pointer-events: none; }
+.login-bendicion {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; justify-content: center; padding: 12px 16px 0;
+}
+.login-bendicion-box {
+  background: rgba(0,0,0,0.38); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 16px;
+  padding: 11px 16px; max-width: 340px; text-align: center;
+  animation: fadeDownL 1.5s ease 0.8s both;
+}
+@keyframes fadeDownL { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+.login-bendicion-text { font-style: italic; font-size: 11.5px; color: rgba(255,255,255,0.95); line-height: 1.6; }
+.login-logo { font-size: 58px; margin-bottom: 8px; position: relative; z-index: 6; animation: bounceLogo 2s ease-in-out infinite alternate; }
+@keyframes bounceLogo { from{transform:translateY(0)} to{transform:translateY(-6px)} }
+.login-title { font-size: 26px; font-weight: 900; color: white; letter-spacing: -0.5px; text-align: center; position: relative; z-index: 6; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+.login-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-bottom: 20px; margin-top: 5px; text-align: center; position: relative; z-index: 6; letter-spacing: 2px; }
 .login-card {
-  background: white;
-  border-radius: 24px;
-  padding: 28px 22px;
-  width: 100%;
-  max-width: 340px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
+  border-radius: 24px; padding: 26px 22px; width: 100%; max-width: 340px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.3); position: relative; z-index: 6;
+  animation: cardUpL 1.2s cubic-bezier(.22,1,.36,1) 0.3s both;
 }
-.login-label { font-size: 11px; font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+@keyframes cardUpL { from{opacity:0;transform:translateY(40px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+.login-divider { height: 1px; background: linear-gradient(90deg,transparent,#e0b070,transparent); margin: 0 0 16px; }
+.login-label { font-size: 11px; font-weight: 800; color: #8d6e63; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; display: block; }
 .login-input {
-  width: 100%; border: 2px solid #e0e8ff; border-radius: 12px;
+  width: 100%; border: 2px solid #e8d5c0; border-radius: 12px;
   padding: 13px 16px; font-family: 'Nunito', sans-serif;
-  font-size: 18px; font-weight: 700; text-align: center;
-  letter-spacing: 4px; outline: none; margin-bottom: 16px;
-  color: #1a6eff;
+  font-size: 16px; font-weight: 700; outline: none;
+  transition: border-color 0.2s,box-shadow 0.2s; margin-bottom: 14px;
+  text-align: center; background: #fffbf7; color: #5d4037;
 }
-.login-input:focus { border-color: #1a6eff; }
+.login-input:focus { border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.15); }
 .login-btn {
   width: 100%; padding: 15px;
-  background: linear-gradient(135deg, #1a6eff, #0040cc);
+  background: linear-gradient(135deg,#ff6600,#cc2200);
   color: white; border: none; border-radius: 14px;
   font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
-  cursor: pointer; box-shadow: 0 8px 24px rgba(26,110,255,0.4);
+  cursor: pointer; box-shadow: 0 8px 24px rgba(204,34,0,0.5);
 }
 .login-error { color: #ff1111; font-size: 13px; font-weight: 700; text-align: center; margin-top: 10px; display: none; }
 
@@ -167,14 +196,28 @@ body {
 
 <!-- LOGIN -->
 <div id="login-screen">
+  <div class="login-sky"></div>
+  <div class="login-sun"></div>
+  <svg class="login-mountains" viewBox="0 0 400 120" preserveAspectRatio="none">
+    <polygon points="0,120 60,40 120,80 180,20 240,70 300,30 360,60 400,40 400,120" fill="#1a2a1a" opacity="0.7"/>
+    <polygon points="0,120 40,60 90,90 150,45 210,80 270,50 330,70 400,55 400,120" fill="#0d1a0d" opacity="0.5"/>
+  </svg>
+  <div class="login-bendicion">
+    <div class="login-bendicion-box">
+      <div class="login-bendicion-text">✝️ "Todo lo puedo en Cristo que me fortalece." — Filipenses 4:13</div>
+    </div>
+  </div>
   <div class="login-logo">💾</div>
   <div class="login-title">Alisson & Emily</div>
   <div class="login-sub">WEB DE RESPALDO</div>
   <div class="login-card">
+    <div class="login-divider"></div>
+    <label class="login-label">Usuario</label>
+    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30" onkeydown="if(event.key==='Enter')doLogin()">
     <label class="login-label">Contraseña</label>
     <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">🔐 Ingresar</button>
-    <div class="login-error" id="login-error">❌ Contraseña incorrecta</div>
+    <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
   </div>
 </div>
 
@@ -254,7 +297,8 @@ body {
     appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
   };
 
-  const PASS = "1234"; // ← Cambia esta contraseña
+  const USER = "alissonyemily";
+  const PASS = "1234";
   let backupData = null;
   let dbRef = null;
   let app, db;
@@ -267,10 +311,10 @@ body {
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  // ---- LOGIN ----
   window.doLogin = function() {
+    const user = document.getElementById('login-user').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
-    if(pass === PASS) {
+    if(user === USER && pass === PASS) {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = 'block';
       iniciarFirebase();
@@ -315,20 +359,11 @@ body {
     });
   }
 
+  let todosClientes = [];
+
   function mostrarResumen(data) {
     const clientes = data.clientes || [];
     const activos = clientes.filter(c => !c.cancelado && !c.renovado);
-    const totalSaldo = activos.reduce((s, c) => s + (parseFloat(c.saldo) || 0), 0);
-    const atrasados = activos.filter(c => {
-      if(!c.ultimoPago) return true;
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const ult = new Date(c.ultimoPago + 'T00:00:00');
-      const diff = Math.floor((hoy - ult) / 86400000);
-      return diff > 1;
-    });
-
-    const fmt = n => '$' + parseFloat(n).toLocaleString('es-CO');
-
     document.getElementById('stats-area').innerHTML = `
       <div class="stats-grid">
         <div class="stat-box">
@@ -339,26 +374,41 @@ body {
           <div class="stat-num">${activos.length}</div>
           <div class="stat-label">Activos</div>
         </div>
-        <div class="stat-box red">
-          <div class="stat-num">${fmt(totalSaldo)}</div>
-          <div class="stat-label">Saldo Total</div>
-        </div>
-        <div class="stat-box orange">
-          <div class="stat-num">${atrasados.length}</div>
-          <div class="stat-label">Atrasados</div>
-        </div>
       </div>
     `;
   }
 
   function mostrarClientes(clientes) {
-    const activos = clientes.filter(c => !c.cancelado && !c.renovado);
-    if(!activos.length) {
-      document.getElementById('clientes-area').innerHTML = '<div class="no-data">Sin clientes activos</div>';
-      return;
-    }
+    todosClientes = clientes.filter(c => !c.cancelado && !c.renovado);
+    document.getElementById('clientes-area').innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" id="buscador-cliente" placeholder="🔍 Buscar por nombre..." 
+          oninput="window.filtrarClientes()"
+          style="flex:1;border:2px solid #e0e8ff;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;color:#111">
+      </div>
+      <button onclick="window.mostrarTodos()" style="width:100%;padding:11px;background:#f4f7ff;border:2px solid #d0d8ff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#1a6eff;cursor:pointer;margin-bottom:12px">
+        👥 Mostrar todos los clientes (${todosClientes.length})
+      </button>
+      <div id="lista-clientes"><div class="no-data">Busca un cliente o toca "Mostrar todos"</div></div>
+    `;
+  }
+
+  window.filtrarClientes = function() {
+    const q = document.getElementById('buscador-cliente').value.toLowerCase().trim();
+    if(!q) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">Busca un cliente o toca "Mostrar todos"</div>'; return; }
+    const resultado = todosClientes.filter(c => (c.nombre||'').toLowerCase().includes(q));
+    renderClientes(resultado);
+  };
+
+  window.mostrarTodos = function() {
+    document.getElementById('buscador-cliente').value = '';
+    renderClientes(todosClientes);
+  };
+
+  function renderClientes(lista) {
     const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
-    const rows = activos.map(c => `
+    if(!lista.length) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">Sin resultados</div>'; return; }
+    document.getElementById('lista-clientes').innerHTML = lista.map(c => `
       <div class="cliente-row">
         <div>
           <div class="cliente-nombre">👤 ${c.nombre || 'Sin nombre'}</div>
@@ -367,7 +417,6 @@ body {
         <div class="cliente-saldo">${fmt(c.saldo)}</div>
       </div>
     `).join('');
-    document.getElementById('clientes-area').innerHTML = rows;
   }
 
   // ---- DESCARGAR ----
