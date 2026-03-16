@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size: clamp(13px, 3.8vw, 17px); }
 body {
   font-family: 'Nunito', sans-serif; background: #eaf0ff; color: #111;
   min-height: 100vh; max-width: 600px; margin: 0 auto; padding: 0 0 40px 0;
@@ -5439,9 +5440,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const bendEl = document.getElementById('login-bendicion-text');
   if(bendEl) bendEl.textContent = getBendicionDelDia();
 
-  // ===== SIEMPRE PEDIR LOGIN AL ABRIR =====
-  // Nunca guardar sesión — cada apertura de la app pide usuario y contraseña
-  lsSet('cobrador_sesion', '');
+  // Sesión persistente — solo se borra al cerrar sesión manualmente
   // Verificar horario DESPUÉS de que todo cargue
   setTimeout(function() {
     verificarHorario();
