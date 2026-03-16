@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Respaldo — Alisson & Emily</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: #eaf0ff;
+  color: #111;
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+}
+
+/* LOGIN */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 24px;
+  background: linear-gradient(180deg, #0d1b4b 0%, #1a3a6b 30%, #1a6eff 100%);
+}
+.login-logo { font-size: 60px; margin-bottom: 10px; }
+.login-title { font-size: 24px; font-weight: 900; color: white; margin-bottom: 4px; }
+.login-sub { font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 2px; margin-bottom: 30px; }
+.login-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 22px;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-label { font-size: 11px; font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.login-input {
+  width: 100%; border: 2px solid #e0e8ff; border-radius: 12px;
+  padding: 13px 16px; font-family: 'Nunito', sans-serif;
+  font-size: 18px; font-weight: 700; text-align: center;
+  letter-spacing: 4px; outline: none; margin-bottom: 16px;
+  color: #1a6eff;
+}
+.login-input:focus { border-color: #1a6eff; }
+.login-btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, #1a6eff, #0040cc);
+  color: white; border: none; border-radius: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(26,110,255,0.4);
+}
+.login-error { color: #ff1111; font-size: 13px; font-weight: 700; text-align: center; margin-top: 10px; display: none; }
+
+/* APP */
+#app-screen { display: none; }
+
+.header {
+  background: linear-gradient(135deg, #1a6eff, #0040cc);
+  padding: 20px 20px 16px;
+  color: white;
+}
+.header h1 { font-size: 18px; font-weight: 900; }
+.header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; }
+.btn-logout {
+  background: rgba(255,255,255,0.2); border: none; color: white;
+  border-radius: 10px; padding: 6px 12px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800; cursor: pointer;
+}
+.sync-badge {
+  font-size: 11px; background: rgba(255,255,255,0.15);
+  border-radius: 8px; padding: 4px 10px; margin-top: 8px; display: inline-block;
+}
+
+/* CARDS */
+.card {
+  margin: 14px 14px 0;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  border: 1px solid #d0d8f0;
+}
+.card-header {
+  padding: 12px 16px;
+  font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+  color: white;
+}
+.bg-blue { background: linear-gradient(90deg, #1a6eff, #0040cc); }
+.bg-green { background: linear-gradient(90deg, #00cc55, #008833); }
+.bg-red { background: linear-gradient(90deg, #ff1a1a, #cc0000); }
+.bg-dark { background: linear-gradient(90deg, #1a1a2e, #0d0d1a); }
+.card-body { padding: 16px; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-box {
+  background: #f4f7ff; border-radius: 14px; padding: 14px 12px; text-align: center;
+}
+.stat-num { font-size: 26px; font-weight: 900; color: #1a6eff; }
+.stat-label { font-size: 11px; color: #888; font-weight: 700; margin-top: 2px; }
+.stat-box.red .stat-num { color: #ff1a1a; }
+.stat-box.green .stat-num { color: #00aa44; }
+.stat-box.orange .stat-num { color: #e67e22; }
+
+/* BOTONES */
+.btn-action {
+  width: 100%; padding: 15px; border: none; border-radius: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; margin-bottom: 10px; display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+}
+.btn-download { background: linear-gradient(135deg, #00cc55, #008833); color: white; box-shadow: 0 6px 20px rgba(0,180,80,0.35); }
+.btn-sync { background: linear-gradient(135deg, #1a6eff, #0040cc); color: white; box-shadow: 0 6px 20px rgba(26,110,255,0.35); }
+.btn-restore { background: linear-gradient(135deg, #ff6600, #cc2200); color: white; box-shadow: 0 6px 20px rgba(200,50,0,0.35); }
+
+/* RESTORE AREA */
+.restore-drop {
+  border: 2px dashed #c0d0ff; border-radius: 14px; padding: 20px;
+  text-align: center; cursor: pointer; transition: border-color 0.2s;
+  background: #f8faff;
+}
+.restore-drop:hover { border-color: #1a6eff; }
+.restore-drop p { font-size: 13px; color: #888; font-weight: 700; margin-top: 8px; }
+#restore-msg { font-size: 13px; font-weight: 800; text-align: center; margin-top: 10px; display: none; }
+
+/* ÚLTIMA SYNC */
+.last-sync { font-size: 12px; color: #888; text-align: center; padding: 10px 0 0; font-weight: 700; }
+.no-data { font-size: 13px; color: #bbb; text-align: center; padding: 20px; font-weight: 700; }
+
+/* CLIENTES LIST */
+.cliente-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+}
+.cliente-row:last-child { border-bottom: none; }
+.cliente-nombre { font-size: 14px; font-weight: 800; color: #222; }
+.cliente-detalle { font-size: 11px; color: #888; margin-top: 1px; }
+.cliente-saldo { font-size: 16px; font-weight: 900; color: #ff1a1a; }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: #1a1a2e; color: white; padding: 12px 22px; border-radius: 14px;
+  font-size: 14px; font-weight: 800; z-index: 9999;
+  transition: transform 0.3s ease; white-space: nowrap; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 30px; gap: 10px; color: #888; font-weight: 700; font-size: 14px;
+}
+.spinner {
+  width: 20px; height: 20px; border: 3px solid #e0e8ff;
+  border-top-color: #1a6eff; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">💾</div>
+  <div class="login-title">Alisson & Emily</div>
+  <div class="login-sub">WEB DE RESPALDO</div>
+  <div class="login-card">
+    <label class="login-label">Contraseña</label>
+    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">🔐 Ingresar</button>
+    <div class="login-error" id="login-error">❌ Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>💾 Web de Respaldo</h1>
+        <div class="header-sub">Alisson & Emily</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+    <div class="sync-badge" id="sync-badge">⏳ Conectando...</div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="card">
+    <div class="card-header bg-blue">📊 Resumen de Datos</div>
+    <div class="card-body">
+      <div id="stats-area">
+        <div class="loading"><div class="spinner"></div>Cargando datos...</div>
+      </div>
+      <div class="last-sync" id="last-sync-text"></div>
+    </div>
+  </div>
+
+  <!-- DESCARGAR -->
+  <div class="card">
+    <div class="card-header bg-green">⬇️ Descargar Copia</div>
+    <div class="card-body">
+      <button class="btn-action btn-download" onclick="descargarBackup()">
+        📥 Descargar JSON de Respaldo
+      </button>
+
+    </div>
+  </div>
+
+  <!-- RESTAURAR -->
+  <div class="card">
+    <div class="card-header bg-red">📤 Restaurar a la App</div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#666;margin-bottom:12px;font-weight:600;line-height:1.5">
+        Sube un archivo JSON de respaldo para restaurarlo en Firebase. La app lo recibirá automáticamente.
+      </p>
+      <div class="restore-drop" onclick="document.getElementById('file-restore').click()">
+        <div style="font-size:36px">📂</div>
+        <p>Toca para seleccionar archivo .json</p>
+      </div>
+      <input type="file" id="file-restore" accept=".json" style="display:none" onchange="restaurarBackup(event)">
+      <div id="restore-msg"></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="card">
+    <div class="card-header bg-dark">👥 Clientes</div>
+    <div class="card-body" id="clientes-area">
+      <div class="loading"><div class="spinner"></div>Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
+    authDomain: "alissonyemily-7014a.firebaseapp.com",
+    databaseURL: "https://alissonyemily-7014a-default-rtdb.firebaseio.com",
+    projectId: "alissonyemily-7014a",
+    storageBucket: "alissonyemily-7014a.firebasestorage.app",
+    messagingSenderId: "315293119877",
+    appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
+  };
+
+  const PASS = "1234"; // ← Cambia esta contraseña
+  let backupData = null;
+  let dbRef = null;
+  let app, db;
+
+  // ---- TOAST ----
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ---- LOGIN ----
+  window.doLogin = function() {
+    const pass = document.getElementById('login-pass').value;
+    if(pass === PASS) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+      iniciarFirebase();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  };
+
+  window.logout = function() {
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-pass').value = '';
+  };
+
+  // ---- FIREBASE ----
+  function iniciarFirebase() {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    dbRef = ref(db, 'backup');
+    escucharDatos();
+  }
+
+  function escucharDatos() {
+    document.getElementById('sync-badge').textContent = '⏳ Conectando...';
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data) {
+        backupData = data;
+        document.getElementById('sync-badge').textContent = '🟢 Conectado en tiempo real';
+        mostrarResumen(data);
+        mostrarClientes(data.clientes || []);
+        const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
+        document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
+      } else {
+        document.getElementById('sync-badge').textContent = '⚠️ Sin datos aún';
+        document.getElementById('stats-area').innerHTML = '<div class="no-data">⚠️ La app aún no ha enviado datos.<br>Abre la app y espera unos segundos.</div>';
+        document.getElementById('clientes-area').innerHTML = '<div class="no-data">Sin clientes</div>';
+      }
+    }, (error) => {
+      document.getElementById('sync-badge').textContent = '🔴 Error de conexión';
+      console.error(error);
+    });
+  }
+
+  function mostrarResumen(data) {
+    const clientes = data.clientes || [];
+    const activos = clientes.filter(c => !c.cancelado && !c.renovado);
+    const totalSaldo = activos.reduce((s, c) => s + (parseFloat(c.saldo) || 0), 0);
+    const atrasados = activos.filter(c => {
+      if(!c.ultimoPago) return true;
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const ult = new Date(c.ultimoPago + 'T00:00:00');
+      const diff = Math.floor((hoy - ult) / 86400000);
+      return diff > 1;
+    });
+
+    const fmt = n => '$' + parseFloat(n).toLocaleString('es-CO');
+
+    document.getElementById('stats-area').innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num">${clientes.length}</div>
+          <div class="stat-label">Total Clientes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${activos.length}</div>
+          <div class="stat-label">Activos</div>
+        </div>
+        <div class="stat-box red">
+          <div class="stat-num">${fmt(totalSaldo)}</div>
+          <div class="stat-label">Saldo Total</div>
+        </div>
+        <div class="stat-box orange">
+          <div class="stat-num">${atrasados.length}</div>
+          <div class="stat-label">Atrasados</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function mostrarClientes(clientes) {
+    const activos = clientes.filter(c => !c.cancelado && !c.renovado);
+    if(!activos.length) {
+      document.getElementById('clientes-area').innerHTML = '<div class="no-data">Sin clientes activos</div>';
+      return;
+    }
+    const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
+    const rows = activos.map(c => `
+      <div class="cliente-row">
+        <div>
+          <div class="cliente-nombre">👤 ${c.nombre || 'Sin nombre'}</div>
+          <div class="cliente-detalle">Cuota: ${fmt(c.cuota)} · ${c.frecuencia || 'diario'}</div>
+        </div>
+        <div class="cliente-saldo">${fmt(c.saldo)}</div>
+      </div>
+    `).join('');
+    document.getElementById('clientes-area').innerHTML = rows;
+  }
+
+  // ---- DESCARGAR ----
+  window.descargarBackup = function() {
+    if(!backupData) { toast('⚠️ No hay datos para descargar'); return; }
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
+    a.href = url;
+    a.download = `backup_alisson_emily_${fecha}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('✅ Backup descargado correctamente');
+  };
+
+
+
+  // ---- RESTAURAR ----
+  window.restaurarBackup = function(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const msg = document.getElementById('restore-msg');
+    msg.style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const texto = e.target.result.replace(/^\uFEFF/, '').trim();
+        const datos = JSON.parse(texto);
+        if(!datos.clientes) {
+          msg.textContent = '❌ Archivo no válido';
+          msg.style.color = '#ff1111';
+          msg.style.display = 'block';
+          return;
+        }
+        datos.fecha_backup = new Date().toISOString();
+        set(ref(db, 'backup'), datos)
+          .then(() => {
+            msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
+            msg.style.color = '#00aa44';
+            msg.style.display = 'block';
+            toast('✅ Datos restaurados en Firebase');
+          })
+          .catch(err => {
+            msg.textContent = '❌ Error al subir: ' + err.message;
+            msg.style.color = '#ff1111';
+            msg.style.display = 'block';
+          });
+      } catch(err) {
+        msg.textContent = '❌ Error al leer el archivo';
+        msg.style.color = '#ff1111';
+        msg.style.display = 'block';
+      }
+    };
+    reader.readAsText(file);
+  };
+</script>
+</body>
+</html>
