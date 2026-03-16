@@ -2502,7 +2502,9 @@ function renderClientes(){
           <button onclick="navegarCliente('${c.id}',1)" style="flex:1;padding:11px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">Siguiente ›</button>
         </div>`:`<div style="text-align:center;padding:10px;color:#00cc55;font-weight:800;font-size:14px;">✅ Préstamo cancelado</div>`}
         <div class="cliente-acciones">
-          <button class="btn-acc btn-acc-wa"      onclick="compartirClienteWA('${c.id}')">📲 WA</button>
+          <button class="btn-acc btn-acc-wa" onclick="compartirClienteWA('${c.id}')">📲 WA</button>
+          <button class="btn-acc" onclick="moverCliente('${c.id}',-1)" style="background:#e8f0ff;color:#1a6eff;border:2px solid #93c5fd;font-size:18px;min-width:44px">↑</button>
+          <button class="btn-acc" onclick="moverCliente('${c.id}',1)" style="background:#e8f0ff;color:#1a6eff;border:2px solid #93c5fd;font-size:18px;min-width:44px">↓</button>
         </div>
         <button onclick="verCancelados('${c.id}')" style="width:100%;margin-top:8px;padding:10px;background:#e0fff0;color:#00cc55;border:2px solid #66ffaa;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-align:center">
           📋 Ver cancelados y renovaciones
@@ -2803,9 +2805,39 @@ function sincronizarDesdeclientes(){
 // ===== DRAG AND DROP CLIENTES =====
 let dragSrcIdx = null;
 
+function moverCliente(id, direccion){
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c => c.id === id);
+  if(idx === -1) return;
+  const nuevoIdx = idx + direccion;
+  if(nuevoIdx < 0 || nuevoIdx >= clientes.length) return;
+  const temp = clientes[idx];
+  clientes[idx] = clientes[nuevoIdx];
+  clientes[nuevoIdx] = temp;
+  saveClientes(clientes);
+  renderClientes();
+  // Reabrir el body del cliente después de renderizar
+  setTimeout(() => {
+    const body = document.getElementById("cbody-" + id);
+    if(body) body.style.display = "block";
+  }, 30);
+  showToast(direccion === -1 ? "⬆️ Cliente subido" : "⬇️ Cliente bajado");
+}
+
 function initDrag(){
   const lista = document.getElementById('clientes-lista');
   const cards = lista.querySelectorAll('.cliente-card');
+
+  // Detecta qué tarjeta está bajo la coordenada Y usando sus posiciones reales
+  function getCardAtY(y, excludeCard){
+    const allCards = [...lista.querySelectorAll('.cliente-card')];
+    for(let i = 0; i < allCards.length; i++){
+      if(allCards[i] === excludeCard) continue;
+      const rect = allCards[i].getBoundingClientRect();
+      if(y >= rect.top && y <= rect.bottom) return { card: allCards[i], idx: i };
+    }
+    return null;
+  }
 
   cards.forEach((card, idx) => {
     let longPressTimer;
@@ -2825,11 +2857,9 @@ function initDrag(){
       if(!isDragging) return;
       e.preventDefault();
       const y = e.touches[0].clientY;
-      const x = e.touches[0].clientX;
-      const elements = document.elementsFromPoint(x, y);
-      const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
+      const found = getCardAtY(y, card);
       lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
-      if(target) target.classList.add('drag-over');
+      if(found) found.card.classList.add('drag-over');
     }, {passive:false});
 
     card.addEventListener('touchend', e => {
@@ -2839,22 +2869,16 @@ function initDrag(){
       lista.querySelectorAll('.cliente-card').forEach(c => c.classList.remove('drag-over'));
 
       const y = e.changedTouches[0].clientY;
-      const x = e.changedTouches[0].clientX;
-      const elements = document.elementsFromPoint(x, y);
-      const target = elements.find(el => el.classList.contains('cliente-card') && el !== card);
-      if(target){
-        const allCards = [...lista.querySelectorAll('.cliente-card')];
-        const targetIdx = allCards.indexOf(target);
-        if(targetIdx !== -1 && dragSrcIdx !== null && targetIdx !== dragSrcIdx){
-          // Intercambio simple: los dos se cambian de lugar
-          const clientes = getClientes();
-          const temp = clientes[dragSrcIdx];
-          clientes[dragSrcIdx] = clientes[targetIdx];
-          clientes[targetIdx] = temp;
-          saveClientes(clientes);
-          renderClientes();
-          showToast('✅ Clientes intercambiados');
-        }
+      const found = getCardAtY(y, card);
+      if(found && dragSrcIdx !== null && found.idx !== dragSrcIdx){
+        // Intercambio simple: los dos se cambian de lugar
+        const clientes = getClientes();
+        const temp = clientes[dragSrcIdx];
+        clientes[dragSrcIdx] = clientes[found.idx];
+        clientes[found.idx] = temp;
+        saveClientes(clientes);
+        renderClientes();
+        showToast('✅ Clientes intercambiados');
       }
       isDragging = false;
       dragSrcIdx = null;
