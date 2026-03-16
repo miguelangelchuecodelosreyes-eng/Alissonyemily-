@@ -5499,6 +5499,78 @@ document.addEventListener('DOMContentLoaded',()=>{
   </div>
 </div>
 
+
+<!-- ===== FIREBASE SYNC ===== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
+    authDomain: "alissonyemily-7014a.firebaseapp.com",
+    databaseURL: "https://alissonyemily-7014a-default-rtdb.firebaseio.com",
+    projectId: "alissonyemily-7014a",
+    storageBucket: "alissonyemily-7014a.firebasestorage.app",
+    messagingSenderId: "315293119877",
+    appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Función global para subir datos a Firebase
+  window.syncFirebase = function() {
+    try {
+      const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+      const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+      const credenciales = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
+      const porcentaje = localStorage.getItem('porcentaje_interes') || '20';
+      const historialCedulas = JSON.parse(localStorage.getItem('historial_cedulas_v1') || '[]');
+
+      // Recolectar manuales
+      const manuales = {};
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('sup_manual_')){
+          try { manuales[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
+        }
+      }
+
+      const backup = {
+        version: 2,
+        fecha_backup: new Date().toISOString(),
+        clientes, historial, credenciales,
+        porcentaje_interes: porcentaje,
+        manuales,
+        historial_cedulas: historialCedulas
+      };
+
+      set(ref(db, 'backup'), backup)
+        .then(() => console.log('✅ Firebase sincronizado'))
+        .catch(e => console.warn('⚠️ Error Firebase:', e));
+    } catch(e) {
+      console.warn('⚠️ syncFirebase error:', e);
+    }
+  };
+
+  // Interceptar saveClientes para auto-sincronizar
+  const _origSaveClientes = window.saveClientes;
+  if(typeof _origSaveClientes === 'function'){
+    window.saveClientes = function(c){
+      _origSaveClientes(c);
+      setTimeout(window.syncFirebase, 500);
+    };
+  }
+
+  // Sincronizar al cargar la app
+  window.addEventListener('load', () => {
+    setTimeout(window.syncFirebase, 2000);
+  });
+
+  // Sincronizar cada 5 minutos automáticamente
+  setInterval(window.syncFirebase, 5 * 60 * 1000);
+</script>
+
 </body>
 </html>
 
