@@ -285,7 +285,7 @@ body {
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -562,19 +562,44 @@ body {
           msg.style.display = 'block';
           return;
         }
-        datos.fecha_backup = new Date().toISOString();
-        set(ref(db, 'backup'), datos)
-          .then(() => {
-            msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
-            msg.style.color = '#00aa44';
-            msg.style.display = 'block';
-            toast('✅ Datos restaurados en Firebase');
-          })
-          .catch(err => {
-            msg.textContent = '❌ Error al subir: ' + err.message;
-            msg.style.color = '#ff1111';
-            msg.style.display = 'block';
-          });
+        // Verificar que el backup no sea más viejo que Firebase
+        const fechaArchivo = datos.fecha_backup ? new Date(datos.fecha_backup).getTime() : 0;
+        get(ref(db, 'backup/fecha_backup')).then(snap => {
+          const fechaFirebase = snap.val() ? new Date(snap.val()).getTime() : 0;
+          const diffMin = Math.round((fechaFirebase - fechaArchivo) / 60000);
+          if(fechaArchivo < fechaFirebase) {
+            const confirmar = confirm(
+              '⚠️ ADVERTENCIA\n\nEste backup es ' + diffMin + ' minutos más viejo que los datos actuales en Firebase.\n\nSi restauras, se perderán los pagos registrados después.\n\n¿Estás seguro que quieres continuar?'
+            );
+            if(!confirmar) {
+              msg.textContent = '✅ Restauración cancelada. Datos actuales conservados.';
+              msg.style.color = '#1a6eff';
+              msg.style.display = 'block';
+              return;
+            }
+          }
+          datos.fecha_backup = new Date().toISOString();
+          set(ref(db, 'backup'), datos)
+            .then(() => {
+              msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
+              msg.style.color = '#00aa44';
+              msg.style.display = 'block';
+              toast('✅ Datos restaurados en Firebase');
+            })
+            .catch(err => {
+              msg.textContent = '❌ Error al subir: ' + err.message;
+              msg.style.color = '#ff1111';
+              msg.style.display = 'block';
+            });
+        }).catch(() => {
+          datos.fecha_backup = new Date().toISOString();
+          set(ref(db, 'backup'), datos)
+            .then(() => {
+              msg.textContent = '✅ Restaurado en Firebase.';
+              msg.style.color = '#00aa44';
+              msg.style.display = 'block';
+            });
+        });
       } catch(err) {
         msg.textContent = '❌ Error al leer el archivo';
         msg.style.color = '#ff1111';
