@@ -5541,16 +5541,17 @@ document.addEventListener('DOMContentLoaded',()=>{
         historial_cedulas: historialCedulas
       };
 
-      // Protección: solo subir si los datos locales son más recientes que Firebase
-      get(ref(db, 'backup/fecha_backup')).then(snap => {
-        const fechaFirebase = snap.val() ? new Date(snap.val()).getTime() : 0;
-        const fechaLocal = new Date(backup.fecha_backup).getTime();
-        if(fechaLocal >= fechaFirebase) {
+      // Protección: contar total de pagos locales vs Firebase
+      get(ref(db, 'backup/clientes')).then(snap => {
+        const clientesFirebase = snap.val() || [];
+        const totalPagosFirebase = clientesFirebase.reduce((s,c) => s + (c.pagos||[]).length, 0);
+        const totalPagosLocal = backup.clientes.reduce((s,c) => s + (c.pagos||[]).length, 0);
+        if(totalPagosLocal >= totalPagosFirebase) {
           set(ref(db, 'backup'), backup)
-            .then(() => console.log('✅ Firebase sincronizado'))
+            .then(() => console.log('✅ Firebase sincronizado (' + totalPagosLocal + ' pagos)'))
             .catch(e => console.warn('⚠️ Error Firebase:', e));
         } else {
-          console.warn('⚠️ Sync cancelado: Firebase tiene datos más recientes');
+          console.warn('⚠️ Sync cancelado: Firebase tiene más pagos (' + totalPagosFirebase + ' vs ' + totalPagosLocal + ')');
         }
       }).catch(() => {
         set(ref(db, 'backup'), backup)
