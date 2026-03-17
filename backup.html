@@ -311,22 +311,70 @@ body {
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
+  // Sesión persistente — abre 6 AM, cierra 11 PM
+  function horaPermitida() {
+    const h = new Date().getHours();
+    return h >= 6 && h < 23;
+  }
+
+  function sesionValida() {
+    const guardado = localStorage.getItem('ae_sesion');
+    if (!guardado) return false;
+    try {
+      const { expira } = JSON.parse(guardado);
+      return Date.now() < expira;
+    } catch(e) { return false; }
+  }
+
+  function guardarSesion() {
+    // Expira a las 11 PM de hoy
+    const ahora = new Date();
+    const expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
+    localStorage.setItem('ae_sesion', JSON.stringify({ expira }));
+  }
+
+  function abrirApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    iniciarFirebase();
+    // Revisar cada minuto si ya son las 11 PM
+    setInterval(() => {
+      if (!horaPermitida()) cerrarSesion();
+    }, 60000);
+  }
+
+  function cerrarSesion() {
+    localStorage.removeItem('ae_sesion');
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-pass').value = '';
+  }
+
+  // Al cargar la página — verificar sesión guardada
+  (function() {
+    if (!horaPermitida()) return; // Fuera de horario, mostrar login bloqueado
+    if (sesionValida()) abrirApp();
+  })();
+
   window.doLogin = function() {
     const user = document.getElementById('login-user').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
     if(user === USER && pass === PASS) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'block';
-      iniciarFirebase();
+      if (!horaPermitida()) {
+        document.getElementById('login-error').textContent = '⏰ App disponible de 6 AM a 11 PM';
+        document.getElementById('login-error').style.display = 'block';
+        return;
+      }
+      guardarSesion();
+      abrirApp();
     } else {
+      document.getElementById('login-error').textContent = '❌ Usuario o contraseña incorrectos';
       document.getElementById('login-error').style.display = 'block';
     }
   };
 
   window.logout = function() {
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-pass').value = '';
+    cerrarSesion();
   };
 
   // ---- FIREBASE ----
@@ -364,8 +412,54 @@ body {
   function mostrarResumen(data) {
     const clientes = data.clientes || [];
     const activos = clientes.filter(c => !c.cancelado && !c.renovado);
+    const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
+
+    // Fecha local
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' +
+      String(ahora.getMonth()+1).padStart(2,'0') + '-' +
+      String(ahora.getDate()).padStart(2,'0');
+
+    // Lunes de esta semana
+    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
+    const lunesDate = new Date(ahora);
+    lunesDate.setDate(ahora.getDate() - diaSemana);
+
+    // Generar los 6 días lunes-sábado
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dias = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(lunesDate);
+      d.setDate(lunesDate.getDate() + i);
+      const fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy });
+    }
+
+    // Sumar pagos por día
+    for (const c of activos) {
+      for (const p of (c.pagos || [])) {
+        if (!p.fecha) continue;
+        const dia = dias.find(d => d.fecha === p.fecha);
+        if (dia) dia.total += parseFloat(p.monto || 0);
+      }
+    }
+
+    const filasHtml = dias.map(d => `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:10px 14px;border-radius:12px;margin-bottom:6px;
+        background:${d.esHoy ? '#e8fff0' : '#f4f7ff'};
+        border:2px solid ${d.esHoy ? '#00cc55' : '#e0e8ff'}">
+        <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : '#666'}">
+          ${d.esHoy ? '👉' : '📅'} ${d.nombre}
+        </div>
+        <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : '#1a6eff') : '#ccc'}">
+          ${d.total > 0 ? fmt(d.total) : '-'}
+        </div>
+      </div>
+    `).join('');
+
     document.getElementById('stats-area').innerHTML = `
-      <div class="stats-grid">
+      <div class="stats-grid" style="margin-bottom:12px">
         <div class="stat-box">
           <div class="stat-num">${clientes.length}</div>
           <div class="stat-label">Total Clientes</div>
@@ -375,10 +469,13 @@ body {
           <div class="stat-label">Activos</div>
         </div>
       </div>
+      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin-bottom:8px">💰 Plenos de la Semana</div>
+      ${filasHtml}
     `;
   }
 
   function mostrarClientes(clientes) {
+    listaVisible = false;
     todosClientes = clientes.filter(c => !c.cancelado && !c.renovado);
     document.getElementById('clientes-area').innerHTML = `
       <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -386,23 +483,32 @@ body {
           oninput="window.filtrarClientes()"
           style="flex:1;border:2px solid #e0e8ff;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;color:#111">
       </div>
-      <button onclick="window.mostrarTodos()" style="width:100%;padding:11px;background:#f4f7ff;border:2px solid #d0d8ff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#1a6eff;cursor:pointer;margin-bottom:12px">
+      <button id="btn-mostrar-todos" onclick="window.mostrarTodos()" style="width:100%;padding:11px;background:#f4f7ff;border:2px solid #d0d8ff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#1a6eff;cursor:pointer;margin-bottom:12px">
         👥 Mostrar todos los clientes (${todosClientes.length})
       </button>
-      <div id="lista-clientes"><div class="no-data">Busca un cliente o toca "Mostrar todos"</div></div>
+      <div id="lista-clientes"><div class="no-data">🔍 Busca un cliente por nombre</div></div>
     `;
   }
 
   window.filtrarClientes = function() {
     const q = document.getElementById('buscador-cliente').value.toLowerCase().trim();
-    if(!q) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">Busca un cliente o toca "Mostrar todos"</div>'; return; }
+    if(!q) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">🔍 Busca un cliente por nombre</div>'; return; }
     const resultado = todosClientes.filter(c => (c.nombre||'').toLowerCase().includes(q));
     renderClientes(resultado);
   };
 
+  let listaVisible = false;
   window.mostrarTodos = function() {
-    document.getElementById('buscador-cliente').value = '';
-    renderClientes(todosClientes);
+    if(listaVisible) {
+      listaVisible = false;
+      document.getElementById('lista-clientes').innerHTML = '<div class="no-data">🔍 Busca un cliente por nombre</div>';
+      document.getElementById('btn-mostrar-todos').textContent = '👥 Mostrar todos los clientes (' + todosClientes.length + ')';
+    } else {
+      listaVisible = true;
+      document.getElementById('buscador-cliente').value = '';
+      renderClientes(todosClientes);
+      document.getElementById('btn-mostrar-todos').textContent = '🙈 Ocultar lista';
+    }
   };
 
   function renderClientes(lista) {
