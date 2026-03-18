@@ -261,10 +261,10 @@ body {
   <div class="login-card">
     <div class="login-divider"></div>
     <label class="login-label">Usuario</label>
-    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30">
     <label class="login-label">Contraseña</label>
-    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">🔐 Ingresar</button>
+    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20">
+    <button class="login-btn" id="btn-login" onclick="window.doLogin && window.doLogin()">🔐 Ingresar</button>
     <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
   </div>
 </div>
@@ -277,7 +277,7 @@ body {
         <h1>💾 Web de Respaldo</h1>
         <div class="header-sub">Alisson & Emily</div>
       </div>
-      <button class="btn-logout" onclick="logout()">Salir</button>
+      <button class="btn-logout" id="btn-logout">Salir</button>
     </div>
     <div class="sync-badge" id="sync-badge">⏳ Conectando...</div>
   </div>
@@ -346,11 +346,73 @@ body {
   <div id="modal-inner">
     <div class="modal-header">
       <h2 id="modal-titulo">📊 Reporte</h2>
-      <button class="btn-cerrar-modal" onclick="cerrarModalReporte()">✕ Cerrar</button>
+      <button class="btn-cerrar-modal" id="btn-cerrar-modal">✕ Cerrar</button>
     </div>
     <div id="modal-contenido"></div>
   </div>
 </div>
+
+<script>
+// LOGIN — completamente independiente de Firebase
+var LOGIN_USER = 'alissonyemily';
+var LOGIN_PASS = '1234';
+
+function horaPermitida() {
+  var h = new Date().getHours();
+  return h >= 6 && h < 23;
+}
+function sesionValida() {
+  var g = localStorage.getItem('ae_sesion');
+  if(!g) return false;
+  try { return Date.now() < JSON.parse(g).expira; } catch(e) { return false; }
+}
+function guardarSesion() {
+  var ahora = new Date();
+  var expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
+  localStorage.setItem('ae_sesion', JSON.stringify({ expira: expira }));
+}
+function mostrarApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  if(window.iniciarFirebaseApp) window.iniciarFirebaseApp();
+}
+function cerrarSesionLogin() {
+  localStorage.removeItem('ae_sesion');
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+}
+window.doLogin = function() {
+  var user = document.getElementById('login-user').value.trim().toLowerCase();
+  var pass = document.getElementById('login-pass').value;
+  var err = document.getElementById('login-error');
+  if(user === LOGIN_USER && pass === LOGIN_PASS) {
+    if(!horaPermitida()) {
+      err.textContent = '⏰ App disponible de 6 AM a 11 PM';
+      err.style.display = 'block'; return;
+    }
+    guardarSesion();
+    mostrarApp();
+  } else {
+    err.textContent = '❌ Usuario o contraseña incorrectos';
+    err.style.display = 'block';
+  }
+};
+window.cerrarSesionGlobal = cerrarSesionLogin;
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-login si sesión válida
+  if(horaPermitida() && sesionValida()) mostrarApp();
+
+  document.getElementById('btn-login').addEventListener('click', window.doLogin);
+  document.getElementById('login-user').addEventListener('keydown', function(e){ if(e.key==='Enter') window.doLogin(); });
+  document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') window.doLogin(); });
+  document.getElementById('btn-logout').addEventListener('click', cerrarSesionLogin);
+  document.getElementById('btn-cerrar-modal').addEventListener('click', function() {
+    document.getElementById('modal-reporte').classList.remove('open');
+  });
+});
+</script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -366,13 +428,10 @@ body {
     appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
   };
 
-  const USER = "alissonyemily";
-  const PASS = "1234";
   let backupData = null;
   let dbRef = null;
   let app, db;
 
-  // ---- TOAST ----
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -380,73 +439,6 @@ body {
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  // Sesión persistente — abre 6 AM, cierra 11 PM
-  function horaPermitida() {
-    const h = new Date().getHours();
-    return h >= 6 && h < 23;
-  }
-
-  function sesionValida() {
-    const guardado = localStorage.getItem('ae_sesion');
-    if (!guardado) return false;
-    try {
-      const { expira } = JSON.parse(guardado);
-      return Date.now() < expira;
-    } catch(e) { return false; }
-  }
-
-  function guardarSesion() {
-    // Expira a las 11 PM de hoy
-    const ahora = new Date();
-    const expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
-    localStorage.setItem('ae_sesion', JSON.stringify({ expira }));
-  }
-
-  function abrirApp() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
-    iniciarFirebase();
-    // Revisar cada minuto si ya son las 11 PM
-    setInterval(() => {
-      if (!horaPermitida()) cerrarSesion();
-    }, 60000);
-  }
-
-  function cerrarSesion() {
-    localStorage.removeItem('ae_sesion');
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-pass').value = '';
-  }
-
-  // Al cargar la página — verificar sesión guardada
-  (function() {
-    if (!horaPermitida()) return; // Fuera de horario, mostrar login bloqueado
-    if (sesionValida()) abrirApp();
-  })();
-
-  window.doLogin = function() {
-    const user = document.getElementById('login-user').value.trim().toLowerCase();
-    const pass = document.getElementById('login-pass').value;
-    if(user === USER && pass === PASS) {
-      if (!horaPermitida()) {
-        document.getElementById('login-error').textContent = '⏰ App disponible de 6 AM a 11 PM';
-        document.getElementById('login-error').style.display = 'block';
-        return;
-      }
-      guardarSesion();
-      abrirApp();
-    } else {
-      document.getElementById('login-error').textContent = '❌ Usuario o contraseña incorrectos';
-      document.getElementById('login-error').style.display = 'block';
-    }
-  };
-
-  window.logout = function() {
-    cerrarSesion();
-  };
-
-  // ---- FIREBASE ----
   function iniciarFirebase() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
@@ -454,6 +446,9 @@ body {
     window._fbRemove = { remove };
     escucharDatos();
   }
+
+  // Exponer para que el login (script normal) pueda llamarlo
+  window.iniciarFirebaseApp = iniciarFirebase;
 
   function escucharDatos() {
     document.getElementById('sync-badge').textContent = '⏳ Conectando...';
@@ -953,6 +948,22 @@ body {
     document.getElementById('modal-reporte').classList.add('open');
   }
 
+</script>
+
+<script>
+// Script normal como respaldo para el botón login
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('btn-login');
+  if(btn) {
+    btn.addEventListener('click', function() {
+      if(window.doLogin) window.doLogin();
+    });
+  }
+  var u = document.getElementById('login-user');
+  var p = document.getElementById('login-pass');
+  if(u) u.addEventListener('keydown', function(e){ if(e.key==='Enter' && window.doLogin) window.doLogin(); });
+  if(p) p.addEventListener('keydown', function(e){ if(e.key==='Enter' && window.doLogin) window.doLogin(); });
+});
 </script>
 </body>
 </html>
