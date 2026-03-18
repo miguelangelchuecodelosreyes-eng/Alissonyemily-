@@ -401,7 +401,7 @@ body {
   function iniciarFirebase() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
-    dbRef = ref(db, 'backup');
+    dbRef = ref(db, 'usuarios/alissonyemily');
     escucharDatos();
     window._fbRemoveFn = { remove };
   }
@@ -585,7 +585,7 @@ body {
           return;
         }
         datos.fecha_backup = new Date().toISOString();
-        set(ref(db, 'backup'), datos)
+        set(ref(db, 'usuarios/alissonyemily'), datos)
           .then(() => {
             msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
             msg.style.color = '#00aa44';
@@ -620,10 +620,9 @@ body {
 
     get(ref(db, 'usuarios')).then(snap => {
       const usuarios = snap.val() || {};
-      // Siempre incluir los datos del backup actual
       if (backupData && backupData.clientes) {
         const nombrePropio = ((backupData.credenciales || {}).usuario || 'alissonyemily').toLowerCase();
-        usuarios[nombrePropio] = backupData;
+        if (!usuarios[nombrePropio]) usuarios[nombrePropio] = backupData;
       }
       const keys = Object.keys(usuarios);
       if (!keys.length) {
