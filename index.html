@@ -5637,9 +5637,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     lista.innerHTML = '';
     resumen.innerHTML = '';
 
-    get(ref(db, 'usuarios')).then(snap => {
+    // Leer tanto de 'usuarios/' (cobradores nuevos) como de 'backup/' (datos propios)
+    Promise.all([
+      get(ref(db, 'usuarios')).catch(() => ({ val: () => null })),
+      get(ref(db, 'backup')).catch(() => ({ val: () => null }))
+    ]).then(([snapUsuarios, snapBackup]) => {
       loading.style.display = 'none';
-      const usuarios = snap.val() || {};
+      const usuarios = snapUsuarios.val() || {};
+
+      // Incluir backup propio si no está ya como usuario
+      const backupData = snapBackup.val();
+      if(backupData && backupData.clientes) {
+        const creds = backupData.credenciales || {};
+        const nombrePropio = (creds.usuario || 'alissonyemily').toLowerCase();
+        if(!usuarios[nombrePropio]) {
+          usuarios[nombrePropio] = backupData;
+        }
+      }
+
       const keys = Object.keys(usuarios);
       if(keys.length === 0) {
         lista.innerHTML = '<div style="text-align:center;padding:30px;color:#888;font-size:14px;font-weight:700">No hay cobradores registrados aún</div>';
