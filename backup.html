@@ -374,7 +374,21 @@ function guardarSesion() {
 function mostrarApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  if(window.iniciarFirebaseApp) window.iniciarFirebaseApp();
+  if(window.iniciarFirebaseApp) {
+    window.iniciarFirebaseApp();
+  } else {
+    var intentos = 0;
+    var esperar = setInterval(function() {
+      intentos++;
+      if(window.iniciarFirebaseApp) {
+        clearInterval(esperar);
+        window.iniciarFirebaseApp();
+      } else if(intentos > 20) {
+        clearInterval(esperar);
+        document.getElementById('sync-badge').textContent = '🔴 Error al cargar Firebase';
+      }
+    }, 200);
+  }
 }
 function cerrarSesionLogin() {
   localStorage.removeItem('ae_sesion');
