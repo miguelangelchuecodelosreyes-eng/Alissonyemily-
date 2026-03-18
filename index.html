@@ -73,7 +73,9 @@ body {
 .btn-logout { background:rgba(255,255,255,0.2); border:none; color:white; border-radius:10px; padding:6px 12px; font-family:'Nunito',sans-serif; font-size:12px; font-weight:800; cursor:pointer; }
 
 /* NAV */
-.nav-tabs { display:flex; gap:3px; padding:12px 10px 0; margin-top:8px; }
+.nav-tabs { display:flex; gap:3px; padding:12px 10px 0; margin-top:8px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.nav-tabs::-webkit-scrollbar { display:none; }
+.nav-tab { flex:0 0 auto; min-width:60px; }
 .nav-tab { flex:1; padding:12px 2px; background:rgba(255,255,255,0.15); border:none; color:#000000; border-radius:12px 12px 0 0; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; text-align:center; }
 .nav-tab.activo { background:#ffffff; color:#1a6eff; }
 
@@ -424,6 +426,7 @@ body {
     <button class="nav-tab" onclick="irA('prestamos')"        id="tab-prestamos">💸 Préstamos</button>
     <button class="nav-tab" onclick="irA('cuentas')"          id="tab-cuentas">💰 Cuentas</button>
     <button class="nav-tab" onclick="irA('ajustes')"          id="tab-ajustes">⚙️ Ajustes</button>
+    <button class="nav-tab" onclick="irA('admin')" id="tab-admin" style="display:none">🛡️ Admin</button>
   </div>
 </div>
 
@@ -860,6 +863,20 @@ body {
       <div id="porcentaje-actual-info" style="text-align:center;margin-top:10px;font-size:13px;color:#888;font-weight:700"></div>
     </div>
   </div>
+
+
+<!-- ======= ADMIN ======= -->
+<div class="pantalla" id="pantalla-admin">
+  <div style="padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:900;color:#111">🛡️ Panel Administrador</div>
+      <button onclick="cargarPanelAdmin()" style="background:#1a6eff;color:white;border:none;border-radius:10px;padding:8px 14px;font-family:\'Nunito\',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔄 Actualizar</button>
+    </div>
+    <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+    <div id="admin-loading" style="text-align:center;padding:30px;color:#666;font-weight:700;font-size:14px;display:none">⏳ Cargando datos...</div>
+    <div id="admin-cobradores-lista"></div>
+  </div>
+</div>
 
 </div>
 </div><!-- fin app -->
@@ -1362,6 +1379,7 @@ function entrar() {
     document.getElementById('login-clave').value='';
     document.getElementById('login-usuario').value='';
     iniciarApp();
+    if(typeof window.verificarTabAdmin === 'function') window.verificarTabAdmin();
   } else {
     err.style.display='block';
     document.getElementById('login-clave').value='';
@@ -1398,6 +1416,7 @@ function irA(p) {
   }
   if(p==='prestamos') renderPrestamos();
   if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); cargarCredencialesEnAjustes(); }
+  if(p==='admin'){ cargarPanelAdmin(); }
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
@@ -5473,6 +5492,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('pantalla-login').style.display='none';
     document.getElementById('app').style.display='block';
     iniciarApp();
+    setTimeout(() => { if(typeof window.verificarTabAdmin === 'function') window.verificarTabAdmin(); }, 800);
   }
 });
 </script>
@@ -5514,9 +5534,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  // Obtener nombre de usuario activo
+  function getUsuarioActivo() {
+    try {
+      const creds = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
+      return (creds.usuario || 'sin_usuario').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    } catch(e) { return 'sin_usuario'; }
+  }
+
   // Función global para subir datos a Firebase
   window.syncFirebase = function() {
     try {
+      const usuarioKey = getUsuarioActivo();
+      const rutaFirebase = 'usuarios/' + usuarioKey;
+
       const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
       const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
       const credenciales = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
@@ -5542,20 +5573,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       };
 
       // Protección: contar total de pagos locales vs Firebase
-      get(ref(db, 'backup/clientes')).then(snap => {
+      get(ref(db, rutaFirebase + '/clientes')).then(snap => {
         const clientesFirebase = snap.val() || [];
         const totalPagosFirebase = clientesFirebase.reduce((s,c) => s + (c.pagos||[]).length, 0);
         const totalPagosLocal = backup.clientes.reduce((s,c) => s + (c.pagos||[]).length, 0);
         if(totalPagosLocal >= totalPagosFirebase) {
-          set(ref(db, 'backup'), backup)
-            .then(() => console.log('✅ Firebase sincronizado (' + totalPagosLocal + ' pagos)'))
+          set(ref(db, rutaFirebase), backup)
+            .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + '] (' + totalPagosLocal + ' pagos)'))
             .catch(e => console.warn('⚠️ Error Firebase:', e));
         } else {
           console.warn('⚠️ Sync cancelado: Firebase tiene más pagos (' + totalPagosFirebase + ' vs ' + totalPagosLocal + ')');
         }
       }).catch(() => {
-        set(ref(db, 'backup'), backup)
-          .then(() => console.log('✅ Firebase sincronizado'))
+        set(ref(db, rutaFirebase), backup)
+          .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + ']'))
           .catch(e => console.warn('⚠️ Error Firebase:', e));
       });
     } catch(e) {
@@ -5579,6 +5610,187 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Sincronizar cada 5 minutos automáticamente
   setInterval(window.syncFirebase, 5 * 60 * 1000);
+
+  // ===== ADMIN: usuarios permitidos =====
+  const ADMIN_USUARIOS = ['admin', 'miguel', 'alissonyemily'];
+
+  function esAdmin() {
+    try {
+      const creds = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
+      return ADMIN_USUARIOS.includes((creds.usuario || '').toLowerCase());
+    } catch(e) { return false; }
+  }
+
+  // Mostrar tab admin si corresponde (se llama al hacer login)
+  window.verificarTabAdmin = function() {
+    const tab = document.getElementById('tab-admin');
+    if(tab) tab.style.display = esAdmin() ? '' : 'none';
+  };
+
+  // ===== CARGAR PANEL ADMIN =====
+  window.cargarPanelAdmin = function() {
+    if(!esAdmin()) return;
+    const loading = document.getElementById('admin-loading');
+    const lista = document.getElementById('admin-cobradores-lista');
+    const resumen = document.getElementById('admin-resumen-general');
+    loading.style.display = 'block';
+    lista.innerHTML = '';
+    resumen.innerHTML = '';
+
+    get(ref(db, 'usuarios')).then(snap => {
+      loading.style.display = 'none';
+      const usuarios = snap.val() || {};
+      const keys = Object.keys(usuarios);
+      if(keys.length === 0) {
+        lista.innerHTML = '<div style="text-align:center;padding:30px;color:#888;font-size:14px;font-weight:700">No hay cobradores registrados aún</div>';
+        return;
+      }
+
+      // Calcular totales globales
+      let totalClientesGlobal = 0, totalCarteraGlobal = 0, totalCobradoHoyGlobal = 0, totalVencidosGlobal = 0;
+      const hoy = new Date().toISOString().split('T')[0];
+
+      keys.forEach(usuario => {
+        const data = usuarios[usuario];
+        const clientes = data.clientes || [];
+        const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        totalClientesGlobal += activos.length;
+        totalCarteraGlobal += activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        totalVencidosGlobal += activos.filter(c => (c.diasVencido || 0) > 0).length;
+        // cobrado hoy: pagos con fecha hoy
+        activos.forEach(c => {
+          (c.pagos || []).forEach(p => {
+            if(p.fecha && p.fecha.startsWith(hoy)) totalCobradoHoyGlobal += (p.monto || 0);
+          });
+        });
+      });
+
+      const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+
+      resumen.innerHTML = `
+        <div style="background:linear-gradient(135deg,#1a6eff,#0040cc);border-radius:14px;padding:14px;color:white;text-align:center">
+          <div style="font-size:22px;font-weight:900">${keys.length}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADORES</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#00aa55,#007733);border-radius:14px;padding:14px;color:white;text-align:center">
+          <div style="font-size:16px;font-weight:900">${fmt(totalCarteraGlobal)}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">CARTERA TOTAL</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#ff9900,#cc6600);border-radius:14px;padding:14px;color:white;text-align:center">
+          <div style="font-size:16px;font-weight:900">${fmt(totalCobradoHoyGlobal)}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADO HOY</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#cc2200,#991100);border-radius:14px;padding:14px;color:white;text-align:center">
+          <div style="font-size:22px;font-weight:900">${totalVencidosGlobal}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">VENCIDOS</div>
+        </div>
+      `;
+
+      // Tarjetas por cobrador
+      lista.innerHTML = '<div style="font-size:13px;font-weight:900;color:#444;margin-bottom:10px;letter-spacing:0.5px">RESUMEN POR COBRADOR</div>';
+
+      keys.forEach(usuario => {
+        const data = usuarios[usuario];
+        const clientes = data.clientes || [];
+        const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
+        let cobradoHoy = 0;
+        activos.forEach(c => {
+          (c.pagos || []).forEach(p => {
+            if(p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0);
+          });
+        });
+        const fechaBackup = data.fecha_backup ? data.fecha_backup.split('T')[0] : '—';
+
+        const card = document.createElement('div');
+        card.style.cssText = 'background:white;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.07);cursor:pointer;border:2px solid transparent;transition:border-color 0.2s';
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-size:15px;font-weight:900;color:#111">👤 ${usuario}</div>
+              <div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Último backup: ${fechaBackup}</div>
+            </div>
+            <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? '#cc2200' : '#007733'};border-radius:10px;padding:4px 10px;font-size:12px;font-weight:900">
+              ${vencidos > 0 ? '⚠️ ' + vencidos + ' venc.' : '✅ Al día'}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#f0f4ff;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:17px;font-weight:900;color:#1a6eff">${activos.length}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Clientes</div>
+            </div>
+            <div style="background:#f0fff7;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:12px;font-weight:900;color:#00aa55">${fmt(cartera)}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Cartera</div>
+            </div>
+            <div style="background:#fffbf0;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:12px;font-weight:900;color:#cc6600">${fmt(cobradoHoy)}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Hoy</div>
+            </div>
+          </div>
+          <div id="admin-expand-${usuario}" style="display:none;margin-top:12px"></div>
+        `;
+
+        card.onclick = () => expandirCobrador(usuario, clientes, card);
+        lista.appendChild(card);
+      });
+
+    }).catch(err => {
+      loading.style.display = 'none';
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error al cargar: ' + err.message + '</div>';
+    });
+  };
+
+  // Expandir detalle de un cobrador
+  function expandirCobrador(usuario, clientes, card) {
+    const expandDiv = document.getElementById('admin-expand-' + usuario);
+    if(!expandDiv) return;
+    const visible = expandDiv.style.display !== 'none';
+    // Cerrar todos
+    document.querySelectorAll('[id^="admin-expand-"]').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('#admin-cobradores-lista > div').forEach(d => d.style.borderColor = 'transparent');
+    if(visible) return;
+
+    card.style.borderColor = '#1a6eff';
+    const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+    const hoy = new Date().toISOString().split('T')[0];
+    const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+
+    if(activos.length === 0) {
+      expandDiv.innerHTML = '<div style="text-align:center;color:#888;font-size:13px;font-weight:700;padding:10px">Sin clientes activos</div>';
+      expandDiv.style.display = 'block';
+      return;
+    }
+
+    let rows = activos.map(c => {
+      const venc = c.diasVencido || 0;
+      const cobradoHoy = (c.pagos || []).filter(p => p.fecha && p.fecha.startsWith(hoy)).reduce((s,p) => s + (p.monto||0), 0);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#111">${c.nombre || '—'}</div>
+          <div style="font-size:10px;color:${venc > 0 ? '#cc2200' : '#888'};font-weight:600">${venc > 0 ? '⚠️ ' + venc + ' días vencido' : '✅ Al día'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:900;color:#1a6eff">${fmt(c.saldo || 0)}</div>
+          ${cobradoHoy > 0 ? '<div style="font-size:10px;color:#00aa55;font-weight:700">+' + fmt(cobradoHoy) + ' hoy</div>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    expandDiv.innerHTML = `
+      <div style="background:#f8f9ff;border-radius:12px;padding:12px">
+        <div style="font-size:11px;font-weight:900;color:#666;margin-bottom:8px;letter-spacing:0.5px">CLIENTES DE ${usuario.toUpperCase()}</div>
+        ${rows}
+      </div>`;
+    expandDiv.style.display = 'block';
+  }
+
+  // Mostrar tab admin al cargar si ya hay sesión
+  window.addEventListener('load', () => {
+    setTimeout(window.verificarTabAdmin, 500);
+  });
+
 </script>
 
 </body>
