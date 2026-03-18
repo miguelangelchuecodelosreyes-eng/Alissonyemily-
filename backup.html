@@ -190,6 +190,54 @@ body {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* MODAL REPORTE */
+#modal-reporte {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  align-items: flex-end; justify-content: center;
+}
+#modal-reporte.open { display: flex; }
+#modal-inner {
+  background: #eaf0ff; border-radius: 24px 24px 0 0;
+  width: 100%; max-width: 480px; max-height: 90vh;
+  overflow-y: auto; padding: 0 0 40px;
+  animation: slideUp 0.3s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-header {
+  background: linear-gradient(135deg,#1a1a2e,#16213e);
+  color: white; padding: 16px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: 24px 24px 0 0;
+}
+.modal-header h2 { font-size: 15px; font-weight: 900; }
+.btn-cerrar-modal {
+  background: rgba(255,255,255,0.15); border: none; color: white;
+  border-radius: 10px; padding: 6px 14px;
+  font-family: 'Nunito',sans-serif; font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.reporte-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 14px 0; }
+.reporte-box { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+.reporte-box-header { padding: 10px 14px; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; color: white; text-transform: uppercase; }
+.reporte-row { display: flex; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid #f0f0f0; font-size: 13px; font-weight: 700; }
+.reporte-row:last-child { border-bottom: none; }
+.reporte-total { display: flex; justify-content: space-between; padding: 10px 14px; font-size: 14px; font-weight: 900; }
+.resultado-box {
+  margin: 12px 14px 0; background: #1a1a2e; border-radius: 16px; padding: 16px;
+  color: white;
+}
+.resultado-fila { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.resultado-fila:last-child { border-bottom: none; }
+.resultado-final {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255,255,255,0.08); border-radius: 12px;
+  padding: 12px 16px; margin-top: 10px;
+  font-size: 18px; font-weight: 900;
+}
+.semana-box { margin: 12px 14px 0; background: white; border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+.semana-titulo { font-size: 11px; font-weight: 900; letter-spacing: 1.5px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+.semana-fila { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 10px; margin-bottom: 5px; }
 </style>
 </head>
 <body>
@@ -272,6 +320,16 @@ body {
     </div>
   </div>
 
+  <!-- ADMIN COBRADORES -->
+  <div class="card" id="card-admin" style="display:none">
+    <div class="card-header" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white">🛡️ Panel Administrador</div>
+    <div class="card-body">
+      <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+      <div id="admin-loading" style="text-align:center;padding:20px;color:#666;font-weight:700;display:none">⏳ Cargando cobradores...</div>
+      <div id="admin-cobradores-lista"><div style="text-align:center;padding:20px;color:#888;font-size:13px;font-weight:700">Cargando datos de cobradores...</div></div>
+    </div>
+  </div>
+
   <!-- CLIENTES -->
   <div class="card">
     <div class="card-header bg-dark">👥 Clientes</div>
@@ -283,9 +341,20 @@ body {
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL REPORTE COBRADOR -->
+<div id="modal-reporte">
+  <div id="modal-inner">
+    <div class="modal-header">
+      <h2 id="modal-titulo">📊 Reporte</h2>
+      <button class="btn-cerrar-modal" onclick="cerrarModalReporte()">✕ Cerrar</button>
+    </div>
+    <div id="modal-contenido"></div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -382,6 +451,7 @@ body {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
     dbRef = ref(db, 'usuarios/alissonyemily');
+    window._fbRemove = { remove };
     escucharDatos();
   }
 
@@ -394,6 +464,7 @@ body {
         document.getElementById('sync-badge').textContent = '🟢 Conectado en tiempo real';
         mostrarResumen(data);
         mostrarClientes(data.clientes || []);
+        cargarPanelAdmin();
         const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
         document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
       } else {
@@ -608,6 +679,280 @@ body {
     };
     reader.readAsText(file);
   };
+
+  // ===== PANEL ADMIN: cargar todos los cobradores =====
+  function cargarPanelAdmin() {
+    const cardAdmin = document.getElementById('card-admin');
+    const loading = document.getElementById('admin-loading');
+    const lista = document.getElementById('admin-cobradores-lista');
+    const resumen = document.getElementById('admin-resumen-general');
+    if(!cardAdmin) return;
+    cardAdmin.style.display = 'block';
+    loading.style.display = 'block';
+    lista.innerHTML = '';
+    resumen.innerHTML = '';
+
+    get(ref(db, 'usuarios')).then(snap => {
+      loading.style.display = 'none';
+      const usuarios = snap.val() || {};
+
+      // Incluir datos propios de backup si no están en usuarios/
+      if(backupData && backupData.clientes) {
+        const creds = backupData.credenciales || {};
+        const nombrePropio = (creds.usuario || 'alissonyemily').toLowerCase();
+        if(!usuarios[nombrePropio]) usuarios[nombrePropio] = backupData;
+      }
+
+      const keys = Object.keys(usuarios);
+      if(keys.length === 0) {
+        lista.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-weight:700">No hay cobradores aún</div>';
+        return;
+      }
+
+      const hoy = new Date().toISOString().split('T')[0];
+      const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+
+      let totalCartera = 0, totalHoy = 0, totalVencidos = 0;
+
+      keys.forEach(usuario => {
+        const data = usuarios[usuario];
+        const clientes = data.clientes || [];
+        const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
+        let cobradoHoy = 0;
+        activos.forEach(c => {
+          (c.pagos || []).forEach(p => {
+            if(p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0);
+          });
+        });
+        totalCartera += cartera;
+        totalHoy += cobradoHoy;
+        totalVencidos += vencidos;
+      });
+
+      resumen.innerHTML = `
+        <div style="background:linear-gradient(135deg,#1a6eff,#0040cc);border-radius:12px;padding:12px;color:white;text-align:center">
+          <div style="font-size:20px;font-weight:900">${keys.length}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADORES</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#00aa55,#007733);border-radius:12px;padding:12px;color:white;text-align:center">
+          <div style="font-size:13px;font-weight:900">${fmt(totalCartera)}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">CARTERA TOTAL</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#ff9900,#cc6600);border-radius:12px;padding:12px;color:white;text-align:center">
+          <div style="font-size:13px;font-weight:900">${fmt(totalHoy)}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADO HOY</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#cc2200,#991100);border-radius:12px;padding:12px;color:white;text-align:center">
+          <div style="font-size:20px;font-weight:900">${totalVencidos}</div>
+          <div style="font-size:11px;opacity:0.85;font-weight:700">VENCIDOS</div>
+        </div>
+      `;
+
+      lista.innerHTML = '<div style="font-size:12px;font-weight:900;color:#444;margin-bottom:10px;letter-spacing:0.5px">POR COBRADOR</div>';
+
+      keys.forEach(usuario => {
+        const data = usuarios[usuario];
+        const clientes = data.clientes || [];
+        const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
+        let cobradoHoy = 0;
+        activos.forEach(c => {
+          (c.pagos || []).forEach(p => {
+            if(p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0);
+          });
+        });
+        const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '—';
+
+        const card = document.createElement('div');
+        card.style.cssText = 'background:white;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);border:2px solid transparent;cursor:pointer';
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:#111">👤 ${usuario}</div>
+              <div style="font-size:10px;color:#888;font-weight:600;margin-top:2px">Backup: ${fechaBackup}</div>
+            </div>
+            <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? '#cc2200' : '#007733'};border-radius:8px;padding:3px 8px;font-size:11px;font-weight:900">
+              ${vencidos > 0 ? '⚠️ ' + vencidos + ' venc.' : '✅ Al día'}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="background:#f0f4ff;border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:16px;font-weight:900;color:#1a6eff">${activos.length}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Clientes</div>
+            </div>
+            <div style="background:#f0fff7;border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:11px;font-weight:900;color:#00aa55">${fmt(cartera)}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Cartera</div>
+            </div>
+            <div style="background:#fffbf0;border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:11px;font-weight:900;color:#cc6600">${fmt(cobradoHoy)}</div>
+              <div style="font-size:10px;color:#666;font-weight:700">Hoy</div>
+            </div>
+          </div>
+        `;
+        lista.appendChild(card);
+        card.addEventListener('click', () => abrirReporteCobrador(usuario, usuarios[usuario]));
+
+        // Botón eliminar si está vacío
+        if(activos.length === 0) {
+          const btnEliminar = document.createElement('button');
+          btnEliminar.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,#ff1a1a,#cc0000);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer';
+          btnEliminar.textContent = '🗑️ Eliminar cobrador vacío';
+          btnEliminar.onclick = (e) => {
+            e.stopPropagation();
+            if(!confirm('¿Eliminar el cobrador "' + usuario + '" de Firebase? No tiene clientes activos.')) return;
+            const { remove } = window._fbRemove;
+            remove(ref(db, 'usuarios/' + usuario))
+              .then(() => {
+                toast('✅ Cobrador "' + usuario + '" eliminado');
+                card.remove();
+              })
+              .catch(err => toast('❌ Error: ' + err.message));
+          };
+          card.appendChild(btnEliminar);
+        }
+
+    }).catch(err => {
+      loading.style.display = 'none';
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error: ' + err.message + '</div>';
+    });
+  }
+
+  // Llamar admin cuando se carguen los datos
+  const _origEscuchar = escucharDatos;
+
+  // ===== MODAL REPORTE COBRADOR =====
+  window.cerrarModalReporte = function() {
+    document.getElementById('modal-reporte').classList.remove('open');
+  };
+
+  function abrirReporteCobrador(usuario, data) {
+    const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+    const clientes = data.clientes || [];
+    const activos = clientes.filter(c => c.activo !== false && (c.saldo || 0) > 0);
+
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' +
+      String(ahora.getMonth()+1).padStart(2,'0') + '-' +
+      String(ahora.getDate()).padStart(2,'0');
+
+    // Cuentas del día desde data.cuentas_dia (si existe) o calcular desde pagos
+    const cuentas = data.cuentas_dia || {};
+    const entradas = cuentas.entradas || {};
+    const salidas = cuentas.salidas || {};
+
+    // Calcular cobrado hoy desde pagos
+    let cobradoHoy = 0;
+    activos.forEach(c => {
+      (c.pagos || []).forEach(p => {
+        if(p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0);
+      });
+    });
+
+    // Entradas
+    const eBase = parseFloat(entradas.base || 0);
+    const eGeneral = cobradoHoy; // pagos del día
+    const ePapeleria = parseFloat(entradas.papeleria || 0);
+    const totalEntradas = eBase + eGeneral + ePapeleria;
+
+    // Salidas
+    const sPrestamos = parseFloat(salidas.prestamos || 0);
+    let sNeki = parseFloat(salidas.neki || 0);
+    const sGasto = parseFloat(salidas.gasto || 0);
+    const totalSalidas = sPrestamos + sNeki + sGasto;
+
+    const resultado = totalEntradas - totalSalidas;
+    const entregado = parseFloat(cuentas.entregado_oficina || 0);
+
+    // Semana
+    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
+    const lunesDate = new Date(ahora);
+    lunesDate.setDate(ahora.getDate() - diaSemana);
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dias = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(lunesDate);
+      d.setDate(lunesDate.getDate() + i);
+      const fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy });
+    }
+    activos.forEach(c => {
+      (c.pagos || []).forEach(p => {
+        if(!p.fecha) return;
+        const dia = dias.find(d => d.fecha === p.fecha);
+        if(dia) dia.total += parseFloat(p.monto || 0);
+      });
+    });
+
+    const semanHtml = dias.map(d => `
+      <div class="semana-fila" style="background:${d.esHoy ? '#e8fff0' : '#f4f7ff'};border:2px solid ${d.esHoy ? '#00cc55' : '#e0e8ff'}">
+        <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : '#666'}">${d.esHoy ? '👉' : '📅'} ${d.nombre}</div>
+        <div style="font-size:16px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : '#1a6eff') : '#ccc'}">${d.total > 0 ? fmt(d.total) : '-'}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
+    document.getElementById('modal-contenido').innerHTML = `
+      <div class="reporte-grid">
+        <div class="reporte-box">
+          <div class="reporte-box-header" style="background:linear-gradient(135deg,#1a6eff,#0040cc)">📅 Entradas</div>
+          <div style="font-size:11px;color:#aaa;font-weight:700;padding:6px 14px 2px">
+            ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+          </div>
+          <div class="reporte-row"><span>💵 Base</span><span style="color:#333">${fmt(eBase)}</span></div>
+          <div class="reporte-row" style="background:#f0fff7"><span style="color:#00aa44;font-weight:800">📦 General</span><span style="color:#00aa44;font-weight:900">${fmt(eGeneral)}</span></div>
+          <div class="reporte-row"><span>📋 Papelería</span><span style="color:#333">${fmt(ePapeleria)}</span></div>
+          <div class="reporte-total" style="background:#e8f0ff;border-top:2px solid #c0d0ff"><span style="color:#0040cc">TOTAL</span><span style="color:#0040cc;font-size:16px">${fmt(totalEntradas)}</span></div>
+        </div>
+        <div class="reporte-box">
+          <div class="reporte-box-header" style="background:linear-gradient(135deg,#ff1a1a,#cc0000)">💸 Salidas</div>
+          <div class="reporte-row"><span style="color:#cc2200">💰 Préstamos</span><span style="color:#333">${fmt(sPrestamos)}</span></div>
+          <div class="reporte-row"><span>🟡 Neki</span><span style="color:#333">${fmt(sNeki)}</span></div>
+          <div class="reporte-row"><span>🔧 Gasto</span><span style="color:#333">${fmt(sGasto)}</span></div>
+          <div style="height:10px"></div>
+          <div class="reporte-total" style="background:#fff0ee;border-top:2px solid #ffc0b0"><span style="color:#cc0000">TOTAL</span><span style="color:#cc0000;font-size:16px">${fmt(totalSalidas)}</span></div>
+        </div>
+      </div>
+
+      <div class="resultado-box">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">🏦 RESULTADO DEL DÍA</div>
+        <div class="resultado-fila"><span>Total entradas</span><span>${fmt(totalEntradas)}</span></div>
+        <div class="resultado-fila"><span>Total salidas</span><span>${fmt(totalSalidas)}</span></div>
+        <div class="resultado-final">
+          <span style="font-size:14px;opacity:0.8">RESULTADO</span>
+          <span style="color:${resultado >= 0 ? '#00ff88' : '#ff5555'}">${fmt(resultado)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:10px;padding:0 4px;font-size:13px;font-weight:700;opacity:0.75">
+          <span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span>
+        </div>
+      </div>
+
+      <div class="semana-box">
+        <div class="semana-titulo">💰 Plenos de la semana</div>
+        ${semanHtml}
+      </div>
+
+      <div style="margin:12px 14px 0;background:white;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin-bottom:10px">👥 Clientes activos: ${activos.length}</div>
+        ${activos.slice(0,5).map(c => `
+          <div class="reporte-row">
+            <div>
+              <div style="font-size:13px;font-weight:800">👤 ${c.nombre || 'Sin nombre'}</div>
+              <div style="font-size:11px;color:#888">${fmt(c.cuota)} · ${c.frecuencia || 'diario'}</div>
+            </div>
+            <div style="font-size:15px;font-weight:900;color:#ff1a1a">${fmt(c.saldo)}</div>
+          </div>
+        `).join('')}
+        ${activos.length > 5 ? `<div style="text-align:center;font-size:12px;color:#888;padding:8px;font-weight:700">... y ${activos.length - 5} más</div>` : ''}
+      </div>
+    `;
+
+    document.getElementById('modal-reporte').classList.add('open');
+  }
+
 </script>
 </body>
 </html>
