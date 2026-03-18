@@ -874,7 +874,7 @@ body {
     </div>
     <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
     <div id="admin-loading" style="text-align:center;padding:30px;color:#666;font-weight:700;font-size:14px;display:none">⏳ Cargando datos...</div>
-    <div id="admin-cobradores-lista"></div>
+    <div id="admin-cobradores-lista"><div style="text-align:center;padding:30px;color:#888;font-size:13px;font-weight:700">Toca 🔄 Actualizar para cargar los datos</div></div>
   </div>
 </div>
 
@@ -1416,7 +1416,7 @@ function irA(p) {
   }
   if(p==='prestamos') renderPrestamos();
   if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); cargarCredencialesEnAjustes(); }
-  if(p==='admin'){ cargarPanelAdmin(); }
+  if(p==='admin'){ setTimeout(function(){ if(typeof window.cargarPanelAdmin==='function') window.cargarPanelAdmin(); else document.getElementById('admin-cobradores-lista').innerHTML='<div style="padding:20px;text-align:center;color:#cc2200;font-weight:700">❌ Firebase no cargó. Abre desde GitHub Pages con internet.</div>'; }, 300); }
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
@@ -5629,7 +5629,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // ===== CARGAR PANEL ADMIN =====
   window.cargarPanelAdmin = function() {
-    if(!esAdmin()) return;
+    // No bloquear por esAdmin() — si está en el tab ya tiene acceso
     const loading = document.getElementById('admin-loading');
     const lista = document.getElementById('admin-cobradores-lista');
     const resumen = document.getElementById('admin-resumen-general');
@@ -5753,7 +5753,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     }).catch(err => {
       loading.style.display = 'none';
-      lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error al cargar: ' + err.message + '</div>';
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700;font-size:13px">❌ Error Firebase: ' + err.message + '<br><br><button onclick="cargarPanelAdmin()" style="background:#1a6eff;color:white;border:none;border-radius:10px;padding:10px 20px;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;cursor:pointer">🔄 Reintentar</button></div>';
     });
   };
 
