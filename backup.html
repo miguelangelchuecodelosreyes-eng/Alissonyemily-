@@ -620,9 +620,10 @@ body {
 
     get(ref(db, 'usuarios')).then(snap => {
       const usuarios = snap.val() || {};
+      // Siempre incluir los datos del backup actual
       if (backupData && backupData.clientes) {
         const nombrePropio = ((backupData.credenciales || {}).usuario || 'alissonyemily').toLowerCase();
-        if (!usuarios[nombrePropio]) usuarios[nombrePropio] = backupData;
+        usuarios[nombrePropio] = backupData;
       }
       const keys = Object.keys(usuarios);
       if (!keys.length) {
