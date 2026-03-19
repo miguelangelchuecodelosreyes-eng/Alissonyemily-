@@ -5572,12 +5572,42 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
       }
 
+      // Cuentas del día de hoy en formato que lee backup.html
+      const hoyKey = (function(){
+        const d = new Date();
+        return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      })();
+      const manualHoy = JSON.parse(localStorage.getItem('sup_manual_'+hoyKey) || '{}');
+      // Calcular préstamos del día (capital entregado a clientes nuevos/renovados hoy)
+      const prestamosHoy = clientes.reduce((s, c) => {
+        if ((c.fechaCreado || '').startsWith(hoyKey) && c.renovaciones === 0) return s + (c.capital || 0);
+        if ((c.fechaRenovacion || '').startsWith(hoyKey)) {
+          const ult = (c.historialRenovaciones || []).slice(-1)[0];
+          return s + (ult ? (ult.nuevoCapital || 0) : 0);
+        }
+        return s;
+      }, 0);
+      const cuentas_dia = {
+        fecha: hoyKey,
+        entradas: {
+          base: manualHoy.base || 0,
+          papeleria: manualHoy.papeleria || 0
+        },
+        salidas: {
+          prestamos: prestamosHoy,
+          neki: manualHoy.neki || 0,
+          gasto: manualHoy.gasto || 0
+        },
+        entregado_oficina: manualHoy.entregado || 0
+      };
+
       const backup = {
         version: 2,
         fecha_backup: new Date().toISOString(),
         clientes, historial, credenciales,
         porcentaje_interes: porcentaje,
         manuales,
+        cuentas_dia,
         historial_cedulas: historialCedulas
       };
 
@@ -5632,6 +5662,19 @@ document.addEventListener('DOMContentLoaded',()=>{
                 Object.keys(data.manuales).forEach(k => {
                   localStorage.setItem(k, JSON.stringify(data.manuales[k]));
                 });
+              }
+              // Restaurar cuentas del día
+              if (data.cuentas_dia && data.cuentas_dia.fecha) {
+                const cd = data.cuentas_dia;
+                const manualKey = 'sup_manual_' + cd.fecha;
+                const manual = {
+                  base: (cd.entradas || {}).base || 0,
+                  papeleria: (cd.entradas || {}).papeleria || 0,
+                  neki: (cd.salidas || {}).neki || 0,
+                  gasto: (cd.salidas || {}).gasto || 0,
+                  entregado: cd.entregado_oficina || 0
+                };
+                localStorage.setItem(manualKey, JSON.stringify(manual));
               }
               showToast('☁️ Datos restaurados desde la nube (' + data.clientes.length + ' clientes)');
               setTimeout(() => location.reload(), 1500);
