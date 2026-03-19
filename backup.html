@@ -257,7 +257,7 @@ body {
   </div>
 
   <!-- RESTAURAR -->
-  <div class="card">
+  <div class="card" id="card-restaurar">
     <div class="card-header bg-red">📤 Restaurar a la App</div>
     <div class="card-body">
       <p style="font-size:13px;color:#666;margin-bottom:12px;font-weight:600;line-height:1.5">
@@ -285,6 +285,7 @@ body {
     <div class="card-header" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white">🛡️ Panel Administrador</div>
     <div class="card-body">
       <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+      <button onclick="window.crearCobrador()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:12px">➕ Crear cobrador nuevo</button>
       <div id="admin-cobradores-lista"><div style="text-align:center;padding:20px;color:#888;font-size:13px;font-weight:700">Cargando cobradores...</div></div>
     </div>
   </div>
@@ -317,8 +318,10 @@ body {
     appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
   };
 
-  const USER = "alissonyemily";
-  const PASS = "1234";
+  const ADMIN_USER = "alissonyemily";
+  const ADMIN_PASS = "1234";
+  let usuarioActual = null;
+  let esAdmin = false;
   let backupData = null;
   let dbRef = null;
   let app, db;
@@ -331,77 +334,86 @@ body {
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  // Sesión persistente — abre 6 AM, cierra 11 PM
   function horaPermitida() {
     const h = new Date().getHours();
     return h >= 6 && h < 23;
   }
 
   function sesionValida() {
-    const guardado = localStorage.getItem('ae_sesion');
+    const guardado = localStorage.getItem('ae_sesion_backup');
     if (!guardado) return false;
     try {
-      const { expira } = JSON.parse(guardado);
-      return Date.now() < expira;
+      const { expira, usuario } = JSON.parse(guardado);
+      if (Date.now() < expira && usuario) { usuarioActual = usuario; return true; }
+      return false;
     } catch(e) { return false; }
   }
 
-  function guardarSesion() {
-    // Expira a las 11 PM de hoy
+  function guardarSesion(usuario) {
     const ahora = new Date();
     const expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
-    localStorage.setItem('ae_sesion', JSON.stringify({ expira }));
+    localStorage.setItem('ae_sesion_backup', JSON.stringify({ expira, usuario }));
   }
 
-  function abrirApp() {
+  function abrirApp(usuario) {
+    usuarioActual = usuario;
+    esAdmin = (usuario === ADMIN_USER);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
+    // Restaurar disponible para todos
     iniciarFirebase();
-    // Revisar cada minuto si ya son las 11 PM
-    setInterval(() => {
-      if (!horaPermitida()) cerrarSesion();
-    }, 60000);
+    setInterval(() => { if (!horaPermitida()) cerrarSesion(); }, 60000);
   }
 
   function cerrarSesion() {
-    localStorage.removeItem('ae_sesion');
+    localStorage.removeItem('ae_sesion_backup');
+    usuarioActual = null;
+    esAdmin = false;
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-pass').value = '';
   }
 
-  // Al cargar la página — verificar sesión guardada
   (function() {
-    if (!horaPermitida()) return; // Fuera de horario, mostrar login bloqueado
-    if (sesionValida()) abrirApp();
+    if (!horaPermitida()) return;
+    if (sesionValida()) abrirApp(usuarioActual);
   })();
 
-  window.doLogin = function() {
+  window.doLogin = async function() {
     const user = document.getElementById('login-user').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
-    if(user === USER && pass === PASS) {
-      if (!horaPermitida()) {
-        document.getElementById('login-error').textContent = '⏰ App disponible de 6 AM a 11 PM';
-        document.getElementById('login-error').style.display = 'block';
-        return;
-      }
-      guardarSesion();
-      abrirApp();
-    } else {
-      document.getElementById('login-error').textContent = '❌ Usuario o contraseña incorrectos';
-      document.getElementById('login-error').style.display = 'block';
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    if (!horaPermitida()) {
+      errEl.textContent = '⏰ App disponible de 6 AM a 11 PM';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (user === ADMIN_USER) {
+      if (pass === ADMIN_PASS) { guardarSesion(user); abrirApp(user); }
+      else { errEl.textContent = '❌ Contraseña incorrecta'; errEl.style.display = 'block'; }
+      return;
+    }
+    // Cobrador: verificar en Firebase
+    try {
+      const tmpApp = initializeApp(firebaseConfig, 'chk_' + Date.now());
+      const tmpDb = getDatabase(tmpApp);
+      const snap = await get(ref(tmpDb, 'usuarios/' + user + '/credenciales'));
+      const creds = snap.val();
+      if (creds && creds.clave === pass) { guardarSesion(user); abrirApp(user); }
+      else { errEl.textContent = '❌ Usuario o contraseña incorrectos'; errEl.style.display = 'block'; }
+    } catch(e) {
+      errEl.textContent = '❌ Error de conexión'; errEl.style.display = 'block';
     }
   };
 
-  window.logout = function() {
-    cerrarSesion();
-  };
+  window.logout = function() { cerrarSesion(); };
 
   // ---- FIREBASE ----
   function iniciarFirebase() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
-    dbRef = ref(db, 'usuarios/alissonyemily');
+    dbRef = ref(db, 'usuarios/' + usuarioActual);
     escucharDatos();
     window._fbRemoveFn = { remove };
   }
@@ -457,8 +469,8 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy });
     }
 
-    // Sumar pagos por día (todos los clientes, incluyendo cancelados del día)
-    for (const c of clientes) {
+    // Sumar pagos por día
+    for (const c of activos) {
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
@@ -556,7 +568,7 @@ body {
     const a = document.createElement('a');
     const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
     a.href = url;
-    a.download = `backup_alisson_emily_${fecha}.json`;
+    a.download = `backup_${usuarioActual}_${fecha}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -585,7 +597,7 @@ body {
           return;
         }
         datos.fecha_backup = new Date().toISOString();
-        set(ref(db, 'usuarios/alissonyemily'), datos)
+        set(ref(db, 'usuarios/' + usuarioActual), datos)
           .then(() => {
             msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
             msg.style.color = '#00aa44';
@@ -637,8 +649,7 @@ body {
         const activos = (d.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
         totalCartera += activos.reduce((s, c) => s + (c.saldo || 0), 0);
         totalVencidos += activos.filter(c => (c.diasVencido || 0) > 0).length;
-        // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
-        (d.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) totalHoy += (p.monto || 0); }));
+        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) totalHoy += (p.monto || 0); }));
       });
 
       resumen.innerHTML = `
@@ -668,8 +679,7 @@ body {
         const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
         const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
         let cobradoHoy = 0;
-        // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
-        (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
+        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
         const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '—';
 
         const card = document.createElement('div');
@@ -700,6 +710,15 @@ body {
           </div>
           ${activos.length === 0 ? '<button onclick="event.stopPropagation();window.eliminarCobrador(\'' + usuario + '\')" style="width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,#ff1a1a,#cc0000);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑️ Eliminar cobrador vacío</button>' : ''}
         `;
+        // Botones admin por cobrador
+        const botonesDiv = document.createElement('div');
+        botonesDiv.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px';
+        botonesDiv.innerHTML = `
+          <button onclick="event.stopPropagation();window.descargarBackupCobrador('${usuario}')" style="padding:9px;background:linear-gradient(135deg,#00cc55,#008833);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:12px;font-weight:900;cursor:pointer">⬇️ Descargar JSON</button>
+          <button onclick="event.stopPropagation();window.editarCredenciales('${usuario}')" style="padding:9px;background:linear-gradient(135deg,#1a6eff,#0040cc);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:12px;font-weight:900;cursor:pointer">🔑 Cambiar clave</button>
+        `;
+        card.appendChild(botonesDiv);
+        card.style.cursor = 'default';
         card.addEventListener('click', () => abrirReporte(usuario, data));
         lista.appendChild(card);
       });
@@ -707,6 +726,78 @@ body {
       lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error: ' + err.message + '</div>';
     });
   }
+
+  // Descargar JSON de un cobrador específico (desde admin)
+  window.descargarBackupCobrador = function(usuario) {
+    get(ref(db, 'usuarios/' + usuario)).then(snap => {
+      const data = snap.val();
+      if (!data) { toast('⚠️ Sin datos para ' + usuario); return; }
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
+      a.href = url;
+      a.download = 'backup_' + usuario + '_' + fecha + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✅ JSON de ' + usuario + ' descargado');
+    }).catch(() => toast('❌ Error al descargar'));
+  };
+
+  // Editar usuario y clave de un cobrador
+  window.editarCredenciales = function(usuario) {
+    const nuevoUsuario = prompt('Nuevo usuario para "' + usuario + '":\n(deja igual si no quieres cambiarlo)', usuario);
+    if (nuevoUsuario === null) return;
+    const nuevaClave = prompt('Nueva contraseña para "' + (nuevoUsuario||usuario) + '":\n(mínimo 4 caracteres)');
+    if (nuevaClave === null) return;
+    const usuFinal = (nuevoUsuario||usuario).trim().toLowerCase();
+    if (!usuFinal) { toast('⚠️ Usuario no puede estar vacío'); return; }
+    if (nuevaClave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
+
+    const guardarCreds = (ruta) => {
+      set(ref(db, ruta + '/credenciales'), { usuario: usuFinal, clave: nuevaClave })
+        .then(() => { toast('✅ Credenciales actualizadas para ' + usuFinal); cargarPanelAdmin(); })
+        .catch(e => toast('❌ Error: ' + e.message));
+    };
+
+    if (usuFinal !== usuario) {
+      // Mover datos al nuevo nombre
+      get(ref(db, 'usuarios/' + usuario)).then(snap => {
+        const data = snap.val() || {};
+        set(ref(db, 'usuarios/' + usuFinal), data).then(() => {
+          remove(ref(db, 'usuarios/' + usuario)).then(() => guardarCreds('usuarios/' + usuFinal));
+        });
+      }).catch(e => toast('❌ Error: ' + e.message));
+    } else {
+      guardarCreds('usuarios/' + usuario);
+    }
+  };
+
+  // Crear cobrador nuevo desde admin
+  window.crearCobrador = function() {
+    const usuario = prompt('Usuario del cobrador nuevo:\n(mínimo 3 letras, sin espacios)');
+    if (!usuario) return;
+    const u = usuario.trim().toLowerCase().replace(/\s+/g, '');
+    if (u.length < 3) { toast('⚠️ Usuario muy corto, mínimo 3 letras'); return; }
+    if (u === ADMIN_USER) { toast('⚠️ Ese nombre está reservado'); return; }
+    const clave = prompt('Contraseña para "' + u + '":\n(mínimo 4 caracteres)');
+    if (!clave) return;
+    if (clave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
+    // Verificar que no exista ya
+    get(ref(db, 'usuarios/' + u)).then(snap => {
+      if (snap.exists()) { toast('⚠️ El usuario "' + u + '" ya existe'); return; }
+      // Crear en Firebase con credenciales y estructura mínima
+      set(ref(db, 'usuarios/' + u + '/credenciales'), { usuario: u, clave: clave })
+        .then(() => {
+          toast('✅ Cobrador "' + u + '" creado correctamente');
+          cargarPanelAdmin();
+        })
+        .catch(e => toast('❌ Error: ' + e.message));
+    }).catch(e => toast('❌ Error: ' + e.message));
+  };
 
   window.eliminarCobrador = function(usuario) {
     if (!confirm('¿Eliminar "' + usuario + '"? No tiene clientes activos.')) return;
@@ -725,8 +816,7 @@ body {
     const entradas = cuentas.entradas || {};
     const salidas = cuentas.salidas || {};
     let cobradoHoy = 0;
-    // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
-    (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
+    activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
     const eBase = parseFloat(entradas.base || 0);
     const eGeneral = cobradoHoy;
     const ePapeleria = parseFloat(entradas.papeleria || 0);
@@ -749,8 +839,7 @@ body {
       const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       dias.push({ n: nombresDia[i], f, t: 0, hoy: f === hoy });
     }
-    // Plenos semana: todos los clientes incluyendo cancelados
-    (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => {
+    activos.forEach(c => (c.pagos || []).forEach(p => {
       const d = dias.find(x => x.f === p.fecha);
       if (d) d.t += parseFloat(p.monto || 0);
     }));
