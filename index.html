@@ -2475,11 +2475,9 @@ function renderClientes(){
         <!-- Número del cliente -->
         <div style="min-width:28px;height:28px;background:#1a6eff;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:4px;flex-shrink:0">${numeroCliente+1}</div>
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <div class="cliente-nombre">👤 ${c.nombre}</div>
-            ${c.cedula ? `<div style="font-size:11px;color:#888;font-weight:700;flex-shrink:0">🪪 ${c.cedula}</div>` : ""}
-          </div>
+          <div class="cliente-nombre">👤 ${c.nombre}</div>
           <div class="cliente-sub">
+            ${c.cedula ? `<span style="font-size:11px;color:#888;font-weight:700">🪪 ${c.cedula}</span>` : ""}
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
             ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:8px;padding:2px 9px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
             ${fechaPrestamo ? `<span style="color:#888">📅 ${fechaBonita(fechaPrestamo).split(' de ').slice(0,2).join(' de ')}</span>` : ''}
