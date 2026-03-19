@@ -5589,9 +5589,10 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(totalPagosLocal >= totalPagosFirebase) {
           set(ref(db, rutaFirebase), backup)
             .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + '] (' + totalPagosLocal + ' pagos)'))
-            .catch(e => console.warn('⚠️ Error Firebase:', e));
+            .catch(e => { console.warn('⚠️ Error Firebase:', e); showToast('⚠️ Error al sincronizar con la nube'); });
         } else {
           console.warn('⚠️ Sync cancelado: Firebase tiene más pagos (' + totalPagosFirebase + ' vs ' + totalPagosLocal + ')');
+          showToast('⚠️ Alerta: la nube tiene más datos que este teléfono. Haz backup desde el otro dispositivo.');
         }
       }).catch(() => {
         set(ref(db, rutaFirebase), backup)
@@ -5614,7 +5615,33 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Sincronizar al cargar la app
   window.addEventListener('load', () => {
-    setTimeout(window.syncFirebase, 2000);
+    setTimeout(() => {
+      // Si el localStorage está vacío (teléfono nuevo), cargar desde Firebase
+      const clientesLocales = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+      if (clientesLocales.length === 0) {
+        const usuarioKey = getUsuarioActivo();
+        if (usuarioKey && usuarioKey !== 'sin_usuario') {
+          get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
+            const data = snap.val();
+            if (data && data.clientes && data.clientes.length > 0) {
+              // Restaurar todo desde Firebase al localStorage
+              localStorage.setItem('clientes_v1', JSON.stringify(data.clientes));
+              if (data.historial) localStorage.setItem('hist_v3', JSON.stringify(data.historial));
+              if (data.porcentaje_interes) localStorage.setItem('porcentaje_interes', data.porcentaje_interes);
+              if (data.manuales) {
+                Object.keys(data.manuales).forEach(k => {
+                  localStorage.setItem(k, JSON.stringify(data.manuales[k]));
+                });
+              }
+              showToast('☁️ Datos restaurados desde la nube (' + data.clientes.length + ' clientes)');
+              setTimeout(() => location.reload(), 1500);
+            }
+          }).catch(e => console.warn('Error cargando desde Firebase:', e));
+        }
+      } else {
+        window.syncFirebase();
+      }
+    }, 2000);
   });
 
   // Sincronizar cada 5 minutos automáticamente
