@@ -2475,8 +2475,8 @@ function renderClientes(){
         <!-- Número del cliente -->
         <div style="min-width:28px;height:28px;background:#1a6eff;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:4px;flex-shrink:0">${numeroCliente+1}</div>
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden">
-            <div class="cliente-nombre" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👤 ${c.nombre}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <div class="cliente-nombre">👤 ${c.nombre}</div>
             ${c.cedula ? `<div style="font-size:11px;color:#888;font-weight:700;flex-shrink:0">🪪 ${c.cedula}</div>` : ""}
           </div>
           <div class="cliente-sub">
