@@ -866,6 +866,39 @@ body {
     </div>
   </div>
 
+  <!-- DIAGNÓSTICO FIREBASE -->
+  <div class="seccion" style="margin-top:14px;margin-bottom:20px">
+    <div class="seccion-titulo" style="background:linear-gradient(135deg,#0070f3,#0050cc)">☁️ Sincronización Firebase</div>
+
+    <!-- Estado actual -->
+    <div style="padding:14px 16px;border-bottom:1px solid #f0f0f0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:800;color:#111">Estado actual</div>
+        <button onclick="verificarEstadoFirebase()" style="padding:8px 16px;background:#0070f3;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🔄 Verificar</button>
+      </div>
+      <div id="firebase-estado-box" style="background:#f4f7ff;border-radius:12px;padding:12px 14px;border:2px solid #d0e0ff">
+        <div style="font-size:12px;color:#888;font-weight:700;text-align:center">Toca "Verificar" para comprobar el estado</div>
+      </div>
+    </div>
+
+    <!-- Botón sync manual -->
+    <div style="padding:14px 16px;border-bottom:1px solid #f0f0f0">
+      <div style="font-size:14px;font-weight:800;color:#111;margin-bottom:8px">Sincronización manual</div>
+      <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:10px">Fuerza una sincronización inmediata con la nube</div>
+      <button onclick="syncManualForzado()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0070f3,#0050cc);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">☁️ Sincronizar ahora</button>
+    </div>
+
+    <!-- Log de eventos -->
+    <div style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:800;color:#111">Registro de eventos</div>
+        <button onclick="limpiarLogSync()" style="padding:6px 12px;background:#f0f0f0;color:#666;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🗑️ Limpiar</button>
+      </div>
+      <div id="firebase-log-box" style="background:#0d1117;border-radius:12px;padding:12px;min-height:80px;max-height:200px;overflow-y:auto">
+        <div style="font-size:11px;color:#555;font-weight:600;text-align:center;margin-top:20px">Sin eventos registrados aún</div>
+      </div>
+    </div>
+  </div>
 
 </div><!-- fin pantallas -->
 </div><!-- fin app -->
@@ -5611,23 +5644,37 @@ document.addEventListener('DOMContentLoaded',()=>{
         historial_cedulas: historialCedulas
       };
 
-      // Protección: contar total de pagos locales vs Firebase
-      get(ref(db, rutaFirebase + '/clientes')).then(snap => {
-        const clientesFirebase = snap.val() || [];
-        const totalPagosFirebase = clientesFirebase.reduce((s,c) => s + (c.pagos||[]).length, 0);
-        const totalPagosLocal = backup.clientes.reduce((s,c) => s + (c.pagos||[]).length, 0);
-        if(totalPagosLocal >= totalPagosFirebase) {
+      // Protección: comparar por fecha de backup (el más reciente gana)
+      get(ref(db, rutaFirebase + '/fecha_backup')).then(snap => {
+        const fechaFirebase = snap.val() ? new Date(snap.val()).getTime() : 0;
+        const fechaLocal    = new Date(backup.fecha_backup).getTime();
+        if(fechaLocal >= fechaFirebase) {
           set(ref(db, rutaFirebase), backup)
-            .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + '] (' + totalPagosLocal + ' pagos)'))
-            .catch(e => { console.warn('⚠️ Error Firebase:', e); showToast('⚠️ Error al sincronizar con la nube'); });
+            .then(() => {
+              console.log('✅ Firebase sincronizado [' + usuarioKey + ']');
+              _registrarLogSync('ok', 'Sincronizado correctamente. Clientes: ' + backup.clientes.length + ', Pagos: ' + backup.clientes.reduce((s,c)=>s+(c.pagos||[]).length,0));
+            })
+            .catch(e => {
+              console.warn('⚠️ Error Firebase:', e);
+              showToast('⚠️ Error al sincronizar con la nube');
+              _registrarLogSync('error', 'Error al subir datos: ' + e.message);
+            });
         } else {
-          console.warn('⚠️ Sync cancelado: Firebase tiene más pagos (' + totalPagosFirebase + ' vs ' + totalPagosLocal + ')');
-          showToast('⚠️ Alerta: la nube tiene más datos que este teléfono. Haz backup desde el otro dispositivo.');
+          const msg = 'La nube tiene backup más reciente (' + new Date(fechaFirebase).toLocaleString('es-CO') + '). No se sobreescribió.';
+          console.warn('⚠️ ' + msg);
+          showToast('⚠️ La nube tiene datos más recientes. Recarga la app para actualizar.');
+          _registrarLogSync('alerta', msg);
         }
       }).catch(() => {
         set(ref(db, rutaFirebase), backup)
-          .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + ']'))
-          .catch(e => console.warn('⚠️ Error Firebase:', e));
+          .then(() => {
+            console.log('✅ Firebase sincronizado [' + usuarioKey + ']');
+            _registrarLogSync('ok', 'Sincronizado (sin comparación de fecha). Clientes: ' + backup.clientes.length);
+          })
+          .catch(e => {
+            console.warn('⚠️ Error Firebase:', e);
+            _registrarLogSync('error', 'Error al subir: ' + e.message);
+          });
       });
     } catch(e) {
       console.warn('⚠️ syncFirebase error:', e);
@@ -5690,6 +5737,129 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Sincronizar cada 5 minutos automáticamente
   setInterval(window.syncFirebase, 5 * 60 * 1000);
 
+  // ── DIAGNÓSTICO FIREBASE ──────────────────────────────────────────
+  const _syncLog = [];
+
+  window._registrarLogSync = function(tipo, mensaje) {
+    const hora = new Date().toLocaleTimeString('es-CO');
+    _syncLog.unshift({ tipo, mensaje, hora });
+    if (_syncLog.length > 30) _syncLog.pop();
+    // Actualizar panel si está visible
+    const box = document.getElementById('firebase-log-box');
+    if (box) _renderLogSync(box);
+  };
+
+  function _renderLogSync(box) {
+    if (!_syncLog.length) {
+      box.innerHTML = '<div style="font-size:11px;color:#555;font-weight:600;text-align:center;margin-top:20px">Sin eventos registrados aún</div>';
+      return;
+    }
+    const colores = { ok: '#00dd77', error: '#ff4455', alerta: '#ffbb00', info: '#88aaff' };
+    const iconos  = { ok: '✅', error: '❌', alerta: '⚠️', info: 'ℹ️' };
+    box.innerHTML = _syncLog.map(e => `
+      <div style="margin-bottom:6px;padding:6px 8px;background:#161b22;border-radius:8px;border-left:3px solid ${colores[e.tipo]||'#444'}">
+        <div style="font-size:10px;color:${colores[e.tipo]||'#aaa'};font-weight:800">${iconos[e.tipo]||'•'} ${e.hora}</div>
+        <div style="font-size:11px;color:#ccc;font-weight:600;margin-top:2px">${e.mensaje}</div>
+      </div>
+    `).join('');
+  }
+
+  window.verificarEstadoFirebase = async function() {
+    const box = document.getElementById('firebase-estado-box');
+    if (!box) return;
+    box.innerHTML = '<div style="font-size:12px;color:#888;font-weight:700;text-align:center">🔄 Verificando...</div>';
+
+    try {
+      const usuarioKey = getUsuarioActivo();
+      if (!usuarioKey || usuarioKey === 'sin_usuario') {
+        box.innerHTML = '<div style="color:#ff4455;font-size:13px;font-weight:800;text-align:center">❌ Sin usuario activo</div>';
+        return;
+      }
+
+      const snap = await get(ref(db, 'usuarios/' + usuarioKey));
+      const data = snap.val();
+
+      if (!data) {
+        box.innerHTML = '<div style="color:#ffbb00;font-size:13px;font-weight:800;text-align:center">⚠️ Sin datos en Firebase</div>';
+        return;
+      }
+
+      const clientesFirebase  = (data.clientes || []).length;
+      const pagosFirebase     = (data.clientes || []).reduce((s,c) => s+(c.pagos||[]).length, 0);
+      const clientesLocal     = JSON.parse(localStorage.getItem('clientes_v1')||'[]').length;
+      const pagosLocal        = JSON.parse(localStorage.getItem('clientes_v1')||'[]').reduce((s,c)=>s+(c.pagos||[]).length,0);
+      const fechaFB           = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : 'Desconocida';
+      const difClientes       = clientesLocal - clientesFirebase;
+      const difPagos          = pagosLocal - pagosFirebase;
+
+      const estadoColor = (difPagos >= 0 && difClientes >= 0) ? '#00cc55' : '#ff4455';
+      const estadoTexto = (difPagos >= 0 && difClientes >= 0) ? '🟢 Sincronizado' : '🔴 Desincronizado';
+      const difPagosTexto = difPagos >= 0 ? `+${difPagos} local` : `${Math.abs(difPagos)} más en nube`;
+      const difClientesTexto = difClientes >= 0 ? `+${difClientes} local` : `${Math.abs(difClientes)} más en nube`;
+
+      box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:15px;font-weight:900;color:${estadoColor}">${estadoTexto}</div>
+          <div style="font-size:11px;color:#888;font-weight:700">${fechaFB}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:#f0f4ff;border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:#888;font-weight:800;text-transform:uppercase">Clientes local</div>
+            <div style="font-size:20px;font-weight:900;color:#1a6eff">${clientesLocal}</div>
+          </div>
+          <div style="background:#f0f4ff;border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:#888;font-weight:800;text-transform:uppercase">Clientes nube</div>
+            <div style="font-size:20px;font-weight:900;color:#0050cc">${clientesFirebase}</div>
+          </div>
+          <div style="background:#f0fff4;border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:#888;font-weight:800;text-transform:uppercase">Pagos local</div>
+            <div style="font-size:20px;font-weight:900;color:#00aa44">${pagosLocal}</div>
+          </div>
+          <div style="background:#f0fff4;border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:#888;font-weight:800;text-transform:uppercase">Pagos nube</div>
+            <div style="font-size:20px;font-weight:900;color:#007733">${pagosFirebase}</div>
+          </div>
+        </div>
+        ${(difPagos < 0 || difClientes < 0) ? `
+        <div style="margin-top:10px;background:#fff0f0;border-radius:8px;padding:10px 12px;border:1px solid #ffcccc">
+          <div style="font-size:12px;font-weight:900;color:#cc0000;margin-bottom:4px">⚠️ Diferencias detectadas</div>
+          <div style="font-size:11px;color:#555;font-weight:700">Clientes: ${difClientesTexto}</div>
+          <div style="font-size:11px;color:#555;font-weight:700">Pagos: ${difPagosTexto}</div>
+          <div style="font-size:11px;color:#888;margin-top:6px">Toca "Sincronizar ahora" para intentar corregir.</div>
+        </div>` : ''}
+      `;
+
+      _registrarLogSync('info', 'Verificación: local=' + pagosLocal + ' pagos, nube=' + pagosFirebase + ' pagos');
+    } catch(e) {
+      box.innerHTML = '<div style="color:#ff4455;font-size:13px;font-weight:800;text-align:center">❌ Error al conectar con Firebase</div>';
+      _registrarLogSync('error', 'Error al verificar: ' + e.message);
+    }
+  };
+
+  window.syncManualForzado = function() {
+    _registrarLogSync('info', 'Sync manual iniciado por el usuario');
+    showToast('🔄 Sincronizando...');
+    window.syncFirebase();
+    setTimeout(() => verificarEstadoFirebase(), 3000);
+  };
+
+  window.limpiarLogSync = function() {
+    _syncLog.length = 0;
+    const box = document.getElementById('firebase-log-box');
+    if (box) _renderLogSync(box);
+  };
+
+  // Actualizar log al abrir ajustes
+  const _origIrA = window.irA;
+  if (typeof _origIrA === 'function') {
+    window.irA = function(p) {
+      _origIrA(p);
+      if (p === 'ajustes') {
+        const box = document.getElementById('firebase-log-box');
+        if (box) _renderLogSync(box);
+      }
+    };
+  }
 
 </script>
 
