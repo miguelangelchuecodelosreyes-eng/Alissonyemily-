@@ -457,8 +457,8 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy });
     }
 
-    // Sumar pagos por día
-    for (const c of activos) {
+    // Sumar pagos por día (todos los clientes, incluyendo cancelados del día)
+    for (const c of clientes) {
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
@@ -637,7 +637,8 @@ body {
         const activos = (d.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
         totalCartera += activos.reduce((s, c) => s + (c.saldo || 0), 0);
         totalVencidos += activos.filter(c => (c.diasVencido || 0) > 0).length;
-        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) totalHoy += (p.monto || 0); }));
+        // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
+        (d.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) totalHoy += (p.monto || 0); }));
       });
 
       resumen.innerHTML = `
@@ -667,7 +668,8 @@ body {
         const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
         const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
         let cobradoHoy = 0;
-        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
+        // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
+        (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
         const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '—';
 
         const card = document.createElement('div');
@@ -723,7 +725,8 @@ body {
     const entradas = cuentas.entradas || {};
     const salidas = cuentas.salidas || {};
     let cobradoHoy = 0;
-    activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
+    // Sumar pagos de HOY de TODOS los clientes (incluyendo cancelados)
+    (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
     const eBase = parseFloat(entradas.base || 0);
     const eGeneral = cobradoHoy;
     const ePapeleria = parseFloat(entradas.papeleria || 0);
@@ -746,7 +749,8 @@ body {
       const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       dias.push({ n: nombresDia[i], f, t: 0, hoy: f === hoy });
     }
-    activos.forEach(c => (c.pagos || []).forEach(p => {
+    // Plenos semana: todos los clientes incluyendo cancelados
+    (data.clientes || []).forEach(c => (c.pagos || []).forEach(p => {
       const d = dias.find(x => x.f === p.fecha);
       if (d) d.t += parseFloat(p.monto || 0);
     }));
