@@ -776,6 +776,15 @@ body {
 <!-- ======= AJUSTES ======= -->
 <div class="pantalla" id="pantalla-ajustes">
 
+  <!-- DIAGNÓSTICO FIREBASE -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo" style="background:#0d1117;color:#1a6eff">🔧 Diagnóstico Firebase</div>
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px;line-height:1.5">Muestra en tiempo real lo que hace Firebase: si sube los datos, si hay errores, o por qué no sincroniza.</div>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?'))" style="width:100%;padding:14px;background:#0d1117;color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
+    </div>
+  </div>
+
   <!-- COPIA DE SEGURIDAD -->
   <div class="seccion" style="margin-top:14px">
     <div class="seccion-titulo titulo-verde">💾 Copia de seguridad</div>
@@ -1699,7 +1708,8 @@ function renderSemana(){
 
 // ===== CLIENTES =====
 function getClientes(){return JSON.parse(lsGet('clientes_v1')||'[]');}
-function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c));}
+function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); if(typeof window.syncFirebase==='function') setTimeout(window.syncFirebase,500);}
+window.saveClientes = saveClientes;
 
 // Cálculo préstamo con porcentaje configurable
 function getPorcentaje(){ return parseFloat(lsGet('porcentaje_interes')||'20')||20; }
@@ -5525,6 +5535,30 @@ document.addEventListener('DOMContentLoaded',()=>{
 </div>
 
 
+
+<!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #1a6eff;max-height:45vh;overflow-y:auto;font-family:monospace">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
+    <span style="color:#1a6eff;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
+    <div style="display:flex;gap:8px">
+      <button onclick="window.syncFirebase && window.syncFirebase()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Sync ahora</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
+</div>
+
+<script>
+function addLog(msg) {
+  const log = document.getElementById('diag-log');
+  if (!log) return;
+  const time = new Date().toLocaleTimeString('es-CO');
+  const color = msg.startsWith('✅') ? '#3fb950' : msg.startsWith('❌') ? '#f85149' : '#e3b341';
+  log.innerHTML = '<div style="color:' + color + '">[' + time + '] ' + msg + '</div>' + log.innerHTML;
+}
+</script>
+
 <!-- ===== FIREBASE SYNC ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -5617,16 +5651,19 @@ document.addEventListener('DOMContentLoaded',()=>{
         const fechaLocal    = new Date(backup.fecha_backup).getTime();
         if(fechaLocal >= fechaFirebase) {
           set(ref(db, rutaFirebase), backup)
-            .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + '] (backup más reciente)'))
-            .catch(e => { console.warn('⚠️ Error Firebase:', e); showToast('⚠️ Error al sincronizar con la nube'); });
+            .then(() => { console.log('✅ Firebase sincronizado'); addLog('✅ Sync OK — ' + backup.clientes.length + ' clientes, fecha: ' + backup.fecha_backup); })
+            .catch(e => { console.warn('⚠️ Error Firebase:', e); addLog('❌ Error al subir: ' + e.message); showToast('⚠️ Error al sincronizar con la nube'); });
         } else {
-          console.warn('⚠️ Firebase tiene backup más reciente, no se sobreescribe.');
-          showToast('⚠️ La nube tiene datos más recientes. Recarga la app para actualizar.');
+          const msg = '⚠️ Firebase más reciente: ' + snap.val() + ' vs local: ' + backup.fecha_backup;
+          console.warn(msg);
+          addLog(msg);
+          showToast('⚠️ La nube tiene datos más recientes. Recarga la app.');
         }
-      }).catch(() => {
+      }).catch(e => {
+        addLog('⚠️ No se pudo leer fecha_backup de Firebase: ' + e.message + ' — subiendo de todas formas');
         set(ref(db, rutaFirebase), backup)
-          .then(() => console.log('✅ Firebase sincronizado [' + usuarioKey + ']'))
-          .catch(e => console.warn('⚠️ Error Firebase:', e));
+          .then(() => { console.log('✅ Firebase sincronizado (fallback)'); addLog('✅ Sync OK (fallback)'); })
+          .catch(e => { console.warn('⚠️ Error Firebase:', e); addLog('❌ Error fallback: ' + e.message); });
       });
     } catch(e) {
       console.warn('⚠️ syncFirebase error:', e);
