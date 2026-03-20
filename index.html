@@ -2476,24 +2476,29 @@ function renderClientes(){
     <div class="cliente-card" id="card-${c.id}">
       <div class="cliente-card-header" onclick="toggleBody('${c.id}')" >
         <!-- Número del cliente -->
-        <div style="min-width:28px;height:28px;background:#1a6eff;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:4px;flex-shrink:0">${numeroCliente+1}</div>
-        <div style="flex:1;min-width:0">
+        <div style="min-width:28px;height:28px;background:#1a6eff;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:6px;flex-shrink:0;align-self:flex-start;margin-top:4px">${numeroCliente+1}</div>
+        <!-- Info izquierda -->
+        <div style="flex:1;min-width:0;overflow:hidden">
           <div class="cliente-nombre">👤 ${c.nombre}</div>
-          <div class="cliente-sub">
+          <!-- Fila badges -->
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:3px">
             ${c.cedula ? `<span style="font-size:11px;color:#888;font-weight:700">🪪 ${c.cedula}</span>` : ""}
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
-            ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:8px;padding:2px 9px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
-            ${fechaPrestamo ? `<span style="color:#888">📅 ${fechaBonita(fechaPrestamo).split(' de ').slice(0,2).join(' de ')}</span>` : ''}
-
+            ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
           </div>
-          ${debe ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</div>` : ''}
+          <!-- Fecha -->
+          ${fechaPrestamo ? `<div style="font-size:11px;color:#999;font-weight:700;margin-top:2px">📅 ${fechaBonita(fechaPrestamo)}</div>` : ''}
+          <!-- Atraso -->
+          ${debe ? `<div style="margin-top:3px;font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</div>` : ''}
         </div>
-        <div style="min-width:60px;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0">
-          ${pagadoHoy > 0 ? `<div style="background:#00e65c;color:black;border-radius:10px;padding:5px 10px;font-size:15px;font-weight:900;white-space:nowrap;text-align:center">+${fmt(pagadoHoy)}</div>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-left:4px">
-          ${diasStr ? `<div style="font-size:11px;font-weight:800;color:#8b00ff;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
-          ${cuotaDia > 0 ? `<div style="background:#1a6eff;border:none;border-radius:10px;padding:5px 12px;font-size:15px;font-weight:900;color:white;text-align:center;box-shadow:0 3px 10px rgba(26,110,255,0.45)">${fmt(cuotaDia)}</div>` : ''}
+        <!-- Columna derecha: pago hoy + cuota + saldo -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:6px;flex-shrink:0;min-width:68px">
+          ${diasStr ? `<div style="font-size:10px;font-weight:800;color:#8b00ff;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
+          ${pagadoHoy > 0
+            ? `<div style="background:#00e65c;color:#004d1a;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;white-space:nowrap;text-align:center">+${fmt(pagadoHoy)}</div>`
+            : (cuotaDia > 0 ? `<div style="background:#1a6eff;border-radius:10px;padding:5px 12px;font-size:15px;font-weight:900;color:white;text-align:center;box-shadow:0 3px 10px rgba(26,110,255,0.35)">${fmt(cuotaDia)}</div>` : '')
+          }
+          ${pagadoHoy > 0 && cuotaDia > 0 ? `<div style="background:#1a6eff;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;color:white;text-align:center">${fmt(cuotaDia)}</div>` : ''}
           <div style="text-align:center">
             <div class="saldo-label">SALDO</div>
             <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
