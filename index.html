@@ -1292,7 +1292,10 @@ function fechaBonita(f) {
   if(!f) return '';
   const [y,m,d]=f.split('-');
   const mes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  return `${parseInt(d)} de ${mes[parseInt(m)-1]} de ${y}`;
+  const diasSemana=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const fecha=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+  const dia=diasSemana[fecha.getDay()];
+  return `${dia} ${parseInt(d)}-${mes[parseInt(m)-1]}-${y}`;
 }
 function showToast(msg) {
   const t=document.getElementById('toast');
