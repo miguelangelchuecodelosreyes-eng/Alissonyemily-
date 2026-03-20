@@ -445,7 +445,8 @@ body {
 
   function mostrarResumen(data) {
     const clientes = data.clientes || [];
-    const activos = clientes.filter(c => !c.cancelado && !c.renovado);
+    // Usar todos los clientes para sumar pagos reales de la semana
+    const activos = clientes;
     const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
 
     // Fecha local
@@ -478,6 +479,7 @@ body {
       }
     }
 
+    const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
     const filasHtml = dias.map(d => `
       <div style="display:flex;justify-content:space-between;align-items:center;
         padding:10px 14px;border-radius:12px;margin-bottom:6px;
@@ -499,7 +501,7 @@ body {
           <div class="stat-label">Total Clientes</div>
         </div>
         <div class="stat-box">
-          <div class="stat-num">${activos.length}</div>
+          <div class="stat-num">${clientesActivos.length}</div>
           <div class="stat-label">Activos</div>
         </div>
       </div>
