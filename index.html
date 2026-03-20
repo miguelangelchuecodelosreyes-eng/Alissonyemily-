@@ -420,7 +420,11 @@ body {
     </div>
     <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
-  <div id="header-versiculo" style="margin:8px 0 2px;background:rgba(255,255,255,0.13);border-radius:10px;padding:7px 12px;font-size:11px;color:rgba(255,255,255,0.93);font-style:italic;line-height:1.5;text-align:center;border:1px solid rgba(255,255,255,0.18)">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px">
+    <div id="sync-status-badge" style="font-size:11px;font-weight:800;color:#aaa;flex:1">⏳ Sin sincronizar</div>
+    <button onclick="window.syncForzado && window.syncForzado()" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer">⚡ Guardar ya</button>
+  </div>
+  <div id="header-versiculo" style="margin:2px 0 2px;background:rgba(255,255,255,0.13);border-radius:10px;padding:7px 12px;font-size:11px;color:rgba(255,255,255,0.93);font-style:italic;line-height:1.5;text-align:center;border:1px solid rgba(255,255,255,0.18)">
     <span id="header-versiculo-text"></span>
   </div>
   <div class="nav-tabs">
@@ -1415,7 +1419,16 @@ function cerrarSesion() {
     '¿Segura que quieres cerrar sesión?',
     '#1a6eff',
     () => {
+      // Sync final antes de cerrar
+      if (typeof window.syncFirebase === 'function') {
+        window.syncFirebase(false);
+      }
       lsRemove('cobrador_sesion');
+      // Limpiar campos de login
+      const uEl = document.getElementById('login-usuario');
+      const cEl = document.getElementById('login-clave');
+      if (uEl) uEl.value = '';
+      if (cEl) cEl.value = '';
       document.getElementById('app').style.display='none';
       document.getElementById('pantalla-login').style.display='flex';
     }
@@ -5514,11 +5527,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!creds){
     document.getElementById('pantalla-login').style.display='none';
     document.getElementById('pantalla-registro').style.display='flex';
-  } else if(lsGet('cobrador_sesion')==='ok'){
-    document.getElementById('pantalla-login').style.display='none';
-    document.getElementById('app').style.display='block';
-    iniciarApp();
   }
+  // Sesión NO persistente: siempre mostrar login al abrir
 });
 </script>
 
@@ -5547,7 +5557,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
     <span style="color:#1a6eff;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
     <div style="display:flex;gap:8px">
-      <button onclick="window.syncFirebase && window.syncFirebase()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Sync ahora</button>
+      <button onclick="window.syncForzado && window.syncForzado()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
       <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
       <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
     </div>
@@ -5591,97 +5601,148 @@ function addLog(msg) {
     } catch(e) { return 'sin_usuario'; }
   }
 
+  // ---- ESTADO DE SYNC ----
+  let _syncPendiente = false;
+  let _syncReintentosMax = 3;
+  let _syncReintentos = 0;
+
+  function construirBackup() {
+    const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+    const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+    const credenciales = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
+    const porcentaje = localStorage.getItem('porcentaje_interes') || '20';
+    const historialCedulas = JSON.parse(localStorage.getItem('historial_cedulas_v1') || '[]');
+    const manuales = {};
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('sup_manual_')){
+        try { manuales[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
+      }
+    }
+    const hoyKey = (function(){
+      const d = new Date();
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    })();
+    const manualHoy = JSON.parse(localStorage.getItem('sup_manual_'+hoyKey) || '{}');
+    const prestamosHoy = clientes.reduce((s, c) => {
+      if ((c.fechaCreado || '').startsWith(hoyKey) && c.renovaciones === 0) return s + (c.capital || 0);
+      if ((c.fechaRenovacion || '').startsWith(hoyKey)) {
+        const ult = (c.historialRenovaciones || []).slice(-1)[0];
+        return s + (ult ? (ult.nuevoCapital || 0) : 0);
+      }
+      return s;
+    }, 0);
+    const cuentas_dia = {
+      fecha: hoyKey,
+      entradas: { base: manualHoy.base || 0, papeleria: manualHoy.papeleria || 0 },
+      salidas: { prestamos: prestamosHoy, neki: manualHoy.neki || 0, gasto: manualHoy.gasto || 0 },
+      entregado_oficina: manualHoy.entregado || 0
+    };
+    return { version: 2, fecha_backup: new Date().toISOString(), clientes, historial, credenciales, porcentaje_interes: porcentaje, manuales, cuentas_dia, historial_cedulas: historialCedulas };
+  }
+
+  function actualizarIndicadorSync(estado) {
+    // estado: 'ok' | 'syncing' | 'error' | 'pendiente'
+    const badge = document.getElementById('sync-status-badge');
+    if (!badge) return;
+    const estados = {
+      ok:       { text: '☁️ Guardado en la nube', color: '#00cc55' },
+      syncing:  { text: '🔄 Sincronizando...', color: '#e07b00' },
+      error:    { text: '🔴 Error al guardar — reintentando', color: '#ff2222' },
+      pendiente:{ text: '⏳ Pendiente de sync', color: '#e07b00' }
+    };
+    const e = estados[estado] || estados.pendiente;
+    badge.textContent = e.text;
+    badge.style.color = e.color;
+  }
+
   // Función global para subir datos a Firebase
-  window.syncFirebase = function() {
+  window.syncFirebase = function(forzado = false) {
     try {
       const usuarioKey = getUsuarioActivo();
+      if (!usuarioKey || usuarioKey === 'sin_usuario') return;
       const rutaFirebase = 'usuarios/' + usuarioKey;
+      const backup = construirBackup();
 
-      const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
-      const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
-      const credenciales = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
-      const porcentaje = localStorage.getItem('porcentaje_interes') || '20';
-      const historialCedulas = JSON.parse(localStorage.getItem('historial_cedulas_v1') || '[]');
-
-      // Recolectar manuales
-      const manuales = {};
-      for(let i = 0; i < localStorage.length; i++){
-        const k = localStorage.key(i);
-        if(k && k.startsWith('sup_manual_')){
-          try { manuales[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
-        }
-      }
-
-      // Cuentas del día de hoy en formato que lee backup.html
-      const hoyKey = (function(){
-        const d = new Date();
-        return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      })();
-      const manualHoy = JSON.parse(localStorage.getItem('sup_manual_'+hoyKey) || '{}');
-      // Calcular préstamos del día (capital entregado a clientes nuevos/renovados hoy)
-      const prestamosHoy = clientes.reduce((s, c) => {
-        if ((c.fechaCreado || '').startsWith(hoyKey) && c.renovaciones === 0) return s + (c.capital || 0);
-        if ((c.fechaRenovacion || '').startsWith(hoyKey)) {
-          const ult = (c.historialRenovaciones || []).slice(-1)[0];
-          return s + (ult ? (ult.nuevoCapital || 0) : 0);
-        }
-        return s;
-      }, 0);
-      const cuentas_dia = {
-        fecha: hoyKey,
-        entradas: {
-          base: manualHoy.base || 0,
-          papeleria: manualHoy.papeleria || 0
-        },
-        salidas: {
-          prestamos: prestamosHoy,
-          neki: manualHoy.neki || 0,
-          gasto: manualHoy.gasto || 0
-        },
-        entregado_oficina: manualHoy.entregado || 0
-      };
-
-      const backup = {
-        version: 2,
-        fecha_backup: new Date().toISOString(),
-        clientes, historial, credenciales,
-        porcentaje_interes: porcentaje,
-        manuales,
-        cuentas_dia,
-        historial_cedulas: historialCedulas
-      };
+      actualizarIndicadorSync('syncing');
+      addLog((forzado ? '⚡ Sync FORZADO' : '🔄 Sync automático') + ' — ' + backup.clientes.length + ' clientes');
 
       // Protección: comparar por fecha de backup (el más reciente gana)
       get(ref(db, rutaFirebase + '/fecha_backup')).then(snap => {
         const fechaFirebase = snap.val() ? new Date(snap.val()).getTime() : 0;
-        const fechaLocal    = new Date(backup.fecha_backup).getTime();
-        if(fechaLocal >= fechaFirebase) {
+        const fechaLocal = new Date(backup.fecha_backup).getTime();
+        if(fechaLocal >= fechaFirebase || forzado) {
           set(ref(db, rutaFirebase), backup)
-            .then(() => { console.log('✅ Firebase sincronizado'); addLog('✅ Sync OK — ' + backup.clientes.length + ' clientes, fecha: ' + backup.fecha_backup); })
-            .catch(e => { console.warn('⚠️ Error Firebase:', e); addLog('❌ Error al subir: ' + e.message); showToast('⚠️ Error al sincronizar con la nube'); });
+            .then(() => {
+              _syncReintentos = 0;
+              _syncPendiente = false;
+              actualizarIndicadorSync('ok');
+              addLog('✅ Guardado OK — ' + backup.clientes.length + ' clientes en la nube (' + new Date().toLocaleTimeString('es-CO') + ')');
+              if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
+            })
+            .catch(e => {
+              actualizarIndicadorSync('error');
+              addLog('❌ Error al guardar: ' + e.message);
+              _syncPendiente = true;
+              if (_syncReintentos < _syncReintentosMax) {
+                _syncReintentos++;
+                addLog('🔁 Reintentando en 10s... (intento ' + _syncReintentos + '/' + _syncReintentosMax + ')');
+                setTimeout(() => window.syncFirebase(), 10000);
+              } else {
+                addLog('🔴 Falló después de ' + _syncReintentosMax + ' intentos. Verifica tu conexión.');
+                showToast('🔴 No se pudo guardar en la nube. Verifica internet.');
+              }
+            });
         } else {
-          const msg = '⚠️ Firebase más reciente: ' + snap.val() + ' vs local: ' + backup.fecha_backup;
-          console.warn(msg);
+          const msg = '⚠️ La nube tiene datos más recientes (' + snap.val() + ')';
           addLog(msg);
-          showToast('⚠️ La nube tiene datos más recientes. Recarga la app.');
+          if (forzado) showToast('⚠️ La nube tiene datos más recientes. ¿Quieres forzar igual?');
         }
       }).catch(e => {
-        addLog('⚠️ No se pudo leer fecha_backup de Firebase: ' + e.message + ' — subiendo de todas formas');
+        addLog('⚠️ No se pudo verificar fecha — subiendo de todas formas');
         set(ref(db, rutaFirebase), backup)
-          .then(() => { console.log('✅ Firebase sincronizado (fallback)'); addLog('✅ Sync OK (fallback)'); })
-          .catch(e => { console.warn('⚠️ Error Firebase:', e); addLog('❌ Error fallback: ' + e.message); });
+          .then(() => {
+            actualizarIndicadorSync('ok');
+            addLog('✅ Guardado OK (fallback) — ' + backup.clientes.length + ' clientes');
+            if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
+          })
+          .catch(e2 => {
+            actualizarIndicadorSync('error');
+            addLog('❌ Error fallback: ' + e2.message);
+            _syncPendiente = true;
+          });
       });
     } catch(e) {
-      console.warn('⚠️ syncFirebase error:', e);
+      addLog('❌ syncFirebase excepción: ' + e.message);
     }
   };
+
+  // Sync forzado desde botón
+  window.syncForzado = function() { window.syncFirebase(true); };
+
+  // Monitor de conexión en tiempo real
+  const connRef = ref(db, '.info/connected');
+  onValue(connRef, (snap) => {
+    const conectado = snap.val();
+    if (conectado) {
+      addLog('🟢 Conexión a Firebase activa');
+      if (_syncPendiente) {
+        addLog('🔁 Reconectado — reintentando sync pendiente...');
+        setTimeout(() => window.syncFirebase(), 1000);
+      }
+    } else {
+      addLog('🔴 Sin conexión a Firebase');
+      actualizarIndicadorSync('error');
+    }
+  });
 
   // Interceptar saveClientes para auto-sincronizar
   const _origSaveClientes = window.saveClientes;
   if(typeof _origSaveClientes === 'function'){
     window.saveClientes = function(c){
       _origSaveClientes(c);
-      setTimeout(window.syncFirebase, 500);
+      actualizarIndicadorSync('pendiente');
+      setTimeout(() => window.syncFirebase(false), 800);
     };
   }
 
@@ -5730,7 +5791,7 @@ function addLog(msg) {
   });
 
   // Sincronizar cada 5 minutos automáticamente
-  setInterval(window.syncFirebase, 5 * 60 * 1000);
+  setInterval(() => window.syncFirebase(false), 5 * 60 * 1000);
 
 
 </script>
