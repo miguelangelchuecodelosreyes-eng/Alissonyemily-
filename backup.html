@@ -245,6 +245,20 @@ body {
     </div>
   </div>
 
+  <!-- DIAGNÓSTICO -->
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff">🔧 Diagnóstico del Sistema</div>
+    <div class="card-body">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="window.correrDiagnostico()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
+        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
+      </div>
+      <div id="diagnostico-logs" style="min-height:40px;max-height:200px;overflow-y:auto">
+        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:10px">Toca "Correr diagnóstico" para revisar el sistema</div>
+      </div>
+    </div>
+  </div>
+
   <!-- DESCARGAR -->
   <div class="card">
     <div class="card-header bg-green">⬇️ Descargar Copia</div>
@@ -418,25 +432,96 @@ body {
     window._fbRemoveFn = { remove };
   }
 
+  // ---- DIAGNÓSTICO LOGS ----
+  const _diagLogs = [];
+  function agregarLog(msg, tipo) {
+    const hora = new Date().toLocaleTimeString('es-CO');
+    _diagLogs.unshift({ msg, tipo, hora });
+    if (_diagLogs.length > 30) _diagLogs.pop();
+    renderDiagnostico();
+  }
+  function renderDiagnostico() {
+    const el = document.getElementById('diagnostico-logs');
+    if (!el) return;
+    const colores = { ok: '#00cc55', warn: '#e07b00', error: '#ff2222', info: '#1a6eff' };
+    el.innerHTML = _diagLogs.map(l =>
+      '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0">' +
+      '<span style="font-size:10px;color:#aaa;font-weight:700;white-space:nowrap;margin-top:1px">' + l.hora + '</span>' +
+      '<span style="font-size:12px;font-weight:800;color:' + (colores[l.tipo]||'#333') + ';line-height:1.4">' + l.msg + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  window.correrDiagnostico = function() {
+    agregarLog('🔍 Corriendo diagnóstico...', 'info');
+    if (!backupData) { agregarLog('🔴 Sin datos — posible problema de conexión', 'error'); return; }
+    agregarLog('🟢 Firebase conectado y con datos', 'ok');
+    if (backupData.fecha_backup) {
+      const mins = Math.floor((Date.now() - new Date(backupData.fecha_backup).getTime()) / 60000);
+      if (mins > 60) agregarLog('⚠️ Último sync hace ' + mins + ' min — abre la app para sincronizar', 'warn');
+      else agregarLog('✅ Datos frescos — último sync hace ' + mins + ' min', 'ok');
+    } else {
+      agregarLog('⚠️ Sin fecha de backup registrada', 'warn');
+    }
+    const clientes = backupData.clientes || [];
+    agregarLog('📋 Total clientes en Firebase: ' + clientes.length, 'info');
+    const activos = clientes.filter(c => (c.saldo || 0) > 0);
+    agregarLog('✅ Clientes activos (con saldo): ' + activos.length, 'info');
+    const sinCuota = clientes.filter(c => !c.cuotaSugerida || c.cuotaSugerida <= 0);
+    if (sinCuota.length > 0) agregarLog('⚠️ ' + sinCuota.length + ' clientes sin cuota asignada', 'warn');
+    else agregarLog('✅ Todos los clientes tienen cuota asignada', 'ok');
+    const negativos = clientes.filter(c => (c.saldo || 0) < 0);
+    if (negativos.length > 0) agregarLog('🔴 Saldos negativos: ' + negativos.map(c=>c.nombre).join(', '), 'error');
+    else agregarLog('✅ Sin saldos negativos', 'ok');
+    agregarLog('✅ Diagnóstico completado', 'ok');
+  };
+
+  window.toggleDetalleDia = function(idx) {
+    const el = document.getElementById('detalle-dia-' + idx);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  };
+
   function escucharDatos() {
     document.getElementById('sync-badge').textContent = '⏳ Conectando...';
+
+    // Monitor conexión Firebase
+    const connRef = ref(db, '.info/connected');
+    onValue(connRef, snap => {
+      if (snap.val()) {
+        agregarLog('🟢 Conexión Firebase activa', 'ok');
+      } else {
+        agregarLog('🔴 Sin conexión a Firebase', 'error');
+        document.getElementById('sync-badge').textContent = '🔴 Sin conexión';
+      }
+    });
+
     onValue(dbRef, (snapshot) => {
       const data = snapshot.val();
       if(data) {
         backupData = data;
+        const ahora = new Date().toLocaleTimeString('es-CO');
         document.getElementById('sync-badge').textContent = '🟢 Conectado en tiempo real';
         mostrarResumen(data);
         mostrarClientes(data.clientes || []);
         cargarPanelAdmin();
         const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
         document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
+        // Log con detalles
+        const mins = data.fecha_backup ? Math.floor((Date.now() - new Date(data.fecha_backup).getTime()) / 60000) : null;
+        const nClientes = (data.clientes || []).length;
+        agregarLog('📥 Datos recibidos — ' + nClientes + ' clientes' + (mins !== null ? ', sync hace ' + mins + ' min' : ''), 'ok');
+        if (mins !== null && mins > 30) {
+          agregarLog('⚠️ Datos desactualizados (' + mins + ' min) — abre la app para sincronizar', 'warn');
+        }
       } else {
         document.getElementById('sync-badge').textContent = '⚠️ Sin datos aún';
+        agregarLog('⚠️ Firebase conectado pero sin datos — abre la app', 'warn');
         document.getElementById('stats-area').innerHTML = '<div class="no-data">⚠️ La app aún no ha enviado datos.<br>Abre la app y espera unos segundos.</div>';
         document.getElementById('clientes-area').innerHTML = '<div class="no-data">Sin clientes</div>';
       }
     }, (error) => {
       document.getElementById('sync-badge').textContent = '🔴 Error de conexión';
+      agregarLog('🔴 Error Firebase: ' + error.message, 'error');
       console.error(error);
     });
   }
@@ -467,29 +552,42 @@ body {
       const d = new Date(lunesDate);
       d.setDate(lunesDate.getDate() + i);
       const fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-      dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy });
+      dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día
+    // Sumar pagos por día (con lista de quién pagó)
     for (const c of activos) {
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
-        if (dia) dia.total += parseFloat(p.monto || 0);
+        if (dia) {
+          dia.total += parseFloat(p.monto || 0);
+          dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+        }
       }
     }
 
     const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
-    const filasHtml = dias.map(d => `
-      <div style="display:flex;justify-content:space-between;align-items:center;
-        padding:10px 14px;border-radius:12px;margin-bottom:6px;
-        background:${d.esHoy ? '#e8fff0' : '#f4f7ff'};
-        border:2px solid ${d.esHoy ? '#00cc55' : '#e0e8ff'}">
-        <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : '#666'}">
-          ${d.esHoy ? '👉' : '📅'} ${d.nombre}
+    const filasHtml = dias.map((d, idx) => `
+      <div onclick="window.toggleDetalleDia(${idx})" style="cursor:pointer;border-radius:12px;margin-bottom:6px;overflow:hidden;border:2px solid ${d.esHoy ? '#00cc55' : '#e0e8ff'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:${d.esHoy ? '#e8fff0' : '#f4f7ff'}">
+          <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : '#666'}">
+            ${d.esHoy ? '👉' : '📅'} ${d.nombre}
+            ${d.pagos.length > 0 ? '<span style="font-size:10px;color:#999;margin-left:5px">('+d.pagos.length+' pagos)</span>' : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : '#1a6eff') : '#ccc'}">${d.total > 0 ? fmt(d.total) : '-'}</div>
+            ${d.pagos.length > 0 ? '<span style="font-size:11px;color:#aaa">▼</span>' : ''}
+          </div>
         </div>
-        <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : '#1a6eff') : '#ccc'}">
-          ${d.total > 0 ? fmt(d.total) : '-'}
+        <div id="detalle-dia-${idx}" style="display:none;background:white;padding:8px 12px;border-top:1px solid #e0e8ff">
+          ${d.pagos.length === 0 ? '<div style="font-size:12px;color:#ccc;text-align:center;padding:6px">Sin pagos</div>' :
+            d.pagos.map(p => '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-weight:700;color:#333">👤 '+p.nombre+'</span><span style="font-weight:900;color:#1a6eff">'+fmt(p.monto)+'</span></div>').join('')
+          }
+          <div style="display:flex;justify-content:space-between;padding:7px 0 3px;font-size:13px;font-weight:900">
+            <span style="color:#555">TOTAL</span>
+            <span style="color:${d.esHoy ? '#00aa44' : '#1a6eff'}">${fmt(d.total)}</span>
+          </div>
         </div>
       </div>
     `).join('');
