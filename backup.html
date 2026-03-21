@@ -372,8 +372,7 @@ body {
   }
 
   function guardarSesion(usuario) {
-    const ahora = new Date();
-    const expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
+    const expira = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
     localStorage.setItem('ae_sesion_backup', JSON.stringify({ expira, usuario }));
   }
 
@@ -384,7 +383,6 @@ body {
     document.getElementById('app-screen').style.display = 'block';
     // Restaurar disponible para todos
     iniciarFirebase();
-    setInterval(() => { if (!horaPermitida()) cerrarSesion(); }, 60000);
   }
 
   function cerrarSesion() {
@@ -397,6 +395,7 @@ body {
   }
 
   (function() {
+    localStorage.removeItem('ae_sesion_backup'); // limpiar sesión vieja
     if (sesionValida()) abrirApp(usuarioActual);
   })();
 
