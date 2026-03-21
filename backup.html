@@ -245,25 +245,17 @@ body {
     </div>
   </div>
 
-  <!-- FORZAR SYNC -->
-  <div class="card">
-    <div class="card-header" style="background:linear-gradient(135deg,#e07b00,#a05000);color:white">⚡ Forzar Sincronización</div>
-    <div class="card-body">
-      <p style="font-size:12px;color:#888;font-weight:700;margin-bottom:10px;line-height:1.5">Ordena a la APK que suba sus datos ahora mismo y recarga los datos aquí.</p>
-      <button id="btn-fsync" onclick="window.forzarSync()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e07b00,#a05000);color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:8px">⚡ Forzar sync ahora</button>
-      <div id="fsync-estado" style="font-size:12px;font-weight:800;color:#888;text-align:center;min-height:18px"></div>
-    </div>
-  </div>
-
   <!-- DIAGNÓSTICO -->
   <div class="card">
     <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff">🔧 Diagnóstico del Sistema</div>
     <div class="card-body">
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button id="btn-diag" onclick="window.toggleDiag()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
-        <button onclick="document.getElementById('diagnostico-logs').innerHTML='';document.getElementById('diagnostico-logs').style.display='none';window._dv=false;document.getElementById('btn-diag').textContent='🔍 Correr diagnóstico'" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
+        <button onclick="window.correrDiagnostico()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
+        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
       </div>
-      <div id="diagnostico-logs" style="display:none;min-height:40px;max-height:200px;overflow-y:auto"></div>
+      <div id="diagnostico-logs" style="min-height:40px;max-height:200px;overflow-y:auto">
+        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:10px">Toca "Correr diagnóstico" para revisar el sistema</div>
+      </div>
     </div>
   </div>
 
@@ -1014,60 +1006,6 @@ body {
     const modal = document.getElementById('modal-reporte');
     modal.style.display = 'flex';
   }
-
-  // ---- TOGGLE DIAGNÓSTICO ----
-  window._dv = false;
-  window.toggleDiag = function() {
-    const logs = document.getElementById('diagnostico-logs');
-    const btn = document.getElementById('btn-diag');
-    if (window._dv) {
-      logs.style.display = 'none';
-      window._dv = false;
-      btn.textContent = '🔍 Correr diagnóstico';
-    } else {
-      window.correrDiagnostico();
-      logs.style.display = 'block';
-      window._dv = true;
-      btn.textContent = '🙈 Ocultar diagnóstico';
-    }
-  };
-
-  // ---- FORZAR SYNC ----
-  window.forzarSync = async function() {
-    const btn = document.getElementById('btn-fsync');
-    const estado = document.getElementById('fsync-estado');
-    if (!usuarioActual) { toast('⚠️ Debes iniciar sesión'); return; }
-    btn.disabled = true;
-    btn.textContent = '⏳ Enviando señal...';
-    estado.style.color = '#e07b00';
-    estado.textContent = 'Escribiendo señal en Firebase...';
-    try {
-      await set(ref(db, 'usuarios/' + usuarioActual + '/sync_request'), Date.now());
-      estado.textContent = '📡 Señal enviada — esperando APK...';
-      setTimeout(() => {
-        get(ref(db, 'usuarios/' + usuarioActual)).then(snap => {
-          const data = snap.val();
-          if (data) {
-            backupData = data;
-            mostrarResumen(data);
-            mostrarClientes(data.clientes || []);
-            const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
-            document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
-            estado.style.color = '#00cc55';
-            estado.textContent = '✅ ' + (data.clientes||[]).length + ' clientes actualizados';
-            toast('✅ Sync completado');
-          }
-          btn.disabled = false;
-          btn.textContent = '⚡ Forzar sync ahora';
-        }).catch(() => { btn.disabled = false; btn.textContent = '⚡ Forzar sync ahora'; });
-      }, 4000);
-    } catch(e) {
-      estado.style.color = '#ff2222';
-      estado.textContent = '❌ ' + e.message;
-      btn.disabled = false;
-      btn.textContent = '⚡ Forzar sync ahora';
-    }
-  };
-
+</script>
 </body>
 </html>
