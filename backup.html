@@ -555,14 +555,26 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (con lista de quién pagó)
+    // Sumar pagos por día (ciclo actual + pagos de renovaciones de esta semana)
     for (const c of activos) {
+      // Pagos del ciclo actual
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (dia) {
           dia.total += parseFloat(p.monto || 0);
           dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+        }
+      }
+      // Pagos de ciclos anteriores que cayeron en esta semana (renovaciones)
+      for (const r of (c.historialRenovaciones || [])) {
+        for (const p of (r.pagos || [])) {
+          if (!p.fecha) continue;
+          const dia = dias.find(d => d.fecha === p.fecha);
+          if (dia) {
+            dia.total += parseFloat(p.monto || 0);
+            dia.pagos.push({ nombre: c.nombre || '?' , monto: parseFloat(p.monto || 0) });
+          }
         }
       }
     }
@@ -939,10 +951,20 @@ body {
       const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       dias.push({ n: nombresDia[i], f, t: 0, hoy: f === hoy });
     }
-    activos.forEach(c => (c.pagos || []).forEach(p => {
-      const d = dias.find(x => x.f === p.fecha);
-      if (d) d.t += parseFloat(p.monto || 0);
-    }));
+    activos.forEach(c => {
+      // Pagos ciclo actual
+      (c.pagos || []).forEach(p => {
+        const d = dias.find(x => x.f === p.fecha);
+        if (d) d.t += parseFloat(p.monto || 0);
+      });
+      // Pagos de renovaciones que cayeron en esta semana
+      (c.historialRenovaciones || []).forEach(r => {
+        (r.pagos || []).forEach(p => {
+          const d = dias.find(x => x.f === p.fecha);
+          if (d) d.t += parseFloat(p.monto || 0);
+        });
+      });
+    });
 
     document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
     document.getElementById('modal-contenido').innerHTML = `
