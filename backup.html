@@ -245,17 +245,25 @@ body {
     </div>
   </div>
 
+  <!-- FORZAR SYNC -->
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(135deg,#e07b00,#a05000);color:white">⚡ Forzar Sincronización</div>
+    <div class="card-body">
+      <p style="font-size:12px;color:#888;font-weight:700;margin-bottom:10px;line-height:1.5">Ordena a la APK que suba sus datos ahora mismo y recarga los datos aquí.</p>
+      <button id="btn-forzar-sync" onclick="window.forzarSync()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e07b00,#a05000);color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:8px">⚡ Forzar sync ahora</button>
+      <div id="sync-estado" style="font-size:12px;font-weight:800;color:#888;text-align:center;min-height:18px"></div>
+    </div>
+  </div>
+
   <!-- DIAGNÓSTICO -->
   <div class="card">
     <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff">🔧 Diagnóstico del Sistema</div>
     <div class="card-body">
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button onclick="window.correrDiagnostico()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
-        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
+        <button id="btn-diagnostico" onclick="window.toggleDiagnostico()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
+        <button onclick="document.getElementById('diagnostico-logs').innerHTML='';document.getElementById('diagnostico-logs').style.display='none';window._diagVisible=false;document.getElementById('btn-diagnostico').textContent='🔍 Correr diagnóstico'" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
       </div>
-      <div id="diagnostico-logs" style="min-height:40px;max-height:200px;overflow-y:auto">
-        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:10px">Toca "Correr diagnóstico" para revisar el sistema</div>
-      </div>
+      <div id="diagnostico-logs" style="display:none;min-height:40px;max-height:200px;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -442,7 +450,7 @@ body {
   }
   function renderDiagnostico() {
     const el = document.getElementById('diagnostico-logs');
-    if (!el) return;
+    if (!el || !window._diagVisible) return;
     const colores = { ok: '#00cc55', warn: '#e07b00', error: '#ff2222', info: '#1a6eff' };
     el.innerHTML = _diagLogs.map(l =>
       '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0">' +
@@ -451,6 +459,66 @@ body {
       '</div>'
     ).join('');
   }
+
+  window.forzarSync = async function() {
+    const btn = document.getElementById('btn-forzar-sync');
+    const estado = document.getElementById('sync-estado');
+    if (!usuarioActual) { toast('⚠️ Debes iniciar sesión'); return; }
+    btn.disabled = true;
+    btn.textContent = '⏳ Enviando señal...';
+    estado.style.color = '#e07b00';
+    estado.textContent = 'Escribiendo señal en Firebase...';
+    try {
+      await set(ref(db, 'usuarios/' + usuarioActual + '/sync_request'), Date.now());
+      estado.textContent = '📡 Señal enviada — esperando que la APK responda...';
+      setTimeout(() => {
+        estado.textContent = '🔄 Recargando datos frescos...';
+        get(ref(db, 'usuarios/' + usuarioActual)).then(snap => {
+          const data = snap.val();
+          if (data) {
+            backupData = data;
+            mostrarResumen(data);
+            mostrarClientes(data.clientes || []);
+            const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
+            document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
+            estado.style.color = '#00cc55';
+            estado.textContent = '✅ Datos actualizados — ' + (data.clientes || []).length + ' clientes';
+            toast('✅ Sync completado');
+          } else {
+            estado.style.color = '#ff2222';
+            estado.textContent = '⚠️ Sin datos en Firebase';
+          }
+          btn.disabled = false;
+          btn.textContent = '⚡ Forzar sync ahora';
+        }).catch(e => {
+          estado.style.color = '#ff2222';
+          estado.textContent = '❌ Error: ' + e.message;
+          btn.disabled = false;
+          btn.textContent = '⚡ Forzar sync ahora';
+        });
+      }, 4000);
+    } catch(e) {
+      estado.style.color = '#ff2222';
+      estado.textContent = '❌ Error al enviar señal: ' + e.message;
+      btn.disabled = false;
+      btn.textContent = '⚡ Forzar sync ahora';
+    }
+  };
+
+  window._diagVisible = false;
+    const logs = document.getElementById('diagnostico-logs');
+    const btn = document.getElementById('btn-diagnostico');
+    if (window._diagVisible) {
+      logs.style.display = 'none';
+      window._diagVisible = false;
+      btn.textContent = '🔍 Correr diagnóstico';
+    } else {
+      window.correrDiagnostico();
+      logs.style.display = 'block';
+      window._diagVisible = true;
+      btn.textContent = '🙈 Ocultar diagnóstico';
+    }
+  };
 
   window.correrDiagnostico = function() {
     agregarLog('🔍 Corriendo diagnóstico...', 'info');
