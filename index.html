@@ -5793,6 +5793,24 @@ function addLog(msg) {
   // Sincronizar cada 5 minutos automáticamente
   setInterval(() => window.syncFirebase(false), 5 * 60 * 1000);
 
+  // Listener: detectar señal de sync forzado desde backup.html
+  (function escucharSyncRequest() {
+    const usuarioKey = getUsuarioActivo();
+    if (!usuarioKey || usuarioKey === 'sin_usuario') return;
+    let ultimoSyncRequest = null;
+    onValue(ref(db, 'usuarios/' + usuarioKey + '/sync_request'), (snap) => {
+      const val = snap.val();
+      if (val && val !== ultimoSyncRequest) {
+        ultimoSyncRequest = val;
+        if (ultimoSyncRequest !== null) { // ignorar el primer valor al cargar
+          addLog('⚡ Señal de sync recibida desde backup — sincronizando...');
+          showToast('⚡ Sincronizando desde backup...');
+          window.syncFirebase(true);
+        }
+      }
+    });
+  })();
+
 
 </script>
 
