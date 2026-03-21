@@ -397,7 +397,6 @@ body {
   }
 
   (function() {
-    if (!horaPermitida()) return;
     if (sesionValida()) abrirApp(usuarioActual);
   })();
 
@@ -406,11 +405,6 @@ body {
     const pass = document.getElementById('login-pass').value;
     const errEl = document.getElementById('login-error');
     errEl.style.display = 'none';
-    if (!horaPermitida()) {
-      errEl.textContent = '⏰ App disponible de 6 AM a 11 PM';
-      errEl.style.display = 'block';
-      return;
-    }
     if (user === ADMIN_USER) {
       if (pass === ADMIN_PASS) { guardarSesion(user); abrirApp(user); }
       else { errEl.textContent = '❌ Contraseña incorrecta'; errEl.style.display = 'block'; }
