@@ -527,10 +527,18 @@ body {
   }
 
   let todosClientes = [];
+  let semanaOffset = 0; // 0 = semana actual, -1 = semana pasada, etc.
+  let _dataGlobal = null;
+
+  window.cambiarSemana = function(delta) {
+    semanaOffset += delta;
+    if (semanaOffset > 0) semanaOffset = 0; // No ir al futuro
+    mostrarResumen(_dataGlobal);
+  };
 
   function mostrarResumen(data) {
+    _dataGlobal = data;
     const clientes = data.clientes || [];
-    // Usar todos los clientes para sumar pagos reales de la semana
     const activos = clientes;
     const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
 
@@ -540,10 +548,22 @@ body {
       String(ahora.getMonth()+1).padStart(2,'0') + '-' +
       String(ahora.getDate()).padStart(2,'0');
 
-    // Lunes de esta semana
+    // Lunes de la semana seleccionada
     const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
-    const lunesDate = new Date(ahora);
-    lunesDate.setDate(ahora.getDate() - diaSemana);
+    const lunesHoy = new Date(ahora);
+    lunesHoy.setDate(ahora.getDate() - diaSemana);
+    const lunesDate = new Date(lunesHoy);
+    lunesDate.setDate(lunesHoy.getDate() + (semanaOffset * 7));
+
+    // Sábado de esa semana
+    const sabadoDate = new Date(lunesDate);
+    sabadoDate.setDate(lunesDate.getDate() + 5);
+
+    const fmtFecha = d => d.getDate() + '/' + (d.getMonth()+1);
+    const esSemanActual = semanaOffset === 0;
+    const tituloSemana = esSemanActual
+      ? '📅 Esta semana (' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate) + ')'
+      : '📅 Semana ' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate);
 
     // Generar los 6 días lunes-sábado
     const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -555,9 +575,8 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (ciclo actual + pagos de renovaciones de esta semana)
+    // Sumar pagos por día
     for (const c of activos) {
-      // Pagos del ciclo actual
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
@@ -566,14 +585,13 @@ body {
           dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
         }
       }
-      // Pagos de ciclos anteriores que cayeron en esta semana (renovaciones)
       for (const r of (c.historialRenovaciones || [])) {
         for (const p of (r.pagos || [])) {
           if (!p.fecha) continue;
           const dia = dias.find(d => d.fecha === p.fecha);
           if (dia) {
             dia.total += parseFloat(p.monto || 0);
-            dia.pagos.push({ nombre: c.nombre || '?' , monto: parseFloat(p.monto || 0) });
+            dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
           }
         }
       }
@@ -604,6 +622,74 @@ body {
       </div>
     `).join('');
 
+    // ---- PRÉSTAMOS DE LA SEMANA (nuevos + renovaciones) ----
+    // Rango de fechas de la semana seleccionada
+    const fechaLunes = lunesDate.getFullYear() + '-' + String(lunesDate.getMonth()+1).padStart(2,'0') + '-' + String(lunesDate.getDate()).padStart(2,'0');
+    const fechaSabado = sabadoDate.getFullYear() + '-' + String(sabadoDate.getMonth()+1).padStart(2,'0') + '-' + String(sabadoDate.getDate()).padStart(2,'0');
+
+    const prestamosDelaSemana = [];
+
+    for (const c of clientes) {
+      if (!c.nombre) continue;
+
+      // Buscar renovaciones de esta semana primero
+      const renovSemana = [];
+      for (const r of (c.historialRenovaciones || [])) {
+        const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        if (fr >= fechaLunes && fr <= fechaSabado) {
+          renovSemana.push({
+            nombre: c.nombre,
+            monto: r.nuevoCapital || r.capitalCiclo || 0,
+            fecha: fr,
+            tipo: 'renovacion'
+          });
+        }
+      }
+
+      if (renovSemana.length > 0) {
+        // Tiene renovaciones esta semana — agregarlas y NO contar como nuevo (evita duplicados)
+        prestamosDelaSemana.push(...renovSemana);
+      } else {
+        // Sin renovaciones — verificar si es cliente nuevo esta semana
+        const fc = (c.fechaCreado || '').substring(0, 10);
+        if (fc >= fechaLunes && fc <= fechaSabado) {
+          prestamosDelaSemana.push({
+            nombre: c.nombre,
+            monto: c.capital || c.prestamo || 0,
+            fecha: fc,
+            tipo: 'nuevo'
+          });
+        }
+      }
+    }
+
+    // Ordenar por fecha
+    prestamosDelaSemana.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    const totalPrestadoSemana = prestamosDelaSemana.reduce((s, p) => s + (p.monto || 0), 0);
+
+    const prestamosHtml = prestamosDelaSemana.length === 0
+      ? '<div style="font-size:12px;color:#bbb;text-align:center;padding:10px">Sin préstamos esta semana</div>'
+      : prestamosDelaSemana.map(p => {
+          const esNuevo = p.tipo === 'nuevo';
+          const fechaLabel = p.fecha ? new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-CO') : '';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:10px;margin-bottom:5px;background:${esNuevo ? '#fff8e1' : '#f4f7ff'};border:2px solid ${esNuevo ? '#f9a825' : '#e0e8ff'}">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:800;color:#222">👤 ${p.nombre}</span>
+                ${esNuevo ? '<span style="background:#f9a825;color:white;font-size:9px;font-weight:900;padding:2px 7px;border-radius:20px">✨ NUEVO</span>' : '<span style="background:#c0d0ff;color:#0040cc;font-size:9px;font-weight:900;padding:2px 7px;border-radius:20px">🔄 RENOV.</span>'}
+              </div>
+              ${fechaLabel ? '<div style="font-size:10px;color:#aaa;font-weight:700;margin-top:2px">📅 '+fechaLabel+'</div>' : ''}
+            </div>
+            <div style="font-size:16px;font-weight:900;color:${esNuevo ? '#cc8800' : '#1a6eff'}">${fmt(p.monto)}</div>
+          </div>`;
+        }).join('') +
+        (prestamosDelaSemana.length > 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:8px 10px 2px;font-size:13px;font-weight:900;border-top:2px solid #e0e8ff;margin-top:4px">
+            <span style="color:#555">TOTAL PRESTADO</span>
+            <span style="color:#cc2200">${fmt(totalPrestadoSemana)}</span>
+          </div>` : '');
+
     document.getElementById('stats-area').innerHTML = `
       <div class="stats-grid" style="margin-bottom:12px">
         <div class="stat-box">
@@ -615,8 +701,21 @@ body {
           <div class="stat-label">Activos</div>
         </div>
       </div>
-      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin-bottom:8px">💰 Plenos de la Semana</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase">💰 Plenos de la Semana</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="window.cambiarSemana(-1)" style="width:30px;height:30px;border:none;border-radius:8px;background:#e0e8ff;color:#1a6eff;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+          <button onclick="window.cambiarSemana(1)" ${esSemanActual ? 'disabled' : ''} style="width:30px;height:30px;border:none;border-radius:8px;background:${esSemanActual ? '#f0f0f0' : '#e0e8ff'};color:${esSemanActual ? '#ccc' : '#1a6eff'};font-size:16px;font-weight:900;cursor:${esSemanActual ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center">›</button>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#aaa;margin-bottom:8px;text-align:center">${tituloSemana}</div>
       ${filasHtml}
+
+      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin:14px 0 8px">💸 Préstamos de la Semana (${prestamosDelaSemana.length})</div>
+      <div style="background:white;border-radius:14px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+        ${prestamosHtml}
+      </div>
     `;
   }
 
