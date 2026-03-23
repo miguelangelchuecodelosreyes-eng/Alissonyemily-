@@ -5314,6 +5314,8 @@ function verificarHorario() {
   // Permitido: 6am (6) hasta 10:59pm (22)
   const estaPermitido = hora >= 6 && hora <= 22;
   if (!estaPermitido) {
+    // Cerrar sesion automaticamente al bloquearse
+    lsRemove('cobrador_sesion');
     document.getElementById('pantalla-login').style.display = 'none';
     document.getElementById('app').style.display = 'none';
     let bloq = document.getElementById('pantalla-bloqueada');
@@ -5325,7 +5327,7 @@ function verificarHorario() {
         <div style="font-size:60px;margin-bottom:16px">🌙</div>
         <div style="font-size:22px;font-weight:900;color:white;margin-bottom:10px">Sistema cerrado</div>
         <div style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;max-width:280px;margin-bottom:20px">
-          El sistema está disponible de<br>
+          El sistema esta disponible de<br>
           <strong style="color:#ffd54f;font-size:18px">6:00 AM a 11:00 PM</strong><br>
           Descansa y que Dios te cuide esta noche 🙏
         </div>
@@ -5349,7 +5351,16 @@ function verificarHorario() {
   }
   // Hora permitida - ocultar pantalla bloqueada si existe
   const bloq = document.getElementById('pantalla-bloqueada');
-  if (bloq) bloq.remove();
+  if (bloq) {
+    bloq.remove();
+    // Al desbloquearse a las 6am, mostrar login para pedir clave
+    const appEl = document.getElementById('app');
+    const loginEl = document.getElementById('pantalla-login');
+    if (appEl && appEl.style.display === 'none' &&
+        loginEl && loginEl.style.display === 'none') {
+      loginEl.style.display = 'flex';
+    }
+  }
   return true;
 }
 
@@ -5522,13 +5533,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   // Si no hay credenciales → mostrar pantalla de registro (primera vez)
-  // Si hay credenciales → mostrar login normal
+  // Si hay credenciales y sesión activa → entrar directo sin pedir login
+  // Si hay credenciales pero sin sesión → mostrar login normal
   const creds = getCredencialesCobrador();
   if(!creds){
     document.getElementById('pantalla-login').style.display='none';
     document.getElementById('pantalla-registro').style.display='flex';
+  } else {
+    const sesion = lsGet('cobrador_sesion');
+    if(sesion === 'ok'){
+      // Sesión activa — entrar directo sin pedir usuario/clave
+      document.getElementById('pantalla-login').style.display='none';
+      document.getElementById('app').style.display='block';
+      iniciarApp();
+    }
+    // Si no hay sesión activa, se queda en la pantalla de login
   }
-  // Sesión NO persistente: siempre mostrar login al abrir
 });
 </script>
 
