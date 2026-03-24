@@ -1018,56 +1018,60 @@ body {
       .catch(e => toast('❌ ' + e.message));
   };
 
-  function abrirReporte(usuario, data) {
-    const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
-    const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
+  // Datos globales para el modal clicable
+  let _modalData = null;
+  let _modalActivos = [];
+  let _modalDias = [];
+  let _modalFmt = null;
+
+  function renderDiaReporte(fechaDia) {
+    const fmt = _modalFmt;
+    const data = _modalData;
+    const activos = _modalActivos;
+    const dias = _modalDias;
     const ahora = new Date();
     const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
-    const cuentas = (data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : {};
-    const entradas = cuentas.entradas || {};
-    const salidas = cuentas.salidas || {};
-    let cobradoHoy = 0;
-    activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
-    const eBase = parseFloat(entradas.base || 0);
-    const eGeneral = cobradoHoy;
-    const ePapeleria = parseFloat(entradas.papeleria || 0);
-    const sPrestamos = parseFloat(salidas.prestamos || 0);
-    const sNeki = parseFloat(salidas.neki || 0);
-    const sGasto = parseFloat(salidas.gasto || 0);
-    const totalEntradas = eBase + eGeneral + ePapeleria;
-    const totalSalidas = sPrestamos + sNeki + sGasto;
-    const resultado = totalEntradas - totalSalidas;
-    const entregado = parseFloat(cuentas.entregado_oficina || 0);
 
-    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
-    const lunesDate = new Date(ahora);
-    lunesDate.setDate(ahora.getDate() - diaSemana);
-    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    const dias = [];
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(lunesDate);
-      d.setDate(lunesDate.getDate() + i);
-      const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-      dias.push({ n: nombresDia[i], f, t: 0, hoy: f === hoy });
-    }
+    // Buscar manual del día seleccionado
+    const manuales = data.manuales || {};
+    const manualDia = manuales['sup_manual_' + fechaDia] || {};
+    // Fallback: si es hoy, usar cuentas_dia
+    const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
+
+    // Cobrado ese día (pagos de clientes)
+    let cobradoDia = 0;
     activos.forEach(c => {
-      // Pagos ciclo actual
-      (c.pagos || []).forEach(p => {
-        const d = dias.find(x => x.f === p.fecha);
-        if (d) d.t += parseFloat(p.monto || 0);
-      });
-      // Pagos de renovaciones que cayeron en esta semana
+      (c.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
       (c.historialRenovaciones || []).forEach(r => {
-        (r.pagos || []).forEach(p => {
-          const d = dias.find(x => x.f === p.fecha);
-          if (d) d.t += parseFloat(p.monto || 0);
-        });
+        (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
       });
     });
 
-    document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
+    const eBase      = parseFloat(manualDia.base      || (cuentas ? (cuentas.entradas||{}).base      : 0) || 0);
+    const ePapeleria = parseFloat(manualDia.papeleria  || (cuentas ? (cuentas.entradas||{}).papeleria : 0) || 0);
+    const eGeneral   = cobradoDia;
+    const sPrestamos = parseFloat(manualDia.prestamos  || (cuentas ? (cuentas.salidas||{}).prestamos  : 0) || 0);
+    const sNeki      = parseFloat(manualDia.neki       || (cuentas ? (cuentas.salidas||{}).neki       : 0) || 0);
+    const sGasto     = parseFloat(manualDia.gasto      || (cuentas ? (cuentas.salidas||{}).gasto      : 0) || 0);
+    const entregado  = parseFloat(manualDia.entregado  || (cuentas ? cuentas.entregado_oficina         : 0) || 0);
+    const totalEntradas = eBase + eGeneral + ePapeleria;
+    const totalSalidas  = sPrestamos + sNeki + sGasto;
+    const resultado     = totalEntradas - totalSalidas;
+
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
     document.getElementById('modal-contenido').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 14px 0">
+      <div style="margin:10px 14px 0;display:flex;gap:6px;flex-wrap:wrap">
+        ${dias.map(d => `
+          <div onclick="renderDiaReporte('${d.f}')" style="cursor:pointer;flex:1;min-width:60px;text-align:center;padding:7px 4px;border-radius:10px;font-size:11px;font-weight:800;
+            background:${d.f===fechaDia ? (d.f===hoy?'#00cc55':'#1a6eff') : (d.f===hoy?'#e8fff0':'#f0f4ff')};
+            color:${d.f===fechaDia ? 'white' : (d.f===hoy?'#008833':'#444')};
+            border:2px solid ${d.f===fechaDia ? 'transparent' : (d.f===hoy?'#00cc55':'#dde5ff')}">
+            ${d.n.substring(0,3)}<br>
+            <span style="font-size:13px;font-weight:900;color:${d.f===fechaDia?'white':(d.t>0?'#1a6eff':'#ccc')}">${d.t>0?fmt(d.t):'-'}</span>
+          </div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 14px 0">
         <div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
           <div style="background:linear-gradient(135deg,#1a6eff,#0040cc);padding:10px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
           <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700"><span>💵 Base</span><span>${fmt(eBase)}</span></div>
@@ -1083,7 +1087,7 @@ body {
           <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#fff0ee;font-size:14px;font-weight:900"><span style="color:#cc0000">TOTAL</span><span style="color:#cc0000">${fmt(totalSalidas)}</span></div>
         </div>
       </div>
-      <div style="margin:12px 14px 0;background:#1a1a2e;border-radius:16px;padding:16px;color:white">
+      <div style="margin:12px 14px 14px;background:#1a1a2e;border-radius:16px;padding:16px;color:white">
         <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">🏦 RESULTADO DEL DÍA</div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.1)"><span>Total entradas</span><span>${fmt(totalEntradas)}</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;font-weight:700"><span>Total salidas</span><span>${fmt(totalSalidas)}</span></div>
@@ -1093,17 +1097,53 @@ body {
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;font-weight:700;opacity:0.75"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
       </div>
-      <div style="margin:12px 14px 0;background:white;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
-        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin-bottom:10px">💰 Plenos de la semana</div>
-        ${dias.map(d => `
-          <div style="display:flex;justify-content:space-between;padding:9px 12px;border-radius:10px;margin-bottom:5px;background:${d.hoy ? '#e8fff0' : '#f4f7ff'};border:2px solid ${d.hoy ? '#00cc55' : '#e0e8ff'}">
-            <span style="font-size:13px;font-weight:800;color:${d.hoy ? '#008833' : '#666'}">${d.hoy ? '👉' : '📅'} ${d.n}</span>
-            <span style="font-size:16px;font-weight:900;color:${d.t > 0 ? (d.hoy ? '#00aa44' : '#1a6eff') : '#ccc'}">${d.t > 0 ? fmt(d.t) : '-'}</span>
-          </div>`).join('')}
-      </div>
     `;
+  }
+
+  function abrirReporte(usuario, data) {
+    const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+    const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
+
+    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
+    const lunesDate = new Date(ahora);
+    lunesDate.setDate(ahora.getDate() - diaSemana);
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dias = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(lunesDate);
+      d.setDate(lunesDate.getDate() + i);
+      const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      dias.push({ n: nombresDia[i], f, t: 0 });
+    }
+    // Calcular totales por día para los botones
+    activos.forEach(c => {
+      (c.pagos || []).forEach(p => {
+        const d = dias.find(x => x.f === p.fecha);
+        if (d) d.t += parseFloat(p.monto || 0);
+      });
+      (c.historialRenovaciones || []).forEach(r => {
+        (r.pagos || []).forEach(p => {
+          const d = dias.find(x => x.f === p.fecha);
+          if (d) d.t += parseFloat(p.monto || 0);
+        });
+      });
+    });
+
+    // Guardar en globals para renderDiaReporte
+    _modalData = data;
+    _modalActivos = activos;
+    _modalDias = dias;
+    _modalFmt = fmt;
+
+    document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
+    document.getElementById('modal-contenido').innerHTML = '';
     const modal = document.getElementById('modal-reporte');
     modal.style.display = 'flex';
+
+    // Mostrar el día actual por defecto
+    renderDiaReporte(hoy);
   }
 </script>
 </body>
