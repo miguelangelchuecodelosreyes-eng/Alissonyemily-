@@ -423,7 +423,7 @@ body {
     <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px">
-    <div id="sync-status-badge" style="font-size:11px;font-weight:800;color:#aaa;flex:1">⏳ Sin sincronizar</div>
+    <div id="sync-status-badge" style="font-size:12px;font-weight:900;color:#aaa;flex:1;transition:color 0.3s">⏳ Sin sincronizar</div>
     <button onclick="window.syncForzado && window.syncForzado()" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer">⚡ Guardar ya</button>
   </div>
   <div id="header-versiculo" style="margin:2px 0 2px;background:rgba(255,255,255,0.13);border-radius:10px;padding:7px 12px;font-size:11px;color:rgba(255,255,255,0.93);font-style:italic;line-height:1.5;text-align:center;border:1px solid rgba(255,255,255,0.18)">
@@ -1726,7 +1726,7 @@ function renderSemana(){
 
 // ===== CLIENTES =====
 function getClientes(){return JSON.parse(lsGet('clientes_v1')||'[]');}
-function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); if(typeof window.syncFirebase==='function') setTimeout(window.syncFirebase,500);}
+function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); if(typeof window.syncFirebase==='function') window.syncFirebase(false);}
 window.saveClientes = saveClientes;
 
 // Cálculo préstamo con porcentaje configurable
@@ -5668,14 +5668,19 @@ function addLog(msg) {
     const badge = document.getElementById('sync-status-badge');
     if (!badge) return;
     const estados = {
-      ok:       { text: '☁️ Guardado en la nube', color: '#00cc55' },
-      syncing:  { text: '🔄 Sincronizando...', color: '#e07b00' },
-      error:    { text: '🔴 Error al guardar — reintentando', color: '#ff2222' },
-      pendiente:{ text: '⏳ Pendiente de sync', color: '#e07b00' }
+      ok:       { text: '✅ Guardado en la nube', color: '#00ff88' },
+      syncing:  { text: '🔄 Sincronizando...', color: '#ffdd00' },
+      error:    { text: '🔴 Sin conexión — reintentando', color: '#ff4444' },
+      pendiente:{ text: '⏳ Guardando...', color: '#ffdd00' }
     };
     const e = estados[estado] || estados.pendiente;
     badge.textContent = e.text;
     badge.style.color = e.color;
+    // Animación pulso en ok
+    if (estado === 'ok') {
+      badge.style.transform = 'scale(1.15)';
+      setTimeout(() => { badge.style.transform = 'scale(1)'; }, 300);
+    }
   }
 
   // Función global para subir datos a Firebase
@@ -5764,7 +5769,7 @@ function addLog(msg) {
     window.saveClientes = function(c){
       _origSaveClientes(c);
       actualizarIndicadorSync('pendiente');
-      setTimeout(() => window.syncFirebase(false), 800);
+      window.syncFirebase(false);
     };
   }
 
