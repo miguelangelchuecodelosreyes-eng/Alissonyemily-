@@ -852,7 +852,7 @@ body {
         lista.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-weight:700">No hay cobradores</div>';
         return;
       }
-      const hoy = new Date().toISOString().split('T')[0];
+      const _hd = new Date(); const hoy = _hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
       const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
       let totalCartera = 0, totalHoy = 0, totalVencidos = 0;
       keys.forEach(u => {
@@ -1023,7 +1023,7 @@ body {
     const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
     const ahora = new Date();
     const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
-    const cuentas = data.cuentas_dia || {};
+    const cuentas = (data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : {};
     const entradas = cuentas.entradas || {};
     const salidas = cuentas.salidas || {};
     let cobradoHoy = 0;
