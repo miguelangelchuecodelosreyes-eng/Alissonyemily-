@@ -1024,7 +1024,7 @@ body {
   let _modalDias = [];
   let _modalFmt = null;
 
-  function renderDiaReporte(fechaDia) {
+  window.renderDiaReporte = function(fechaDia) {
     const fmt = _modalFmt;
     const data = _modalData;
     const activos = _modalActivos;
@@ -1061,9 +1061,9 @@ body {
     const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
     document.getElementById('modal-contenido').innerHTML = `
-      <div id="dias-semana-btns" style="margin:10px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      <div style="margin:10px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
         ${dias.map(d => `
-          <div data-fecha="${d.f}" style="cursor:pointer;text-align:center;padding:7px 4px;border-radius:10px;font-size:11px;font-weight:800;
+          <div onclick="window.renderDiaReporte('` + d.f + `')" style="cursor:pointer;text-align:center;padding:7px 4px;border-radius:10px;font-size:11px;font-weight:800;
             background:${d.f===fechaDia ? (d.f===hoy?'#00cc55':'#1a6eff') : (d.f===hoy?'#e8fff0':'#f0f4ff')};
             color:${d.f===fechaDia ? 'white' : (d.f===hoy?'#008833':'#444')};
             border:2px solid ${d.f===fechaDia ? 'transparent' : (d.f===hoy?'#00cc55':'#dde5ff')}">
@@ -1145,14 +1145,7 @@ body {
     // Mostrar el día actual por defecto
     renderDiaReporte(hoy);
 
-    // Event delegation para botones de días (funciona bien en Android)
-    setTimeout(function(){
-      var cont = document.getElementById('modal-contenido');
-      if(cont) cont.addEventListener('click', function(e){
-        var btn = e.target.closest('[data-fecha]');
-        if(btn) renderDiaReporte(btn.getAttribute('data-fecha'));
-      });
-    }, 100);
+
   }
 </script>
 </body>
