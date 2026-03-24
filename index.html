@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1a6eff">
+<meta name="theme-color" content="#ff00cc">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -19,10 +19,12 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html { font-size: clamp(13px, 3.8vw, 17px); }
 body {
-  font-family: 'Nunito', sans-serif; background: #eaf0ff; color: #111;
+  font-family: 'Nunito', sans-serif; background: #f8eeff; color: #111;
   min-height: 100vh; max-width: 600px; margin: 0 auto; padding: 0 0 40px 0;
 }
 
+
+@keyframes neonShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 /* LOGIN */
 #pantalla-login {
   min-height:100vh; display:flex; flex-direction:column;
@@ -66,7 +68,7 @@ body {
 
 /* APP */
 #app { display:none; }
-.header { background:linear-gradient(135deg,#1a6eff,#0040cc); padding:22px 20px 0; color:white; }
+.header { background:linear-gradient(135deg,#ff00cc,#00ff88,#00ccff); background-size:300% 300%; animation:neonShift 4s ease infinite; padding:22px 20px 0; color:white; }
 .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
 .header h1  { font-size:20px; font-weight:900; letter-spacing:-0.5px; }
 .header-fecha { font-size:12px; opacity:0.75; margin-top:3px; }
@@ -77,16 +79,16 @@ body {
 .nav-tabs::-webkit-scrollbar { display:none; }
 .nav-tab { flex:0 0 auto; min-width:60px; }
 .nav-tab { flex:1; padding:12px 2px; background:rgba(255,255,255,0.15); border:none; color:#000000; border-radius:12px 12px 0 0; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; text-align:center; }
-.nav-tab.activo { background:#ffffff; color:#1a6eff; }
+.nav-tab.activo { background:#ffffff; color:#cc00aa; }
 
 /* PANTALLAS */
 .pantalla { display:none; }
 .pantalla.activa { display:block; }
 
 /* SECCIONES */
-.seccion { margin:14px 14px 0; background:white; border-radius:20px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.07); border:1px solid #d0d8f0; }
+.seccion { margin:14px 14px 0; background:white; border-radius:20px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.07); border:1px solid #e8ccf5; }
 .seccion-titulo { padding:13px 16px 10px; font-size:11px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:white; }
-.titulo-azul   { background:linear-gradient(90deg,#1a6eff,#0040cc); }
+.titulo-azul   { background:linear-gradient(90deg,#ff00cc,#00ff88,#00ccff); background-size:300%; animation:neonShift 4s ease infinite; }
 .titulo-rojo   { background:linear-gradient(90deg,#ff1a1a,#cc0000); }
 .titulo-oscuro { background:linear-gradient(90deg,#1a1a2e,#0d0d1a); }
 .titulo-verde  { background:linear-gradient(90deg,#00cc55,#008833); }
@@ -97,14 +99,14 @@ body {
 .campo-label { font-size:15px; font-weight:700; color:#444; min-width:110px; padding:14px 0; }
 .campo input { flex:1; border:none; outline:none; font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; color:#111; text-align:right; padding:14px 0; background:transparent; }
 .campo input::placeholder { color:#ccc; font-weight:600; }
-.campo input[type=date] { font-size:15px; color:#1a6eff; font-weight:700; }
+.campo input[type=date] { font-size:15px; color:#cc00aa; font-weight:700; }
 
 .total-bloque { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-top:2px solid #f0f0f0; }
-.total-bloque.azul { background:#e8f0ff; border-top-color:#1a6eff; }
+.total-bloque.azul { background:#f8eeff; border-top-color:#cc00aa; }
 .total-bloque.rojo { background:#ffe8e8; border-top-color:#ff1a1a; }
 .total-label { font-size:13px; font-weight:800; color:#555; text-transform:uppercase; letter-spacing:1px; }
 .total-valor { font-size:26px; font-weight:900; }
-.total-valor.azul { color:#1a6eff; }
+.total-valor.azul { color:#cc00aa; }
 .total-valor.rojo { color:#ff1a1a; }
 
 /* RESULTADO */
@@ -157,24 +159,24 @@ body {
 .botones { display:flex; gap:10px; padding:14px 14px 0; }
 .btn { flex:1; padding:15px; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:800; cursor:pointer; transition:all 0.15s; }
 .btn:active { transform:scale(0.96); }
-.btn-guardar { background:#1a6eff; color:white; box-shadow:0 4px 16px rgba(26,110,255,0.3); }
-.btn-limpiar { background:#e8f0ff; color:#1a6eff; border:2px solid #6699ff; }
+.btn-guardar { background:linear-gradient(135deg,#ff00cc,#00ccff); color:white; box-shadow:0 4px 16px rgba(255,0,204,0.3); }
+.btn-limpiar { background:#f8eeff; color:#cc00aa; border:2px solid #ff00cc; }
 .botones-compartir { display:flex; gap:10px; padding:10px 14px 0; }
 .btn-wa { flex:1; padding:14px; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; cursor:pointer; background:#25D366; color:white; box-shadow:0 4px 16px rgba(37,211,102,0.35); display:flex; align-items:center; justify-content:center; gap:8px; }
 .btn-wa:active { transform:scale(0.96); }
-.btn-copiar { padding:14px 16px; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:800; cursor:pointer; background:#e8f0ff; color:#555; border:2px solid #6699ff; }
+.btn-copiar { padding:14px 16px; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:800; cursor:pointer; background:#f8eeff; color:#555; border:2px solid #ff00cc; }
 
 /* HISTORIAL */
 .historial-seccion { margin:18px 14px 0; }
 .historial-titulo { font-size:12px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:#888; margin-bottom:10px; padding-left:4px; }
-.historial-item { background:white; border-radius:16px; padding:14px 16px; margin-bottom:10px; border:1px solid #d0d8f0; box-shadow:0 1px 8px rgba(0,0,0,0.05); }
+.historial-item { background:white; border-radius:16px; padding:14px 16px; margin-bottom:10px; border:1px solid #e8ccf5; box-shadow:0 1px 8px rgba(0,0,0,0.05); }
 .h-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; cursor:pointer; }
 .h-fecha { font-size:14px; font-weight:800; color:#333; }
 .h-num { font-size:20px; font-weight:900; }
 .h-num.pos { color:#00e65c; }
 .h-num.neg { color:#ff1111; }
 .h-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px; }
-.h-cell { background:#eef2ff; border-radius:8px; padding:6px 8px; text-align:center; }
+.h-cell { background:#f5eeff; border-radius:8px; padding:6px 8px; text-align:center; }
 .h-cell-label { font-size:10px; color:#888; font-weight:700; margin-bottom:2px; }
 .h-cell-val   { font-size:13px; font-weight:800; }
 .h-actions { display:flex; gap:8px; }
@@ -184,7 +186,7 @@ body {
 .empty-hist { text-align:center; padding:24px; color:#bbb; font-size:14px; font-weight:700; }
 
 /* SEMANA */
-.semana-card { margin:14px 14px 0; background:white; border-radius:20px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.07); border:1px solid #d0d8f0; }
+.semana-card { margin:14px 14px 0; background:white; border-radius:20px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.07); border:1px solid #e8ccf5; }
 .semana-header { background:linear-gradient(135deg,#7c3aed,#a855f7); padding:14px 16px; color:white; display:flex; justify-content:space-between; align-items:center; }
 .semana-header-titulo { font-size:12px; font-weight:900; letter-spacing:2px; text-transform:uppercase; }
 .semana-header-rango  { font-size:11px; opacity:0.8; margin-top:2px; }
@@ -201,14 +203,14 @@ body {
 /* CLIENTES */
 .clientes-header { display:flex; justify-content:space-between; align-items:center; padding:14px 14px 0; }
 .clientes-titulo { font-size:16px; font-weight:900; color:#111; }
-.btn-nuevo-cliente { background:#1a6eff; color:white; border:none; border-radius:12px; padding:10px 16px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
+.btn-nuevo-cliente { background:linear-gradient(135deg,#ff00cc,#00ccff); color:white; border:none; border-radius:12px; padding:10px 16px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
 
-.cliente-card { background:white; border-radius:18px; margin:10px 4px 0; border:1px solid #d0d8f0; box-shadow:0 2px 10px rgba(0,0,0,0.06); overflow:hidden; }
+.cliente-card { background:white; border-radius:18px; margin:10px 4px 0; border:1px solid #e8ccf5; box-shadow:0 2px 10px rgba(0,0,0,0.06); overflow:hidden; }
 .cliente-card-header { display:flex; justify-content:space-between; align-items:center; padding:8px 8px 8px 6px; cursor:pointer; }
 .cliente-nombre { font-size:16px; font-weight:800; color:#111; }
 .cliente-sub { font-size:11px; color:#888; font-weight:600; margin-top:2px; display:flex; gap:8px; align-items:center; }
 .badge-tipo { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; }
-.badge-semanal { background:#1a6eff; color:white; }
+.badge-semanal { background:linear-gradient(135deg,#ff00cc,#00ccff); color:white; }
 .badge-diario  { background:#ff6600; color:white; }
 .saldo-label { font-size:10px; color:#888; font-weight:700; text-transform:uppercase; letter-spacing:1px; text-align:right; }
 .saldo-monto { font-size:20px; font-weight:900; text-align:right; }
@@ -216,20 +218,20 @@ body {
 .saldo-monto.pagado { color:#00e65c; }
 
 .cliente-body { padding:0 16px 14px; border-top:1px solid #f0f0f0; }
-.cliente-detalle { display:grid; grid-template-columns:1fr 1fr; gap:0; padding-top:0; margin-bottom:12px; border-radius:0 0 10px 10px; overflow:hidden; border:1px solid #d0d8f0; border-top:none; }
-.cliente-det-item { background:#eef2ff; border-radius:0; padding:10px 12px; border-right:1px solid #d0d8f0; border-bottom:1px solid #d0d8f0; }
-.cliente-det-item:nth-child(even) { border-right:none; background:#eef2ff; }
+.cliente-detalle { display:grid; grid-template-columns:1fr 1fr; gap:0; padding-top:0; margin-bottom:12px; border-radius:0 0 10px 10px; overflow:hidden; border:1px solid #e8ccf5; border-top:none; }
+.cliente-det-item { background:#f5eeff; border-radius:0; padding:10px 12px; border-right:1px solid #e8ccf5; border-bottom:1px solid #e8ccf5; }
+.cliente-det-item:nth-child(even) { border-right:none; background:#f5eeff; }
 .cliente-det-item:nth-last-child(2) { border-bottom:none; }
 .cliente-det-item:last-child { border-bottom:none; }
 .cliente-det-label { font-size:10px; color:#888; font-weight:700; text-transform:uppercase; }
 .cliente-det-val   { font-size:14px; font-weight:800; color:#333; margin-top:2px; }
 
-.cliente-dir { font-size:13px; color:#666; font-weight:600; padding:8px 10px; background:#eef2ff; border-radius:10px 10px 0 0; margin-bottom:0; border:1px solid #d0d8f0; border-bottom:1px solid #d0d8f0; }
+.cliente-dir { font-size:13px; color:#666; font-weight:600; padding:8px 10px; background:#f5eeff; border-radius:10px 10px 0 0; margin-bottom:0; border:1px solid #e8ccf5; border-bottom:1px solid #e8ccf5; }
 
 /* CUOTA */
 .cuota-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
-.cuota-input { flex:1; border:2px solid #d0d8f0; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; outline:none; text-align:right; }
-.cuota-input:focus { border-color:#1a6eff; outline:none; -webkit-tap-highlight-color:transparent; box-shadow:none; }
+.cuota-input { flex:1; border:2px solid #e8ccf5; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; outline:none; text-align:right; }
+.cuota-input:focus { border-color:#cc00aa; outline:none; -webkit-tap-highlight-color:transparent; box-shadow:none; }
 .btn-pagar-cuota { background:#00cc55; color:white; border:none; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
 
 .historial-pagos-titulo { font-size:11px; font-weight:900; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
@@ -240,7 +242,7 @@ body {
 
 .cliente-acciones { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .btn-acc { flex:1; min-width:80px; padding:9px 6px; border-radius:10px; font-family:'Nunito',sans-serif; font-size:11px; font-weight:800; cursor:pointer; text-align:center; border:none; }
-.btn-acc-editar  { background:#e8f0ff; color:#1a6eff; border:2px solid #6699ff; }
+.btn-acc-editar  { background:#f8eeff; color:#cc00aa; border:2px solid #ff00cc; }
 .btn-acc-renovar { background:#fff3e0; color:#ff6600; border:2px solid #ffaa00; }
 .btn-acc-wa      { background:#25D366; color:white; }
 .btn-acc-del     { background:#ffe8e8; color:#ff1111; border:1px solid #ff8888; }
@@ -253,22 +255,22 @@ body {
 .modal-titulo { font-size:18px; font-weight:900; color:#111; margin-bottom:20px; }
 .modal-campo  { margin-bottom:14px; }
 .modal-label  { font-size:12px; font-weight:800; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; display:block; }
-.modal-input  { width:100%; border:2px solid #d0d8f0; border-radius:12px; padding:14px 16px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:700; outline:none; transition:border-color 0.2s; }
-.modal-input:focus { border-color:#1a6eff; }
-.modal-select { width:100%; border:2px solid #d0d8f0; border-radius:12px; padding:14px 16px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:700; outline:none; background:white; color:#111; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
-.modal-select:focus { border-color:#1a6eff; }
+.modal-input  { width:100%; border:2px solid #e8ccf5; border-radius:12px; padding:14px 16px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:700; outline:none; transition:border-color 0.2s; }
+.modal-input:focus { border-color:#cc00aa; }
+.modal-select { width:100%; border:2px solid #e8ccf5; border-radius:12px; padding:14px 16px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:700; outline:none; background:white; color:#111; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
+.modal-select:focus { border-color:#cc00aa; }
 
 /* CAJA RESUMEN PRÉSTAMO */
-.prestamo-resumen { background:#e8f0ff; border-radius:14px; padding:14px 16px; margin-top:6px; border:2px solid #6699ff; }
+.prestamo-resumen { background:#f8eeff; border-radius:14px; padding:14px 16px; margin-top:6px; border:2px solid #ff00cc; }
 .prestamo-res-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:14px; }
 .prestamo-res-row span:first-child { color:#666; font-weight:700; }
-.prestamo-res-row span:last-child  { color:#1a6eff; font-weight:900; font-size:16px; }
+.prestamo-res-row span:last-child  { color:#cc00aa; font-weight:900; font-size:16px; }
 .prestamo-res-row.total span:last-child { color:#111; font-size:20px; }
-.prestamo-res-divider { height:1px; background:#6699ff; margin:6px 0; }
+.prestamo-res-divider { height:1px; background:#ff66dd; margin:6px 0; }
 
 .modal-btns { display:flex; gap:10px; margin-top:20px; }
-.modal-btn-ok { flex:2; padding:15px; background:#1a6eff; color:white; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; cursor:pointer; }
-.modal-btn-cancel { flex:1; padding:15px; background:#e8f0ff; color:#888; border:2px solid #6699ff; border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:800; cursor:pointer; }
+.modal-btn-ok { flex:2; padding:15px; background:linear-gradient(135deg,#ff00cc,#00ccff); color:white; border:none; border-radius:14px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; cursor:pointer; }
+.modal-btn-cancel { flex:1; padding:15px; background:#f8eeff; color:#888; border:2px solid #ff00cc; border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:800; cursor:pointer; }
 
 /* RENOVAR MODAL */
 .renovar-info { background:#fff3e0; border-radius:14px; padding:14px 16px; margin-bottom:14px; border:2px solid #ffaa00; }
@@ -282,15 +284,15 @@ body {
 @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
 
 /* CANCELADOS HISTORIAL */
-.cancelado-item { background:#eef2ff; border-radius:14px; padding:12px 14px; margin-bottom:8px; border:1px solid #d0d8f0; }
+.cancelado-item { background:#f5eeff; border-radius:14px; padding:12px 14px; margin-bottom:8px; border:1px solid #e8ccf5; }
 .cancelado-item-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
 .cancelado-renovacion { font-size:11px; font-weight:900; color:#7c3aed; text-transform:uppercase; letter-spacing:1px; }
 .cancelado-fecha { font-size:12px; color:#888; font-weight:600; }
 .cancelado-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
-.cancelado-cell { background:white; border-radius:8px; padding:6px 8px; text-align:center; border:1px solid #d0d8f0; }
+.cancelado-cell { background:white; border-radius:8px; padding:6px 8px; text-align:center; border:1px solid #e8ccf5; }
 .cancelado-cell-label { font-size:10px; color:#888; font-weight:700; margin-bottom:2px; }
 .cancelado-cell-val   { font-size:13px; font-weight:800; }
-.cancelado-total { display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid #d0d8f0; }
+.cancelado-total { display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid #e8ccf5; }
 .cancelado-total-label { font-size:12px; font-weight:800; color:#555; }
 .cancelado-total-val   { font-size:16px; font-weight:900; color:#00cc55; }
 .cancelado-resumen-global { background:linear-gradient(135deg,#00cc55,#00e65c); border-radius:14px; padding:14px 16px; margin-bottom:14px; color:white; }
@@ -303,8 +305,8 @@ body {
 
 /* DRAG AND DROP */
 .cliente-card { touch-action: pan-y; }
-.cliente-card.dragging { opacity:0.5; transform:scale(0.98); box-shadow:0 8px 30px rgba(0,0,0,0.2); border:2px dashed #1a6eff; }
-.cliente-card.drag-over { border:3px solid #1a6eff; background:#e8f0ff; transform:scale(1.01); transition:transform 0.1s,background 0.1s; }
+.cliente-card.dragging { opacity:0.5; transform:scale(0.98); box-shadow:0 8px 30px rgba(0,0,0,0.2); border:2px dashed #ff00cc; }
+.cliente-card.drag-over { border:3px solid #ff00cc; background:#f8eeff; transform:scale(1.01); transition:transform 0.1s,background 0.1s; }
 .drag-handle { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#ccc; display:none; }
 .cliente-card-header { position:relative; }
 </style>
@@ -385,7 +387,7 @@ body {
     <button class="login-btn" onclick="entrar()">🔓 Entrar</button>
     <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
     <div style="text-align:center;margin-top:14px">
-      <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#1a6eff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
+      <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#cc00aa;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,#e0b070,transparent);margin:16px 0 12px"></div>
     <label style="display:block;width:100%;padding:13px;background:#f0fff8;color:#00aa44;border:2px solid #00cc55;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
@@ -446,18 +448,18 @@ body {
     </div>
   </div>
   <div style="padding:10px 14px 0">
-    <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #d0d8f0;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#1a6eff'" onblur="this.style.borderColor='#d0d8f0'">
+    <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
   </div>
   <!-- Resumen rápido clientes -->
-  <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #d0d8f0">
+  <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;text-transform:uppercase">Resumen general</div>
       <div style="font-size:11px;font-weight:800;color:#ff6600" id="resumen-porcentaje-label">📈 20%</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="background:#e8f0ff;border-radius:10px;padding:10px 12px;text-align:center">
+      <div style="background:#f8eeff;border-radius:10px;padding:10px 12px;text-align:center">
         <div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase;margin-bottom:2px">👥 Clientes activos</div>
-        <div id="clientes-count" style="font-size:26px;font-weight:900;color:#1a6eff">0</div>
+        <div id="clientes-count" style="font-size:26px;font-weight:900;color:#cc00aa">0</div>
       </div>
       <div style="background:#e8fff2;border-radius:10px;padding:10px 12px;text-align:center;border:1.5px solid #66ffaa">
         <div style="font-size:10px;color:#00cc55;font-weight:700;text-transform:uppercase;margin-bottom:2px" id="label-pagaron-hoy">✅ Pagaron hoy</div>
@@ -485,10 +487,10 @@ body {
 
     <!-- ENTRADAS -->
     <div style="background:white;border-radius:14px;overflow:hidden;border:1.5px solid #c7d7fd">
-      <div style="background:#1a6eff;padding:5px 10px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
+      <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:5px 10px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
       <div style="padding:5px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:#888">📅 Fecha</span>
-        <span style="font-size:11px;font-weight:800;color:#1a6eff" id="vista-fecha">—</span>
+        <span style="font-size:11px;font-weight:800;color:#cc00aa" id="vista-fecha">—</span>
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:#555">💵 Base</span>
@@ -510,8 +512,8 @@ body {
           oninput="recalcularCuentas()">
       </div>
       <div style="padding:5px 8px;background:#e8f0fe;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;font-weight:900;color:#1a6eff">TOTAL</span>
-        <span style="font-size:16px;font-weight:900;color:#1a6eff" id="total-entradas">$0</span>
+        <span style="font-size:10px;font-weight:900;color:#cc00aa">TOTAL</span>
+        <span style="font-size:16px;font-weight:900;color:#cc00aa" id="total-entradas">$0</span>
       </div>
     </div>
 
@@ -614,7 +616,7 @@ body {
 
 
   <!-- RESUMEN SEMANAL PRÉSTAMOS Y PAPELERÍA -->
-  <div id="bloque-resumen-semanal" style="margin:14px 0 0;background:white;border-radius:16px;overflow:hidden;border:1.5px solid #d0d8f0;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+  <div id="bloque-resumen-semanal" style="margin:14px 0 0;background:white;border-radius:16px;overflow:hidden;border:1.5px solid #e8ccf5;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
     <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
       <div style="font-size:13px;font-weight:900;color:white;letter-spacing:1px;">📊 RESUMEN SEMANAL</div>
       <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:700;" id="resumen-sem-rango">—</div>
@@ -627,14 +629,14 @@ body {
       </div>
       <div style="background:white;padding:14px 16px;">
         <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:4px;">📋 PAPELERÍA</div>
-        <div style="font-size:22px;font-weight:900;color:#1a6eff;" id="resumen-sem-papeleria">$0</div>
+        <div style="font-size:22px;font-weight:900;color:#cc00aa;" id="resumen-sem-papeleria">$0</div>
         <div style="font-size:11px;font-weight:700;color:#bbb;" id="resumen-sem-papeleria-dias">0 días</div>
       </div>
     </div>
-    <div style="background:#eef2ff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;">
-      <button onclick="cambiarSemanaResumen(-1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #d0d8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">← Ant.</button>
+    <div style="background:#f5eeff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;">
+      <button onclick="cambiarSemanaResumen(-1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">← Ant.</button>
       <div style="font-size:12px;font-weight:800;color:#666;" id="resumen-sem-semana">Semana actual</div>
-      <button onclick="cambiarSemanaResumen(1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #d0d8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">Sig. →</button>
+      <button onclick="cambiarSemanaResumen(1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">Sig. →</button>
     </div>
   </div>
 
@@ -642,12 +644,12 @@ body {
     <div class="historial-titulo">📅 Días guardados</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
       <input type="date" id="filtro-historial-fecha"
-        style="flex:1;padding:10px 12px;border:2px solid #d0d8f0;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
+        style="flex:1;padding:10px 12px;border:2px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
         oninput="renderHistorial()"
-        onfocus="this.style.borderColor='#1a6eff'"
-        onblur="this.style.borderColor='#d0d8f0'">
+        onfocus="this.style.borderColor='#ff00cc'"
+        onblur="this.style.borderColor='#e8ccf5'">
       <button onclick="document.getElementById('filtro-historial-fecha').value='';renderHistorial();"
-        style="padding:10px 14px;background:#f3f4f6;color:#555;border:1.5px solid #d0d8f0;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
+        style="padding:10px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
         Ver todos
       </button>
     </div>
@@ -678,11 +680,11 @@ body {
 
   <!-- Filtro de fecha -->
   <div style="margin:14px 14px 0;display:flex;gap:8px;align-items:center">
-    <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #d0d8f0;display:flex;align-items:center;gap:8px">
+    <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e8ccf5;display:flex;align-items:center;gap:8px">
       <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
-      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#1a6eff;flex:1" oninput="renderDetalles()">
+      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles()">
     </div>
-    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:#1a6eff;border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
     <button onclick="imprimirReporteDia()" style="background:#FFD700;border:none;color:#111;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
   </div>
 
@@ -736,7 +738,7 @@ body {
       </div>
     </div>
     <!-- Total histórico prestado -->
-    <div style="margin-top:12px;background:rgba(26,110,255,0.3);border-radius:14px;padding:14px 16px;border:1.5px solid rgba(26,110,255,0.5)">
+    <div style="margin-top:12px;background:rgba(255,0,204,0.3);border-radius:14px;padding:14px 16px;border:1.5px solid rgba(255,0,204,0.5)">
       <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">📊 Total prestado históricamente</div>
       <div id="pres-total-historico" style="font-size:30px;font-weight:900;color:white">$0</div>
       <div id="pres-detalle-historico" style="font-size:12px;color:rgba(255,255,255,0.5);font-weight:700;margin-top:2px"></div>
@@ -758,7 +760,7 @@ body {
   <!-- Todos los clientes con su total prestado -->
   <div style="margin:12px 14px 8px">
     <button onclick="toggleHistorialClientes()" id="btn-ver-historial"
-      style="width:100%;padding:14px;background:linear-gradient(135deg,#1a6eff,#0033bb);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(26,110,255,0.3)">
+      style="width:100%;padding:14px;background:linear-gradient(135deg,#ff00cc,#00ff88,#00ccff);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(255,0,204,0.3)">
       <span>👥 Ver clientes</span><span id="historial-flecha">▼</span>
     </button>
   </div>
@@ -768,9 +770,9 @@ body {
       <input type="text" id="buscador-historial"
         placeholder="🔍 Buscar por nombre o cédula..."
         oninput="renderPrestamos()"
-        style="width:100%;padding:12px 14px;border:2px solid #d0d8f0;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#111;background:white;outline:none;box-sizing:border-box"
-        onfocus="this.style.borderColor='#1a6eff'"
-        onblur="this.style.borderColor='#d0d8f0'">
+        style="width:100%;padding:12px 14px;border:2px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#111;background:white;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#ff00cc'"
+        onblur="this.style.borderColor='#e8ccf5'">
     </div>
     <div id="lista-historico-prestamos"></div>
   </div>
@@ -782,10 +784,10 @@ body {
 
   <!-- DIAGNÓSTICO FIREBASE -->
   <div class="seccion" style="margin-top:14px">
-    <div class="seccion-titulo" style="background:#0d1117;color:#1a6eff">🔧 Diagnóstico Firebase</div>
+    <div class="seccion-titulo" style="background:#0d1117;color:#cc00aa">🔧 Diagnóstico Firebase</div>
     <div style="padding:14px 16px">
       <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px;line-height:1.5">Muestra en tiempo real lo que hace Firebase: si sube los datos, si hay errores, o por qué no sincroniza.</div>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?'))" style="width:100%;padding:14px;background:#0d1117;color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?'))" style="width:100%;padding:14px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
     </div>
   </div>
 
@@ -794,7 +796,7 @@ body {
     <div class="seccion-titulo titulo-verde">💾 Copia de seguridad</div>
 
     <!-- Info -->
-    <div style="padding:12px 16px;background:#e0fff0;border-bottom:1px solid #d0d8f0">
+    <div style="padding:12px 16px;background:#e0fff0;border-bottom:1px solid #e8ccf5">
       <div style="font-size:13px;font-weight:700;color:#00cc55">¿Para qué sirve?</div>
       <div style="font-size:12px;color:#555;font-weight:600;margin-top:4px;line-height:1.5">Guarda todos tus clientes, pagos e historial en un archivo. Si cambias de celular o borras Chrome, puedes restaurarlos fácilmente.</div>
     </div>
@@ -811,7 +813,7 @@ body {
     <div class="campo" style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:8px;border-top:1px solid #f0f0f0">
       <div style="font-size:14px;font-weight:800;color:#111">📂 Restaurar datos</div>
       <div style="font-size:12px;color:#666;font-weight:700">Carga una copia guardada anteriormente</div>
-      <label style="width:100%;padding:14px;background:#e8f0ff;color:#1a6eff;border:2px solid #6699ff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;display:block;margin-top:4px">
+      <label style="width:100%;padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;display:block;margin-top:4px">
         📂 Seleccionar archivo de copia
         <input type="file" accept=".json" onchange="importarDatos(event)" style="display:none">
       </label>
@@ -832,16 +834,16 @@ body {
       <div style="font-size:13px;color:#666;font-weight:600;margin-bottom:14px">Cambia tu usuario o contraseña de acceso al programa.</div>
       <label class="login-label">👤 Usuario actual</label>
       <input type="text" id="cfg-usuario" placeholder="Nuevo usuario" maxlength="20"
-        style="width:100%;border:2px solid #d0d8f0;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#d0d8f0'">
+        style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
       <label class="login-label">🔒 Nueva contraseña</label>
       <input type="password" id="cfg-clave" placeholder="••••" maxlength="20"
-        style="width:100%;border:2px solid #d0d8f0;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#d0d8f0'">
+        style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
       <label class="login-label">🔒 Confirmar contraseña</label>
       <input type="password" id="cfg-clave2" placeholder="••••" maxlength="20"
-        style="width:100%;border:2px solid #d0d8f0;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:14px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#d0d8f0'">
+        style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:14px;box-sizing:border-box"
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
       <div id="cfg-creds-error" style="color:#ff1111;font-size:13px;font-weight:700;text-align:center;margin-bottom:10px;display:none"></div>
       <button onclick="cambiarCredenciales()" style="width:100%;padding:14px;background:linear-gradient(135deg,#8b00ff,#5c00aa);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔐 Guardar cambios</button>
     </div>
@@ -884,7 +886,7 @@ body {
 </div><!-- fin app -->
 
 <!-- PANTALLA DETALLES CLIENTE -->
-<div id="pantalla-detalle-cliente" style="display:none;position:fixed;inset:0;background:#e8f0ff;z-index:200;max-width:600px;margin:0 auto;overflow-y:auto;padding-bottom:40px">
+<div id="pantalla-detalle-cliente" style="display:none;position:fixed;inset:0;background:#f8eeff;z-index:200;max-width:600px;margin:0 auto;overflow-y:auto;padding-bottom:40px">
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#111827,#1f2937);padding:18px 16px 14px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10">
@@ -896,7 +898,7 @@ body {
   </div>
 
   <!-- Ficha principal -->
-  <div style="margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #d0d8f0;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+  <div style="margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
     <div style="background:#111827;padding:10px 16px">
       <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase">📋 Datos del préstamo</div>
     </div>
@@ -908,37 +910,37 @@ body {
       </div>
       <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
         <span style="font-size:13px;font-weight:700;color:#888">INICIÓ</span>
-        <span id="det-inicio" style="font-size:13px;font-weight:800;color:#1a6eff"></span>
+        <span id="det-inicio" style="font-size:13px;font-weight:800;color:#cc00aa"></span>
       </div>
       <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
         <span style="font-size:13px;font-weight:700;color:#888">FINAL</span>
-        <span id="det-final" style="font-size:13px;font-weight:800;color:#1a6eff"></span>
+        <span id="det-final" style="font-size:13px;font-weight:800;color:#cc00aa"></span>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
         <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">VALOR</div>
-          <div id="det-valor" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-valor" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">TOTAL</div>
-          <div id="det-total" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-total" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">MODO</div>
-          <div id="det-modo" style="font-size:16px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-modo" style="font-size:16px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">N° CUOTAS</div>
-          <div id="det-ncuotas" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-ncuotas" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">V. CUOTA</div>
-          <div id="det-vcuota" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-vcuota" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">PORCENTAJE</div>
-          <div id="det-porcentaje-val" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px">20%</div>
+          <div id="det-porcentaje-val" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px">20%</div>
         </div>
         <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">DÍAS ATRASO</div>
@@ -954,18 +956,18 @@ body {
         <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:4px">ÚLT. ABONO</div>
         <div style="display:flex;gap:12px;align-items:center">
           <span id="det-ult-monto" style="font-size:18px;font-weight:900;color:#00cc55"></span>
-          <span id="det-ult-fecha" style="font-size:13px;font-weight:700;color:#1a6eff"></span>
+          <span id="det-ult-fecha" style="font-size:13px;font-weight:700;color:#cc00aa"></span>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
         <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">U/A (últ. abonos)</div>
-          <div id="det-ua" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-ua" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0 10px 10px;border-bottom:1px solid #f0f0f0">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">D.D (días / total)</div>
-          <div id="det-dd" style="font-size:18px;font-weight:900;color:#1a6eff;margin-top:2px"></div>
+          <div id="det-dd" style="font-size:18px;font-weight:900;color:#cc00aa;margin-top:2px"></div>
         </div>
         <div style="padding:10px 0;border-right:1px solid #f0f0f0;padding-right:10px">
           <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase">ABONOS</div>
@@ -988,11 +990,11 @@ body {
   </div>
 
   <!-- Abonar -->
-  <div style="margin:14px 14px 0;background:white;border-radius:20px;padding:16px;border:1px solid #d0d8f0;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+  <div style="margin:14px 14px 0;background:white;border-radius:20px;padding:16px;border:1px solid #e8ccf5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
     <div style="font-size:13px;font-weight:900;color:#333;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">VALOR A ABONAR</div>
     <div style="display:flex;gap:10px;align-items:center">
       <input type="number" id="det-abonar-input" placeholder="Ingrese el valor"
-        style="flex:1;min-width:0;border:2px solid #d0d8f0;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
+        style="flex:1;min-width:0;border:2px solid #e8ccf5;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
         oninput="actualizarNuevoSaldo()">
       <button onclick="abonarDesdeDetalle()" style="flex-shrink:0;background:#00cc55;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">💰 PAGAR</button>
     </div>
@@ -1002,7 +1004,7 @@ body {
 
   <!-- Botones acción -->
   <div style="margin:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <button onclick="verAbonosDetalle()" style="background:#1a6eff;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
+    <button onclick="verAbonosDetalle()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
     <button onclick="renovarDesdeDetalle()" style="background:#ff1111;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">RENOVAR</button>
   </div>
   <div style="margin:10px 14px 0">
@@ -1014,8 +1016,8 @@ body {
 
 
   <!-- Historial abonos (oculto por defecto) -->
-  <div id="det-historial-box" style="display:none;margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #d0d8f0">
-    <div style="background:#1a6eff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+  <div id="det-historial-box" style="display:none;margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e8ccf5">
+    <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
       <button onclick="document.getElementById('det-historial-box').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
@@ -1033,11 +1035,11 @@ body {
   <div class="modal">
     <div class="modal-titulo">📋 Ordenar Clientes</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-      <button onclick="ordenarClientes('nombre')" style="padding:14px;background:#e8f0ff;color:#1a6eff;border:2px solid #6699ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔤 Ordenar por nombre (A-Z)</button>
+      <button onclick="ordenarClientes('nombre')" style="padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔤 Ordenar por nombre (A-Z)</button>
       <button onclick="ordenarClientes('saldo-desc')" style="padding:14px;background:#ffe8e8;color:#ff1111;border:2px solid #ff8888;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔴 Mayor saldo primero</button>
       <button onclick="ordenarClientes('saldo-asc')" style="padding:14px;background:#e0fff0;color:#00cc55;border:2px solid #66ffaa;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🟢 Menor saldo primero</button>
       <button onclick="ordenarClientes('fecha-nuevo')" style="padding:14px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🆕 Más reciente primero</button>
-      <button onclick="ordenarClientes('fecha-viejo')" style="padding:14px;background:#eef2ff;color:#7c3aed;border:2px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">📅 Más antiguo primero</button>
+      <button onclick="ordenarClientes('fecha-viejo')" style="padding:14px;background:#f5eeff;color:#7c3aed;border:2px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">📅 Más antiguo primero</button>
       <button onclick="ordenarClientes('atraso')" style="padding:14px;background:#111827;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">⏰ Mayor atraso primero</button>
     </div>
     <button onclick="cerrarModal('modal-ordenar-overlay')" style="width:100%;padding:14px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
@@ -1082,7 +1084,7 @@ body {
 
     <div class="modal-campo" id="mc-fecha-campo" style="display:none">
       <label class="modal-label">📅 Fecha del préstamo</label>
-      <div style="background:#e8f0ff;border:2px solid #6699ff;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#1a6eff" id="mc-fecha-display"></div>
+      <div style="background:#f8eeff;border:2px solid #ff00cc;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#cc00aa" id="mc-fecha-display"></div>
     </div>
     <div class="modal-campo">
       <label class="modal-label">💰 Valor del préstamo</label>
@@ -1144,25 +1146,25 @@ body {
     <!-- ORDENAR POSICIÓN -->
     <div style="margin-top:16px">
       <button onclick="togglePosicion()" id="btn-toggle-posicion"
-        style="width:100%;padding:13px;background:#eef2ff;color:#1a6eff;border:2px solid #6699ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+        style="width:100%;padding:13px;background:#f5eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
         <span>📋 ¿Dónde va en la lista?</span>
         <span id="posicion-btn-arrow" style="font-size:18px">›</span>
       </button>
       <!-- Panel expandible -->
-      <div id="panel-posicion" style="display:none;margin-top:8px;background:#eef2ff;border-radius:14px;padding:14px;border:2px solid #6699ff">
+      <div id="panel-posicion" style="display:none;margin-top:8px;background:#f5eeff;border-radius:14px;padding:14px;border:2px solid #ff00cc">
         <!-- Botones Antes / Después -->
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <button onclick="seleccionarPosicion('antes')" id="btn-pos-antes"
-            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#e8f0ff;color:#1a6eff;border:2px solid #6699ff">
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc">
             ⬆️ Antes de...
           </button>
           <button onclick="seleccionarPosicion('despues')" id="btn-pos-despues"
-            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#e8f0ff;color:#1a6eff;border:2px solid #6699ff">
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc">
             ⬇️ Después de...
           </button>
         </div>
         <!-- Lista de clientes para referencia -->
-        <div id="lista-posicion-clientes" style="display:none;max-height:220px;overflow-y:auto;border-radius:10px;border:1.5px solid #d0d8f0;background:white">
+        <div id="lista-posicion-clientes" style="display:none;max-height:220px;overflow-y:auto;border-radius:10px;border:1.5px solid #e8ccf5;background:white">
           <div id="lista-posicion-items"></div>
         </div>
         <!-- Resultado seleccionado -->
@@ -1192,7 +1194,7 @@ body {
       <input type="number" class="modal-input" id="ren-prestamo" placeholder="0" oninput="actualizarResumenRenovar()">
     </div>
     <div class="prestamo-resumen" id="renovar-resumen" style="display:none">
-      <div class="prestamo-res-row"><span>Préstamo (capital)</span><span id="rr-capital" style="color:#1a6eff">$0</span></div>
+      <div class="prestamo-res-row"><span>Préstamo (capital)</span><span id="rr-capital" style="color:#cc00aa">$0</span></div>
       <div class="prestamo-res-row"><span>Interés 20%</span><span id="rr-interes" style="color:#e07b00">$0</span></div>
       <div class="prestamo-res-divider"></div>
       <div class="prestamo-res-row total"><span style="font-weight:900;color:#111">💵 Total a cobrar</span><span id="rr-total">$0</span></div>
@@ -1280,7 +1282,7 @@ body {
     <div id="modal-confirmar-msg" style="font-size:14px;color:#555;font-weight:600;line-height:1.6;margin-bottom:20px;white-space:pre-line"></div>
     <div style="display:flex;gap:10px">
       <button id="modal-confirmar-ok" style="flex:2;padding:15px;background:#ff1111;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Sí, continuar</button>
-      <button onclick="cerrarModal('modal-confirmar-overlay')" style="flex:1;padding:15px;background:#e8f0ff;color:#888;border:2px solid #6699ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button onclick="cerrarModal('modal-confirmar-overlay')" style="flex:1;padding:15px;background:#f8eeff;color:#888;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1417,7 +1419,7 @@ function cerrarSesion() {
   confirmarAccion(
     '🚪 Cerrar sesión',
     '¿Segura que quieres cerrar sesión?',
-    '#1a6eff',
+    '#ff00cc',
     () => {
       // Sync final antes de cerrar
       if (typeof window.syncFirebase === 'function') {
@@ -1684,13 +1686,13 @@ function renderHistorial(){
         <div class="h-num ${pos?'pos':'neg'}">${nt}</div>
       </div>
       <div class="h-grid">
-        <div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#1a6eff">${fmt(d.totalEntradas)}</div></div>
+        <div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#cc00aa">${fmt(d.totalEntradas)}</div></div>
         <div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff1111">${fmt(d.totalSalidas)}</div></div>
         <div class="h-cell"><div class="h-cell-label">${d.entregado>0?'Entregado':'Resultado'}</div><div class="h-cell-val" style="color:${pos?'#00e65c':'#ff1111'}">${d.entregado>0?fmt(d.entregado):nt}</div></div>
       </div>
       <div class="h-actions">
         <button class="h-btn h-btn-wa" onclick="compartirWA(JSON.parse(decodeURIComponent('${hs}')))">📲 WhatsApp</button>
-        <button class="h-btn" onclick="cargarDia('${d.fecha}')" style="background:#1a6eff;color:white;border:none;font-weight:800">✏️ Ver y editar cuotas</button>
+        <button class="h-btn" onclick="cargarDia('${d.fecha}')" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;font-weight:800">✏️ Ver y editar cuotas</button>
         <button class="h-btn h-btn-del" onclick="eliminarDia(${i})">🗑️ Borrar día</button>
       </div>
     </div>`;
@@ -1719,7 +1721,7 @@ function renderSemana(){
     <div class="semana-stat"><div class="semana-stat-label">📤 Total prestado</div><div class="semana-stat-val naranja">${fmt(tp)}</div></div>
     <div class="semana-stat"><div class="semana-stat-label">📤 Total salidas</div><div class="semana-stat-val rojo">${fmt(ts)}</div></div>
     <div class="semana-stat"><div class="semana-stat-label">📊 Resultado semana</div><div class="semana-stat-val ${tr>=0?'verde':'rojo'}">${tr>=0?fmt(tr):'-'+fmt(tr)}</div></div>`;
-  document.getElementById('semana-dias-lista').innerHTML=`<div class="historial-seccion"><div class="historial-titulo">Detalle por día</div>${dias.map(h=>{const pos=h.resultado>=0,nt=pos?fmt(h.resultado):'-'+fmt(h.resultado);return`<div class="historial-item"><div class="h-top" style="cursor:default"><div class="h-fecha">📅 ${fechaBonita(h.fecha)}</div><div class="h-num ${pos?'pos':'neg'}">${nt}</div></div><div class="h-grid"><div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#1a6eff">${fmt(h.totalEntradas)}</div></div><div class="h-cell"><div class="h-cell-label">Prestado</div><div class="h-cell-val" style="color:#e07b00">${fmt(h.prestamos||0)}</div></div><div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff1111">${fmt(h.totalSalidas)}</div></div></div></div>`;}).join('')}</div>`;
+  document.getElementById('semana-dias-lista').innerHTML=`<div class="historial-seccion"><div class="historial-titulo">Detalle por día</div>${dias.map(h=>{const pos=h.resultado>=0,nt=pos?fmt(h.resultado):'-'+fmt(h.resultado);return`<div class="historial-item"><div class="h-top" style="cursor:default"><div class="h-fecha">📅 ${fechaBonita(h.fecha)}</div><div class="h-num ${pos?'pos':'neg'}">${nt}</div></div><div class="h-grid"><div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#cc00aa">${fmt(h.totalEntradas)}</div></div><div class="h-cell"><div class="h-cell-label">Prestado</div><div class="h-cell-val" style="color:#e07b00">${fmt(h.prestamos||0)}</div></div><div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff1111">${fmt(h.totalSalidas)}</div></div></div></div>`;}).join('')}</div>`;
 }
 
 // ===== CLIENTES =====
@@ -1831,10 +1833,10 @@ function actualizarResumenRenovar(){
     if(aEntregar > 0){
       // Tú le das dinero para completar su préstamo
       box.style.background='#e8f4ff';
-      box.style.border='2px solid #1a6eff';
-      lbl.style.color='#1a6eff';
+      box.style.border='2px solid #ff00cc';
+      lbl.style.color='#ff00cc';
       lbl.textContent='💸 Tú le entregas al cliente';
-      monto.style.color='#1a6eff';
+      monto.style.color='#ff00cc';
       monto.textContent=fmt(aEntregar);
       document.getElementById('rr-diferencia-sub').textContent=`Capital ${fmt(p.capital)} − Saldo ${fmt(saldoAnt)} = ${fmt(aEntregar)}`;
     } else if(aEntregar < 0){
@@ -1913,10 +1915,10 @@ function abrirModalCliente(id){
   document.getElementById('posicion-btn-arrow').textContent='›';
   document.getElementById('lista-posicion-clientes').style.display='none';
   document.getElementById('posicion-seleccionada-info').style.display='none';
-  document.getElementById('btn-pos-antes').style.background='#e8f0ff';
-  document.getElementById('btn-pos-antes').style.color='#1a6eff';
-  document.getElementById('btn-pos-despues').style.background='#e8f0ff';
-  document.getElementById('btn-pos-despues').style.color='#1a6eff';
+  document.getElementById('btn-pos-antes').style.background='#f8eeff';
+  document.getElementById('btn-pos-antes').style.color='#ff00cc';
+  document.getElementById('btn-pos-despues').style.background='#f8eeff';
+  document.getElementById('btn-pos-despues').style.color='#ff00cc';
   document.getElementById('modal-cliente-overlay').classList.add('visible');
 }
 
@@ -2164,9 +2166,9 @@ function verCancelados(id){
   let html='';
 
   hist.forEach(r=>{
-    html+=`<div style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1.5px solid #d0d8f0;display:flex;justify-content:space-between;align-items:center">
+    html+=`<div style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1.5px solid #e8ccf5;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:13px;font-weight:900;color:#1a6eff">Cancelación #${r.numRenovacion}</div>
+        <div style="font-size:13px;font-weight:900;color:#cc00aa">Cancelación #${r.numRenovacion}</div>
         <div style="font-size:12px;color:#888;font-weight:700;margin-top:3px">${fechaBonita(r.fecha)}</div>
       </div>
       <div style="font-size:22px;font-weight:900;color:#00cc55">${fmt(r.totalCancelado)}</div>
@@ -2233,8 +2235,8 @@ function pedirCedulaYEliminar(id){
       </div>
       <input type="text" id="input-cedula-eliminar" inputmode="numeric"
         placeholder="Número de cédula"
-        style="width:100%;box-sizing:border-box;border:2px solid #d0d8f0;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;margin-bottom:16px"
-        oninput="this.style.borderColor=this.value.trim().length>3?'#00cc55':'#d0d8f0'">
+        style="width:100%;box-sizing:border-box;border:2px solid #e8ccf5;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;margin-bottom:16px"
+        oninput="this.style.borderColor=this.value.trim().length>3?'#00cc55':'#e8ccf5'">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button onclick="document.getElementById('modal-pedir-cedula').remove()"
           style="padding:14px;background:#f5f5f5;color:#555;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
@@ -2246,7 +2248,7 @@ function pedirCedulaYEliminar(id){
         </button>
       </div>
       <button onclick="eliminarSinCedula('${id}')"
-        style="width:100%;margin-top:10px;padding:12px;background:white;color:#888;border:1px solid #d0d8f0;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+        style="width:100%;margin-top:10px;padding:12px;background:white;color:#888;border:1px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
         Eliminar sin guardar historial
       </button>
     </div>
@@ -2343,10 +2345,10 @@ function seleccionarPosicion(tipo){
   const editId = document.getElementById('mc-id').value;
 
   // Highlight botón activo
-  document.getElementById('btn-pos-antes').style.background = tipo==='antes' ? '#1a6eff' : '#e8f0ff';
-  document.getElementById('btn-pos-antes').style.color = tipo==='antes' ? 'white' : '#1a6eff';
-  document.getElementById('btn-pos-despues').style.background = tipo==='despues' ? '#1a6eff' : '#e8f0ff';
-  document.getElementById('btn-pos-despues').style.color = tipo==='despues' ? 'white' : '#1a6eff';
+  document.getElementById('btn-pos-antes').style.background = tipo==='antes' ? '#ff00cc' : '#f8eeff';
+  document.getElementById('btn-pos-antes').style.color = tipo==='antes' ? 'white' : '#ff00cc';
+  document.getElementById('btn-pos-despues').style.background = tipo==='despues' ? '#ff00cc' : '#f8eeff';
+  document.getElementById('btn-pos-despues').style.color = tipo==='despues' ? 'white' : '#ff00cc';
 
   document.getElementById('mc-posicion-tipo').value = tipo;
   document.getElementById('mc-posicion-ref-id').value = '';
@@ -2361,13 +2363,13 @@ function seleccionarPosicion(tipo){
   } else {
     contenedor.innerHTML = lista.map((c, i) => `
       <div onclick="elegirClienteReferencia('${c.id}','${c.nombre}','${tipo}')"
-        style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0${i===lista.length-1?';border-bottom:none':''}; cursor:pointer; active-background:#e8f0ff">
-        <div style="min-width:24px;height:24px;background:#d0d8f0;color:#555;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
+        style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0${i===lista.length-1?';border-bottom:none':''}; cursor:pointer; active-background:#f8eeff">
+        <div style="min-width:24px;height:24px;background:#e8ccf5;color:#555;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:800;color:#111">${c.nombre}</div>
           <div style="font-size:11px;color:#666;font-weight:700">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Saldo: <span style="color:#ff1111">${fmt(c.saldo)}</span></div>
         </div>
-        <span style="font-size:18px;color:#1a6eff">›</span>
+        <span style="font-size:18px;color:#cc00aa">›</span>
       </div>`).join('');
   }
 
@@ -2489,7 +2491,7 @@ function renderClientes(){
     <div class="cliente-card" id="card-${c.id}">
       <div class="cliente-card-header" onclick="toggleBody('${c.id}')" >
         <!-- Número del cliente -->
-        <div style="min-width:28px;height:28px;background:#1a6eff;color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:6px;flex-shrink:0;align-self:flex-start;margin-top:4px">${numeroCliente+1}</div>
+        <div style="min-width:28px;height:28px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:6px;flex-shrink:0;align-self:flex-start;margin-top:4px">${numeroCliente+1}</div>
         <!-- Info izquierda -->
         <div style="flex:1;min-width:0;overflow:hidden">
           <div class="cliente-nombre">👤 ${c.nombre}</div>
@@ -2509,9 +2511,9 @@ function renderClientes(){
           ${diasStr ? `<div style="font-size:10px;font-weight:800;color:#8b00ff;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
           ${pagadoHoy > 0
             ? `<div style="background:#00e65c;color:#004d1a;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;white-space:nowrap;text-align:center">+${fmt(pagadoHoy)}</div>`
-            : (cuotaDia > 0 ? `<div style="background:#1a6eff;border-radius:10px;padding:5px 12px;font-size:15px;font-weight:900;color:white;text-align:center;box-shadow:0 3px 10px rgba(26,110,255,0.35)">${fmt(cuotaDia)}</div>` : '')
+            : (cuotaDia > 0 ? `<div style="background:linear-gradient(135deg,#ff00cc,#00ccff);border-radius:10px;padding:5px 12px;font-size:15px;font-weight:900;color:white;text-align:center;box-shadow:0 3px 10px rgba(255,0,204,0.35)">${fmt(cuotaDia)}</div>` : '')
           }
-          ${pagadoHoy > 0 && cuotaDia > 0 ? `<div style="background:#1a6eff;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;color:white;text-align:center">${fmt(cuotaDia)}</div>` : ''}
+          ${pagadoHoy > 0 && cuotaDia > 0 ? `<div style="background:linear-gradient(135deg,#ff00cc,#00ccff);border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;color:white;text-align:center">${fmt(cuotaDia)}</div>` : ''}
           <div style="text-align:center">
             <div class="saldo-label">SALDO</div>
             <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
@@ -2523,7 +2525,7 @@ function renderClientes(){
         <div class="cliente-detalle">
           <div class="cliente-det-item"><div class="cliente-det-label">💰 Capital</div><div class="cliente-det-val">${fmt(c.capital||0)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">📈 Interés ${getPorcentaje()}%</div><div class="cliente-det-val" style="color:#e07b00">${fmt(c.interes||0)}</div></div>
-          <div class="cliente-det-item"><div class="cliente-det-label">💵 Total a cobrar</div><div class="cliente-det-val" style="color:#1a6eff">${fmt(c.prestamo)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">💵 Total a cobrar</div><div class="cliente-det-val" style="color:#cc00aa">${fmt(c.prestamo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00cc55">${fmt(pagado)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff1111':'#00e65c'}">${fmt(c.saldo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">➡️ Nuevo saldo</div><div class="cliente-det-val" id="nuevo-saldo-inline-${c.id}" style="color:#888">—</div></div>
@@ -2556,13 +2558,13 @@ function renderClientes(){
           <button onclick="verAbonosCliente('${c.id}')" style="flex:1;padding:12px;background:#e8f8f0;color:#00cc55;border:2px solid #66ffaa;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">💰 Abonos</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <button onclick="navegarCliente('${c.id}',-1)" style="flex:1;padding:11px;background:#e8f0ff;color:#2563eb;border:2px solid #93c5fd;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">‹ Anterior</button>
+          <button onclick="navegarCliente('${c.id}',-1)" style="flex:1;padding:11px;background:#f8eeff;color:#2563eb;border:2px solid #93c5fd;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">‹ Anterior</button>
           <button onclick="navegarCliente('${c.id}',1)" style="flex:1;padding:11px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">Siguiente ›</button>
         </div>`:`<div style="text-align:center;padding:10px;color:#00cc55;font-weight:800;font-size:14px;">✅ Préstamo cancelado</div>`}
         <div class="cliente-acciones">
           <button class="btn-acc btn-acc-wa" onclick="compartirClienteWA('${c.id}')">📲 WA</button>
-          <button class="btn-acc" onclick="moverCliente('${c.id}',-1)" style="background:#e8f0ff;color:#1a6eff;border:2px solid #93c5fd;font-size:18px;min-width:44px">↑</button>
-          <button class="btn-acc" onclick="moverCliente('${c.id}',1)" style="background:#e8f0ff;color:#1a6eff;border:2px solid #93c5fd;font-size:18px;min-width:44px">↓</button>
+          <button class="btn-acc" onclick="moverCliente('${c.id}',-1)" style="background:#f8eeff;color:#cc00aa;border:2px solid #93c5fd;font-size:18px;min-width:44px">↑</button>
+          <button class="btn-acc" onclick="moverCliente('${c.id}',1)" style="background:#f8eeff;color:#cc00aa;border:2px solid #93c5fd;font-size:18px;min-width:44px">↓</button>
         </div>
         <button onclick="verCancelados('${c.id}')" style="width:100%;margin-top:8px;padding:10px;background:#e0fff0;color:#00cc55;border:2px solid #66ffaa;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-align:center">
           📋 Ver cancelados y renovaciones
@@ -3004,13 +3006,13 @@ function renderDetalles(){
 
   const listaCuotas = document.getElementById('lista-cuotas-det');
   if(!todasCuotas.length){
-    listaCuotas.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #d0d8f0">📭 No hay cuotas en esta fecha</div>';
+    listaCuotas.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #e8ccf5">📭 No hay cuotas en esta fecha</div>';
   } else {
     listaCuotas.innerHTML = Object.entries(cuotasPorFecha).map(([fecha, cuotas]) => {
       const totalDia = cuotas.reduce((s,c) => s+c.monto, 0);
-      return `<div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #d0d8f0;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
-        <div style="background:#e8f0ff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d0d8f0">
-          <div style="font-size:13px;font-weight:800;color:#1a6eff">📅 ${fechaBonita(fecha)}</div>
+      return `<div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+        <div style="background:#f8eeff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8ccf5">
+          <div style="font-size:13px;font-weight:800;color:#cc00aa">📅 ${fechaBonita(fecha)}</div>
           <div style="font-size:15px;font-weight:900;color:#00cc55">${fmt(totalDia)}</div>
         </div>
         ${cuotas.map(c => `
@@ -3031,10 +3033,10 @@ function renderDetalles(){
   // Cancelados
   const listaCancelados = document.getElementById('lista-cancelados-det');
   if(!cancelados.length){
-    listaCancelados.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #d0d8f0;margin-bottom:14px">📭 No hay cancelados' + (filtroFecha ? ' en esta fecha' : '') + '</div>';
+    listaCancelados.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #e8ccf5;margin-bottom:14px">📭 No hay cancelados' + (filtroFecha ? ' en esta fecha' : '') + '</div>';
   } else {
     listaCancelados.innerHTML = cancelados.map(c => `
-      <div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #d0d8f0;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+      <div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
         <div style="background:#ffe8e8;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ff8888">
           <div style="font-size:11px;font-weight:900;color:#ff1111;letter-spacing:1px;text-transform:uppercase">${c.esRenovacion ? '🔄 Renovado (ciclo cerrado)' : '✅ Cancelado completo'}</div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -3048,7 +3050,7 @@ function renderDetalles(){
               <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
 
               ${c.esRenovacion && c.saldoQuedaba > 0 ? `<div style="font-size:12px;color:#e07b00;font-weight:700;margin-top:2px">⚠️ Quedaba: ${fmt(c.saldoQuedaba)}</div>` : ''}
-              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#1a6eff;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
+              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#cc00aa;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
             </div>
             <div style="text-align:right">
               <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
@@ -3190,8 +3192,8 @@ function verAbonosCliente(id){
   }
 
   // Construir el panel inline dentro de la tarjeta
-  const html = `<div id="${boxId}" style="margin:10px 0 4px;background:#eef2ff;border-radius:14px;overflow:hidden;border:1px solid #d0d8f0">
-    <div style="background:#1a6eff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+  const html = `<div id="${boxId}" style="margin:10px 0 4px;background:#f5eeff;border-radius:14px;overflow:hidden;border:1px solid #e8ccf5">
+    <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:11px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
       <button onclick="document.getElementById('${boxId}').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
@@ -3352,26 +3354,26 @@ function verAbonosDetalle(){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(p.monto)}</div>
-            <button onclick="mostrarEditarCuota(${i})" style="background:#e8f0ff;border:1.5px solid #6699ff;color:#1a6eff;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
+            <button onclick="mostrarEditarCuota(${i})" style="background:#f8eeff;border:1.5px solid #ff66dd;color:#cc00aa;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
             <button onclick="deshacerCuota(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">↩️</button>
           </div>
         </div>
         <!-- Panel editar (oculto) -->
-        <div id="cuota-edit-${i}" style="display:none;background:#eef2ff;border-radius:12px;padding:12px;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:900;color:#1a6eff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✏️ Editar cuota #${pagos.length-i}</div>
+        <div id="cuota-edit-${i}" style="display:none;background:#f5eeff;border-radius:12px;padding:12px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:900;color:#cc00aa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✏️ Editar cuota #${pagos.length-i}</div>
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <div style="flex:1">
               <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Monto</div>
-              <input type="number" id="edit-monto-${i}" value="${p.monto}" style="width:100%;border:2px solid #d0d8f0;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;outline:none">
+              <input type="number" id="edit-monto-${i}" value="${p.monto}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;outline:none">
             </div>
             <div style="flex:1">
               <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Fecha</div>
-              <input type="date" id="edit-fecha-${i}" value="${p.fecha}" style="width:100%;border:2px solid #d0d8f0;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;color:#1a6eff">
+              <input type="date" id="edit-fecha-${i}" value="${p.fecha}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;color:#cc00aa">
             </div>
           </div>
           <div style="display:flex;gap:8px">
-            <button onclick="guardarEditarCuota(${i})" style="flex:2;background:#1a6eff;color:white;border:none;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
-            <button onclick="cancelarEditarCuota(${i})" style="flex:1;background:#e8f0ff;color:#888;border:2px solid #d0d8f0;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Cancelar</button>
+            <button onclick="guardarEditarCuota(${i})" style="flex:2;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
+            <button onclick="cancelarEditarCuota(${i})" style="flex:1;background:#f8eeff;color:#888;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Cancelar</button>
           </div>
         </div>
       </div>`).join('');
@@ -3456,7 +3458,7 @@ function borrarUltimaCuota(){
   confirmarAccion(
     '🗑️ Borrar última cuota',
     `¿Borrar la cuota de ${fmt(ult.monto)} del ${fechaBonita(ult.fecha)}?\n\nEse monto se devolverá al saldo.`,
-    '#1a6eff',
+    '#ff00cc',
     () => {
       const cl = getClientes();
       const i = cl.findIndex(c=>c.id===clienteDetalleId);
@@ -3578,10 +3580,10 @@ function renderPrestamos(){
   // Lista nuevos hoy
   const listaNuevos = document.getElementById('lista-nuevos-prestamos');
   if(!nuevosHoy.length){
-    listaNuevos.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #d0d8f0">📭 No hay clientes nuevos hoy</div>';
+    listaNuevos.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e8ccf5">📭 No hay clientes nuevos hoy</div>';
   } else {
     listaNuevos.innerHTML = nuevosHoy.map(c => `
-      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #d0d8f0;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
         <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}')">
           <div>
             <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
@@ -3590,11 +3592,11 @@ function renderPrestamos(){
           <div style="text-align:right">
             <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
             <div style="font-size:18px;font-weight:900;color:#00e65c">${fmt(c.capital||0)}</div>
-            <div style="font-size:11px;color:#1a6eff;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+            <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#e8f0ff;color:#1a6eff;border:1.5px solid #6699ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`).join('');
@@ -3603,7 +3605,7 @@ function renderPrestamos(){
   // Lista renovados hoy
   const listaRenovados = document.getElementById('lista-renovaciones-prestamos');
   if(!renovadosHoy.length){
-    listaRenovados.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #d0d8f0">📭 No hay renovaciones hoy</div>';
+    listaRenovados.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e8ccf5">📭 No hay renovaciones hoy</div>';
   } else {
     listaRenovados.innerHTML = renovadosHoy.map(c => {
       const rInfo = (c.historialRenovaciones||[])[0];
@@ -3618,11 +3620,11 @@ function renderPrestamos(){
           <div style="text-align:right">
             <div style="font-size:11px;color:#888;font-weight:700">Nuevo capital</div>
             <div style="font-size:18px;font-weight:900;color:#f59e0b">${fmt(c.capital||0)}</div>
-            <div style="font-size:11px;color:#1a6eff;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+            <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#e8f0ff;color:#1a6eff;border:1.5px solid #6699ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`;
@@ -3633,7 +3635,7 @@ function renderPrestamos(){
   const listaHistorico = document.getElementById('lista-historico-prestamos');
   const busqueda = (document.getElementById('buscador-historial')?.value || '').toLowerCase().trim();
   if(!clientes.length){
-    listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #d0d8f0">📭 No hay clientes</div>';
+    listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e8ccf5">📭 No hay clientes</div>';
   } else {
     // Calcular total prestado por cliente
     let clientesConTotal = clientes.map(c => {
@@ -3649,12 +3651,12 @@ function renderPrestamos(){
       );
     }
     if(!clientesConTotal.length){
-      listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #d0d8f0">🔍 No se encontró ningún cliente</div>';
+      listaHistorico.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e8ccf5">🔍 No se encontró ningún cliente</div>';
       return;
     }
 
     listaHistorico.innerHTML = clientesConTotal.map(c => `
-      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #d0d8f0;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+      <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
         <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
@@ -3663,16 +3665,16 @@ function renderPrestamos(){
             </div>
             <div style="text-align:right">
               <div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase">Total prestado</div>
-              <div style="font-size:20px;font-weight:900;color:#1a6eff">${fmt(c.totalPrestado)}</div>
+              <div style="font-size:20px;font-weight:900;color:#cc00aa">${fmt(c.totalPrestado)}</div>
             </div>
           </div>
-          <div style="margin-top:8px;background:#e8f0ff;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between">
+          <div style="margin-top:8px;background:#f8eeff;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between">
             <span style="font-size:12px;color:#666;font-weight:700">Préstamo actual</span>
-            <span style="font-size:13px;font-weight:900;color:#1a6eff">${fmt(c.prestamo)}</span>
+            <span style="font-size:13px;font-weight:900;color:#cc00aa">${fmt(c.prestamo)}</span>
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#e8f0ff;color:#1a6eff;border:1.5px solid #6699ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`).join('');
@@ -4175,29 +4177,29 @@ function abrirCrearHistorialManual(cedula){
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">👤 Nombre</label>
           <input id="hm-nombre" type="text" placeholder="Nombre completo"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📱 Teléfono</label>
           <input id="hm-tel" type="tel" placeholder="Teléfono (opcional)"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📅 Fecha préstamo</label>
           <input id="hm-fecha" type="date" value="${fechaHoy()}"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
             <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💰 Capital</label>
             <input id="hm-capital" type="number" placeholder="0"
-              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
+              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
               oninput="calcularTotalManual()">
           </div>
           <div>
             <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📊 Interés %</label>
             <input id="hm-interes" type="number" placeholder="20" value="20"
-              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
+              style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
               oninput="calcularTotalManual()">
           </div>
         </div>
@@ -4207,12 +4209,12 @@ function abrirCrearHistorialManual(cedula){
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💳 Cuota</label>
           <input id="hm-cuota" type="number" placeholder="0"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">✅ ¿Canceló?</label>
           <select id="hm-cancelado"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #d0d8f0;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
             <option value="si">✅ Sí canceló</option>
             <option value="no">🔴 Quedó debiendo</option>
           </select>
@@ -4550,8 +4552,8 @@ function verHistorialCompleto(cedula){
         </div>
         <!-- Detalle pagos -->
         ${pagosOrd.length > 0 ? `
-        <div style="margin:8px 0 4px;background:#eef2ff;border-radius:14px;overflow:hidden;border:1px solid #d0d8f0">
-          <div style="background:#1a6eff;padding:10px 14px">
+        <div style="margin:8px 0 4px;background:#f5eeff;border-radius:14px;overflow:hidden;border:1px solid #e8ccf5">
+          <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:10px 14px">
             <div style="font-size:11px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
           </div>
           <div style="padding:0 14px">
@@ -5381,16 +5383,16 @@ function abrirModalNuevoOHistorial() {
       <div style="font-size:13px;color:#666;font-weight:700;margin-bottom:20px">Ingresa la cédula del cliente</div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <input type="text" id="input-cedula-nuevo" inputmode="numeric" placeholder="Número de cédula"
-          style="flex:1;border:2px solid #d0d8f0;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;letter-spacing:1px"
-          onfocus="this.style.borderColor='#1a6eff'" onblur="this.style.borderColor='#d0d8f0'"
+          style="flex:1;border:2px solid #e8ccf5;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;letter-spacing:1px"
+          onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'"
           onkeydown="if(event.key==='Enter'){event.preventDefault();procesarCedulaNuevo();}">
         <button onclick="procesarCedulaNuevo()"
-          style="flex-shrink:0;background:#1a6eff;color:white;border:none;border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          style="flex-shrink:0;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
           🔍 Buscar
         </button>
       </div>
       <button onclick="document.getElementById('modal-nuevo-o-hist').remove();abrirModalCliente();"
-        style="width:100%;padding:14px;background:#e8f0ff;color:#1a6eff;border:2px solid #6699ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px">
+        style="width:100%;padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px">
         ➕ Cliente completamente nuevo (sin cédula previa)
       </button>
       <button onclick="document.getElementById('modal-nuevo-o-hist').remove()"
@@ -5560,7 +5562,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <button onclick="document.getElementById('modal-carton-overlay').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:14px;text-align:center">
-      <canvas id="canvas-carton" style="width:100%;border-radius:12px;border:1px solid #d0d8f0"></canvas>
+      <canvas id="canvas-carton" style="width:100%;border-radius:12px;border:1px solid #e8ccf5"></canvas>
       <div style="margin-top:12px;display:flex;gap:10px">
         <button onclick="compartirCartonImagen()" style="flex:1;background:#25D366;color:white;border:none;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📲 Enviar por WhatsApp</button>
         <button onclick="descargarCarton()" style="background:#1a56db;color:white;border:none;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">⬇️</button>
@@ -5573,11 +5575,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 <!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
-<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #1a6eff;max-height:45vh;overflow-y:auto;font-family:monospace">
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:45vh;overflow-y:auto;font-family:monospace">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
-    <span style="color:#1a6eff;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
+    <span style="color:#cc00aa;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
     <div style="display:flex;gap:8px">
-      <button onclick="window.syncForzado && window.syncForzado()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
+      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
       <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
       <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
     </div>
