@@ -3571,7 +3571,7 @@ function waCliente(){
   if(!c || !c.tel){ showToast('⚠️ Este cliente no tiene teléfono'); return; }
   const pagado = c.prestamo - c.saldo;
   const texto = `Hola ${c.nombre}, le informamos que su saldo es de *${fmt(c.saldo)}*. Ha abonado *${fmt(pagado)}* de *${fmt(c.prestamo)}*.`;
-  window.open('https://wa.me/57'+c.tel+'?text='+encodeURIComponent(texto),'_blank');
+  window.location.href = 'https://wa.me/57'+c.tel.replace(/\s/g,'')+  '?text='+encodeURIComponent(texto);
 }
 
 // ===== PANTALLA PRÉSTAMOS =====
