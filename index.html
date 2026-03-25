@@ -431,7 +431,6 @@ body {
   </div>
   <div class="nav-tabs">
     <button class="nav-tab activo" onclick="irA('clientes')"  id="tab-clientes">👥 Clientes</button>
-    <button class="nav-tab" onclick="irA('whatsapp')"         id="tab-whatsapp">💬 WA</button>
     <button class="nav-tab" onclick="irA('detalles')"         id="tab-detalles">📋 Detalles</button>
     <button class="nav-tab" onclick="irA('prestamos')"        id="tab-prestamos">💸 Préstamos</button>
     <button class="nav-tab" onclick="irA('cuentas')"          id="tab-cuentas">💰 Cuentas</button>
@@ -893,8 +892,8 @@ body {
       <p style="font-size:13px;color:#666;font-weight:600;line-height:1.5;">
         Toca el botón para abrir WhatsApp Web. Escanea el QR con tu celular una vez y queda vinculado.
       </p>
-      <a href="https://web.whatsapp.com" target="_blank" style="display:block;width:100%;padding:15px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 8px 24px rgba(37,211,102,0.4);">
-        📱 Abrir WhatsApp Web
+      <a href="whatsapp://" style="display:block;width:100%;padding:15px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 8px 24px rgba(37,211,102,0.4);">
+        📱 Abrir WhatsApp
       </a>
       <div style="background:#f8fff8;border:1.5px solid #25D36640;border-radius:14px;padding:14px 16px;margin-top:4px;">
         <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#128C7E;text-transform:uppercase;margin-bottom:8px;">💡 Tip</div>
@@ -1030,6 +1029,10 @@ body {
   <div style="margin:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <button onclick="verAbonosDetalle()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
     <button onclick="renovarDesdeDetalle()" style="background:#ff1111;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">RENOVAR</button>
+  </div>
+  <div style="margin:10px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button onclick="llamarCliente()" style="background:#1a56db;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📞 LLAMAR</button>
+    <button onclick="waCliente()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">💬 WHATSAPP</button>
   </div>
   <div style="margin:10px 14px 0">
     <button id="btn-ver-hist-cedula" onclick="verHistorialDesdeDetalle()" style="display:none;width:100%;background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER HISTORIAL COMPLETO DE ESTE CLIENTE</button>
