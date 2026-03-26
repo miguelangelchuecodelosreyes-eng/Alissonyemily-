@@ -3210,8 +3210,9 @@ function renderDetalles(){
       <div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
         <div style="background:#ffe8e8;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ff8888">
           <div style="font-size:11px;font-weight:900;color:#ff1111;letter-spacing:1px;text-transform:uppercase">${c.esRenovacion ? '🔄 Renovado (ciclo cerrado)' : '✅ Cancelado completo'}</div>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
             <div style="font-size:12px;color:#888;font-weight:700">📅 ${fechaBonita(c.fecha)}</div>
+            <button onclick="editarFechaCancelado('${c.clienteId}','${c.fecha}',${c.esRenovacion||false})" style="background:#fff3e0;border:1.5px solid #ffaa00;color:#e07b00;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✏️</button>
             <button onclick="eliminarCanceladoDeDetalle('${c.clienteId}',${c.esRenovacion||false})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
           </div>
         </div>
@@ -3257,6 +3258,59 @@ function eliminarCuotaDeDetalle(clienteId, fecha, monto){
       renderDetalles();
     }
   );
+}
+
+function editarFechaCancelado(clienteId, fechaActual, esRenovacion){
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-editar-fecha-cancelado';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.35)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:32px">📅</div>
+        <div style="font-size:17px;font-weight:900;color:#cc00aa;margin-top:6px">Corregir fecha</div>
+        <div style="font-size:13px;color:#555;margin-top:4px">¿En qué fecha fue realmente esta ${esRenovacion?'renovación':'cancelación'}?</div>
+      </div>
+      <input type="date" id="input-nueva-fecha-cancelado" value="${fechaActual}"
+        style="width:100%;box-sizing:border-box;border:2px solid #e8ccf5;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#cc00aa;outline:none;margin-bottom:16px;text-align:center">
+      <div style="display:grid;gap:10px">
+        <button onclick="confirmarEditarFechaCancelado('${clienteId}','${fechaActual}',${esRenovacion})"
+          style="padding:14px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          ✅ Guardar fecha
+        </button>
+        <button onclick="document.getElementById('modal-editar-fecha-cancelado').remove()"
+          style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function confirmarEditarFechaCancelado(clienteId, fechaVieja, esRenovacion){
+  const nuevaFecha = document.getElementById('input-nueva-fecha-cancelado')?.value;
+  if(!nuevaFecha){ showToast('⚠️ Selecciona una fecha'); return; }
+  const cl = getClientes();
+  const idx = cl.findIndex(c=>c.id===clienteId);
+  if(idx<0) return;
+
+  if(esRenovacion){
+    const histRen = cl[idx].historialRenovaciones||[];
+    const idxRen = histRen.findIndex(r=>r.fecha===fechaVieja);
+    if(idxRen>=0){
+      cl[idx].historialRenovaciones[idxRen].fecha = nuevaFecha;
+      // Si es la renovación más reciente, también actualizar fechaRenovacion
+      if(idxRen===0) cl[idx].fechaRenovacion = nuevaFecha;
+    }
+  } else {
+    // Pagos: cambiar todos los pagos de esa fecha
+    (cl[idx].pagos||[]).forEach(p=>{ if(p.fecha===fechaVieja) p.fecha=nuevaFecha; });
+  }
+
+  saveClientes(cl);
+  document.getElementById('modal-editar-fecha-cancelado')?.remove();
+  showToast('✅ Fecha corregida a ' + fechaBonita(nuevaFecha));
+  renderDetalles();
 }
 
 function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
