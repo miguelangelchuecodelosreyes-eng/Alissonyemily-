@@ -1598,19 +1598,18 @@ function guardarDia(){
   renderHistorial();
   renderResumenSemanal();
 
-  // Después de guardar, resetear SIEMPRE a la fecha de hoy en todas las pestañas
-  const hoy = fechaHoy();
-  setFechaActiva(hoy);
+  // Mantener la fecha activa actual (no forzar a hoy)
+  const fechaActual = getFechaActiva();
 
   // Actualizar input de fecha en Préstamos
   const presInput = document.getElementById('pres-filtro-fecha');
-  if(presInput) presInput.value = hoy;
+  if(presInput) presInput.value = fechaActual;
 
   // Actualizar input de fecha en Detalles
   const detInput = document.getElementById('det-filtro-fecha');
-  if(detInput) detInput.value = hoy;
+  if(detInput) detInput.value = fechaActual;
 
-  // Recargar cuentas con la fecha de hoy
+  // Recargar cuentas con la fecha activa
   setTimeout(() => {
     cargarDesdeSupervisor();
     renderPrestamos();
@@ -1626,7 +1625,7 @@ function limpiarCuentas(){
     '¿Limpiar base, papelería, neki y gasto de hoy?\n\nLos valores de clientes no se borran.',
     '#888',
     () => {
-      const hoy = fechaHoy();
+      const hoy = getFechaActiva();
       lsRemove('sup_manual_'+hoy);
       document.getElementById('input-base').value = '';
       document.getElementById('input-papeleria').value = '';
@@ -1656,8 +1655,7 @@ function renderNuevosRenovacionesHoy(){
 function getDatos(){
   if(window._datosHoy) return window._datosHoy;
   // Fallback: leer directo de inputs si están disponibles
-  const hoy = fechaHoy();
-  const base      = parseFloat(document.getElementById('input-base')?.value)||0;
+  const hoy = getFechaActiva();
   const papeleria = parseFloat(document.getElementById('input-papeleria')?.value)||0;
   const neki      = parseFloat(document.getElementById('input-neki')?.value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto')?.value)||0;
@@ -2059,7 +2057,7 @@ function guardarCliente(){
       tipo:document.getElementById('mc-tipo').value,
       diaSemana:document.getElementById('mc-dia-semana').value||'',
       cuotaSugerida:parseFloat(document.getElementById('mc-cuota').value)||0,
-      saldo:p.total, pagos:[], fechaCreado:fechaHoy(), renovaciones:0
+      saldo:p.total, pagos:[], fechaCreado:getFechaActiva(), renovaciones:0
     };
     if(posicionTipo && posicionRefId){
       const refIdx=clientes.findIndex(c=>c.id===posicionRefId);
@@ -2116,7 +2114,7 @@ function confirmarRenovar(){
   // Guardar en historial de renovaciones
   const entradaHistorial={
     numRenovacion:(c.renovaciones||0)+1,
-    fecha:fechaHoy(),
+    fecha:getFechaActiva(),
     prestamoCiclo:c.prestamo,
     capitalCiclo:c.capital||c.prestamo,
     interesCiclo:c.interes||0,
@@ -2142,7 +2140,7 @@ function confirmarRenovar(){
   clientes[idx].cuotaSugerida=parseFloat(document.getElementById('ren-cuota').value)||0;
   clientes[idx].pagos=[];
   clientes[idx].renovaciones=(c.renovaciones||0)+1;
-  clientes[idx].fechaRenovacion=fechaHoy();
+  clientes[idx].fechaRenovacion=getFechaActiva();
   saveClientes(clientes);
   renderClientes();
   cerrarModal('modal-renovar-overlay');
@@ -3504,7 +3502,7 @@ function abonarDesdeDetalle(){
   if(idx<0) return;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - monto);
   clientes[idx].pagos = clientes[idx].pagos || [];
-  clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
+  clientes[idx].pagos.unshift({fecha: getFechaActiva(), monto});
   saveClientes(clientes);
   // Archivar en historial si tiene cédula
   const cActDet = getClientes().find(x=>x.id===clienteDetalleId);
@@ -4320,14 +4318,14 @@ function archivarClienteEnHistorial(c){
     nombre: c.nombre,
     tel: c.tel||'',
     dir: c.dir||'',
-    fechaArchivado: fechaHoy(),
+    fechaArchivado: getFechaActiva(),
     // Ciclos: historial de renovaciones + ciclo actual
     ciclos: [
       // Ciclo actual
       {
         num: (c.renovaciones||0) + 1,
-        fechaInicio: c.fechaRenovacion || c.fechaCreado || fechaHoy(),
-        fechaFin: fechaHoy(),
+        fechaInicio: c.fechaRenovacion || c.fechaCreado || getFechaActiva(),
+        fechaFin: getFechaActiva(),
         capital: c.capital||0,
         prestamo: c.prestamo||0,
         pagado: pagado,
@@ -4375,7 +4373,7 @@ function archivarClienteEnHistorial(c){
     hist[idx].nombre = c.nombre;
     hist[idx].tel = c.tel||hist[idx].tel;
     hist[idx].dir = c.dir||hist[idx].dir;
-    hist[idx].fechaArchivado = fechaHoy();
+    hist[idx].fechaArchivado = getFechaActiva();
   } else {
     hist.push(entrada);
   }
