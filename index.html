@@ -3269,40 +3269,46 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
 
   if(esRenovacion){
     const hist = cliente.historialRenovaciones||[];
-    if(!hist.length || hist[0].fecha !== fechaFiltro){ showToast('⛔ No hay renovación de esa fecha para eliminar'); return; }
+    // Buscar la renovación que corresponde a esa fecha (no importa si es hoy o no)
+    const idxRen = hist.findIndex(r => r.fecha === fechaFiltro);
+    if(idxRen < 0){ showToast('⛔ No hay renovación de esa fecha para eliminar'); return; }
+    const u = hist[idxRen];
     confirmarAccion(
-      '🗑️ Eliminar renovación de hoy',
-      `¿Eliminar la renovación de ${cliente.nombre}?\n\nSe restaurará el préstamo anterior del cliente.`,
-      '#ff1111',
+      '↩️ Deshacer renovación',
+      `¿Deshacer la renovación de ${cliente.nombre}?\n\n✅ El cliente volverá a como estaba antes:\n• Préstamo anterior: ${fmt(u.prestamoCiclo)}\n• Saldo que quedaba: ${fmt(u.saldoQuedaba)}\n• Pagos de ese ciclo: ${(u.pagos||[]).length}\n\nEl préstamo nuevo (${fmt(cliente.prestamo)}) se borrará.`,
+      '#ff6600',
       () => {
         const cl2 = getClientes();
         const idx = cl2.findIndex(c=>c.id===clienteId);
         if(idx<0) return;
-        const u = cl2[idx].historialRenovaciones[0];
-        cl2[idx].capital = u.capitalCiclo || 0;
-        cl2[idx].interes = u.interesCiclo || 0;
-        cl2[idx].prestamo = u.prestamoCiclo;
-        cl2[idx].saldo = u.saldoQuedaba;
-        cl2[idx].pagos = u.pagos || [];
-        cl2[idx].tipo = u.tipo || cl2[idx].tipo;
-        cl2[idx].cuotaSugerida = u.cuotaSugerida || cl2[idx].cuotaSugerida;
-        cl2[idx].fechaCreado = u.fechaCreado || cl2[idx].fechaCreado;
-        cl2[idx].fechaRenovacion = u.fechaRenovacion || null;
+        const u2 = cl2[idx].historialRenovaciones[idxRen];
+        cl2[idx].capital = u2.capitalCiclo || 0;
+        cl2[idx].interes = u2.interesCiclo || 0;
+        cl2[idx].prestamo = u2.prestamoCiclo;
+        cl2[idx].saldo = u2.saldoQuedaba;
+        cl2[idx].pagos = u2.pagos || [];
+        cl2[idx].tipo = u2.tipo || cl2[idx].tipo;
+        cl2[idx].cuotaSugerida = u2.cuotaSugerida || cl2[idx].cuotaSugerida;
+        cl2[idx].fechaCreado = u2.fechaCreado || cl2[idx].fechaCreado;
+        cl2[idx].fechaRenovacion = u2.fechaRenovacion || null;
         cl2[idx].renovaciones = Math.max(0,(cl2[idx].renovaciones||1)-1);
-        cl2[idx].historialRenovaciones = cl2[idx].historialRenovaciones.slice(1);
+        // Quitar solo esa renovación del historial
+        cl2[idx].historialRenovaciones = cl2[idx].historialRenovaciones.filter((_,i)=>i!==idxRen);
         saveClientes(cl2);
-        showToast('✅ Renovación eliminada, préstamo anterior restaurado');
+        showToast('✅ Renovación deshecha — ' + cliente.nombre + ' volvió al préstamo anterior');
         renderDetalles();
+        renderClientes();
       }
     );
   } else {
-    // Cancelado normal (saldo = 0): verificar que el último pago sea de hoy
+    // Cancelado normal (saldo = 0)
     const pagos = cliente.pagos||[];
-    if(!pagos.length || pagos[0].fecha !== hoy){ showToast('⛔ Solo se pueden eliminar cancelados del día de hoy'); return; }
+    const hoyFecha = fechaHoy();
+    if(!pagos.length){ showToast('⛔ Este cliente no tiene pagos registrados'); return; }
     confirmarAccion(
-      '🗑️ Eliminar cancelado de hoy',
-      `¿Eliminar el cancelado de ${cliente.nombre}?\n\nSe restaurará el saldo del cliente a ${fmt(cliente.prestamo)}.`,
-      '#ff1111',
+      '↩️ Deshacer cancelado',
+      `¿Deshacer el cancelado de ${cliente.nombre}?\n\n✅ El cliente volverá a la lista activa:\n• Saldo: ${fmt(cliente.prestamo)}\n• Sus cuotas anteriores se borrarán.\n\nÚsalo solo si fue un error.`,
+      '#ff6600',
       () => {
         const cl2 = getClientes();
         const idx = cl2.findIndex(c=>c.id===clienteId);
@@ -3310,7 +3316,7 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
         cl2[idx].saldo = cl2[idx].prestamo;
         cl2[idx].pagos = [];
         saveClientes(cl2);
-        showToast('↩️ Cancelado deshecho — cliente volvió a la lista');
+        showToast('✅ Cancelado deshecho — ' + cliente.nombre + ' volvió a la lista');
         renderDetalles();
         renderClientes();
       }
@@ -3701,6 +3707,96 @@ function deshacerRenovacion(){
   );
 }
 
+// ===== CONFIRMACIÓN ANTES DE EDITAR =====
+function confirmarEditarCliente(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  const tieneRenovacion = (c.historialRenovaciones||[]).length > 0;
+  const msg = tieneRenovacion
+    ? `¿Editar a ${c.nombre}?\n\nTiene ${c.renovaciones||1} renovación(es). Cambiar capital o préstamo puede afectar los cálculos de renovaciones anteriores.`
+    : `¿Editar los datos de ${c.nombre}?\n\nAsegúrate de revisar bien los cambios antes de guardar.`;
+  confirmarAccion(
+    '✏️ Editar cliente',
+    msg,
+    '#cc00aa',
+    () => abrirModalCliente(id)
+  );
+}
+
+// ===== ADVERTENCIA ESPECIAL AL ELIMINAR DESDE PESTAÑA PRÉSTAMOS =====
+function advertenciaEliminarRenovacion(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
+  const rInfo = (c.historialRenovaciones||[])[0];
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-adv-del-renov';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:22px;padding:24px;width:100%;max-width:380px;box-shadow:0 8px 50px rgba(0,0,0,0.4)">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:48px">⚠️</div>
+        <div style="font-size:19px;font-weight:900;color:#dc2626;margin-top:6px">¡Atención!</div>
+        <div style="font-size:14px;color:#333;margin-top:10px;line-height:1.7;font-weight:600">
+          Estás a punto de eliminar a <b>${c.nombre}</b>.<br><br>
+          🔄 <b>Este cliente tiene una renovación activa.</b><br>
+          Si lo eliminas, <b>se borrará el cliente completo</b>, incluyendo el préstamo renovado.<br><br>
+          ${rInfo ? `Renovación actual: <b style="color:#cc00aa">$${(c.prestamo||0).toLocaleString('es-CO')}</b><br>Saldo anterior que quedaba: <b style="color:#ff6600">$${(rInfo.saldoQuedaba||0).toLocaleString('es-CO')}</b><br><br>` : ''}
+          ¿Qué querés hacer?
+        </div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <button onclick="document.getElementById('modal-adv-del-renov').remove();deshacerRenovacionConConfirm('${id}')"
+          style="padding:14px;background:linear-gradient(135deg,#ff6600,#ff3300);color:white;border:none;border-radius:13px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          ↩️ Deshacer renovación (volver al préstamo anterior)
+        </button>
+        <button onclick="document.getElementById('modal-adv-del-renov').remove();eliminarCliente('${id}')"
+          style="padding:14px;background:#dc2626;color:white;border:none;border-radius:13px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          🗑️ Eliminar cliente completo
+        </button>
+        <button onclick="document.getElementById('modal-adv-del-renov').remove()"
+          style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          ✖ Cancelar — no hacer nada
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function deshacerRenovacionConConfirm(id){
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const c = clientes[idx];
+  const historial = c.historialRenovaciones||[];
+  if(!historial.length){ showToast('⚠️ No hay renovación para deshacer'); return; }
+  const ultima = historial[0];
+  confirmarAccion(
+    '↩️ Deshacer renovación',
+    `¿Deshacer la renovación de ${c.nombre}?\n\nSe eliminará el préstamo actual (${fmt(c.prestamo)}) y se restaurará:\n• Préstamo anterior: ${fmt(ultima.prestamoCiclo)}\n• Saldo que quedaba: ${fmt(ultima.saldoQuedaba)}\n\nEl cliente seguirá activo en la lista.`,
+    '#ff6600',
+    () => {
+      const cl = getClientes();
+      const i = cl.findIndex(x=>x.id===id);
+      if(i<0) return;
+      const u = cl[i].historialRenovaciones[0];
+      cl[i].capital = u.capitalCiclo || 0;
+      cl[i].interes = u.interesCiclo || 0;
+      cl[i].prestamo = u.prestamoCiclo;
+      cl[i].saldo = u.saldoQuedaba;
+      cl[i].pagos = u.pagos || [];
+      cl[i].tipo = u.tipo || cl[i].tipo;
+      cl[i].cuotaSugerida = u.cuotaSugerida || cl[i].cuotaSugerida;
+      cl[i].fechaCreado = u.fechaCreado || cl[i].fechaCreado;
+      cl[i].fechaRenovacion = u.fechaRenovacion || null;
+      cl[i].renovaciones = Math.max(0, (cl[i].renovaciones||1) - 1);
+      cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
+      saveClientes(cl);
+      renderPrestamos();
+      showToast('✅ Renovación deshecha — préstamo anterior restaurado');
+    }
+  );
+}
+
 function renovarDesdeDetalle(){
   cerrarDetalle();
   setTimeout(()=>{ abrirRenovar(clienteDetalleId); }, 200);
@@ -3769,7 +3865,7 @@ function renderPrestamos(){
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`).join('');
@@ -3797,8 +3893,8 @@ function renderPrestamos(){
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
-          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="advertenciaEliminarRenovacion('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`;
     }).join('');
@@ -3847,7 +3943,7 @@ function renderPrestamos(){
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="abrirModalCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`).join('');
