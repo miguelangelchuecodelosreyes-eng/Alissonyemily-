@@ -1966,30 +1966,88 @@ function guardarCliente(){
   if(editandoId){
     const idx=clientes.findIndex(c=>c.id===editandoId);
     if(idx>=0){
-      clientes[idx].nombre=nombre;
-      clientes[idx].cedula=document.getElementById('mc-cedula').value.trim();
-      clientes[idx].tel=document.getElementById('mc-tel').value.trim();
-      clientes[idx].dir=document.getElementById('mc-dir').value.trim();
-      clientes[idx].capital=capital;
-      clientes[idx].interes=p.interes;
-      clientes[idx].prestamo=p.total;
-      clientes[idx].pctInteres=p.pct;
-      clientes[idx].tipo=document.getElementById('mc-tipo').value;
-      clientes[idx].diaSemana=document.getElementById('mc-dia-semana').value||'';
-      clientes[idx].cuotaSugerida=parseFloat(document.getElementById('mc-cuota').value)||0;
-      const pagado=(clientes[idx].pagos||[]).reduce((s,x)=>s+x.monto,0);
-      clientes[idx].saldo=Math.max(0,p.total-pagado);
-      // Reordenar si eligió posición
-      if(posicionTipo && posicionRefId){
-        const cliente=clientes.splice(idx,1)[0];
-        const refIdx=clientes.findIndex(c=>c.id===posicionRefId);
-        if(refIdx>=0){
-          const insertAt=posicionTipo==='antes'?refIdx:refIdx+1;
-          clientes.splice(insertAt,0,cliente);
-        } else {
-          clientes.push(cliente);
+      const cAntes = clientes[idx];
+      const nuevoNombre = nombre;
+      const nuevaCedula = document.getElementById('mc-cedula').value.trim();
+      const nuevoTel = document.getElementById('mc-tel').value.trim();
+      const nuevoDir = document.getElementById('mc-dir').value.trim();
+      const nuevoTipo = document.getElementById('mc-tipo').value;
+      const nuevaCuota = parseFloat(document.getElementById('mc-cuota').value)||0;
+
+      // Detectar qué cambió
+      const cambios = [];
+      if(cAntes.nombre !== nuevoNombre) cambios.push(`👤 Nombre: "${cAntes.nombre}" → "${nuevoNombre}"`);
+      if((cAntes.cedula||'') !== nuevaCedula) cambios.push(`🪪 Cédula: "${cAntes.cedula||'—'}" → "${nuevaCedula||'—'}"`);
+      if((cAntes.tel||'') !== nuevoTel) cambios.push(`📱 Teléfono: "${cAntes.tel||'—'}" → "${nuevoTel||'—'}"`);
+      if((cAntes.dir||'') !== nuevoDir) cambios.push(`📍 Dirección: "${cAntes.dir||'—'}" → "${nuevoDir||'—'}"`);
+      if((cAntes.capital||0) !== capital && capital > 0) cambios.push(`💰 Capital: ${fmt(cAntes.capital||0)} → ${fmt(capital)}`);
+      if((cAntes.tipo||'') !== nuevoTipo) cambios.push(`📅 Tipo: "${cAntes.tipo||'—'}" → "${nuevoTipo}"`);
+      if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
+
+      const aplicarCambios = () => {
+        let clientes2 = getClientes();
+        const idx2 = clientes2.findIndex(c=>c.id===editandoId);
+        if(idx2<0) return;
+        clientes2[idx2].nombre=nuevoNombre;
+        clientes2[idx2].cedula=nuevaCedula;
+        clientes2[idx2].tel=nuevoTel;
+        clientes2[idx2].dir=nuevoDir;
+        clientes2[idx2].capital=capital;
+        clientes2[idx2].interes=p.interes;
+        clientes2[idx2].prestamo=p.total;
+        clientes2[idx2].pctInteres=p.pct;
+        clientes2[idx2].tipo=nuevoTipo;
+        clientes2[idx2].diaSemana=document.getElementById('mc-dia-semana').value||'';
+        clientes2[idx2].cuotaSugerida=nuevaCuota;
+        const pagado2=(clientes2[idx2].pagos||[]).reduce((s,x)=>s+x.monto,0);
+        clientes2[idx2].saldo=Math.max(0,p.total-pagado2);
+        if(posicionTipo && posicionRefId){
+          const clienteM=clientes2.splice(idx2,1)[0];
+          const refIdx2=clientes2.findIndex(c=>c.id===posicionRefId);
+          if(refIdx2>=0){ const insertAt2=posicionTipo==='antes'?refIdx2:refIdx2+1; clientes2.splice(insertAt2,0,clienteM); }
+          else { clientes2.push(clienteM); }
         }
+        saveClientes(clientes2);
+        const cAct = getClientes().find(x=>x.id===editandoId);
+        if(cAct && cAct.cedula) archivarClienteEnHistorial(cAct);
+        renderClientes();
+        cerrarModal('modal-cliente-overlay');
+        showToast('✅ Cliente actualizado');
+      };
+
+      if(cambios.length === 0){
+        cerrarModal('modal-cliente-overlay');
+        showToast('ℹ️ Sin cambios');
+        return;
       }
+
+      // Mostrar confirmación con los cambios detectados
+      const overlay = document.createElement('div');
+      overlay.id = 'modal-confirmar-edicion';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+      overlay.innerHTML = `
+        <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.35)">
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:36px">✏️</div>
+            <div style="font-size:17px;font-weight:900;color:#cc00aa;margin-top:6px">Confirmar cambios</div>
+            <div style="font-size:13px;color:#555;margin-top:4px">Se van a guardar los siguientes cambios en <b>${cAntes.nombre}</b>:</div>
+          </div>
+          <div style="background:#f8eeff;border-radius:14px;padding:14px;margin-bottom:16px;border:1px solid #e8ccf5">
+            ${cambios.map(c=>`<div style="font-size:13px;color:#333;padding:5px 0;border-bottom:1px solid #e8ccf5;line-height:1.5">${c}</div>`).join('')}
+          </div>
+          <div style="display:grid;gap:10px">
+            <button onclick="document.getElementById('modal-confirmar-edicion').remove();(${aplicarCambios.toString()})()"
+              style="padding:14px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+              ✅ Sí, guardar cambios
+            </button>
+            <button onclick="document.getElementById('modal-confirmar-edicion').remove()"
+              style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+              ← Cancelar, no cambiar nada
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      return;
     }
   } else {
     const nuevoCliente={
@@ -2015,16 +2073,8 @@ function guardarCliente(){
       clientes.push(nuevoCliente);
     }
   }
+  // Cliente nuevo: guardar directo
   saveClientes(clientes);
-
-  // Archivar en historial en tiempo real si tiene cédula (por si lo eliminan luego)
-  if(editandoId){
-    const cActualizado = getClientes().find(x=>x.id===editandoId);
-    if(cActualizado && cActualizado.cedula){
-      archivarClienteEnHistorial(cActualizado);
-    }
-  }
-
   renderClientes();
   cerrarModal('modal-cliente-overlay');
   showToast('✅ Cliente guardado');
@@ -2226,12 +2276,80 @@ function eliminarCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
 
-  // Si no tiene cédula, pedirla antes de continuar
-  if(!c.cedula || c.cedula.trim()===''){
-    pedirCedulaYEliminar(id);
+  // Si no tiene cédula, eliminar directo guardando por nombre (sin pedir cédula)
+  if(!c.cedula || c.cedula.trim()==='' || c.cedula==='0000'){
+    confirmarAccion(
+      '🗑️ Eliminar cliente',
+      `¿Eliminar a ${c.nombre}?\n\nNo tiene cédula registrada. Sus pagos se guardarán en historial por nombre.`,
+      '#ff1111',
+      () => {
+        const cls = getClientes();
+        const cD = cls.find(x=>x.id===id);
+        if(cD){
+          // Archivar con cédula temporal '0000' para no perder historial
+          const cCopia = {...cD, cedula: cD.cedula||'0000'};
+          archivarClienteEnHistorial(cCopia);
+        }
+        saveClientes(cls.filter(x=>x.id!==id));
+        renderClientes();
+        showToast('✅ Cliente eliminado');
+      }
+    );
     return;
   }
 
+  // Detectar si tiene renovación reciente (últimos 3 días)
+  const histRen = c.historialRenovaciones||[];
+  let tieneRenovacionReciente = false;
+  if(histRen.length > 0){
+    const fechaRen = histRen[0].fecha || '';
+    if(fechaRen){
+      const diasDiff = Math.round((new Date(fechaHoy()+'T00:00:00') - new Date(fechaRen+'T00:00:00')) / (1000*60*60*24));
+      if(diasDiff <= 3) tieneRenovacionReciente = true;
+    }
+  }
+
+  if(tieneRenovacionReciente){
+    // Mostrar advertencia especial con opción de deshacer renovación primero
+    const overlay = document.createElement('div');
+    overlay.id = 'modal-advertencia-renovacion';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.35)">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:44px">⚠️</div>
+          <div style="font-size:18px;font-weight:900;color:#dc2626;margin-top:6px">¡Renovación reciente!</div>
+          <div style="font-size:14px;color:#555;margin-top:8px;line-height:1.6">
+            <b>${c.nombre}</b> fue renovado hace poco.<br>
+            Si lo borras ahora, <b>se perderá el préstamo nuevo</b>.<br><br>
+            ¿Querés deshacer la renovación primero?
+          </div>
+        </div>
+        <div style="display:grid;gap:10px">
+          <button onclick="deshacerRenovacionYEliminar('${id}')"
+            style="padding:14px;background:#ff6600;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+            ↩️ Deshacer renovación y eliminar
+          </button>
+          <button onclick="document.getElementById('modal-advertencia-renovacion').remove();confirmarEliminarDirecto('${id}')"
+            style="padding:14px;background:#dc2626;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+            🗑️ Borrar de todas formas
+          </button>
+          <button onclick="document.getElementById('modal-advertencia-renovacion').remove()"
+            style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+            Cancelar
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    return;
+  }
+
+  confirmarEliminarDirecto(id);
+}
+
+function confirmarEliminarDirecto(id){
+  const c = getClientes().find(x=>x.id===id);
+  if(!c) return;
   confirmarAccion(
     '🗑️ Eliminar cliente',
     `¿Eliminar a ${c.nombre}?\n\nSus datos quedarán guardados en el historial con la cédula ${c.cedula}.`,
@@ -2245,6 +2363,32 @@ function eliminarCliente(id){
       showToast('✅ Cliente eliminado y guardado en historial');
     }
   );
+}
+
+function deshacerRenovacionYEliminar(id){
+  document.getElementById('modal-advertencia-renovacion')?.remove();
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const hist = clientes[idx].historialRenovaciones||[];
+  if(hist.length > 0){
+    // Restaurar ciclo anterior
+    const u = hist[0];
+    clientes[idx].capital = u.capitalCiclo || 0;
+    clientes[idx].interes = u.interesCiclo || 0;
+    clientes[idx].prestamo = u.prestamoCiclo;
+    clientes[idx].saldo = u.saldoQuedaba;
+    clientes[idx].pagos = u.pagos || [];
+    clientes[idx].tipo = u.tipo || clientes[idx].tipo;
+    clientes[idx].cuotaSugerida = u.cuotaSugerida || clientes[idx].cuotaSugerida;
+    clientes[idx].fechaCreado = u.fechaCreado || clientes[idx].fechaCreado;
+    clientes[idx].fechaRenovacion = u.fechaRenovacion || null;
+    clientes[idx].renovaciones = Math.max(0,(clientes[idx].renovaciones||1)-1);
+    clientes[idx].historialRenovaciones = hist.slice(1);
+    saveClientes(clientes);
+  }
+  // Ahora eliminar normalmente
+  confirmarEliminarDirecto(id);
 }
 
 function pedirCedulaYEliminar(id){
@@ -4315,6 +4459,75 @@ function guardarHistorialManual(cedula){
 }
 
 
+function reactivarClienteHistorial(cedula){
+  const hist = getHistorialCedulas();
+  const registro = hist.find(h => h.cedula === cedula);
+  if(!registro){ showToast('⚠️ No se encontró el historial'); return; }
+
+  // Tomar el ciclo más reciente (mayor num)
+  const ciclos = registro.ciclos.slice().sort((a,b) => b.num - a.num);
+  const ultimoCiclo = ciclos[0];
+  if(!ultimoCiclo){ showToast('⚠️ No hay ciclos en el historial'); return; }
+
+  // Verificar si ya está activo
+  const yaActivo = getClientes().find(c => c.cedula === cedula);
+  if(yaActivo){
+    showToast('⚠️ ' + registro.nombre + ' ya está en la lista activa');
+    document.getElementById('modal-hist-cedula-overlay')?.remove();
+    return;
+  }
+
+  const saldoRestante = ultimoCiclo.saldoFinal;
+  const nombreCiclo = 'Préstamo #' + ultimoCiclo.num;
+
+  confirmarAccion(
+    '♻️ Reactivar cliente',
+    registro.nombre + '\n\n' + nombreCiclo + '\nSaldo pendiente: ' + fmt(saldoRestante) + '\nCuota: ' + fmt(ultimoCiclo.cuota) + '\nTipo: ' + (ultimoCiclo.tipo||'diario') + '\n\n¿Volver a agregar con estos datos exactos?',
+    '#ff6600',
+    () => {
+      document.getElementById('modal-hist-cedula-overlay')?.remove();
+      const clientes = getClientes();
+      const clienteReactivado = {
+        id: Date.now().toString(),
+        nombre: registro.nombre,
+        cedula: registro.cedula,
+        tel: registro.tel || '',
+        dir: registro.dir || '',
+        capital: ultimoCiclo.capital || 0,
+        interes: (ultimoCiclo.prestamo || 0) - (ultimoCiclo.capital || 0),
+        prestamo: ultimoCiclo.prestamo || 0,
+        pctInteres: ultimoCiclo.prestamo > 0 && ultimoCiclo.capital > 0
+          ? Math.round(((ultimoCiclo.prestamo - ultimoCiclo.capital) / ultimoCiclo.capital) * 100)
+          : getPorcentaje(),
+        tipo: ultimoCiclo.tipo || 'diario',
+        diaSemana: '',
+        cuotaSugerida: ultimoCiclo.cuota || 0,
+        saldo: saldoRestante,
+        pagos: ultimoCiclo.pagos || [],
+        fechaCreado: ultimoCiclo.fechaInicio || fechaHoy(),
+        fechaRenovacion: ultimoCiclo.fechaInicio || fechaHoy(),
+        renovaciones: ultimoCiclo.num - 1,
+        historialRenovaciones: ciclos.slice(1).map(r => ({
+          numRenovacion: r.num,
+          fecha: r.fechaFin || fechaHoy(),
+          fechaCreado: r.fechaInicio || '',
+          capitalCiclo: r.capital || 0,
+          prestamoCiclo: r.prestamo || 0,
+          totalCancelado: r.pagado || 0,
+          saldoQuedaba: r.saldoFinal || 0,
+          pagos: r.pagos || [],
+          tipo: r.tipo || 'diario',
+          cuotaSugerida: r.cuota || 0
+        }))
+      };
+      clientes.push(clienteReactivado);
+      saveClientes(clientes);
+      renderClientes();
+      showToast('✅ ' + registro.nombre + ' reactivado con saldo ' + fmt(saldoRestante));
+    }
+  );
+}
+
 function prestarAClienteHistorial(cedula, nombre, tel, dir){
   // Cerrar modal historial
   document.getElementById('modal-hist-cedula-overlay')?.remove();
@@ -4614,10 +4827,16 @@ function verHistorialCompleto(cedula){
           <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
             style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
         </div>
-        <button onclick="prestarAClienteHistorial('${registro.cedula}','${registro.nombre}','${registro.tel||''}','${registro.dir||''}')"
-          style="width:100%;padding:13px;background:#00cc55;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">
-          💵 PRESTAR A ESTE CLIENTE
-        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="prestarAClienteHistorial('${registro.cedula}','${registro.nombre}','${registro.tel||''}','${registro.dir||''}')"
+            style="padding:13px;background:#00cc55;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
+            💵 PRÉSTAMO NUEVO
+          </button>
+          <button onclick="reactivarClienteHistorial('${registro.cedula}')"
+            style="padding:13px;background:#ff6600;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
+            ♻️ REACTIVAR
+          </button>
+        </div>
       </div>
 
       <!-- Resumen general -->
