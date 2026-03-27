@@ -6070,6 +6070,33 @@ function addLog(msg) {
     }
   }
 
+  // ---- CONTADOR DE SYNCS HOY ----
+  let _syncsHoy = 0;
+  const _syncFechaHoy = (new Date()).toDateString();
+  function contarSync() {
+    _syncsHoy++;
+    const el = document.getElementById('diag-syncs-hoy');
+    if (el) el.textContent = _syncsHoy + ' vez' + (_syncsHoy !== 1 ? 'es' : '');
+  }
+
+  // ---- ACTUALIZAR INFO LOCAL ----
+  window.actualizarInfoLocal = function actualizarInfoLocal() {
+    const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+    const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+    const el = document.getElementById('diag-local-info');
+    if (el) el.textContent = clientes.length + ' clientes · ' + historial.length + ' días';
+  };
+
+  // ---- ACTUALIZAR ÚLTIMO BACKUP ----
+  function actualizarUltimoBackup(fechaISO) {
+    const el = document.getElementById('diag-ultimo-backup');
+    if (!el || !fechaISO) return;
+    try {
+      const d = new Date(fechaISO);
+      el.textContent = d.toLocaleTimeString('es-CO') + ' ' + d.toLocaleDateString('es-CO');
+    } catch(e) { el.textContent = fechaISO; }
+  }
+
   // Función global para subir datos a Firebase
   window.syncFirebase = function(forzado = false) {
     try {
@@ -6139,32 +6166,7 @@ function addLog(msg) {
   // Sync forzado desde botón
   window.syncForzado = function() { window.syncFirebase(true); };
 
-  // ---- CONTADOR DE SYNCS HOY ----
-  let _syncsHoy = 0;
-  const _syncFechaHoy = (new Date()).toDateString();
-  function contarSync() {
-    _syncsHoy++;
-    const el = document.getElementById('diag-syncs-hoy');
-    if (el) el.textContent = _syncsHoy + ' vez' + (_syncsHoy !== 1 ? 'es' : '');
-  }
 
-  // ---- ACTUALIZAR INFO LOCAL ----
-  window.actualizarInfoLocal = function actualizarInfoLocal() {
-    const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
-    const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
-    const el = document.getElementById('diag-local-info');
-    if (el) el.textContent = clientes.length + ' clientes · ' + historial.length + ' días';
-  };
-
-  // ---- ACTUALIZAR ÚLTIMO BACKUP ----
-  function actualizarUltimoBackup(fechaISO) {
-    const el = document.getElementById('diag-ultimo-backup');
-    if (!el || !fechaISO) return;
-    try {
-      const d = new Date(fechaISO);
-      el.textContent = d.toLocaleTimeString('es-CO') + ' ' + d.toLocaleDateString('es-CO');
-    } catch(e) { el.textContent = fechaISO; }
-  }
 
   // ---- CARGAR DESDE NUBE (manual) ----
   window.cargarDesdeNube = function() {
