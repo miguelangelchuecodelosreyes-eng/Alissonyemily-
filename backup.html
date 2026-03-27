@@ -1061,7 +1061,27 @@ body {
     const eBase      = parseFloat(manualDia.base      || (cuentas ? (cuentas.entradas||{}).base      : 0) || 0);
     const ePapeleria = parseFloat(manualDia.papeleria  || (cuentas ? (cuentas.entradas||{}).papeleria : 0) || 0);
     const eGeneral   = cobradoDia;
-    const sPrestamos = parseFloat(manualDia.prestamos  || (cuentas ? (cuentas.salidas||{}).prestamos  : 0) || 0);
+    // Calcular préstamos del día automáticamente desde los clientes
+    let prestamosAutoDia = 0;
+    for (const c of clientes) {
+      if (!c.nombre) continue;
+      let tieneRenovHoy = false;
+      for (const r of (c.historialRenovaciones || [])) {
+        const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        if (fr === fechaDia) { prestamosAutoDia += r.nuevoCapital || r.capitalCiclo || 0; tieneRenovHoy = true; }
+      }
+      if (!tieneRenovHoy) {
+        const fr2 = (c.fechaRenovacion || '').substring(0, 10);
+        if (fr2 === fechaDia) { prestamosAutoDia += c.capital || c.prestamo || 0; }
+        else {
+          const fc = (c.fechaCreado || '').substring(0, 10);
+          if (fc === fechaDia && !(c.renovaciones > 0)) prestamosAutoDia += c.capital || c.prestamo || 0;
+        }
+      }
+    }
+    const sPrestamos = (manualDia.prestamos != null && manualDia.prestamos !== '')
+      ? parseFloat(manualDia.prestamos)
+      : (prestamosAutoDia > 0 ? prestamosAutoDia : parseFloat((cuentas ? (cuentas.salidas||{}).prestamos : 0) || 0));
     const sNeki      = parseFloat(manualDia.neki       || (cuentas ? (cuentas.salidas||{}).neki       : 0) || 0);
     const sGasto     = parseFloat(manualDia.gasto      || (cuentas ? (cuentas.salidas||{}).gasto      : 0) || 0);
     const entregado  = parseFloat(manualDia.entregado  || (cuentas ? cuentas.entregado_oficina         : 0) || 0);
