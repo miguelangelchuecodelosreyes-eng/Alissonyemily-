@@ -1511,8 +1511,25 @@ function recalcularCuentas(){
   const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
   const entregado = parseFloat(document.getElementById('input-entregado').value)||0;
 
+  // Calcular préstamos del día para guardarlo en el manual
+  let prestamosDelDia = 0;
+  clientes.forEach(c => {
+    let tieneRenovHoy = false;
+    (c.historialRenovaciones || []).forEach(r => {
+      const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
+      if (fr === hoy) { prestamosDelDia += r.nuevoCapital || r.capitalCiclo || 0; tieneRenovHoy = true; }
+    });
+    if (!tieneRenovHoy) {
+      if ((c.fechaRenovacion || '').substring(0, 10) === hoy) {
+        prestamosDelDia += c.capital || c.prestamo || 0;
+      } else if ((c.fechaCreado || '').substring(0, 10) === hoy && !(c.renovaciones > 0)) {
+        prestamosDelDia += c.capital || c.prestamo || 0;
+      }
+    }
+  });
+
   // Guardar siempre (incluyendo días pasados editados)
-  const manual = { base, papeleria, neki, gasto, entregado };
+  const manual = { base, papeleria, neki, gasto, entregado, prestamos: prestamosDelDia };
   lsSet('sup_manual_'+hoy, JSON.stringify(manual));
 
   // General: cuotas cobradas hoy + saldoQuedaba de renovaciones hoy (todo lo que entró)
