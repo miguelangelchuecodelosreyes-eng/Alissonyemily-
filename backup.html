@@ -650,15 +650,26 @@ body {
         // Tiene renovaciones esta semana — agregarlas y NO contar como nuevo (evita duplicados)
         prestamosDelaSemana.push(...renovSemana);
       } else {
-        // Sin renovaciones — verificar si es cliente nuevo esta semana
-        const fc = (c.fechaCreado || '').substring(0, 10);
-        if (fc >= fechaLunes && fc <= fechaSabado) {
+        // Verificar fechaRenovacion directamente en el cliente (cuando historialRenovaciones no tiene la fecha correcta)
+        const fr2 = (c.fechaRenovacion || '').substring(0, 10);
+        if (fr2 >= fechaLunes && fr2 <= fechaSabado) {
           prestamosDelaSemana.push({
             nombre: c.nombre,
             monto: c.capital || c.prestamo || 0,
-            fecha: fc,
-            tipo: 'nuevo'
+            fecha: fr2,
+            tipo: 'renovacion'
           });
+        } else {
+          // Sin renovaciones — verificar si es cliente nuevo esta semana
+          const fc = (c.fechaCreado || '').substring(0, 10);
+          if (fc >= fechaLunes && fc <= fechaSabado) {
+            prestamosDelaSemana.push({
+              nombre: c.nombre,
+              monto: c.capital || c.prestamo || 0,
+              fecha: fc,
+              tipo: 'nuevo'
+            });
+          }
         }
       }
     }
