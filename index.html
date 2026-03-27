@@ -5939,39 +5939,16 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 <!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
-<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:60vh;overflow-y:auto;font-family:monospace">
-  <!-- Barra título y botones -->
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0;z-index:1">
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:45vh;overflow-y:auto;font-family:monospace">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
     <span style="color:#cc00aa;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">⚡ Guardar</button>
-      <button onclick="window.cargarDesdeNube && window.cargarDesdeNube()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">☁️ Cargar nube</button>
-      <button onclick="window.verEstadoNube && window.verEstadoNube()" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">📊 Estado</button>
-      <button onclick="window.compararLocalNube && window.compararLocalNube()" style="background:#d97706;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔍 Comparar</button>
-      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑</button>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer">✕</button>
+    <div style="display:flex;gap:8px">
+      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
     </div>
   </div>
-  <!-- Tarjetas de estado -->
-  <div id="diag-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 14px;background:#0d1117">
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
-      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Último backup</div>
-      <div id="diag-ultimo-backup" style="font-size:12px;font-weight:900;color:#e3b341;margin-top:2px">—</div>
-    </div>
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
-      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Syncs hoy</div>
-      <div id="diag-syncs-hoy" style="font-size:12px;font-weight:900;color:#58a6ff;margin-top:2px">0</div>
-    </div>
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
-      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">En la nube</div>
-      <div id="diag-nube-info" style="font-size:12px;font-weight:900;color:#3fb950;margin-top:2px">—</div>
-    </div>
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
-      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Local</div>
-      <div id="diag-local-info" style="font-size:12px;font-weight:900;color:#ff7b72;margin-top:2px">—</div>
-    </div>
-  </div>
-  <div id="diag-log" style="padding:6px 14px 12px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
+  <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
 </div>
 
 <script>
@@ -6070,33 +6047,6 @@ function addLog(msg) {
     }
   }
 
-  // ---- CONTADOR DE SYNCS HOY ----
-  let _syncsHoy = 0;
-  const _syncFechaHoy = (new Date()).toDateString();
-  function contarSync() {
-    _syncsHoy++;
-    const el = document.getElementById('diag-syncs-hoy');
-    if (el) el.textContent = _syncsHoy + ' vez' + (_syncsHoy !== 1 ? 'es' : '');
-  }
-
-  // ---- ACTUALIZAR INFO LOCAL ----
-  window.actualizarInfoLocal = function actualizarInfoLocal() {
-    const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
-    const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
-    const el = document.getElementById('diag-local-info');
-    if (el) el.textContent = clientes.length + ' clientes · ' + historial.length + ' días';
-  };
-
-  // ---- ACTUALIZAR ÚLTIMO BACKUP ----
-  function actualizarUltimoBackup(fechaISO) {
-    const el = document.getElementById('diag-ultimo-backup');
-    if (!el || !fechaISO) return;
-    try {
-      const d = new Date(fechaISO);
-      el.textContent = d.toLocaleTimeString('es-CO') + ' ' + d.toLocaleDateString('es-CO');
-    } catch(e) { el.textContent = fechaISO; }
-  }
-
   // Función global para subir datos a Firebase
   window.syncFirebase = function(forzado = false) {
     try {
@@ -6118,11 +6068,6 @@ function addLog(msg) {
               _syncReintentos = 0;
               _syncPendiente = false;
               actualizarIndicadorSync('ok');
-              contarSync();
-              actualizarInfoLocal();
-              actualizarUltimoBackup(backup.fecha_backup);
-              const elNube = document.getElementById('diag-nube-info');
-              if (elNube) elNube.textContent = backup.clientes.length + ' clientes · ' + (backup.historial ? backup.historial.length : 0) + ' días';
               addLog('✅ Guardado OK — ' + backup.clientes.length + ' clientes en la nube (' + new Date().toLocaleTimeString('es-CO') + ')');
               if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
             })
@@ -6165,88 +6110,6 @@ function addLog(msg) {
 
   // Sync forzado desde botón
   window.syncForzado = function() { window.syncFirebase(true); };
-
-
-
-  // ---- CARGAR DESDE NUBE (manual) ----
-  window.cargarDesdeNube = function() {
-    const usuarioKey = getUsuarioActivo();
-    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
-    addLog('☁️ Cargando datos desde Firebase...');
-    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
-      const data = snap.val();
-      if (!data) { addLog('⚠️ No hay datos en la nube para este usuario'); return; }
-      confirmarAccion(
-        '☁️ Cargar desde la nube',
-        '¿Reemplazar los datos locales con los de la nube?
-
-Nube: ' + (data.clientes ? data.clientes.length : 0) + ' clientes · backup del ' + (data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '?') + '
-
-⚠️ Se perderán cambios locales no sincronizados.',
-        '#1a6eff',
-        () => {
-          if (data.clientes) localStorage.setItem('clientes_v1', JSON.stringify(data.clientes));
-          if (data.historial) localStorage.setItem('hist_v3', JSON.stringify(data.historial));
-          if (data.porcentaje_interes) localStorage.setItem('porcentaje_interes', data.porcentaje_interes);
-          if (data.historial_cedulas) localStorage.setItem('historial_cedulas_v1', JSON.stringify(data.historial_cedulas));
-          if (data.manuales) Object.keys(data.manuales).forEach(k => localStorage.setItem(k, JSON.stringify(data.manuales[k])));
-          addLog('✅ Datos restaurados desde la nube — ' + (data.clientes ? data.clientes.length : 0) + ' clientes');
-          actualizarInfoLocal();
-          showToast('✅ Datos cargados desde la nube');
-          setTimeout(() => location.reload(), 1500);
-        }
-      );
-    }).catch(e => addLog('❌ Error al cargar desde nube: ' + e.message));
-  };
-
-  // ---- VER ESTADO DE LA NUBE ----
-  window.verEstadoNube = function() {
-    const usuarioKey = getUsuarioActivo();
-    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
-    addLog('📊 Consultando estado de la nube...');
-    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
-      const data = snap.val();
-      if (!data) { addLog('⚠️ Sin datos en la nube'); return; }
-      const clientes = data.clientes ? data.clientes.length : 0;
-      const historial = data.historial ? data.historial.length : 0;
-      const cedulas = data.historial_cedulas ? data.historial_cedulas.length : 0;
-      const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '?';
-      const el = document.getElementById('diag-nube-info');
-      if (el) el.textContent = clientes + ' clientes · ' + historial + ' días';
-      actualizarUltimoBackup(data.fecha_backup);
-      addLog('📊 Nube — clientes: ' + clientes + ' · días guardados: ' + historial + ' · historial cédulas: ' + cedulas);
-      addLog('📅 Fecha del backup en nube: ' + fecha);
-    }).catch(e => addLog('❌ Error consultando nube: ' + e.message));
-  };
-
-  // ---- COMPARAR LOCAL VS NUBE ----
-  window.compararLocalNube = function() {
-    const usuarioKey = getUsuarioActivo();
-    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
-    addLog('🔍 Comparando local vs nube...');
-    const localClientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
-    const localHistorial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
-    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
-      const data = snap.val();
-      if (!data) { addLog('⚠️ Sin datos en la nube para comparar'); return; }
-      const nubeClientes = data.clientes ? data.clientes.length : 0;
-      const nubeHistorial = data.historial ? data.historial.length : 0;
-      const difClientes = localClientes.length - nubeClientes;
-      const difHistorial = localHistorial.length - nubeHistorial;
-      addLog('👥 Clientes — Local: ' + localClientes.length + ' · Nube: ' + nubeClientes + (difClientes === 0 ? ' ✅ Igual' : (difClientes > 0 ? ' ⚠️ Local tiene ' + difClientes + ' más' : ' ⚠️ Nube tiene ' + Math.abs(difClientes) + ' más')));
-      addLog('📅 Días guardados — Local: ' + localHistorial.length + ' · Nube: ' + nubeHistorial + (difHistorial === 0 ? ' ✅ Igual' : (difHistorial > 0 ? ' ⚠️ Local tiene ' + difHistorial + ' más' : ' ⚠️ Nube tiene ' + Math.abs(difHistorial) + ' más')));
-      const fechaNube = data.fecha_backup ? new Date(data.fecha_backup) : null;
-      if (fechaNube) {
-        const minutos = Math.round((new Date() - fechaNube) / 60000);
-        addLog('🕐 Último sync hace ' + (minutos < 60 ? minutos + ' min' : Math.round(minutos/60) + ' h'));
-      }
-      if (difClientes === 0 && difHistorial === 0) {
-        addLog('✅ Local y nube están sincronizados');
-      } else {
-        addLog('⚠️ Hay diferencias — considera guardar o cargar desde nube');
-      }
-    }).catch(e => addLog('❌ Error al comparar: ' + e.message));
-  };
 
   // Monitor de conexión en tiempo real
   const connRef = ref(db, '.info/connected');
