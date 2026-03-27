@@ -787,7 +787,7 @@ body {
     <div class="seccion-titulo" style="background:#0d1117;color:#cc00aa">🔧 Diagnóstico Firebase</div>
     <div style="padding:14px 16px">
       <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px;line-height:1.5">Muestra en tiempo real lo que hace Firebase: si sube los datos, si hay errores, o por qué no sincroniza.</div>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?'))" style="width:100%;padding:14px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?')); if(window.actualizarInfoLocal) window.actualizarInfoLocal(); if(window.verEstadoNube) window.verEstadoNube();" style="width:100%;padding:14px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
     </div>
   </div>
 
@@ -1590,33 +1590,31 @@ function guardarDia(){
   if(d.base===0 && d.general===0 && d.papeleria===0){
     showToast('⚠️ Ingresa al menos un valor antes de guardar'); return;
   }
-  let h = JSON.parse(lsGet('hist_v3')||'[]');
-  // Si ya existe el día, reemplazar
-  const idx = h.findIndex(x=>x.fecha===d.fecha);
-  if(idx>=0) h[idx]=d; else h.unshift(d);
-  lsSet('hist_v3', JSON.stringify(h));
-  renderHistorial();
-  renderResumenSemanal();
-
-  // Mantener la fecha activa actual (no forzar a hoy)
-  const fechaActual = getFechaActiva();
-
-  // Actualizar input de fecha en Préstamos
-  const presInput = document.getElementById('pres-filtro-fecha');
-  if(presInput) presInput.value = fechaActual;
-
-  // Actualizar input de fecha en Detalles
-  const detInput = document.getElementById('det-filtro-fecha');
-  if(detInput) detInput.value = fechaActual;
-
-  // Recargar cuentas con la fecha activa
-  setTimeout(() => {
-    cargarDesdeSupervisor();
-    renderPrestamos();
-    renderDetalles();
-  }, 50);
-
-  showToast('✅ Día guardado correctamente');
+  confirmarAccion(
+    '💾 Guardar día',
+    '¿Guardar las cuentas del ' + fechaBonita(d.fecha) + '?\n\nEntradas: ' + fmt(d.totalEntradas||0) + '\nSalidas: ' + fmt(d.totalSalidas||0) + '\nResultado: ' + fmt(d.resultado||0),
+    '#00aa44',
+    () => {
+      let h = JSON.parse(lsGet('hist_v3')||'[]');
+      const idx = h.findIndex(x=>x.fecha===d.fecha);
+      if(idx>=0) h[idx]=d; else h.unshift(d);
+      lsSet('hist_v3', JSON.stringify(h));
+      renderHistorial();
+      renderResumenSemanal();
+      const hoy = fechaHoy();
+      setFechaActiva(hoy);
+      const presInput = document.getElementById('pres-filtro-fecha');
+      if(presInput) presInput.value = hoy;
+      const detInput = document.getElementById('det-filtro-fecha');
+      if(detInput) detInput.value = hoy;
+      setTimeout(() => {
+        cargarDesdeSupervisor();
+        renderPrestamos();
+        renderDetalles();
+      }, 50);
+      showToast('✅ Día guardado correctamente');
+    }
+  );
 }
 
 function limpiarCuentas(){
@@ -1625,7 +1623,7 @@ function limpiarCuentas(){
     '¿Limpiar base, papelería, neki y gasto de hoy?\n\nLos valores de clientes no se borran.',
     '#888',
     () => {
-      const hoy = getFechaActiva();
+      const hoy = fechaHoy();
       lsRemove('sup_manual_'+hoy);
       document.getElementById('input-base').value = '';
       document.getElementById('input-papeleria').value = '';
@@ -1655,7 +1653,8 @@ function renderNuevosRenovacionesHoy(){
 function getDatos(){
   if(window._datosHoy) return window._datosHoy;
   // Fallback: leer directo de inputs si están disponibles
-  const hoy = getFechaActiva();
+  const hoy = fechaHoy();
+  const base      = parseFloat(document.getElementById('input-base')?.value)||0;
   const papeleria = parseFloat(document.getElementById('input-papeleria')?.value)||0;
   const neki      = parseFloat(document.getElementById('input-neki')?.value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto')?.value)||0;
@@ -2114,7 +2113,7 @@ function confirmarRenovar(){
   // Guardar en historial de renovaciones
   const entradaHistorial={
     numRenovacion:(c.renovaciones||0)+1,
-    fecha:getFechaActiva(),
+    fecha:fechaHoy(),
     prestamoCiclo:c.prestamo,
     capitalCiclo:c.capital||c.prestamo,
     interesCiclo:c.interes||0,
@@ -2140,7 +2139,7 @@ function confirmarRenovar(){
   clientes[idx].cuotaSugerida=parseFloat(document.getElementById('ren-cuota').value)||0;
   clientes[idx].pagos=[];
   clientes[idx].renovaciones=(c.renovaciones||0)+1;
-  clientes[idx].fechaRenovacion=getFechaActiva();
+  clientes[idx].fechaRenovacion=fechaHoy();
   saveClientes(clientes);
   renderClientes();
   cerrarModal('modal-renovar-overlay');
@@ -2939,7 +2938,6 @@ function actualizarInfoCopia(){
 
 // ===== DÍAS ATRASADO SIN DOMINGOS =====
 function diasHabilesDesde(fechaStr){
-  // Solo cuenta días hábiles desde inicio (sin domingos)
   if(!fechaStr) return 0;
   const inicio = new Date(fechaStr + 'T00:00:00');
   const hoy    = new Date();
@@ -2955,20 +2953,36 @@ function diasHabilesDesde(fechaStr){
   return dias;
 }
 
+// Convierte nombre de dia a numero getDay()
+function diaSemanaNombre2Num(nombre){
+  const map = {domingo:0,lunes:1,martes:2,miercoles:3,miercoles:3,jueves:4,viernes:5,sabado:6,sabado:6};
+  return map[(nombre||''). toLowerCase().trim()];
+}
+
+// Cuantas cuotas semanales han vencido segun el dia de cobro
+function semanasVencidasDesde(fechaStr, diaSemana){
+  if(!fechaStr) return 0;
+  const inicio = new Date(fechaStr + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if(inicio >= hoy) return 0;
+  const diaNum = diaSemanaNombre2Num(diaSemana);
+  const diaObjetivo = (diaNum !== undefined) ? diaNum : 1;
+  let count = 0;
+  const cur = new Date(inicio);
+  cur.setDate(cur.getDate()+1);
+  while(cur <= hoy){
+    if(cur.getDay() === diaObjetivo) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+
 function calcularAtraso(cliente){
-  // Retorna número: positivo = atrasado, 0 = al día, negativo = adelantado
   if(!cliente || cliente.saldo <= 0) return 0;
   const fechaInicio = cliente.fechaRenovacion || cliente.fechaCreado || '';
   if(!fechaInicio) return 0;
 
-  // Días hábiles transcurridos desde el inicio del préstamo
-  const diasTranscurridos = diasHabilesDesde(fechaInicio);
-
-  // Total pagado en este ciclo
   const totalPagado = (cliente.pagos || []).reduce((s,p) => s + p.monto, 0);
-
-  // Si tiene cuota sugerida, calcular cuántas cuotas cubre lo pagado
-  // Si no tiene cuota, contar número de pagos
   let cuotasCubiertas;
   if(cliente.cuotaSugerida > 0){
     cuotasCubiertas = Math.floor(totalPagado / cliente.cuotaSugerida);
@@ -2976,8 +2990,13 @@ function calcularAtraso(cliente){
     cuotasCubiertas = (cliente.pagos || []).length;
   }
 
-  // Atraso = días que debió pagar - cuotas cubiertas
-  return diasTranscurridos - cuotasCubiertas;
+  if((cliente.tipo || 'diario') === 'semanal'){
+    const diasEsperados = semanasVencidasDesde(fechaInicio, cliente.diaSemana);
+    return diasEsperados - cuotasCubiertas;
+  } else {
+    const diasTranscurridos = diasHabilesDesde(fechaInicio);
+    return diasTranscurridos - cuotasCubiertas;
+  }
 }
 
 // ===== SINCRONIZAR CUENTAS DESDE CLIENTES =====
@@ -3210,9 +3229,8 @@ function renderDetalles(){
       <div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
         <div style="background:#ffe8e8;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ff8888">
           <div style="font-size:11px;font-weight:900;color:#ff1111;letter-spacing:1px;text-transform:uppercase">${c.esRenovacion ? '🔄 Renovado (ciclo cerrado)' : '✅ Cancelado completo'}</div>
-          <div style="display:flex;align-items:center;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:12px;color:#888;font-weight:700">📅 ${fechaBonita(c.fecha)}</div>
-            <button onclick="editarFechaCancelado('${c.clienteId}','${c.fecha}',${c.esRenovacion||false})" style="background:#fff3e0;border:1.5px solid #ffaa00;color:#e07b00;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✏️</button>
             <button onclick="eliminarCanceladoDeDetalle('${c.clienteId}',${c.esRenovacion||false})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
           </div>
         </div>
@@ -3258,59 +3276,6 @@ function eliminarCuotaDeDetalle(clienteId, fecha, monto){
       renderDetalles();
     }
   );
-}
-
-function editarFechaCancelado(clienteId, fechaActual, esRenovacion){
-  const overlay = document.createElement('div');
-  overlay.id = 'modal-editar-fecha-cancelado';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
-  overlay.innerHTML = `
-    <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.35)">
-      <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:32px">📅</div>
-        <div style="font-size:17px;font-weight:900;color:#cc00aa;margin-top:6px">Corregir fecha</div>
-        <div style="font-size:13px;color:#555;margin-top:4px">¿En qué fecha fue realmente esta ${esRenovacion?'renovación':'cancelación'}?</div>
-      </div>
-      <input type="date" id="input-nueva-fecha-cancelado" value="${fechaActual}"
-        style="width:100%;box-sizing:border-box;border:2px solid #e8ccf5;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#cc00aa;outline:none;margin-bottom:16px;text-align:center">
-      <div style="display:grid;gap:10px">
-        <button onclick="confirmarEditarFechaCancelado('${clienteId}','${fechaActual}',${esRenovacion})"
-          style="padding:14px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
-          ✅ Guardar fecha
-        </button>
-        <button onclick="document.getElementById('modal-editar-fecha-cancelado').remove()"
-          style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
-          Cancelar
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-function confirmarEditarFechaCancelado(clienteId, fechaVieja, esRenovacion){
-  const nuevaFecha = document.getElementById('input-nueva-fecha-cancelado')?.value;
-  if(!nuevaFecha){ showToast('⚠️ Selecciona una fecha'); return; }
-  const cl = getClientes();
-  const idx = cl.findIndex(c=>c.id===clienteId);
-  if(idx<0) return;
-
-  if(esRenovacion){
-    const histRen = cl[idx].historialRenovaciones||[];
-    const idxRen = histRen.findIndex(r=>r.fecha===fechaVieja);
-    if(idxRen>=0){
-      cl[idx].historialRenovaciones[idxRen].fecha = nuevaFecha;
-      // Si es la renovación más reciente, también actualizar fechaRenovacion
-      if(idxRen===0) cl[idx].fechaRenovacion = nuevaFecha;
-    }
-  } else {
-    // Pagos: cambiar todos los pagos de esa fecha
-    (cl[idx].pagos||[]).forEach(p=>{ if(p.fecha===fechaVieja) p.fecha=nuevaFecha; });
-  }
-
-  saveClientes(cl);
-  document.getElementById('modal-editar-fecha-cancelado')?.remove();
-  showToast('✅ Fecha corregida a ' + fechaBonita(nuevaFecha));
-  renderDetalles();
 }
 
 function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
@@ -3379,30 +3344,33 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
 // ===== PANTALLA DETALLE CLIENTE =====
 let clienteDetalleId = null;
 
-function calcularFechaFinal(fechaInicio, tipo, nCuotas){
+function calcularFechaFinal(fechaInicio, tipo, nCuotas, diaSemana){
   if(!fechaInicio || !nCuotas) return '';
   const d = new Date(fechaInicio + 'T00:00:00');
-  let dias = 0, agregados = 0;
+  let agregados = 0;
+  const diaNum = diaSemanaNombre2Num(diaSemana);
+  const diaObjetivo = (diaNum !== undefined) ? diaNum : 1;
   while(agregados < nCuotas){
     d.setDate(d.getDate()+1);
     if(tipo === 'diario' && d.getDay() !== 0) agregados++;
-    else if(tipo === 'semanal'){ if(d.getDay() === 1) agregados++; } // cada lunes
+    else if(tipo === 'semanal'){ if(d.getDay() === diaObjetivo) agregados++; }
     else agregados++;
   }
   return d.toISOString().split('T')[0];
 }
 
-function diasVencidos(fechaInicio, tipo, pagos){
-  // Cuántos días de pago han pasado sin recibir cuota
+function diasVencidos(fechaInicio, tipo, pagos, diaSemana){
   if(!fechaInicio) return 0;
   const inicio = new Date(fechaInicio + 'T00:00:00');
   const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const diaNum = diaSemanaNombre2Num(diaSemana);
+  const diaObjetivo = (diaNum !== undefined) ? diaNum : 1;
   let diasEsperados = 0;
   const cur = new Date(inicio);
   cur.setDate(cur.getDate()+1);
   while(cur <= hoy){
     if(tipo === 'diario' && cur.getDay() !== 0) diasEsperados++;
-    else if(tipo === 'semanal' && cur.getDay() === 1) diasEsperados++;
+    else if(tipo === 'semanal' && cur.getDay() === diaObjetivo) diasEsperados++;
     cur.setDate(cur.getDate()+1);
   }
   const cuotasPagadas = (pagos||[]).length;
@@ -3465,7 +3433,7 @@ function abrirDetalle(id){
   const dvencidos = diasAtraso > 0 ? diasAtraso : 0;
   const ultPago = (c.pagos||[])[0];
   const cuotasPagadas = (c.pagos||[]).length;
-  const fechaFinal = calcularFechaFinal(fechaInicio, c.tipo||'diario', nCuotas);
+  const fechaFinal = calcularFechaFinal(fechaInicio, c.tipo||'diario', nCuotas, c.diaSemana||'');
 
   document.getElementById('det-nombre').textContent = '👤 ' + c.nombre;
   document.getElementById('det-cedula').textContent = c.cedula ? '🪪 ' + c.cedula : (c.tel ? '📱 ' + c.tel : '');
@@ -3556,7 +3524,7 @@ function abonarDesdeDetalle(){
   if(idx<0) return;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - monto);
   clientes[idx].pagos = clientes[idx].pagos || [];
-  clientes[idx].pagos.unshift({fecha: getFechaActiva(), monto});
+  clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
   saveClientes(clientes);
   // Archivar en historial si tiene cédula
   const cActDet = getClientes().find(x=>x.id===clienteDetalleId);
@@ -4372,14 +4340,14 @@ function archivarClienteEnHistorial(c){
     nombre: c.nombre,
     tel: c.tel||'',
     dir: c.dir||'',
-    fechaArchivado: getFechaActiva(),
+    fechaArchivado: fechaHoy(),
     // Ciclos: historial de renovaciones + ciclo actual
     ciclos: [
       // Ciclo actual
       {
         num: (c.renovaciones||0) + 1,
-        fechaInicio: c.fechaRenovacion || c.fechaCreado || getFechaActiva(),
-        fechaFin: getFechaActiva(),
+        fechaInicio: c.fechaRenovacion || c.fechaCreado || fechaHoy(),
+        fechaFin: fechaHoy(),
         capital: c.capital||0,
         prestamo: c.prestamo||0,
         pagado: pagado,
@@ -4427,7 +4395,7 @@ function archivarClienteEnHistorial(c){
     hist[idx].nombre = c.nombre;
     hist[idx].tel = c.tel||hist[idx].tel;
     hist[idx].dir = c.dir||hist[idx].dir;
-    hist[idx].fechaArchivado = getFechaActiva();
+    hist[idx].fechaArchivado = fechaHoy();
   } else {
     hist.push(entrada);
   }
@@ -5971,16 +5939,39 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 <!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
-<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:45vh;overflow-y:auto;font-family:monospace">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:60vh;overflow-y:auto;font-family:monospace">
+  <!-- Barra título y botones -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0;z-index:1">
     <span style="color:#cc00aa;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
-    <div style="display:flex;gap:8px">
-      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
-      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">⚡ Guardar</button>
+      <button onclick="window.cargarDesdeNube && window.cargarDesdeNube()" style="background:#1a6eff;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">☁️ Cargar nube</button>
+      <button onclick="window.verEstadoNube && window.verEstadoNube()" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">📊 Estado</button>
+      <button onclick="window.compararLocalNube && window.compararLocalNube()" style="background:#d97706;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔍 Comparar</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer">✕</button>
     </div>
   </div>
-  <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
+  <!-- Tarjetas de estado -->
+  <div id="diag-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 14px;background:#0d1117">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
+      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Último backup</div>
+      <div id="diag-ultimo-backup" style="font-size:12px;font-weight:900;color:#e3b341;margin-top:2px">—</div>
+    </div>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
+      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Syncs hoy</div>
+      <div id="diag-syncs-hoy" style="font-size:12px;font-weight:900;color:#58a6ff;margin-top:2px">0</div>
+    </div>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
+      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">En la nube</div>
+      <div id="diag-nube-info" style="font-size:12px;font-weight:900;color:#3fb950;margin-top:2px">—</div>
+    </div>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px">
+      <div style="font-size:9px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">Local</div>
+      <div id="diag-local-info" style="font-size:12px;font-weight:900;color:#ff7b72;margin-top:2px">—</div>
+    </div>
+  </div>
+  <div id="diag-log" style="padding:6px 14px 12px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
 </div>
 
 <script>
@@ -6100,6 +6091,11 @@ function addLog(msg) {
               _syncReintentos = 0;
               _syncPendiente = false;
               actualizarIndicadorSync('ok');
+              contarSync();
+              actualizarInfoLocal();
+              actualizarUltimoBackup(backup.fecha_backup);
+              const elNube = document.getElementById('diag-nube-info');
+              if (elNube) elNube.textContent = backup.clientes.length + ' clientes · ' + (backup.historial ? backup.historial.length : 0) + ' días';
               addLog('✅ Guardado OK — ' + backup.clientes.length + ' clientes en la nube (' + new Date().toLocaleTimeString('es-CO') + ')');
               if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
             })
@@ -6142,6 +6138,113 @@ function addLog(msg) {
 
   // Sync forzado desde botón
   window.syncForzado = function() { window.syncFirebase(true); };
+
+  // ---- CONTADOR DE SYNCS HOY ----
+  let _syncsHoy = 0;
+  const _syncFechaHoy = (new Date()).toDateString();
+  function contarSync() {
+    _syncsHoy++;
+    const el = document.getElementById('diag-syncs-hoy');
+    if (el) el.textContent = _syncsHoy + ' vez' + (_syncsHoy !== 1 ? 'es' : '');
+  }
+
+  // ---- ACTUALIZAR INFO LOCAL ----
+  window.actualizarInfoLocal = function actualizarInfoLocal() {
+    const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+    const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+    const el = document.getElementById('diag-local-info');
+    if (el) el.textContent = clientes.length + ' clientes · ' + historial.length + ' días';
+  };
+
+  // ---- ACTUALIZAR ÚLTIMO BACKUP ----
+  function actualizarUltimoBackup(fechaISO) {
+    const el = document.getElementById('diag-ultimo-backup');
+    if (!el || !fechaISO) return;
+    try {
+      const d = new Date(fechaISO);
+      el.textContent = d.toLocaleTimeString('es-CO') + ' ' + d.toLocaleDateString('es-CO');
+    } catch(e) { el.textContent = fechaISO; }
+  }
+
+  // ---- CARGAR DESDE NUBE (manual) ----
+  window.cargarDesdeNube = function() {
+    const usuarioKey = getUsuarioActivo();
+    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
+    addLog('☁️ Cargando datos desde Firebase...');
+    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
+      const data = snap.val();
+      if (!data) { addLog('⚠️ No hay datos en la nube para este usuario'); return; }
+      confirmarAccion(
+        '☁️ Cargar desde la nube',
+        '¿Reemplazar los datos locales con los de la nube?
+
+Nube: ' + (data.clientes ? data.clientes.length : 0) + ' clientes · backup del ' + (data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '?') + '
+
+⚠️ Se perderán cambios locales no sincronizados.',
+        '#1a6eff',
+        () => {
+          if (data.clientes) localStorage.setItem('clientes_v1', JSON.stringify(data.clientes));
+          if (data.historial) localStorage.setItem('hist_v3', JSON.stringify(data.historial));
+          if (data.porcentaje_interes) localStorage.setItem('porcentaje_interes', data.porcentaje_interes);
+          if (data.historial_cedulas) localStorage.setItem('historial_cedulas_v1', JSON.stringify(data.historial_cedulas));
+          if (data.manuales) Object.keys(data.manuales).forEach(k => localStorage.setItem(k, JSON.stringify(data.manuales[k])));
+          addLog('✅ Datos restaurados desde la nube — ' + (data.clientes ? data.clientes.length : 0) + ' clientes');
+          actualizarInfoLocal();
+          showToast('✅ Datos cargados desde la nube');
+          setTimeout(() => location.reload(), 1500);
+        }
+      );
+    }).catch(e => addLog('❌ Error al cargar desde nube: ' + e.message));
+  };
+
+  // ---- VER ESTADO DE LA NUBE ----
+  window.verEstadoNube = function() {
+    const usuarioKey = getUsuarioActivo();
+    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
+    addLog('📊 Consultando estado de la nube...');
+    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
+      const data = snap.val();
+      if (!data) { addLog('⚠️ Sin datos en la nube'); return; }
+      const clientes = data.clientes ? data.clientes.length : 0;
+      const historial = data.historial ? data.historial.length : 0;
+      const cedulas = data.historial_cedulas ? data.historial_cedulas.length : 0;
+      const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '?';
+      const el = document.getElementById('diag-nube-info');
+      if (el) el.textContent = clientes + ' clientes · ' + historial + ' días';
+      actualizarUltimoBackup(data.fecha_backup);
+      addLog('📊 Nube — clientes: ' + clientes + ' · días guardados: ' + historial + ' · historial cédulas: ' + cedulas);
+      addLog('📅 Fecha del backup en nube: ' + fecha);
+    }).catch(e => addLog('❌ Error consultando nube: ' + e.message));
+  };
+
+  // ---- COMPARAR LOCAL VS NUBE ----
+  window.compararLocalNube = function() {
+    const usuarioKey = getUsuarioActivo();
+    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return; }
+    addLog('🔍 Comparando local vs nube...');
+    const localClientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+    const localHistorial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+    get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
+      const data = snap.val();
+      if (!data) { addLog('⚠️ Sin datos en la nube para comparar'); return; }
+      const nubeClientes = data.clientes ? data.clientes.length : 0;
+      const nubeHistorial = data.historial ? data.historial.length : 0;
+      const difClientes = localClientes.length - nubeClientes;
+      const difHistorial = localHistorial.length - nubeHistorial;
+      addLog('👥 Clientes — Local: ' + localClientes.length + ' · Nube: ' + nubeClientes + (difClientes === 0 ? ' ✅ Igual' : (difClientes > 0 ? ' ⚠️ Local tiene ' + difClientes + ' más' : ' ⚠️ Nube tiene ' + Math.abs(difClientes) + ' más')));
+      addLog('📅 Días guardados — Local: ' + localHistorial.length + ' · Nube: ' + nubeHistorial + (difHistorial === 0 ? ' ✅ Igual' : (difHistorial > 0 ? ' ⚠️ Local tiene ' + difHistorial + ' más' : ' ⚠️ Nube tiene ' + Math.abs(difHistorial) + ' más')));
+      const fechaNube = data.fecha_backup ? new Date(data.fecha_backup) : null;
+      if (fechaNube) {
+        const minutos = Math.round((new Date() - fechaNube) / 60000);
+        addLog('🕐 Último sync hace ' + (minutos < 60 ? minutos + ' min' : Math.round(minutos/60) + ' h'));
+      }
+      if (difClientes === 0 && difHistorial === 0) {
+        addLog('✅ Local y nube están sincronizados');
+      } else {
+        addLog('⚠️ Hay diferencias — considera guardar o cargar desde nube');
+      }
+    }).catch(e => addLog('❌ Error al comparar: ' + e.message));
+  };
 
   // Monitor de conexión en tiempo real
   const connRef = ref(db, '.info/connected');
