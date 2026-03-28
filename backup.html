@@ -1057,12 +1057,15 @@ body {
     // Fallback: si es hoy, usar cuentas_dia
     const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
 
-    // Cobrado ese día (pagos de clientes — incluye cancelados)
+    // General: cuotas cobradas + saldoQuedaba de renovaciones del día (igual que app principal)
     let cobradoDia = 0;
     _modalClientes.forEach(c => {
       (c.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
-      (c.historialRenovaciones || []).forEach(r => {
+      const hist = (c.historialRenovaciones || []);
+      hist.forEach(r => {
         (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
+        const fechaRenov = (r.fecha || r.fechaCreado || "").substring(0, 10);
+        if (fechaRenov === fechaDia && r.saldoQuedaba) cobradoDia += parseFloat(r.saldoQuedaba || 0);
       });
     });
 
