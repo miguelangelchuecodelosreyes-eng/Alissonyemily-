@@ -3179,18 +3179,20 @@ function renderDetalles(){
   let cancelados = [];
 
   clientes.forEach(c => {
+    // Detectar si este cliente fue cancelado en la fecha filtro
+    const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && c.pagos[0].fecha === filtroFecha;
+
     (c.pagos||[]).forEach(p => {
-      if(p.fecha === filtroFecha){
+      if(p.fecha === filtroFecha && !esCanceladoHoy){
+        // Solo agregar a cuotas si NO es un cancelado ese día
         todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario' });
       }
     });
     // Cancelados: saldo = 0 en ciclo actual
-    if(c.saldo === 0 && (c.pagos||[]).length > 0){
+    if(esCanceladoHoy){
       const ultPago = c.pagos[0];
-      if(ultPago.fecha === filtroFecha){
-        const pagosDelDia = (c.pagos||[]).filter(p=>p.fecha===filtroFecha).reduce((s,p)=>s+p.monto,0);
-        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: ultPago.fecha, totalPagado: pagosDelDia, capital: c.capital||0, pagos: c.pagos.length, saldoQuedaba: 0 });
-      }
+      const pagosDelDia = (c.pagos||[]).filter(p=>p.fecha===filtroFecha).reduce((s,p)=>s+p.monto,0);
+      cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: ultPago.fecha, totalPagado: pagosDelDia, capital: c.capital||0, pagos: c.pagos.length, saldoQuedaba: 0 });
     }
     // Renovaciones
     (c.historialRenovaciones||[]).forEach(r => {
