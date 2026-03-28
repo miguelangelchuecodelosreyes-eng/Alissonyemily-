@@ -907,9 +907,9 @@ body {
         const card = document.createElement('div');
         card.style.cssText = 'background:white;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);cursor:pointer';
         card.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div onclick="window.abrirReporteAdmin('${usuario}')" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;cursor:pointer;padding:4px 0">
             <div>
-              <div style="font-size:14px;font-weight:900;color:#111">👤 ${usuario}</div>
+              <div style="font-size:14px;font-weight:900;color:#1a6eff;text-decoration:underline">👤 ${usuario}</div>
               <div style="font-size:10px;color:#888;font-weight:600;margin-top:2px">Backup: ${fechaBackup}</div>
             </div>
             <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? '#cc2200' : '#007733'};border-radius:8px;padding:3px 8px;font-size:11px;font-weight:900">
@@ -941,9 +941,15 @@ body {
         `;
         card.appendChild(botonesDiv);
         card.style.cursor = 'default';
-        card.addEventListener('click', () => abrirReporte(usuario, data));
         lista.appendChild(card);
       });
+
+      // Registrar función global para abrir reporte por nombre
+      window._usuariosMap = usuarios;
+      window.abrirReporteAdmin = function(usuario) {
+        const data = window._usuariosMap[usuario];
+        if (data) abrirReporte(usuario, data);
+      };
     }).catch(err => {
       lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error: ' + err.message + '</div>';
     });
@@ -1034,6 +1040,7 @@ body {
   let _modalActivos = [];
   let _modalDias = [];
   let _modalFmt = null;
+  let _modalClientes = [];
 
   window.renderDiaReporte = function(fechaDia) {
     const fmt = _modalFmt;
@@ -1063,7 +1070,7 @@ body {
     const eGeneral   = cobradoDia;
     // Calcular préstamos del día automáticamente desde los clientes
     let prestamosAutoDia = 0;
-    for (const c of clientes) {
+    for (const c of _modalClientes) {
       if (!c.nombre) continue;
       let tieneRenovHoy = false;
       for (const r of (c.historialRenovaciones || [])) {
@@ -1167,6 +1174,7 @@ body {
     _modalActivos = activos;
     _modalDias = dias;
     _modalFmt = fmt;
+    _modalClientes = data.clientes || [];
 
     document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
     document.getElementById('modal-contenido').innerHTML = '';
