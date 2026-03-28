@@ -3179,12 +3179,15 @@ function renderDetalles(){
   let cancelados = [];
 
   clientes.forEach(c => {
-    // Detectar si este cliente fue cancelado en la fecha filtro
+    // Detectar si este cliente fue cancelado completo en la fecha filtro
     const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && c.pagos[0].fecha === filtroFecha;
+    // Detectar si este cliente fue renovado en la fecha filtro
+    const esRenovadoHoy = (c.historialRenovaciones||[]).some(r => r.fecha === filtroFecha);
+    // Si fue cancelado o renovado ese día, sus pagos NO van a cuotas
+    const excluirDeCuotas = esCanceladoHoy || esRenovadoHoy;
 
     (c.pagos||[]).forEach(p => {
-      if(p.fecha === filtroFecha && !esCanceladoHoy){
-        // Solo agregar a cuotas si NO es un cancelado ese día
+      if(p.fecha === filtroFecha && !excluirDeCuotas){
         todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario' });
       }
     });
@@ -6235,4 +6238,3 @@ function addLog(msg) {
 
 </body>
 </html>
-
