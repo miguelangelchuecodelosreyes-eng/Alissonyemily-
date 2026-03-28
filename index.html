@@ -3351,25 +3351,29 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
   } else {
     // Cancelado normal (saldo = 0)
     const pagos = cliente.pagos||[];
-    const hoyFecha = fechaHoy();
     if(!pagos.length){ showToast('⛔ Este cliente no tiene pagos registrados'); return; }
+    // El saldo antes = lo que pagó ese día para cancelar
+    const pagosFecha = pagos.filter(p => p.fecha === fechaFiltro);
+    const saldoAntes = pagosFecha.reduce((s,p) => s+p.monto, 0);
+    const pagosAnteriores = pagos.filter(p => p.fecha !== fechaFiltro);
     confirmarAccion(
       '↩️ Deshacer cancelado',
-      `¿Deshacer el cancelado de ${cliente.nombre}?\n\n✅ El cliente volverá a la lista activa:\n• Saldo: ${fmt(cliente.prestamo)}\n• Sus cuotas anteriores se borrarán.\n\nÚsalo solo si fue un error.`,
+      `¿Deshacer el cancelado de ${cliente.nombre}?\n\n✅ El cliente volverá a la lista activa:\n• Saldo que quedará: ${fmt(saldoAntes)}\n• Solo se borran los pagos de ese día.\n\nÚsalo solo si fue un error.`,
       '#ff6600',
       () => {
         const cl2 = getClientes();
         const idx = cl2.findIndex(c=>c.id===clienteId);
         if(idx<0) return;
-        cl2[idx].saldo = cl2[idx].prestamo;
-        cl2[idx].pagos = [];
+        cl2[idx].saldo = saldoAntes;
+        cl2[idx].pagos = pagosAnteriores;
         saveClientes(cl2);
-        showToast('✅ Cancelado deshecho — ' + cliente.nombre + ' volvió a la lista');
+        showToast('✅ Cancelado deshecho — ' + cliente.nombre + ' volvió con saldo ' + fmt(saldoAntes));
         renderDetalles();
         renderClientes();
       }
     );
   }
+}
 }
 
 // ===== PANTALLA DETALLE CLIENTE =====
