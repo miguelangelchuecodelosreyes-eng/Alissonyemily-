@@ -1165,6 +1165,7 @@ body {
     <div class="modal-campo">
       <label class="modal-label">💳 Cuota sugerida (opcional)</label>
       <input type="number" class="modal-input" id="mc-cuota" placeholder="0" oninput="actualizarDiasPrestamo()">
+      <div id="mc-cuota-preview" style="display:none;margin-top:6px;background:linear-gradient(135deg,#f3e8ff,#ede9fe);border-radius:10px;padding:8px 14px;border:2px solid #d8b4fe;text-align:center"><span id="mc-cuota-preview-texto" style="font-size:20px;font-weight:900;color:#7c3aed"></span></div>
     </div>
     <!-- Días del préstamo calculados -->
     <div id="dias-prestamo-info" style="display:none;background:#f8f0ff;border-radius:12px;padding:12px 14px;margin-top:4px;border:2px solid #d8b4fe">
@@ -1847,8 +1848,13 @@ function actualizarDiasPrestamo(){
     textoEl.textContent=tipo==='diario'?`${nCuotas} días`:`${nCuotas} semanas`;
     subEl.textContent=`${fmt(total)} ÷ ${fmt(cuota)} = ${nCuotas} cuota${nCuotas!==1?'s':''} ${tipo==='diario'?'diarias':'semanales'}`;
     infoEl.style.display='block';
+    const prev=document.getElementById('mc-cuota-preview');
+    const prevTxt=document.getElementById('mc-cuota-preview-texto');
+    if(prev&&prevTxt){prevTxt.textContent=fmt(cuota)+'×'+nCuotas;prev.style.display='block';}
   } else {
     infoEl.style.display='none';
+    const prev=document.getElementById('mc-cuota-preview');
+    if(prev)prev.style.display='none';
   }
 }
 
@@ -2718,7 +2724,7 @@ function renderClientes(){
           <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00cc55">${fmt(pagado)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff1111':'#00e65c'}">${fmt(c.saldo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">➡️ Nuevo saldo</div><div class="cliente-det-val" id="nuevo-saldo-inline-${c.id}" style="color:#888">—</div></div>
-          ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div>`:''}
+          ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe;display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1;border-right:1.5px solid #d8b4fe;padding-right:10px"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div><div style="flex:1;padding-left:10px">${(()=>{const up=(c.pagos||[])[0];if(!up)return'<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#aaa;font-size:13px">Sin pagos</div>';const fd=up.fecha||'';let label=fd;try{const [y,m,d]=fd.split('-');const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const dt=new Date(Number(y),Number(m)-1,Number(d));const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];label=dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];}catch(e){}return`<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#16a34a;font-size:13px">${label}-${fmt(up.monto)}</div>`;})()} </div></div>`:''}
         </div>
         ${c.saldo>0?`
         <div id="ns-bar-${c.id}" style="display:none;background:linear-gradient(135deg,#111827,#1f2937);border-radius:14px;padding:10px 16px;margin-bottom:8px;justify-content:space-between;align-items:center">
