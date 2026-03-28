@@ -575,8 +575,8 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día
-    for (const c of activos) {
+    // Sumar pagos por día (incluye cancelados)
+    for (const c of clientes) {
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
@@ -1057,9 +1057,9 @@ body {
     // Fallback: si es hoy, usar cuentas_dia
     const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
 
-    // Cobrado ese día (pagos de clientes)
+    // Cobrado ese día (pagos de clientes — incluye cancelados)
     let cobradoDia = 0;
-    activos.forEach(c => {
+    _modalClientes.forEach(c => {
       (c.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
       (c.historialRenovaciones || []).forEach(r => {
         (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
