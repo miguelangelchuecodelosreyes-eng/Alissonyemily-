@@ -2179,6 +2179,7 @@ function pagarCuota(id){
   const clientes=getClientes();
   const idx=clientes.findIndex(c=>c.id===id);
   if(idx<0)return;
+  clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
   clientes[idx].saldo=Math.max(0,clientes[idx].saldo-monto);
   clientes[idx].pagos=clientes[idx].pagos||[];
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
@@ -2198,6 +2199,7 @@ function pagarCuotaYAvanzar(id){
   const clientes=getClientes();
   const idx=clientes.findIndex(c=>c.id===id);
   if(idx<0)return;
+  clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
   clientes[idx].saldo=Math.max(0,clientes[idx].saldo-monto);
   clientes[idx].pagos=clientes[idx].pagos||[];
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
@@ -3323,7 +3325,7 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
     const u = hist[idxRen];
     confirmarAccion(
       '↩️ Deshacer renovación',
-      `⚠️ IMPORTANTE: Descarga el backup antes de continuar.\n\n¿Deshacer la renovación de ${cliente.nombre}?\n\n✅ El cliente volverá a como estaba antes:\n• Préstamo anterior: ${fmt(u.prestamoCiclo)}\n• Saldo que quedaba: ${fmt(u.saldoQuedaba)}\n• Pagos de ese ciclo: ${(u.pagos||[]).length}\n\nEl préstamo nuevo (${fmt(cliente.prestamo)}) se borrará.`,
+      `¿Deshacer la renovación de ${cliente.nombre}?\n\n✅ El cliente volverá a como estaba antes:\n• Préstamo anterior: ${fmt(u.prestamoCiclo)}\n• Saldo que quedaba: ${fmt(u.saldoQuedaba)}\n• Pagos de ese ciclo: ${(u.pagos||[]).length}\n\nEl préstamo nuevo (${fmt(cliente.prestamo)}) se borrará.`,
       '#ff6600',
       () => {
         const cl2 = getClientes();
@@ -3351,23 +3353,23 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
   } else {
     // Cancelado normal (saldo = 0)
     const pagos = cliente.pagos||[];
-    if(!pagos.length){ showToast('⛔ Este cliente no tiene pagos registrados'); return; }
-    // El saldo antes = lo que pagó ese día para cancelar
-    const pagosFecha = pagos.filter(p => p.fecha === fechaFiltro);
-    const saldoAntes = pagosFecha.reduce((s,p) => s+p.monto, 0);
-    const pagosAnteriores = pagos.filter(p => p.fecha !== fechaFiltro);
-    // Primero descargar backup automáticamente
+    // Usar snapshot guardado al momento de pagar (estado exacto anterior)
+    const snap = cliente._snapshotAntesCancelar;
+    const saldoAntes = snap ? snap.saldo : pagos.filter(p=>p.fecha===fechaFiltro).reduce((s,p)=>s+p.monto,0);
+    const pagosAntes = snap ? snap.pagos : pagos.filter(p=>p.fecha!==fechaFiltro);
+    // Descargar backup automáticamente antes de deshacer
     descargarBackupDirecto();
     confirmarAccion(
       '↩️ Deshacer cancelado',
-      `⚠️ Se descargó un backup automáticamente.\n\n¿Deshacer el cancelado de ${cliente.nombre}?\n\n✅ El cliente volverá a la lista activa:\n• Saldo que quedará: ${fmt(saldoAntes)}\n• Solo se borran los pagos de ese día.\n\nÚsalo solo si fue un error.`,
+      `⚠️ Se descargó un backup automáticamente.\n\n¿Deshacer el cancelado de ${cliente.nombre}?\n\n✅ El cliente volverá exactamente como estaba:\n• Saldo: ${fmt(saldoAntes)}\n• Pagos anteriores: ${pagosAntes.length}\n\nÚsalo solo si fue un error.`,
       '#ff6600',
       () => {
         const cl2 = getClientes();
         const idx = cl2.findIndex(c=>c.id===clienteId);
         if(idx<0) return;
         cl2[idx].saldo = saldoAntes;
-        cl2[idx].pagos = pagosAnteriores;
+        cl2[idx].pagos = pagosAntes;
+        delete cl2[idx]._snapshotAntesCancelar;
         saveClientes(cl2);
         showToast('✅ Cancelado deshecho — ' + cliente.nombre + ' volvió con saldo ' + fmt(saldoAntes));
         renderDetalles();
