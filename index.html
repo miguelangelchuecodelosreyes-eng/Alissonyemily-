@@ -785,6 +785,22 @@ body {
 <!-- ======= AJUSTES ======= -->
 <div class="pantalla" id="pantalla-ajustes">
 
+  <!-- ACTUALIZACIÓN DE LA APP -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo" style="background:linear-gradient(90deg,#1a56db,#0ea5e9)">🔄 Actualización de la app</div>
+    <div style="padding:14px 16px">
+      <div id="app-version-info" style="background:#f0f9ff;border:1.5px solid #0ea5e9;border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#888">Versión cargada</div>
+          <div id="app-version-fecha" style="font-size:15px;font-weight:900;color:#1a56db">Verificando...</div>
+        </div>
+        <div id="app-version-badge" style="font-size:22px">⏳</div>
+      </div>
+      <button onclick="forzarActualizacion()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔄 Verificar y actualizar ahora</button>
+      <div style="font-size:11px;color:#888;font-weight:600;margin-top:8px;text-align:center;line-height:1.5">Si instalaste la app y no ves los últimos cambios,<br>presiona este botón para forzar la actualización.</div>
+    </div>
+  </div>
+
   <!-- DIAGNÓSTICO FIREBASE -->
   <div class="seccion" style="margin-top:14px">
     <div class="seccion-titulo" style="background:#0d1117;color:#cc00aa">🔧 Diagnóstico Firebase</div>
@@ -1498,7 +1514,7 @@ function irA(p) {
     renderDetalles();
   }
   if(p==='prestamos') renderPrestamos();
-  if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); cargarCredencialesEnAjustes(); }
+  if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); cargarCredencialesEnAjustes(); mostrarVersionApp(); }
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
@@ -3579,15 +3595,37 @@ function cerrarDetalle(){
   renderClientes();
 }
 
+// ===== ACTUALIZACIÓN DE LA APP =====
+const APP_VERSION = '2025-03-30 v2';
+
+function mostrarVersionApp(){
+  const el = document.getElementById('app-version-fecha');
+  const badge = document.getElementById('app-version-badge');
+  if(el) el.textContent = APP_VERSION;
+  if(badge) badge.textContent = '✅';
+}
+
+function forzarActualizacion(){
+  showToast('🔄 Forzando actualización...');
+  // Limpiar caché del navegador
+  if('caches' in window){
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    });
+  }
+  // Recargar sin caché
+  setTimeout(() => {
+    window.location.reload(true);
+  }, 800);
+}
+
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
-  if(!c) return;
+  if(!c){ showToast('⚠️ Error: no hay cliente'); return; }
   document.getElementById('modal-cs-nombre').textContent = '👤 ' + c.nombre;
   document.getElementById('modal-cs-saldo-actual').textContent = fmt(c.saldo);
   document.getElementById('modal-cs-input').value = '';
-  const modal = document.getElementById('modal-corregir-saldo');
-  modal.style.display = 'flex';
-  setTimeout(()=>document.getElementById('modal-cs-input').focus(), 100);
+  document.getElementById('modal-corregir-saldo').style.display = 'block';
 }
 
 function cerrarCorregirSaldo(){
@@ -3597,15 +3635,17 @@ function cerrarCorregirSaldo(){
 function confirmarCorregirSaldo(){
   const nuevoSaldo = parseFloat(document.getElementById('modal-cs-input').value);
   if(isNaN(nuevoSaldo) || nuevoSaldo < 0){ showToast('⚠️ Ingresa un valor válido (0 o mayor)'); return; }
-  const clientes = getClientes();
+  if(!clienteDetalleId){ showToast('⚠️ Error: no hay cliente seleccionado'); return; }
+  let clientes = getClientes();
   const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
-  if(idx < 0) return;
+  if(idx < 0){ showToast('⚠️ Error: cliente no encontrado'); return; }
   const saldoAnterior = clientes[idx].saldo;
   clientes[idx].saldo = nuevoSaldo;
   saveClientes(clientes);
   cerrarCorregirSaldo();
   showToast('✅ Saldo corregido: ' + fmt(saldoAnterior) + ' → ' + fmt(nuevoSaldo));
-  abrirDetalle(clienteDetalleId, 'prestamos');
+  const idGuardado = clienteDetalleId;
+  abrirDetalle(idGuardado, 'prestamos');
 }
 
 function actualizarNuevoSaldo(){
@@ -6308,8 +6348,8 @@ function addLog(msg) {
 </script>
 
 <!-- MODAL CORREGIR SALDO -->
-<div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
-  <div style="background:white;border-radius:24px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
+<div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);padding:24px;box-sizing:border-box">
+  <div style="background:white;border-radius:24px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.4);margin:auto;margin-top:15vh">
     <div style="font-size:17px;font-weight:900;color:#333;margin-bottom:3px">✏️ Corregir Saldo</div>
     <div id="modal-cs-nombre" style="font-size:13px;font-weight:700;color:#888;margin-bottom:16px"></div>
     <div style="background:#fff3e0;border:1.5px solid #ff9800;border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
@@ -6318,8 +6358,8 @@ function addLog(msg) {
     </div>
     <div style="font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nuevo saldo correcto</div>
     <input type="number" id="modal-cs-input" placeholder="Ej: 150000" min="0"
-      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px">
-    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo mostrado. No modifica el historial de pagos.</div>
+      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px;box-sizing:border-box">
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo visible. No modifica el historial de pagos.</div>
     <div style="display:flex;gap:10px">
       <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
       <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:#ff9800;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✅ Guardar</button>
