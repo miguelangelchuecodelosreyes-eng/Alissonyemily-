@@ -806,7 +806,16 @@ body {
     <div class="seccion-titulo" style="background:#0d1117;color:#cc00aa">🔧 Diagnóstico Firebase</div>
     <div style="padding:14px 16px">
       <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px;line-height:1.5">Muestra en tiempo real lo que hace Firebase: si sube los datos, si hay errores, o por qué no sincroniza.</div>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='block'; addLog('🔍 Panel abierto — usuario: ' + (JSON.parse(localStorage.getItem('cobrador_credenciales')||'{}').usuario||'?')); if(window.actualizarInfoLocal) window.actualizarInfoLocal(); if(window.verEstadoNube) window.verEstadoNube();" style="width:100%;padding:14px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔧 Abrir panel de diagnóstico</button>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <button onclick="abrirPanelDiagnostico()" style="flex:1;padding:12px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🔧 Abrir panel</button>
+        <button onclick="diagnosticoCompleto()" style="flex:1;padding:12px;background:#ff00cc;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🔍 DIAGNÓSTICO COMPLETO</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button onclick="verificarReglasFirebase()" style="flex:1;padding:10px;background:#f0883e;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔥 Verificar reglas</button>
+        <button onclick="diagnosticarTamanioDatos()" style="flex:1;padding:10px;background:#a371f7;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📊 Tamaño datos</button>
+        <button onclick="mostrarErroresDetallados()" style="flex:1;padding:10px;background:#f85149;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔍 Ver errores</button>
+        <button onclick="verEstadoNube()" style="flex:1;padding:10px;background:#58a6ff;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">☁️ Ver estado nube</button>
+      </div>
     </div>
   </div>
 
@@ -2044,10 +2053,10 @@ function guardarCliente(){
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
       const saldoCorrEl = document.getElementById('mc-saldo-corregir');
       const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
-      // Capturar AHORA antes de que el modal se cierre
-      const saldoCorregidoGuardado = (saldoCorrVal !== null && !isNaN(saldoCorrVal) && saldoCorrVal >= 0) ? saldoCorrVal : null;
-      if(saldoCorregidoGuardado !== null && saldoCorregidoGuardado !== cAntes.saldo){
-        cambios.push(`✏️ Saldo corregido: ${fmt(cAntes.saldo)} → ${fmt(saldoCorregidoGuardado)}`);
+      // Guardar en variable GLOBAL para que aplicarCambios.toString() la encuentre
+      window._saldoCorregidoTemp = (saldoCorrVal !== null && !isNaN(saldoCorrVal) && saldoCorrVal >= 0) ? saldoCorrVal : null;
+      if(window._saldoCorregidoTemp !== null && window._saldoCorregidoTemp !== cAntes.saldo){
+        cambios.push(`✏️ Saldo corregido: ${fmt(cAntes.saldo)} → ${fmt(window._saldoCorregidoTemp)}`);
       }
 
       const aplicarCambios = () => {
@@ -2066,8 +2075,9 @@ function guardarCliente(){
         clientes2[idx2].diaSemana=document.getElementById('mc-dia-semana').value||'';
         clientes2[idx2].cuotaSugerida=nuevaCuota;
         const pagado2=(clientes2[idx2].pagos||[]).reduce((s,x)=>s+x.monto,0);
-        if(saldoCorregidoGuardado !== null && !isNaN(saldoCorregidoGuardado) && saldoCorregidoGuardado >= 0){
-          clientes2[idx2].saldo = saldoCorregidoGuardado;
+        if(window._saldoCorregidoTemp !== null && window._saldoCorregidoTemp >= 0){
+          clientes2[idx2].saldo = window._saldoCorregidoTemp;
+          window._saldoCorregidoTemp = null;
         } else {
           clientes2[idx2].saldo=Math.max(0,p.total-pagado2);
         }
@@ -2078,6 +2088,8 @@ function guardarCliente(){
           else { clientes2.push(clienteM); }
         }
         saveClientes(clientes2);
+        window._aplicarCambiosPendiente = null;
+        window._saldoCorregidoTemp = null;
         const cAct = getClientes().find(x=>x.id===editandoId);
         if(cAct && cAct.cedula) archivarClienteEnHistorial(cAct);
         renderClientes();
@@ -2106,16 +2118,17 @@ function guardarCliente(){
             ${cambios.map(c=>`<div style="font-size:13px;color:#333;padding:5px 0;border-bottom:1px solid #e8ccf5;line-height:1.5">${c}</div>`).join('')}
           </div>
           <div style="display:grid;gap:10px">
-            <button onclick="document.getElementById('modal-confirmar-edicion').remove();(${aplicarCambios.toString()})()"
+            <button onclick="document.getElementById('modal-confirmar-edicion').remove();window._aplicarCambiosPendiente&&window._aplicarCambiosPendiente();"
               style="padding:14px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
               ✅ Sí, guardar cambios
             </button>
-            <button onclick="document.getElementById('modal-confirmar-edicion').remove()"
+            <button onclick="document.getElementById('modal-confirmar-edicion').remove();window._aplicarCambiosPendiente=null;window._saldoCorregidoTemp=null;"
               style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
               ← Cancelar, no cambiar nada
             </button>
           </div>
         </div>`;
+      window._aplicarCambiosPendiente = aplicarCambios;
       document.body.appendChild(overlay);
       return;
     }
@@ -6081,11 +6094,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 <!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
-<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:45vh;overflow-y:auto;font-family:monospace">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;position:sticky;top:0">
-    <span style="color:#cc00aa;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
-    <div style="display:flex;gap:8px">
-      <button onclick="window.syncForzado && window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar ahora</button>
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #ff00cc;max-height:55vh;overflow-y:auto;font-family:monospace">
+  <div style="display:flex;justify-content:space-between;padding:8px 14px;background:#161b22;position:sticky;top:0;flex-wrap:wrap;gap:6px">
+    <span style="color:#cc00aa;font-weight:900">🔧 DIAGNÓSTICO FIREBASE</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="window.syncForzado&&window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar</button>
+      <button onclick="verificarReglasFirebase()" style="background:#f0883e;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🔥 Reglas</button>
+      <button onclick="diagnosticarTamanioDatos()" style="background:#a371f7;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">📊 Tamaño</button>
+      <button onclick="mostrarErroresDetallados()" style="background:#f85149;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🔍 Errores</button>
+      <button onclick="verEstadoNube()" style="background:#58a6ff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">☁️ Nube</button>
       <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
       <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
     </div>
@@ -6098,8 +6115,122 @@ function addLog(msg) {
   const log = document.getElementById('diag-log');
   if (!log) return;
   const time = new Date().toLocaleTimeString('es-CO');
-  const color = msg.startsWith('✅') ? '#3fb950' : msg.startsWith('❌') ? '#f85149' : '#e3b341';
-  log.innerHTML = '<div style="color:' + color + '">[' + time + '] ' + msg + '</div>' + log.innerHTML;
+  let color = '#e3b341';
+  let icon = 'ℹ️';
+  if (msg.startsWith('✅')) { color = '#3fb950'; icon = '✅'; }
+  else if (msg.startsWith('❌')) { color = '#f85149'; icon = '❌'; }
+  else if (msg.startsWith('⚠️')) { color = '#f0883e'; icon = '⚠️'; }
+  else if (msg.includes('🌐') || msg.includes('conexión')) { color = '#58a6ff'; icon = '🌐'; }
+  else if (msg.includes('📦')) { color = '#a371f7'; icon = '📦'; }
+  else if (msg.includes('🔥')) { color = '#ff7b72'; icon = '🔥'; }
+  else if (msg.includes('🔐')) { color = '#f97583'; icon = '🔐'; }
+  let displayMsg = msg;
+  if (msg.includes('PERMISSION_DENIED')) displayMsg = msg + ' - 🔐 Revisa las reglas en Firebase Console';
+  if (msg.includes('NETWORK')) displayMsg = msg + ' - 🌐 Verifica tu conexión a internet';
+  if (msg.includes('payload')) displayMsg = msg + ' - 📦 Datos muy grandes, reduce el tamaño';
+  log.innerHTML = '<div style="color:' + color + ';border-bottom:1px solid #2d333b;padding:6px 0;font-family:monospace;font-size:11px">[' + time + '] ' + icon + ' ' + displayMsg + '</div>' + log.innerHTML;
+  if (log.children.length > 150) log.removeChild(log.lastChild);
+}
+
+function verificarReglasFirebase() {
+  addLog('🔥 Verificando reglas de seguridad de Firebase...');
+  const usuarioKey = getUsuarioActivo();
+  if (!usuarioKey) { addLog('❌ No se pudo obtener usuario'); return Promise.resolve(false); }
+  const rutasPrueba = ['usuarios/' + usuarioKey + '/test_write'];
+  return Promise.all(rutasPrueba.map(ruta => {
+    return window._fbSet && window._fbRef
+      ? window._fbSet(window._fbRef(window._fbDb, ruta), { test: true, timestamp: Date.now() })
+          .then(() => window._fbSet(window._fbRef(window._fbDb, ruta), null))
+          .then(() => { addLog('✅ Ruta "' + ruta + '" - ACCESO PERMITIDO'); return true; })
+          .catch(e => { addLog('❌ Ruta "' + ruta + '" - ACCESO DENEGADO: ' + e.message); return false; })
+      : Promise.resolve(null);
+  })).then(results => {
+    const ok = results.every(r => r !== false);
+    if (!ok) {
+      addLog('⚠️ Las reglas de Firebase pueden estar bloqueando la escritura');
+      addLog('💡 Firebase Console → Realtime Database → Reglas → auth == null');
+    }
+    return ok;
+  });
+}
+
+function diagnosticarTamanioDatos() {
+  addLog('📊 Analizando tamaño de los datos...');
+  const clientes = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+  const historial = JSON.parse(localStorage.getItem('hist_v3') || '[]');
+  const historialCedulas = JSON.parse(localStorage.getItem('historial_cedulas_v1') || '[]');
+  const jsonStr = JSON.stringify({ clientes, historial, historialCedulas });
+  const tamañoMB = (jsonStr.length / 1024 / 1024).toFixed(2);
+  addLog('📦 Tamaño total: ' + tamañoMB + ' MB');
+  addLog('   • Clientes: ' + clientes.length + ' (' + JSON.stringify(clientes).length + ' bytes)');
+  addLog('   • Historial días: ' + historial.length + ' (' + JSON.stringify(historial).length + ' bytes)');
+  addLog('   • Historial cédulas: ' + historialCedulas.length + ' (' + JSON.stringify(historialCedulas).length + ' bytes)');
+  if (jsonStr.length > 10 * 1024 * 1024) {
+    addLog('⚠️ Datos superan 10MB, puede haber problemas de sync');
+    if (clientes.length > 200) addLog('💡 Tienes ' + clientes.length + ' clientes, archiva los cancelados');
+    if (historial.length > 365) addLog('💡 Tienes ' + historial.length + ' días de historial, limpia los antiguos');
+  } else {
+    addLog('✅ Tamaño dentro de límites seguros');
+  }
+  return jsonStr.length;
+}
+
+function mostrarErroresDetallados() {
+  addLog('🔍 BUSCANDO ERRORES DETALLADOS...');
+  const logDiv = document.getElementById('diag-log');
+  if (logDiv) {
+    const errores = [];
+    for (let child of logDiv.children) {
+      if (child.textContent.includes('❌') || child.textContent.toLowerCase().includes('error')) errores.push(child.textContent);
+    }
+    if (errores.length === 0) addLog('✅ No se encontraron errores recientes');
+    else { addLog('⚠️ ' + errores.length + ' errores encontrados:'); errores.slice(0, 10).forEach(e => addLog('   ' + e.substring(0, 150))); }
+  }
+  const ultimoError = localStorage.getItem('ultimo_error_sync');
+  if (ultimoError) {
+    try { const e = JSON.parse(ultimoError); addLog('📋 ÚLTIMO ERROR (' + new Date(e.fecha).toLocaleString() + '): ' + e.mensaje); } catch(e) {}
+  }
+}
+
+function verEstadoNube() {
+  addLog('☁️ Consultando estado de la nube...');
+  const usuarioKey = getUsuarioActivo();
+  if (!usuarioKey) { addLog('❌ No hay usuario activo'); return; }
+  if (window._fbGet && window._fbRef && window._fbDb) {
+    window._fbGet(window._fbRef(window._fbDb, 'usuarios/' + usuarioKey)).then(snap => {
+      const data = snap.val();
+      if (data) {
+        addLog('✅ Nube OK: ' + (data.clientes?.length || 0) + ' clientes, ' + (data.historial?.length || 0) + ' días');
+        addLog('📅 Última sync: ' + (data.fecha_backup ? new Date(data.fecha_backup).toLocaleString() : 'desconocida'));
+      } else addLog('⚠️ No hay datos en la nube para este usuario');
+    }).catch(e => addLog('❌ Error consultando nube: ' + e.message));
+  } else {
+    addLog('⚠️ Firebase aún no está listo, espera unos segundos');
+  }
+}
+
+async function diagnosticoCompleto() {
+  const panel = document.getElementById('panel-diagnostico');
+  if (panel) panel.style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔧 DIAGNÓSTICO COMPLETO');
+  addLog('═══════════════════════════════════════');
+  addLog('🌐 Estado red: ' + (navigator.onLine ? 'Conectado' : 'DESCONECTADO'));
+  try { await fetch('https://www.google.com', { mode: 'no-cors' }); addLog('✅ DNS y red funcionan'); } catch(e) { addLog('❌ Problema de red: ' + e.message); }
+  addLog('👤 Usuario: ' + getUsuarioActivo());
+  addLog('💾 Versión app: ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'));
+  diagnosticarTamanioDatos();
+  await verificarReglasFirebase();
+  verEstadoNube();
+  mostrarErroresDetallados();
+  addLog('═══════════════════════════════════════');
+}
+
+function abrirPanelDiagnostico() {
+  const panel = document.getElementById('panel-diagnostico');
+  if (panel) panel.style.display = 'block';
+  if (window.actualizarInfoLocal) window.actualizarInfoLocal();
+  verEstadoNube();
 }
 </script>
 
@@ -6189,64 +6320,63 @@ function addLog(msg) {
     }
   }
 
+  // Exponer referencias Firebase para diagnóstico
+  window._fbDb = db;
+  window._fbRef = ref;
+  window._fbGet = get;
+  window._fbSet = set;
+
   // Función global para subir datos a Firebase
-  window.syncFirebase = function(forzado = false) {
+  window.syncFirebase = async function(forzado = false) {
+    addLog('🔄 INICIANDO SINCRONIZACIÓN' + (forzado ? ' (FORZADA)' : ''));
+    if (!navigator.onLine) { addLog('❌ Sin conexión a internet'); actualizarIndicadorSync('error'); return false; }
+    const usuarioKey = getUsuarioActivo();
+    if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return false; }
+    addLog('👤 Usuario: ' + usuarioKey);
     try {
-      const usuarioKey = getUsuarioActivo();
-      if (!usuarioKey || usuarioKey === 'sin_usuario') return;
-      const rutaFirebase = 'usuarios/' + usuarioKey;
       const backup = construirBackup();
-
+      addLog('📦 Backup: ' + backup.clientes.length + ' clientes, ' + backup.historial.length + ' días');
+      const jsonStr = JSON.stringify(backup);
+      const tamañoMB = (jsonStr.length / 1024 / 1024).toFixed(2);
+      addLog('📊 Tamaño: ' + tamañoMB + ' MB');
+      if (jsonStr.length > 10 * 1024 * 1024) addLog('⚠️ Datos >10MB, puede haber problemas');
+      const rutaFirebase = 'usuarios/' + usuarioKey;
       actualizarIndicadorSync('syncing');
-      addLog((forzado ? '⚡ Sync FORZADO' : '🔄 Sync automático') + ' — ' + backup.clientes.length + ' clientes');
-
-      // Protección: comparar por fecha de backup (el más reciente gana)
-      get(ref(db, rutaFirebase + '/fecha_backup')).then(snap => {
+      try {
+        const snap = await get(ref(db, rutaFirebase + '/fecha_backup'));
         const fechaFirebase = snap.val() ? new Date(snap.val()).getTime() : 0;
         const fechaLocal = new Date(backup.fecha_backup).getTime();
-        if(fechaLocal >= fechaFirebase || forzado) {
-          set(ref(db, rutaFirebase), backup)
-            .then(() => {
-              _syncReintentos = 0;
-              _syncPendiente = false;
-              actualizarIndicadorSync('ok');
-              addLog('✅ Guardado OK — ' + backup.clientes.length + ' clientes en la nube (' + new Date().toLocaleTimeString('es-CO') + ')');
-              if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
-            })
-            .catch(e => {
-              actualizarIndicadorSync('error');
-              addLog('❌ Error al guardar: ' + e.message);
-              _syncPendiente = true;
-              if (_syncReintentos < _syncReintentosMax) {
-                _syncReintentos++;
-                addLog('🔁 Reintentando en 10s... (intento ' + _syncReintentos + '/' + _syncReintentosMax + ')');
-                setTimeout(() => window.syncFirebase(), 10000);
-              } else {
-                addLog('🔴 Falló después de ' + _syncReintentosMax + ' intentos. Verifica tu conexión.');
-                showToast('🔴 No se pudo guardar en la nube. Verifica internet.');
-              }
-            });
-        } else {
-          const msg = '⚠️ La nube tiene datos más recientes (' + snap.val() + ')';
-          addLog(msg);
-          if (forzado) showToast('⚠️ La nube tiene datos más recientes. ¿Quieres forzar igual?');
+        if (fechaLocal < fechaFirebase && !forzado) {
+          addLog('⚠️ Nube tiene datos más recientes (' + new Date(fechaFirebase).toLocaleString() + ')');
+          actualizarIndicadorSync('error');
+          return false;
         }
-      }).catch(e => {
-        addLog('⚠️ No se pudo verificar fecha — subiendo de todas formas');
-        set(ref(db, rutaFirebase), backup)
-          .then(() => {
-            actualizarIndicadorSync('ok');
-            addLog('✅ Guardado OK (fallback) — ' + backup.clientes.length + ' clientes');
-            if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
-          })
-          .catch(e2 => {
-            actualizarIndicadorSync('error');
-            addLog('❌ Error fallback: ' + e2.message);
-            _syncPendiente = true;
-          });
-      });
-    } catch(e) {
-      addLog('❌ syncFirebase excepción: ' + e.message);
+      } catch (e) { addLog('⚠️ No se pudo verificar fecha: ' + e.message); }
+      await set(ref(db, rutaFirebase), backup);
+      _syncReintentos = 0;
+      _syncPendiente = false;
+      actualizarIndicadorSync('ok');
+      addLog('✅ SINCRONIZACIÓN COMPLETA - ' + backup.clientes.length + ' clientes guardados en la nube');
+      if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
+      return true;
+    } catch (e) {
+      addLog('❌ ERROR AL SUBIR: ' + e.message);
+      if (e.code) addLog('📋 Código: ' + e.code);
+      if (e.message && e.message.includes('PERMISSION_DENIED')) addLog('🔐 ERROR DE PERMISOS: Revisa reglas en Firebase Console');
+      if (e.message && e.message.includes('NETWORK')) addLog('🌐 ERROR DE RED: Verifica conexión');
+      if (e.message && e.message.includes('payload')) addLog('📦 ERROR: Datos demasiado grandes');
+      localStorage.setItem('ultimo_error_sync', JSON.stringify({ mensaje: e.message, codigo: e.code, fecha: new Date().toISOString() }));
+      actualizarIndicadorSync('error');
+      _syncPendiente = true;
+      if (_syncReintentos < _syncReintentosMax) {
+        _syncReintentos++;
+        addLog('🔁 Reintento ' + _syncReintentos + '/' + _syncReintentosMax + ' en 15s');
+        setTimeout(() => window.syncFirebase(forzado), 15000);
+      } else {
+        addLog('🔴 FALLO DEFINITIVO después de ' + _syncReintentosMax + ' intentos');
+        showToast('🔴 No se pudo guardar en la nube. Verifica internet.');
+      }
+      return false;
     }
   };
 
