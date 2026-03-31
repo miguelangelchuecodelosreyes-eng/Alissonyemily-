@@ -815,6 +815,7 @@ body {
         <button onclick="diagnosticarTamanioDatos()" style="flex:1;padding:10px;background:#a371f7;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📊 Tamaño datos</button>
         <button onclick="mostrarErroresDetallados()" style="flex:1;padding:10px;background:#f85149;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔍 Ver errores</button>
         <button onclick="verEstadoNube()" style="flex:1;padding:10px;background:#58a6ff;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">☁️ Ver estado nube</button>
+        <button onclick="verHistorialErrores()" style="flex:1;padding:10px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📜 Historial errores</button>
       </div>
     </div>
   </div>
@@ -6176,37 +6177,164 @@ function diagnosticarTamanioDatos() {
 }
 
 function mostrarErroresDetallados() {
+  addLog('═══════════════════════════════════════');
   addLog('🔍 BUSCANDO ERRORES DETALLADOS...');
+  addLog('═══════════════════════════════════════');
+  
+  let erroresEncontrados = 0;
+  let erroresTexto = [];
+  
+  // 1. Buscar errores en los logs del panel diagnóstico
   const logDiv = document.getElementById('diag-log');
   if (logDiv) {
-    const errores = [];
-    for (let child of logDiv.children) {
-      if (child.textContent.includes('❌') || child.textContent.toLowerCase().includes('error')) errores.push(child.textContent);
+    const hijos = logDiv.children;
+    for (let i = 0; i < hijos.length; i++) {
+      const texto = hijos[i].textContent;
+      if (texto.includes('❌') || texto.toLowerCase().includes('error') || 
+          texto.includes('fallo') || texto.includes('denied') || 
+          texto.includes('permiso') || texto.includes('conexión')) {
+        erroresEncontrados++;
+        if (erroresTexto.length < 20) {
+          erroresTexto.push(texto.substring(0, 200));
+        }
+      }
     }
-    if (errores.length === 0) addLog('✅ No se encontraron errores recientes');
-    else { addLog('⚠️ ' + errores.length + ' errores encontrados:'); errores.slice(0, 10).forEach(e => addLog('   ' + e.substring(0, 150))); }
   }
+  
+  if (erroresEncontrados === 0) {
+    addLog('✅ No se encontraron errores en los logs recientes');
+  } else {
+    addLog(`⚠️ Se encontraron ${erroresEncontrados} errores en los logs:`);
+    erroresTexto.forEach(e => addLog(`   📌 ${e}`));
+  }
+  
+  // 2. Buscar error guardado en localStorage
   const ultimoError = localStorage.getItem('ultimo_error_sync');
   if (ultimoError) {
-    try { const e = JSON.parse(ultimoError); addLog('📋 ÚLTIMO ERROR (' + new Date(e.fecha).toLocaleString() + '): ' + e.mensaje); } catch(e) {}
+    try {
+      const e = JSON.parse(ultimoError);
+      addLog('');
+      addLog('📋 ÚLTIMO ERROR GUARDADO:');
+      addLog(`   📅 Fecha: ${new Date(e.fecha).toLocaleString()}`);
+      addLog(`   ❌ Mensaje: ${e.mensaje}`);
+      if (e.codigo) addLog(`   🔢 Código: ${e.codigo}`);
+      if (e.detalles) addLog(`   📝 Detalles: ${e.detalles}`);
+      addLog(`   💡 Sugerencia: ${e.sugerencia || 'Revisa tu conexión o reglas de Firebase'}`);
+    } catch(e) {}
+  } else {
+    addLog('📋 No hay errores guardados en localStorage');
   }
+  
+  // 3. Verificar si hay errores de red
+  if (!navigator.onLine) {
+    addLog('');
+    addLog('🌐 ERROR DE RED DETECTADO:');
+    addLog('   ❌ No hay conexión a internet');
+    addLog('   💡 Conéctate a Wi-Fi o datos móviles');
+  }
+  
+  // 4. Verificar si Firebase está disponible
+  if (typeof db === 'undefined') {
+    addLog('');
+    addLog('🔥 FIREBASE NO DISPONIBLE:');
+    addLog('   ❌ Firebase no se cargó correctamente');
+    addLog('   💡 Recarga la página o reinstala la app');
+  }
+  
+  addLog('═══════════════════════════════════════');
 }
 
 function verEstadoNube() {
   addLog('☁️ Consultando estado de la nube...');
   const usuarioKey = getUsuarioActivo();
-  if (!usuarioKey) { addLog('❌ No hay usuario activo'); return; }
-  if (window._fbGet && window._fbRef && window._fbDb) {
-    window._fbGet(window._fbRef(window._fbDb, 'usuarios/' + usuarioKey)).then(snap => {
-      const data = snap.val();
-      if (data) {
-        addLog('✅ Nube OK: ' + (data.clientes?.length || 0) + ' clientes, ' + (data.historial?.length || 0) + ' días');
-        addLog('📅 Última sync: ' + (data.fecha_backup ? new Date(data.fecha_backup).toLocaleString() : 'desconocida'));
-      } else addLog('⚠️ No hay datos en la nube para este usuario');
-    }).catch(e => addLog('❌ Error consultando nube: ' + e.message));
-  } else {
-    addLog('⚠️ Firebase aún no está listo, espera unos segundos');
+  if (!usuarioKey || usuarioKey === 'sin_usuario') { 
+    addLog('❌ No hay usuario activo para consultar'); 
+    return; 
   }
+  
+  const ruta = 'usuarios/' + usuarioKey;
+  addLog(`📡 Consultando ruta: ${ruta}`);
+  
+  get(ref(db, ruta)).then(snap => {
+    const data = snap.val();
+    if (data && data.clientes) {
+      const clientesCount = data.clientes.length || 0;
+      const historialCount = data.historial ? data.historial.length : 0;
+      const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : 'desconocida';
+      
+      addLog(`✅ ESTADO DE LA NUBE:`);
+      addLog(`   📦 Clientes: ${clientesCount}`);
+      addLog(`   📅 Días guardados: ${historialCount}`);
+      addLog(`   🕐 Última sincronización: ${fechaBackup}`);
+      
+      const clientesLocal = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
+      if (clientesLocal.length !== clientesCount) {
+        addLog(`   ⚠️ LOCAL: ${clientesLocal.length} clientes | NUBE: ${clientesCount} clientes`);
+        if (clientesLocal.length > clientesCount) {
+          addLog(`   💡 Tienes ${clientesLocal.length - clientesCount} clientes SIN respaldar en la nube`);
+        }
+      } else {
+        addLog(`   ✅ Sincronizado: ${clientesCount} clientes en ambos lados`);
+      }
+      
+    } else if (data) {
+      addLog(`⚠️ Nube tiene datos pero sin clientes:`);
+      addLog(`   📋 Datos disponibles: ${Object.keys(data).join(', ')}`);
+    } else {
+      addLog(`⚠️ No hay datos en la nube para el usuario "${usuarioKey}"`);
+      addLog(`💡 Esto es NORMAL si es la primera vez que usas la app o si nunca has sincronizado.`);
+      addLog(`💡 Presiona "⚡ Guardar ya" para subir tus datos por primera vez.`);
+    }
+  }).catch(e => {
+    addLog(`❌ ERROR al consultar la nube: ${e.message}`);
+    if (e.code === 'PERMISSION_DENIED') {
+      addLog(`🔐 ERROR DE PERMISOS: Firebase no te deja leer los datos`);
+      addLog(`💡 Solución: Verifica las reglas en Firebase Console → Realtime Database → Reglas`);
+    } else if (e.code === 'NETWORK_ERROR') {
+      addLog(`🌐 ERROR DE RED: No hay conexión a internet`);
+    }
+  });
+}
+
+function verHistorialErrores() {
+  addLog('═══════════════════════════════════════');
+  addLog('📜 HISTORIAL COMPLETO DE ERRORES');
+  addLog('═══════════════════════════════════════');
+  
+  const erroresGuardados = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('error_sync_')) {
+      try {
+        const error = JSON.parse(localStorage.getItem(key));
+        erroresGuardados.push(error);
+      } catch(e) {}
+    }
+  }
+  
+  const ultimoError = localStorage.getItem('ultimo_error_sync');
+  if (ultimoError) {
+    try {
+      erroresGuardados.push(JSON.parse(ultimoError));
+    } catch(e) {}
+  }
+  
+  if (erroresGuardados.length === 0) {
+    addLog('✅ No hay errores históricos guardados');
+  } else {
+    erroresGuardados.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    addLog(`⚠️ Se encontraron ${erroresGuardados.length} errores guardados:`);
+    erroresGuardados.slice(0, 10).forEach((e, i) => {
+      addLog('');
+      addLog(`📌 Error #${i+1} - ${new Date(e.fecha).toLocaleString()}`);
+      addLog(`   ❌ ${e.mensaje.substring(0, 150)}`);
+      if (e.codigo) addLog(`   🔢 Código: ${e.codigo}`);
+    });
+    if (erroresGuardados.length > 10) {
+      addLog(`   ... y ${erroresGuardados.length - 10} errores más`);
+    }
+  }
+  addLog('═══════════════════════════════════════');
 }
 
 async function diagnosticoCompleto() {
@@ -6360,12 +6488,32 @@ function abrirPanelDiagnostico() {
       if (forzado) showToast('✅ ¡Guardado! ' + backup.clientes.length + ' clientes en la nube');
       return true;
     } catch (e) {
-      addLog('❌ ERROR AL SUBIR: ' + e.message);
-      if (e.code) addLog('📋 Código: ' + e.code);
-      if (e.message && e.message.includes('PERMISSION_DENIED')) addLog('🔐 ERROR DE PERMISOS: Revisa reglas en Firebase Console');
-      if (e.message && e.message.includes('NETWORK')) addLog('🌐 ERROR DE RED: Verifica conexión');
-      if (e.message && e.message.includes('payload')) addLog('📦 ERROR: Datos demasiado grandes');
-      localStorage.setItem('ultimo_error_sync', JSON.stringify({ mensaje: e.message, codigo: e.code, fecha: new Date().toISOString() }));
+      addLog(`❌ ERROR AL SUBIR: ${e.message}`);
+      if (e.code) addLog(`📋 Código: ${e.code}`);
+      
+      let sugerencia = '';
+      if (e.message.includes('PERMISSION_DENIED')) {
+        sugerencia = 'Revisa reglas en Firebase Console → Realtime Database → Reglas';
+        addLog('🔐 ERROR DE PERMISOS: Revisa reglas en Firebase Console');
+      } else if (e.message.includes('NETWORK')) {
+        sugerencia = 'Verifica tu conexión a internet';
+        addLog('🌐 ERROR DE RED: Verifica conexión');
+      } else if (e.message.includes('payload')) {
+        sugerencia = 'Los datos son muy grandes, haz una limpieza';
+        addLog('📦 ERROR: Datos demasiado grandes');
+      } else if (e.message.includes('timeout')) {
+        sugerencia = 'La conexión es lenta, intenta más tarde';
+      } else {
+        sugerencia = 'Revisa la consola de Firebase para más detalles';
+      }
+      
+      localStorage.setItem('ultimo_error_sync', JSON.stringify({ 
+        mensaje: e.message, 
+        codigo: e.code || 'sin_codigo',
+        detalles: e.stack ? e.stack.substring(0, 500) : '',
+        sugerencia: sugerencia,
+        fecha: new Date().toISOString() 
+      }));
       actualizarIndicadorSync('error');
       _syncPendiente = true;
       if (_syncReintentos < _syncReintentosMax) {
