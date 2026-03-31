@@ -1040,9 +1040,33 @@ body {
   <div style="margin:10px 14px 0">
     <button id="btn-ver-hist-cedula" onclick="verHistorialDesdeDetalle()" style="display:none;width:100%;background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER HISTORIAL COMPLETO DE ESTE CLIENTE</button>
   </div>
+  <!-- Botón corregir saldo: solo visible desde Préstamos -->
+  <div style="margin:10px 14px 0">
+    <button id="btn-corregir-saldo" onclick="abrirCorregirSaldo()" style="display:none;width:100%;background:#fff3e0;color:#e65100;border:2px solid #ff9800;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✏️ CORREGIR SALDO</button>
+  </div>
 
 
   </div>
+
+<!-- MODAL CORREGIR SALDO -->
+<div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
+  <div style="background:white;border-radius:24px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
+    <div style="font-size:17px;font-weight:900;color:#333;margin-bottom:3px">✏️ Corregir Saldo</div>
+    <div id="modal-cs-nombre" style="font-size:13px;font-weight:700;color:#888;margin-bottom:16px"></div>
+    <div style="background:#fff3e0;border:1.5px solid #ff9800;border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#888">Saldo actual</span>
+      <span id="modal-cs-saldo-actual" style="font-size:22px;font-weight:900;color:#ff1111"></span>
+    </div>
+    <div style="font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nuevo saldo correcto</div>
+    <input type="number" id="modal-cs-input" placeholder="Ej: 150000" min="0"
+      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px">
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo mostrado. No modifica el historial de pagos.</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:#ff9800;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✅ Guardar</button>
+    </div>
+  </div>
+</div>
 
 
   <!-- Historial abonos (oculto por defecto) -->
@@ -1172,6 +1196,16 @@ body {
       <div style="font-size:11px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⏱ Duración del préstamo</div>
       <div id="dias-prestamo-texto" style="font-size:16px;font-weight:900;color:#7c3aed"></div>
       <div id="dias-prestamo-sub" style="font-size:12px;color:#a78bfa;font-weight:700;margin-top:2px"></div>
+    </div>
+
+    <!-- CORREGIR SALDO (solo al editar) -->
+    <div id="mc-saldo-row" style="display:none;margin-top:4px">
+      <div class="modal-campo" style="background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px 14px">
+        <label class="modal-label" style="color:#e65100">✏️ Corregir saldo (opcional)</label>
+        <input type="number" class="modal-input" id="mc-saldo-corregir" placeholder="Dejar vacío = no cambiar" min="0"
+          style="border-color:#ff9800;color:#e65100;font-weight:900">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-top:4px">Solo corrige el saldo visible. No toca el historial de pagos.</div>
+      </div>
     </div>
 
     <!-- ORDENAR POSICIÓN -->
@@ -1949,14 +1983,20 @@ function abrirModalCliente(id){
   }
   // Al editar, mostrar campos directamente y ocultar botón Buscar
   const btnBuscar = document.getElementById('mc-btn-buscar');
+  const mcSaldoRow = document.getElementById('mc-saldo-row');
+  const mcSaldoInput = document.getElementById('mc-saldo-corregir');
   if(id){
     const camposC = document.getElementById('mc-campos-cliente');
     if(camposC) camposC.style.display='block';
     const resBusq = document.getElementById('mc-resultado-busqueda');
     if(resBusq) resBusq.style.display='none';
     if(btnBuscar) btnBuscar.style.display='none';
+    if(mcSaldoRow) mcSaldoRow.style.display='block';
+    if(mcSaldoInput) mcSaldoInput.value='';
   } else {
     if(btnBuscar) btnBuscar.style.display='block';
+    if(mcSaldoRow) mcSaldoRow.style.display='none';
+    if(mcSaldoInput) mcSaldoInput.value='';
   }
   // Resetear panel de posición
   document.getElementById('mc-posicion-tipo').value='';
@@ -2006,6 +2046,11 @@ function guardarCliente(){
       if((cAntes.capital||0) !== capital && capital > 0) cambios.push(`💰 Capital: ${fmt(cAntes.capital||0)} → ${fmt(capital)}`);
       if((cAntes.tipo||'') !== nuevoTipo) cambios.push(`📅 Tipo: "${cAntes.tipo||'—'}" → "${nuevoTipo}"`);
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
+      const saldoCorrEl = document.getElementById('mc-saldo-corregir');
+      const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
+      if(saldoCorrVal !== null && !isNaN(saldoCorrVal) && saldoCorrVal >= 0 && saldoCorrVal !== cAntes.saldo){
+        cambios.push(`✏️ Saldo corregido: ${fmt(cAntes.saldo)} → ${fmt(saldoCorrVal)}`);
+      }
 
       const aplicarCambios = () => {
         let clientes2 = getClientes();
@@ -2023,7 +2068,13 @@ function guardarCliente(){
         clientes2[idx2].diaSemana=document.getElementById('mc-dia-semana').value||'';
         clientes2[idx2].cuotaSugerida=nuevaCuota;
         const pagado2=(clientes2[idx2].pagos||[]).reduce((s,x)=>s+x.monto,0);
-        clientes2[idx2].saldo=Math.max(0,p.total-pagado2);
+        const saldoCorregidoEl = document.getElementById('mc-saldo-corregir');
+        const saldoCorregidoVal = saldoCorregidoEl && saldoCorregidoEl.value !== '' ? parseFloat(saldoCorregidoEl.value) : null;
+        if(saldoCorregidoVal !== null && !isNaN(saldoCorregidoVal) && saldoCorregidoVal >= 0){
+          clientes2[idx2].saldo = saldoCorregidoVal;
+        } else {
+          clientes2[idx2].saldo=Math.max(0,p.total-pagado2);
+        }
         if(posicionTipo && posicionRefId){
           const clienteM=clientes2.splice(idx2,1)[0];
           const refIdx2=clientes2.findIndex(c=>c.id===posicionRefId);
@@ -3459,10 +3510,13 @@ function verAbonosCliente(id){
   }
 }
 
-function abrirDetalle(id){
+let _detalleDesde = null;
+
+function abrirDetalle(id, desde){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
   clienteDetalleId = id;
+  _detalleDesde = desde || null;
 
   const pagado = c.prestamo - c.saldo;
   const fechaInicio = c.fechaRenovacion || c.fechaCreado || fechaHoy();
@@ -3529,6 +3583,10 @@ function abrirDetalle(id){
     btnHist.style.display = histExiste ? 'block' : 'none';
   }
 
+  // Botón corregir saldo: solo visible si se abre desde Préstamos
+  const btnCorregir = document.getElementById('btn-corregir-saldo');
+  if(btnCorregir) btnCorregir.style.display = (_detalleDesde === 'prestamos') ? 'block' : 'none';
+
   document.getElementById('pantalla-detalle-cliente').style.display = 'block';
   document.getElementById('pantalla-detalle-cliente').scrollTop = 0;
   document.getElementById('app').style.display = 'none';
@@ -3537,7 +3595,37 @@ function abrirDetalle(id){
 function cerrarDetalle(){
   document.getElementById('pantalla-detalle-cliente').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  _detalleDesde = null;
   renderClientes();
+}
+
+function abrirCorregirSaldo(){
+  const c = getClientes().find(x=>x.id===clienteDetalleId);
+  if(!c) return;
+  document.getElementById('modal-cs-nombre').textContent = '👤 ' + c.nombre;
+  document.getElementById('modal-cs-saldo-actual').textContent = fmt(c.saldo);
+  document.getElementById('modal-cs-input').value = '';
+  const modal = document.getElementById('modal-corregir-saldo');
+  modal.style.display = 'flex';
+  setTimeout(()=>document.getElementById('modal-cs-input').focus(), 100);
+}
+
+function cerrarCorregirSaldo(){
+  document.getElementById('modal-corregir-saldo').style.display = 'none';
+}
+
+function confirmarCorregirSaldo(){
+  const nuevoSaldo = parseFloat(document.getElementById('modal-cs-input').value);
+  if(isNaN(nuevoSaldo) || nuevoSaldo < 0){ showToast('⚠️ Ingresa un valor válido (0 o mayor)'); return; }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c=>c.id===clienteDetalleId);
+  if(idx < 0) return;
+  const saldoAnterior = clientes[idx].saldo;
+  clientes[idx].saldo = nuevoSaldo;
+  saveClientes(clientes);
+  cerrarCorregirSaldo();
+  showToast('✅ Saldo corregido: ' + fmt(saldoAnterior) + ' → ' + fmt(nuevoSaldo));
+  abrirDetalle(clienteDetalleId, 'prestamos');
 }
 
 function actualizarNuevoSaldo(){
@@ -3911,7 +3999,7 @@ function renderPrestamos(){
   } else {
     listaNuevos.innerHTML = nuevosHoy.map(c => `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
-        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}')">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}','prestamos')">
           <div>
             <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
             <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Cuota: ${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—'}</div>
@@ -3938,7 +4026,7 @@ function renderPrestamos(){
       const rInfo = (c.historialRenovaciones||[])[0];
       return `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1.5px solid #f59e0b44;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
-        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}')">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}','prestamos')">
           <div>
             <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
             <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">Renovación #${c.renovaciones||1} · ${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
@@ -3984,15 +4072,11 @@ function renderPrestamos(){
 
     listaHistorico.innerHTML = clientesConTotal.map(c => `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
-        <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}')">
+        <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}','prestamos')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
               <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
               <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">${c.renovs} renovación${c.renovs!==1?'es':''} · Saldo actual: <span style="color:${c.saldo>0?'#ff1111':'#00cc55'};font-weight:800">${fmt(c.saldo)}</span></div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase">Total prestado</div>
-              <div style="font-size:20px;font-weight:900;color:#cc00aa">${fmt(c.totalPrestado)}</div>
             </div>
           </div>
           <div style="margin-top:8px;background:#f8eeff;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between">
