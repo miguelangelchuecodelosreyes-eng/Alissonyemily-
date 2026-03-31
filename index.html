@@ -2044,8 +2044,10 @@ function guardarCliente(){
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
       const saldoCorrEl = document.getElementById('mc-saldo-corregir');
       const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
-      if(saldoCorrVal !== null && !isNaN(saldoCorrVal) && saldoCorrVal >= 0 && saldoCorrVal !== cAntes.saldo){
-        cambios.push(`✏️ Saldo corregido: ${fmt(cAntes.saldo)} → ${fmt(saldoCorrVal)}`);
+      // Capturar AHORA antes de que el modal se cierre
+      const saldoCorregidoGuardado = (saldoCorrVal !== null && !isNaN(saldoCorrVal) && saldoCorrVal >= 0) ? saldoCorrVal : null;
+      if(saldoCorregidoGuardado !== null && saldoCorregidoGuardado !== cAntes.saldo){
+        cambios.push(`✏️ Saldo corregido: ${fmt(cAntes.saldo)} → ${fmt(saldoCorregidoGuardado)}`);
       }
 
       const aplicarCambios = () => {
@@ -2064,10 +2066,8 @@ function guardarCliente(){
         clientes2[idx2].diaSemana=document.getElementById('mc-dia-semana').value||'';
         clientes2[idx2].cuotaSugerida=nuevaCuota;
         const pagado2=(clientes2[idx2].pagos||[]).reduce((s,x)=>s+x.monto,0);
-        const saldoCorregidoEl = document.getElementById('mc-saldo-corregir');
-        const saldoCorregidoVal = saldoCorregidoEl && saldoCorregidoEl.value !== '' ? parseFloat(saldoCorregidoEl.value) : null;
-        if(saldoCorregidoVal !== null && !isNaN(saldoCorregidoVal) && saldoCorregidoVal >= 0){
-          clientes2[idx2].saldo = saldoCorregidoVal;
+        if(saldoCorregidoGuardado !== null && !isNaN(saldoCorregidoGuardado) && saldoCorregidoGuardado >= 0){
+          clientes2[idx2].saldo = saldoCorregidoGuardado;
         } else {
           clientes2[idx2].saldo=Math.max(0,p.total-pagado2);
         }
