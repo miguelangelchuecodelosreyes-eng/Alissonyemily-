@@ -1048,26 +1048,6 @@ body {
 
   </div>
 
-<!-- MODAL CORREGIR SALDO -->
-<div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
-  <div style="background:white;border-radius:24px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
-    <div style="font-size:17px;font-weight:900;color:#333;margin-bottom:3px">✏️ Corregir Saldo</div>
-    <div id="modal-cs-nombre" style="font-size:13px;font-weight:700;color:#888;margin-bottom:16px"></div>
-    <div style="background:#fff3e0;border:1.5px solid #ff9800;border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:13px;font-weight:700;color:#888">Saldo actual</span>
-      <span id="modal-cs-saldo-actual" style="font-size:22px;font-weight:900;color:#ff1111"></span>
-    </div>
-    <div style="font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nuevo saldo correcto</div>
-    <input type="number" id="modal-cs-input" placeholder="Ej: 150000" min="0"
-      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px">
-    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo mostrado. No modifica el historial de pagos.</div>
-    <div style="display:flex;gap:10px">
-      <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
-      <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:#ff9800;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✅ Guardar</button>
-    </div>
-  </div>
-</div>
-
 
   <!-- Historial abonos (oculto por defecto) -->
   <div id="det-historial-box" style="display:none;margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e8ccf5">
@@ -6326,6 +6306,26 @@ function addLog(msg) {
 
 
 </script>
+
+<!-- MODAL CORREGIR SALDO -->
+<div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
+  <div style="background:white;border-radius:24px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
+    <div style="font-size:17px;font-weight:900;color:#333;margin-bottom:3px">✏️ Corregir Saldo</div>
+    <div id="modal-cs-nombre" style="font-size:13px;font-weight:700;color:#888;margin-bottom:16px"></div>
+    <div style="background:#fff3e0;border:1.5px solid #ff9800;border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#888">Saldo actual</span>
+      <span id="modal-cs-saldo-actual" style="font-size:22px;font-weight:900;color:#ff1111"></span>
+    </div>
+    <div style="font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nuevo saldo correcto</div>
+    <input type="number" id="modal-cs-input" placeholder="Ej: 150000" min="0"
+      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px">
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo mostrado. No modifica el historial de pagos.</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:#ff9800;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✅ Guardar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
