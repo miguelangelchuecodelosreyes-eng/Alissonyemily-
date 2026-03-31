@@ -6139,13 +6139,16 @@ async function verificarReglasFirebase() {
   addLog('🔥 VERIFICANDO REGLAS DE FIREBASE');
   addLog('═══════════════════════════════════════');
 
-  if (typeof db === 'undefined') {
+  const db = window.db, ref = window.ref, set = window.set, get = window.get;
+  const getUsuarioActivo = window.getUsuarioActivo;
+
+  if (!db) {
     addLog('❌ Firebase NO está inicializado correctamente');
     addLog('💡 Revisa que el script de Firebase se haya cargado');
     return false;
   }
 
-  const usuarioKey = getUsuarioActivo();
+  const usuarioKey = getUsuarioActivo ? getUsuarioActivo() : null;
   if (!usuarioKey || usuarioKey === 'sin_usuario') {
     addLog('❌ No se pudo obtener el usuario activo');
     addLog('💡 Inicia sesión primero');
@@ -6156,24 +6159,17 @@ async function verificarReglasFirebase() {
   addLog(`📡 Probando escritura en: usuarios/${usuarioKey}/test_permiso`);
 
   const testRef = ref(db, 'usuarios/' + usuarioKey + '/test_permiso');
-  const testData = {
-    test: true,
-    timestamp: Date.now(),
-    mensaje: 'Prueba de escritura desde diagnóstico'
-  };
+  const testData = { test: true, timestamp: Date.now(), mensaje: 'Prueba de escritura desde diagnóstico' };
 
   try {
     await set(testRef, testData);
     addLog('✅ ESCRITURA EXITOSA - Permiso concedido');
 
     const snap = await get(testRef);
-    if (snap.exists()) {
-      addLog('✅ LECTURA EXITOSA - Puedes leer tus datos');
-    }
+    if (snap.exists()) addLog('✅ LECTURA EXITOSA - Puedes leer tus datos');
 
     await set(testRef, null);
     addLog('✅ ELIMINACIÓN EXITOSA - Puedes borrar datos');
-
     addLog('');
     addLog('🎉 REGLAS CORRECTAS - Firebase funciona perfectamente');
 
@@ -6182,23 +6178,15 @@ async function verificarReglasFirebase() {
     if (e.code) addLog(`📋 Código: ${e.code}`);
     addLog('');
     addLog('🔍 ANÁLISIS DEL ERROR:');
-
     if (e.message.includes('PERMISSION_DENIED')) {
       addLog('❌ PERMISSION_DENIED - Firebase bloquea la escritura');
-      addLog('');
       addLog('💡 SOLUCIÓN:');
       addLog('1. Ve a https://console.firebase.google.com');
-      addLog('2. Selecciona tu proyecto "alissonyemily-7014a"');
-      addLog('3. Ve a "Realtime Database" → "Reglas"');
-      addLog('4. Cambia las reglas a:');
-      addLog('   { "rules": { ".read": true, ".write": true } }');
+      addLog('2. Proyecto "alissonyemily-7014a" → Realtime Database → Reglas');
+      addLog('3. Cambia a: { "rules": { ".read": true, ".write": true } }');
       addLog('⚠️ Solo para pruebas. En producción usa autenticación.');
     } else if (e.message.includes('NETWORK')) {
-      addLog('🌐 ERROR DE RED - No hay conexión a internet');
-      addLog('💡 Conéctate a Wi-Fi o datos móviles');
-    } else if (e.message.includes('timeout')) {
-      addLog('⏰ TIMEOUT - La conexión es muy lenta');
-      addLog('💡 Intenta más tarde o usa una red más rápida');
+      addLog('🌐 ERROR DE RED - Conéctate a Wi-Fi o datos móviles');
     } else {
       addLog(`❌ Error desconocido: ${e.message}`);
     }
@@ -6288,7 +6276,7 @@ function mostrarErroresDetallados() {
   }
   
   // 4. Verificar si Firebase está disponible
-  if (typeof db === 'undefined') {
+  if (typeof window.db === 'undefined' || !window.db) {
     addLog('');
     addLog('🔥 FIREBASE NO DISPONIBLE:');
     addLog('   ❌ Firebase no se cargó correctamente');
@@ -6303,13 +6291,16 @@ function verEstadoNube() {
   addLog('☁️ CONSULTANDO ESTADO DE LA NUBE');
   addLog('═══════════════════════════════════════');
 
-  if (typeof db === 'undefined') {
+  const db = window.db, ref = window.ref, get = window.get;
+  const getUsuarioActivo = window.getUsuarioActivo;
+
+  if (!db) {
     addLog('❌ Firebase NO está inicializado');
     addLog('💡 Revisa la consola para ver errores de carga');
     return;
   }
 
-  const usuarioKey = getUsuarioActivo();
+  const usuarioKey = getUsuarioActivo ? getUsuarioActivo() : null;
   if (!usuarioKey || usuarioKey === 'sin_usuario') {
     addLog('❌ No hay usuario activo');
     addLog('💡 Debes iniciar sesión primero');
@@ -6319,9 +6310,7 @@ function verEstadoNube() {
   addLog(`👤 Usuario: ${usuarioKey}`);
   addLog(`📡 Conectando a: usuarios/${usuarioKey}`);
 
-  const userRef = ref(db, 'usuarios/' + usuarioKey);
-
-  get(userRef).then(snap => {
+  get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
     const data = snap.val();
 
     if (data) {
@@ -6345,8 +6334,7 @@ function verEstadoNube() {
         addLog(`   ⚠️ FALTAN ${clientesLocal.length - clientesCount} clientes en la nube`);
         addLog(`   💡 Presiona "⚡ Guardar" para subirlos`);
       } else if (clientesLocal.length < clientesCount) {
-        addLog(`   ⚠️ La nube tiene ${clientesCount - clientesLocal.length} clientes más que local`);
-        addLog(`   💡 Puedes restaurar desde backup si perdiste datos locales`);
+        addLog(`   ⚠️ La nube tiene ${clientesCount - clientesLocal.length} clientes más`);
       } else {
         addLog(`   ✅ TOTALMENTE SINCRONIZADO`);
       }
@@ -6354,28 +6342,21 @@ function verEstadoNube() {
     } else {
       addLog('');
       addLog('⚠️ NO HAY DATOS EN LA NUBE PARA ESTE USUARIO');
-      addLog('');
-      addLog('📌 Esto puede deberse a:');
-      addLog('   1. Es la primera vez que usas la app');
-      addLog('   2. Nunca has presionado "Guardar"');
-      addLog('   3. Firebase tiene reglas que bloquean la lectura');
-      addLog('');
-      addLog('💡 ACCIONES RECOMENDADAS:');
-      addLog('   → Presiona "⚡ Guardar" para subir tus datos');
-      addLog('   → Luego presiona "☁️ Nube" nuevamente');
+      addLog('📌 Causas posibles:');
+      addLog('   1. Primera vez usando la app');
+      addLog('   2. Nunca has presionado "⚡ Guardar"');
+      addLog('   3. Firebase bloquea la lectura (reglas)');
+      addLog('💡 Presiona "⚡ Guardar" y luego vuelve a consultar');
     }
 
   }).catch(e => {
-    addLog('');
     addLog(`❌ ERROR AL CONSULTAR LA NUBE: ${e.message}`);
     if (e.code) addLog(`📋 Código: ${e.code}`);
-    addLog('');
     if (e.message.includes('PERMISSION_DENIED')) {
-      addLog('🔐 PERMISSION_DENIED - No tienes permiso para leer');
-      addLog('💡 SOLUCIÓN: Firebase Console → Reglas:');
+      addLog('🔐 Sin permiso para leer. Ve a Firebase Console → Reglas:');
       addLog('   { "rules": { ".read": true, ".write": true } }');
     } else if (e.message.includes('NETWORK')) {
-      addLog('🌐 ERROR DE RED - Verifica tu conexión a internet');
+      addLog('🌐 Error de red. Verifica tu conexión.');
     }
   });
 
@@ -6385,7 +6366,9 @@ function verEstadoNube() {
 function probarConexionFirebase() {
   addLog('🔍 PROBANDO CONEXIÓN A FIREBASE...');
 
-  if (typeof db === 'undefined') {
+  const db = window.db, ref = window.ref, get = window.get;
+
+  if (!db) {
     addLog('❌ Firebase NO está disponible');
     addLog('💡 Revisa que el script se haya cargado correctamente');
     return false;
@@ -6393,8 +6376,7 @@ function probarConexionFirebase() {
 
   addLog('✅ Firebase SDK cargado correctamente');
 
-  const connectedRef = ref(db, '.info/connected');
-  get(connectedRef).then(snap => {
+  get(ref(db, '.info/connected')).then(snap => {
     const conectado = snap.val();
     if (conectado) {
       addLog('✅ CONECTADO A FIREBASE - Puedes leer/escribir');
@@ -6560,11 +6542,17 @@ function abrirPanelDiagnostico() {
     }
   }
 
-  // Exponer referencias Firebase para diagnóstico
+  // Exponer Firebase globalmente (para diagnóstico y funciones externas)
   window._fbDb = db;
   window._fbRef = ref;
   window._fbGet = get;
   window._fbSet = set;
+  window.db = db;
+  window.ref = ref;
+  window.get = get;
+  window.set = set;
+  window.onValue = onValue;
+  window.getUsuarioActivo = getUsuarioActivo;
 
   // Función global para subir datos a Firebase
   window.syncFirebase = async function(forzado = false) {
