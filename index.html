@@ -3246,12 +3246,11 @@ function renderDetalles(){
     const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && c.pagos[0].fecha === filtroFecha;
     // Detectar si este cliente fue renovado en la fecha filtro
     const esRenovadoHoy = (c.historialRenovaciones||[]).some(r => r.fecha === filtroFecha);
-    // Si fue cancelado o renovado ese día, sus pagos NO van a cuotas
-    const excluirDeCuotas = esCanceladoHoy || esRenovadoHoy;
 
+    // Todos los pagos del día van a cuotas (incluyendo cancelados y renovados)
     (c.pagos||[]).forEach(p => {
-      if(p.fecha === filtroFecha && !excluirDeCuotas){
-        todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario' });
+      if(p.fecha === filtroFecha){
+        todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario', esCancelado: esCanceladoHoy, esRenovado: esRenovadoHoy });
       }
     });
     // Cancelados: saldo = 0 en ciclo actual
@@ -3303,7 +3302,11 @@ function renderDetalles(){
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5f5">
           <div onclick="abrirDetalle('${c.clienteId}')" style="flex:1;cursor:pointer">
             <div style="font-size:14px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
-            <div style="font-size:11px;color:#666;font-weight:700;margin-top:1px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px">
+              <div style="font-size:11px;color:#666;font-weight:700">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
+              ${c.esCancelado ? '<span style="font-size:10px;font-weight:900;color:#ff1111;background:#ffe8e8;border-radius:6px;padding:1px 6px">✅ Cancelado</span>' : ''}
+              ${c.esRenovado ? '<span style="font-size:10px;font-weight:900;color:#e07b00;background:#fff3e0;border-radius:6px;padding:1px 6px">🔄 Renovado</span>' : ''}
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(c.monto)}</div>
