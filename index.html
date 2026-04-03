@@ -437,6 +437,7 @@ body {
     <button class="nav-tab" onclick="irA('detalles')"         id="tab-detalles">📋 Detalles</button>
     <button class="nav-tab" onclick="irA('prestamos')"        id="tab-prestamos">💸 Préstamos</button>
     <button class="nav-tab" onclick="irA('cuentas')"          id="tab-cuentas">💰 Cuentas</button>
+    <button class="nav-tab" onclick="irA('gastos')"           id="tab-gastos">🧾 Gasto</button>
     <button class="nav-tab" onclick="irA('ajustes')"          id="tab-ajustes">⚙️ Ajustes</button>
   </div>
 </div>
@@ -538,8 +539,8 @@ body {
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:#555">💸 Gasto</span>
-        <input type="number" id="input-gasto" placeholder="0" inputmode="numeric"
-          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
+        <input type="number" id="input-gasto" placeholder="0" inputmode="numeric" readonly
+          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#ff4444;text-align:right;background:transparent;cursor:default"
           oninput="recalcularCuentas()">
       </div>
       <div style="padding:5px 8px;background:#ffe8e8;display:flex;justify-content:space-between;align-items:center">
@@ -657,6 +658,72 @@ body {
       </button>
     </div>
     <div id="historial-lista"></div>
+  </div>
+</div>
+
+<!-- ======= GASTOS ======= -->
+<div class="pantalla" id="pantalla-gastos">
+  <div style="padding:14px 14px 0">
+    <div style="background:white;border-radius:20px;overflow:hidden;border:1.5px solid #ffc5c5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+      <div style="background:linear-gradient(135deg,#ff4444,#cc0000);padding:12px 16px;font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">🧾 Registrar Gasto</div>
+
+      <!-- Tipo de gasto -->
+      <div style="padding:14px 16px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:11px;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">Tipo de gasto</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="seleccionarTipoGasto('Merienda')" id="btn-gasto-merienda"
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            🍎 Merienda
+          </button>
+          <button onclick="seleccionarTipoGasto('Gasolina')" id="btn-gasto-gasolina"
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            ⛽ Gasolina
+          </button>
+          <button onclick="seleccionarTipoGasto('Arreglo de moto')" id="btn-gasto-arreglo"
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            🔧 Arreglo moto
+          </button>
+          <button onclick="seleccionarTipoGasto('Sueldo')" id="btn-gasto-sueldo"
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            💼 Sueldo
+          </button>
+        </div>
+        <div id="gasto-tipo-seleccionado" style="margin-top:10px;display:none;background:#fff3e0;border:2px solid #ff9800;border-radius:12px;padding:10px 14px;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:700;color:#888">✅ Tipo:</span>
+          <span id="gasto-tipo-texto" style="font-size:15px;font-weight:900;color:#e65100"></span>
+        </div>
+      </div>
+
+      <!-- Valor del gasto -->
+      <div style="padding:14px 16px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:11px;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">Valor del gasto</div>
+        <div style="display:flex;align-items:center;background:#fff8f5;border:2px solid #ffccaa;border-radius:14px;padding:6px 14px;gap:6px">
+          <span style="font-size:20px;font-weight:900;color:#cc4400">$</span>
+          <input type="number" id="input-gasto-valor" placeholder="0" inputmode="numeric"
+            style="flex:1;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#cc4400;background:transparent;padding:8px 0;text-align:right;min-width:0"
+            oninput="actualizarGastoPreview()">
+        </div>
+      </div>
+
+      <!-- Botón registrar -->
+      <div style="padding:14px 16px">
+        <button onclick="registrarGasto()"
+          style="width:100%;padding:15px;background:linear-gradient(135deg,#ff4444,#cc0000);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(255,0,0,0.3)">
+          ✅ Registrar Gasto
+        </button>
+      </div>
+    </div>
+
+    <!-- Gastos del día -->
+    <div style="margin-top:14px;margin-bottom:20px;background:white;border-radius:20px;overflow:hidden;border:1.5px solid #ffc5c5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+      <div style="background:#1a1a2e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Gastos del día</div>
+        <div style="font-size:13px;font-weight:900;color:#ff6666" id="gastos-total-hoy">Total: $0</div>
+      </div>
+      <div id="gastos-lista-hoy" style="padding:10px 14px">
+        <div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 Sin gastos registrados hoy</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -912,27 +979,7 @@ body {
 
 
 <!-- PANTALLA WHATSAPP -->
-<div class="pantalla" id="pantalla-whatsapp">
-  <div style="margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.07);border:1px solid #e8ccf5;">
-    <div style="padding:13px 16px 10px;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:white;background:linear-gradient(90deg,#25D366,#128C7E);">
-      💬 WhatsApp Web
-    </div>
-    <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-      <p style="font-size:13px;color:#666;font-weight:600;line-height:1.5;">
-        Toca el botón para abrir WhatsApp Web. Escanea el QR con tu celular una vez y queda vinculado.
-      </p>
-      <a href="whatsapp://" style="display:block;width:100%;padding:15px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 8px 24px rgba(37,211,102,0.4);">
-        📱 Abrir WhatsApp
-      </a>
-      <div style="background:#f8fff8;border:1.5px solid #25D36640;border-radius:14px;padding:14px 16px;margin-top:4px;">
-        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#128C7E;text-transform:uppercase;margin-bottom:8px;">💡 Tip</div>
-        <p style="font-size:12px;color:#555;font-weight:600;line-height:1.6;">
-          Después de ver el baucher en WhatsApp Web, usa el botón <strong>← Atrás</strong> de tu celular para volver aquí directo a la app.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 </div><!-- fin pantallas -->
 </div><!-- fin app -->
@@ -1516,6 +1563,7 @@ function irA(p) {
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
   if(p==='cuentas') setTimeout(cargarDesdeSupervisor, 100);
+  if(p==='gastos') setTimeout(renderGastosHoy, 100);
   if(p==='detalles'){
     // Solo resetear a hoy si no viene de cargarDia
     if(!document.getElementById('det-filtro-fecha').value){
@@ -1534,6 +1582,14 @@ function cargarDesdeSupervisor(){
   const vistaFecha = document.getElementById('vista-fecha');
   if(vistaFecha) vistaFecha.textContent = fechaBonita(hoy);
   const manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+
+  // Sincronizar total de gastos registrados en la sección Gastos
+  try {
+    const gastosHoy = JSON.parse(lsGet('gastos_dia_'+hoy)||'[]');
+    const totalGastos = gastosHoy.reduce((s,g)=>s+g.valor,0);
+    if(totalGastos > 0) manual.gasto = totalGastos;
+  } catch(e){}
+
   document.getElementById('input-base').value      = manual.base      || '';
   document.getElementById('input-papeleria').value = manual.papeleria || '';
   document.getElementById('input-neki').value      = manual.neki      || '';
@@ -1676,6 +1732,135 @@ function guardarDia(){
       showToast('✅ Día guardado correctamente');
     }
   );
+}
+
+// ===== GASTOS =====
+let _tipoGastoSeleccionado = '';
+
+function seleccionarTipoGasto(tipo){
+  _tipoGastoSeleccionado = tipo;
+  // Map tipo → id del botón
+  const idMap = {
+    'Merienda': 'btn-gasto-merienda',
+    'Gasolina': 'btn-gasto-gasolina',
+    'Arreglo de moto': 'btn-gasto-arreglo',
+    'Sueldo': 'btn-gasto-sueldo'
+  };
+  // Reset todos los botones
+  Object.values(idMap).forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if(btn){
+      btn.style.background = '#f8eeff';
+      btn.style.color = '#555';
+      btn.style.borderColor = '#e8ccf5';
+    }
+  });
+  // Destacar el seleccionado
+  const sel = document.getElementById(idMap[tipo]);
+  if(sel){
+    sel.style.background = 'linear-gradient(135deg,#ff4444,#cc0000)';
+    sel.style.color = 'white';
+    sel.style.borderColor = '#ff4444';
+  }
+  // Mostrar label
+  const box = document.getElementById('gasto-tipo-seleccionado');
+  const txt = document.getElementById('gasto-tipo-texto');
+  if(box){ box.style.display='flex'; }
+  if(txt){ txt.textContent = tipo; }
+}
+
+function actualizarGastoPreview(){
+  const val = parseFloat(document.getElementById('input-gasto-valor').value)||0;
+  const prev = document.getElementById('gasto-preview');
+  if(prev) prev.style.display = val > 0 ? 'block' : 'none';
+}
+
+function getGastosHoy(){
+  const hoy = getFechaActiva();
+  try{ return JSON.parse(lsGet('gastos_dia_'+hoy)||'[]'); }catch(e){ return []; }
+}
+
+function saveGastosHoy(lista){
+  const hoy = getFechaActiva();
+  lsSet('gastos_dia_'+hoy, JSON.stringify(lista));
+}
+
+function registrarGasto(){
+  if(!_tipoGastoSeleccionado){ showToast('⚠️ Selecciona un tipo de gasto'); return; }
+  const val = parseFloat(document.getElementById('input-gasto-valor').value)||0;
+  if(val <= 0){ showToast('⚠️ Ingresa un valor mayor a 0'); return; }
+
+  const gastos = getGastosHoy();
+  gastos.push({ tipo: _tipoGastoSeleccionado, valor: val, hora: new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) });
+  saveGastosHoy(gastos);
+
+  // Actualizar el campo gasto en cuentas con el total
+  const total = gastos.reduce((s,g)=>s+g.valor,0);
+  const inputGasto = document.getElementById('input-gasto');
+  if(inputGasto){
+    inputGasto.value = total;
+    // También guardar en manual
+    const hoy = getFechaActiva();
+    const manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+    manual.gasto = total;
+    lsSet('sup_manual_'+hoy, JSON.stringify(manual));
+    recalcularCuentas();
+  }
+
+  // Limpiar formulario
+  document.getElementById('input-gasto-valor').value = '';
+  _tipoGastoSeleccionado = '';
+  ['btn-gasto-merienda','btn-gasto-gasolina','btn-gasto-arreglo','btn-gasto-sueldo'].forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if(btn){ btn.style.background='#f8eeff'; btn.style.color='#555'; btn.style.borderColor='#e8ccf5'; }
+  });
+  const box = document.getElementById('gasto-tipo-seleccionado');
+  if(box) box.style.display='none';
+  const prev = document.getElementById('gasto-preview');
+  if(prev) prev.style.display='none';
+
+  renderGastosHoy();
+  showToast('✅ Gasto registrado');
+}
+
+function eliminarGasto(idx){
+  const gastos = getGastosHoy();
+  gastos.splice(idx,1);
+  saveGastosHoy(gastos);
+  // Actualizar total en cuentas
+  const total = gastos.reduce((s,g)=>s+g.valor,0);
+  const hoy = getFechaActiva();
+  const manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+  manual.gasto = total;
+  lsSet('sup_manual_'+hoy, JSON.stringify(manual));
+  const inputGasto = document.getElementById('input-gasto');
+  if(inputGasto){ inputGasto.value = total || ''; }
+  recalcularCuentas();
+  renderGastosHoy();
+}
+
+function renderGastosHoy(){
+  const gastos = getGastosHoy();
+  const lista = document.getElementById('gastos-lista-hoy');
+  const totalEl = document.getElementById('gastos-total-hoy');
+  if(!lista) return;
+  const total = gastos.reduce((s,g)=>s+g.valor,0);
+  if(totalEl) totalEl.textContent = 'Total: '+fmt(total);
+  if(!gastos.length){
+    lista.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 Sin gastos registrados hoy</div>';
+    return;
+  }
+  lista.innerHTML = gastos.map((g,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0${i===gastos.length-1?';border-bottom:none':''}">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#333">${g.tipo}</div>
+        <div style="font-size:11px;color:#aaa;font-weight:700">${g.hora||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:18px;font-weight:900;color:#ff4444">${fmt(g.valor)}</div>
+        <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+      </div>
+    </div>`).join('');
 }
 
 function limpiarCuentas(){
