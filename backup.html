@@ -594,38 +594,32 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Botones semana = PLENO calculado desde los pagos reales
+    // Botones semana = PLENO (cuotas cobradas sin cancelados ni saldoQuedaba)
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
 
+      // Pagos directos — excluir el día que canceló
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (!dia) continue;
-        if (fechaCancelacion && p.fecha === fechaCancelacion) continue; // excluir cancelados
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
         dia.total += parseFloat(p.monto || 0);
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
+      // r.pagos: cuotas cobradas antes de renovar (son pleno, NO cancelado)
       for (const r of (c.historialRenovaciones || [])) {
-        const fechaRenov = (r.fecha || r.fechaCreado || '').substring(0, 10);
-        // Cuotas cobradas antes de renovar (r.pagos)
         for (const p of (r.pagos || [])) {
           if (!p.fecha) continue;
           const dia = dias.find(d => d.fecha === p.fecha);
-          if (dia && !(fechaCancelacion && p.fecha === fechaCancelacion)) {
-            dia.total += parseFloat(p.monto || 0);
-            dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
-          }
+          if (!dia) continue;
+          // Excluir si coincide con fecha de cancelación
+          if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
+          dia.total += parseFloat(p.monto || 0);
+          dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
         }
-        // saldoQuedaba: lo que debían al renovar
-        if (r.saldoQuedaba) {
-          const dia = dias.find(d => d.fecha === fechaRenov);
-          if (dia) {
-            dia.total += parseFloat(r.saldoQuedaba || 0);
-            dia.pagos.push({ nombre: c.nombre + ' (renovación)', monto: parseFloat(r.saldoQuedaba || 0) });
-          }
-        }
+        // saldoQuedaba: NO suma al botón (es cancelado, no pleno)
       }
     }
 
