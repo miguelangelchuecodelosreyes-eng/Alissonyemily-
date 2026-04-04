@@ -3484,6 +3484,12 @@ function renderDetalles(){
       if(r.fecha === filtroFecha){
         cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: r.fecha, totalPagado: r.saldoQuedaba, capital: r.capitalCiclo||0, pagos: r.pagos?.length||0, saldoQuedaba: r.saldoQuedaba, esRenovacion: true, nuevoTotal: r.nuevoTotal });
       }
+      // Cuotas cobradas antes de renovar (r.pagos) — sí van a todasCuotas
+      (r.pagos||[]).forEach(p => {
+        if(p.fecha === filtroFecha){
+          todasCuotas.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: p.fecha, monto: p.monto, tipo: c.tipo||'diario' });
+        }
+      });
     });
   });
 
