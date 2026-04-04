@@ -594,7 +594,7 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (excluye el pago del día de cancelación)
+    // Sumar pagos por día igual que el detalle (incluye saldoQuedaba de renovaciones, excluye cancelados)
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
@@ -603,7 +603,7 @@ body {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (!dia) continue;
-        if (fechaCancelacion && p.fecha === fechaCancelacion) continue; // no contar como pleno
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
         dia.total += parseFloat(p.monto || 0);
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
@@ -614,6 +614,15 @@ body {
           if (dia) {
             dia.total += parseFloat(p.monto || 0);
             dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+          }
+        }
+        // Sumar saldoQuedaba de renovaciones (igual que el detalle del día)
+        const fechaRenov = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        if (r.saldoQuedaba) {
+          const dia = dias.find(d => d.fecha === fechaRenov);
+          if (dia) {
+            dia.total += parseFloat(r.saldoQuedaba || 0);
+            dia.pagos.push({ nombre: c.nombre + ' (renovación)' || '?', monto: parseFloat(r.saldoQuedaba || 0) });
           }
         }
       }
