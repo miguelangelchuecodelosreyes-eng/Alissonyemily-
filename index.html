@@ -1641,14 +1641,18 @@ function recalcularCuentas(){
   const manual = { base, papeleria, neki, gasto, entregado, prestamos: prestamosDelDia };
   lsSet('sup_manual_'+hoy, JSON.stringify(manual));
 
-  // General: cuotas cobradas hoy + saldoQuedaba de renovaciones hoy (todo lo que entró)
+  // General: cuotas cobradas hoy + pagos dentro de renovaciones hoy + saldoQuedaba de renovaciones hoy
   let general = 0;
   clientes.forEach(c=>{
     (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
-    const hist = c.historialRenovaciones||[];
-    if(hist.length>0 && hist[0].fecha===hoy){
-      general += hist[0].saldoQuedaba || 0;
-    }
+    (c.historialRenovaciones||[]).forEach(r=>{
+      // Pagos de cuotas cobradas antes de renovar (r.pagos con fecha hoy)
+      (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
+      // saldoQuedaba: lo que debían al renovar ese día
+      if((r.fecha||r.fechaCreado||'').substring(0,10)===hoy){
+        general += r.saldoQuedaba || 0;
+      }
+    });
   });
 
   // Préstamos: capital entregado a nuevos/renovados hoy
@@ -1657,10 +1661,11 @@ function recalcularCuentas(){
     if((c.fechaCreado===hoy&&!(c.renovaciones>0))||c.fechaRenovacion===hoy) prestamos+=c.capital||0;
   });
 
-  // Cancelados: saldo cerrado hoy (pagos del día en cancelados + saldoQuedaba en renovaciones)
+  // Cancelados: saldo cerrado HOY — solo si el último pago fue hoy (no clientes cancelados antes)
   let cancelados = 0;
   clientes.forEach(c=>{
-    if(c.saldo===0 && (c.pagos||[]).some(p=>p.fecha===hoy)){
+    const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+    if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
       cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
     }
     const hist = c.historialRenovaciones||[];
