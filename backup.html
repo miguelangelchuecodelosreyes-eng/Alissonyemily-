@@ -594,10 +594,7 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Botones semana = PLENO (General - cancelados), usando historial guardado por la app
-    const historialMap = {};
-    (data.historial || []).forEach(h => { historialMap[h.fecha] = h; });
-
+    // Botones semana = PLENO calculado desde los pagos reales
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
@@ -632,14 +629,7 @@ body {
       }
     }
 
-    // Si hay historial guardado, usar el pleno del historial (más preciso)
-    dias.forEach(d => {
-      const h = historialMap[d.fecha];
-      if (h && h.general !== undefined) {
-        const pleno = (h.general || 0) - (h.cancelados || 0);
-        if (pleno >= 0) d.total = pleno;
-      }
-    });
+
 
     const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
     const filasHtml = dias.map((d, idx) => `
