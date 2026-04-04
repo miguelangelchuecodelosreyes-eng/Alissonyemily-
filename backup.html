@@ -495,6 +495,21 @@ body {
       }
     });
 
+    // Auto-recargar datos cada 2 minutos para mantener sincronía
+    setInterval(() => {
+      get(ref(db, 'usuarios/' + usuarioActual)).then(snap => {
+        const data = snap.val();
+        if (data) {
+          backupData = data;
+          mostrarResumen(data);
+          mostrarClientes(data.clientes || []);
+          const ahora = new Date().toLocaleTimeString('es-CO');
+          document.getElementById('sync-badge').textContent = '🟢 Actualizado ' + ahora;
+          agregarLog('🔄 Auto-actualización cada 2 min — ' + (data.clientes||[]).length + ' clientes', 'ok');
+        }
+      }).catch(() => {});
+    }, 2 * 60 * 1000);
+
     onValue(dbRef, (snapshot) => {
       const data = snapshot.val();
       if(data) {
@@ -575,15 +590,18 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (incluye cancelados)
+    // Sumar pagos por día (excluye el pago del día de cancelación)
     for (const c of clientes) {
+      const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+      const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
+
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
-        if (dia) {
-          dia.total += parseFloat(p.monto || 0);
-          dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
-        }
+        if (!dia) continue;
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue; // no contar como pleno
+        dia.total += parseFloat(p.monto || 0);
+        dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
       for (const r of (c.historialRenovaciones || [])) {
         for (const p of (r.pagos || [])) {
@@ -1057,19 +1075,18 @@ body {
     // Fallback: si es hoy, usar cuentas_dia
     const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
 
-    // General: cuotas cobradas del día (excluye cancelados) + saldoQuedaba de renovaciones
+    // General: TODOS los cobros del día (igual que la app)
     let cobradoDia = 0;
-    const canceladosDia = [];
+    let montoCanceladosDia = 0;
     _modalClientes.forEach(c => {
-      const fechaCancelacion = (c.saldo === 0 && (c.pagos||[]).length > 0) ? c.pagos[0].fecha : null;
-      const esCanceladoEseDia = fechaCancelacion === fechaDia;
+      const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+      const esCanceladoEseDia = (c.cancelado === true || c.saldo === 0) && ultimoPago && ultimoPago.fecha === fechaDia;
       (c.pagos || []).forEach(p => {
         if (p.fecha !== fechaDia) return;
-        if (!esCanceladoEseDia) cobradoDia += parseFloat(p.monto || 0);
+        cobradoDia += parseFloat(p.monto || 0);
       });
       if (esCanceladoEseDia) {
-        const pagadoHoy = (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0);
-        canceladosDia.push({ nombre: c.nombre || '?', prestamo: c.prestamo || c.capital || 0, pagadoHoy });
+        montoCanceladosDia += (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0);
       }
       const hist = (c.historialRenovaciones || []);
       hist.forEach(r => {
@@ -1129,6 +1146,7 @@ body {
           <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700"><span>💵 Base</span><span>${fmt(eBase)}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;background:#f0fff7;font-size:13px;font-weight:800"><span style="color:#00aa44">📦 General</span><span style="color:#00aa44">${fmt(eGeneral)}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;font-weight:700"><span>📋 Papelería</span><span>${fmt(ePapeleria)}</span></div>
+          ${montoCanceladosDia > 0 ? `<div style="font-size:10px;font-weight:800;color:#888;padding:3px 14px 5px;background:#f9f9f9">🎯 Pleno: ${fmt(eGeneral - montoCanceladosDia)} &nbsp;|&nbsp; ❌ Cancel.: ${fmt(montoCanceladosDia)}</div>` : ''}
           <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#e8f0ff;font-size:14px;font-weight:900"><span style="color:#0040cc">TOTAL</span><span style="color:#0040cc">${fmt(totalEntradas)}</span></div>
         </div>
         <div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
@@ -1148,23 +1166,6 @@ body {
           <span style="color:${resultado >= 0 ? '#00ff88' : '#ff5555'}">${fmt(resultado)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;font-weight:700;opacity:0.75"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
-        ${canceladosDia.length > 0 ? `
-        <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.12);padding-top:12px">
-          <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#ff6666;margin-bottom:8px">❌ CANCELADOS DEL DÍA</div>
-          ${canceladosDia.map(x => `
-            <div style="background:rgba(255,50,50,0.12);border:1px solid rgba(255,100,100,0.3);border-radius:10px;padding:10px 12px;margin-bottom:6px">
-              <div style="font-size:14px;font-weight:800;color:white;margin-bottom:4px">👤 ${x.nombre}</div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:rgba(255,255,255,0.6)">
-                <span>Préstamo original</span><span style="color:#ffaa44">${fmt(x.prestamo)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:900;color:rgba(255,255,255,0.85);margin-top:2px">
-                <span>Con lo que canceló</span><span style="color:#66ff99">${fmt(x.pagadoHoy)}</span>
-              </div>
-            </div>`).join('')}
-          <div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:13px;font-weight:800;color:rgba(255,255,255,0.7)">
-            <span>Total cancelados</span><span style="color:#ff6666">${fmt(canceladosDia.reduce((s,x)=>s+x.pagadoHoy,0))}</span>
-          </div>
-        </div>` : ''}
       </div>
     `;
   }
