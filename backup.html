@@ -575,15 +575,19 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (incluye cancelados)
+    // Sumar pagos por día (excluye cancelados — solo cuenta plenos)
     for (const c of clientes) {
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
-        if (dia) {
-          dia.total += parseFloat(p.monto || 0);
-          dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
-        }
+        if (!dia) continue;
+        // Excluir si el cliente fue cancelado ese mismo día (saldo=0 y el pago más reciente es de ese día)
+        const esCanceladoEseDia = c.saldo === 0 &&
+          (c.pagos || []).length > 0 &&
+          c.pagos[0].fecha === p.fecha;
+        if (esCanceladoEseDia) continue; // es cancelado, no va como pleno
+        dia.total += parseFloat(p.monto || 0);
+        dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
       for (const r of (c.historialRenovaciones || [])) {
         for (const p of (r.pagos || [])) {
