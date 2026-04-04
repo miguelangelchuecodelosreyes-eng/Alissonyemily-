@@ -727,7 +727,7 @@ body {
     </div>
 
     <!-- Gastos del día -->
-    <div style="margin-top:14px;margin-bottom:20px;background:white;border-radius:20px;overflow:hidden;border:1.5px solid #ffc5c5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+    <div style="margin-top:14px;background:white;border-radius:20px;overflow:hidden;border:1.5px solid #ffc5c5;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
       <div style="background:#1a1a2e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
         <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Gastos del día</div>
         <div style="font-size:13px;font-weight:900;color:#ff6666" id="gastos-total-hoy">Total: $0</div>
@@ -735,6 +735,23 @@ body {
       <div id="gastos-lista-hoy" style="padding:10px 14px">
         <div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 Sin gastos registrados hoy</div>
       </div>
+    </div>
+
+    <!-- Historial de gastos por fecha -->
+    <div style="margin-top:18px;margin-bottom:24px">
+      <div style="font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-left:4px">🗂️ Historial de gastos</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+        <input type="date" id="filtro-gastos-fecha"
+          style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
+          oninput="renderHistorialGastos()"
+          onfocus="this.style.borderColor='#ff4444'"
+          onblur="this.style.borderColor='#ffc5c5'">
+        <button onclick="document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
+          style="padding:10px 14px;background:#f3f4f6;color:#ff4444;border:1.5px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
+          Ver todos
+        </button>
+      </div>
+      <div id="historial-gastos-lista"></div>
     </div>
   </div>
 </div>
@@ -1574,8 +1591,12 @@ function irA(p) {
   document.getElementById('pantalla-'+p).classList.add('activa');
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
-  if(p==='cuentas') setTimeout(cargarDesdeSupervisor, 100);
-  if(p==='gastos') setTimeout(renderGastosHoy, 100);
+  if(p==='cuentas'){
+    setTimeout(cargarDesdeSupervisor, 100);
+    const filtroHist = document.getElementById('filtro-historial-fecha');
+    if(filtroHist && !filtroHist.value){ filtroHist.value = fechaHoy(); setTimeout(renderHistorial,150); }
+  }
+  if(p==='gastos'){ setTimeout(renderGastosHoy, 100); setTimeout(renderHistorialGastos, 150); }
   if(p==='detalles'){
     // Solo resetear a hoy si no viene de cargarDia
     if(!document.getElementById('det-filtro-fecha').value){
@@ -1733,6 +1754,9 @@ function guardarDia(){
       const idx = h.findIndex(x=>x.fecha===d.fecha);
       if(idx>=0) h[idx]=d; else h.unshift(d);
       lsSet('hist_v3', JSON.stringify(h));
+      // Mostrar el día guardado en el filtro de historial
+      const filtroHist = document.getElementById('filtro-historial-fecha');
+      if(filtroHist) filtroHist.value = d.fecha;
       renderHistorial();
       renderResumenSemanal();
       const hoy = fechaHoy();
@@ -1842,6 +1866,7 @@ function registrarGasto(){
       if(box) box.style.display='none';
 
       renderGastosHoy();
+      renderHistorialGastos();
       showToast('✅ Gasto registrado');
     }
   );
@@ -1867,6 +1892,7 @@ function eliminarGasto(idx){
       if(inputGasto){ inputGasto.value = total || ''; }
       recalcularCuentas();
       renderGastosHoy();
+      renderHistorialGastos();
       showToast('🗑️ Gasto eliminado');
     }
   );
@@ -1887,14 +1913,77 @@ function renderGastosHoy(){
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0${i===gastos.length-1?';border-bottom:none':''}">
       <div>
         <div style="font-size:14px;font-weight:800;color:#333">${g.tipo}</div>
-        ${g.desc ? `<div style="font-size:12px;color:#666;font-weight:600;margin-top:2px">📝 ${g.desc}</div>` : ''}
-        <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:1px">${g.hora||''}</div>
+        ${g.desc ? `<div style="font-size:12px;color:#666;font-weight:600;margin-top:4px;line-height:1.4">📝 ${g.desc}</div>` : ''}
+        <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:4px">${g.hora||''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="font-size:18px;font-weight:900;color:#ff4444">${fmt(g.valor)}</div>
         <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
       </div>
     </div>`).join('');
+}
+
+function renderHistorialGastos(){
+  const el = document.getElementById('historial-gastos-lista');
+  if(!el) return;
+  const filtroEl = document.getElementById('filtro-gastos-fecha');
+  const filtroFecha = filtroEl ? filtroEl.value : '';
+
+  // Recopilar todas las fechas que tienen gastos en localStorage
+  const fechasConGastos = [];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('gastos_dia_')){
+        const fecha = k.replace('gastos_dia_','');
+        if(!filtroFecha || fecha === filtroFecha) fechasConGastos.push(fecha);
+      }
+    }
+  }catch(e){}
+  // También desde _memStorage
+  try{
+    Object.keys(window._memStorage||{}).forEach(k=>{
+      if(k.startsWith('gastos_dia_')){
+        const fecha = k.replace('gastos_dia_','');
+        if(!filtroFecha || fecha === filtroFecha){
+          if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
+        }
+      }
+    });
+  }catch(e){}
+
+  // Ordenar de más reciente a más antiguo
+  fechasConGastos.sort((a,b)=>b.localeCompare(a));
+
+  if(!fechasConGastos.length){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">' + (filtroFecha ? '🔍 No hay gastos para esa fecha' : '📭 No hay gastos registrados') + '</div>';
+    return;
+  }
+
+  el.innerHTML = fechasConGastos.map(fecha => {
+    let gastos = [];
+    try{ gastos = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); }catch(e){}
+    if(!gastos.length) return '';
+    const total = gastos.reduce((s,g)=>s+g.valor,0);
+    const filas = gastos.map(g => `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f5">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#333">${g.tipo}</div>
+          ${g.desc ? '<div style="font-size:12px;color:#666;font-weight:600;margin-top:3px;line-height:1.4">📝 '+g.desc+'</div>' : ''}
+          <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:3px">${g.hora||''}</div>
+        </div>
+        <div style="font-size:17px;font-weight:900;color:#ff4444;white-space:nowrap;padding-left:10px">${fmt(g.valor)}</div>
+      </div>`).join('');
+    return `<div style="background:white;border-radius:16px;margin-bottom:10px;border:1.5px solid #ffc5c5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
+      <div style="background:#1a1a2e;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:900;color:white">📅 ${fechaBonita(fecha)}</div>
+        <div style="font-size:13px;font-weight:900;color:#ff6666">${fmt(total)}</div>
+      </div>
+      <div style="padding:4px 14px 6px">${filas}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  if(!el.innerHTML.trim()) el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 No hay gastos registrados</div>';
 }
 
 function limpiarCuentas(){
@@ -1984,24 +2073,14 @@ function renderHistorial(){
   if(!hFiltrado.length){el.innerHTML='<div class="empty-hist">🔍 No hay día guardado para esa fecha</div>';return;}
   el.innerHTML=hFiltrado.map((d,i)=>{
     const pos=d.resultado>=0,nt=pos?fmt(d.resultado):'-'+fmt(Math.abs(d.resultado)),hs=encodeURIComponent(JSON.stringify(d));
-    return `<div class="historial-item">
-      <div class="h-top">
-        <div class="h-fecha">📅 ${fechaBonita(d.fecha)}</div>
-        <div class="h-num ${pos?'pos':'neg'}">${nt}</div>
-      </div>
-      <div class="h-grid">
-        <div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#cc00aa">${fmt(d.totalEntradas)}</div></div>
-        <div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff1111">${fmt(d.totalSalidas)}</div></div>
-        <div class="h-cell"><div class="h-cell-label">${d.entregado>0?'Entregado':'Resultado'}</div><div class="h-cell-val" style="color:${pos?'#00e65c':'#ff1111'}">${d.entregado>0?fmt(d.entregado):nt}</div></div>
-      </div>
-      <div class="h-actions">
-        <button class="h-btn h-btn-wa" onclick="compartirWA(JSON.parse(decodeURIComponent('${hs}')))">📲 WhatsApp</button>
-        <button class="h-btn" onclick="cargarDia('${d.fecha}')" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;font-weight:800">✏️ Ver y editar cuotas</button>
-        <button class="h-btn h-btn-del" onclick="eliminarDia(${i})">🗑️ Borrar día</button>
-      </div>
-    </div>`;
-  }).join('');
-}
+    // Cargar gastos guardados de ese día
+    let gastosHTML='';
+    try{
+      const gastos=JSON.parse(lsGet('gastos_dia_'+d.fecha)||'[]');
+      if(gastos.length){
+        const totalGastos=gastos.reduce((s,g)=>s+g.valor,0);
+        gastosHTML=`
+        <div style="margin:
 
 // ===== SEMANA =====
 let semanaOffset=0;
