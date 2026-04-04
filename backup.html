@@ -575,17 +575,20 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día (excluye cancelados — solo cuenta plenos)
+    // Sumar pagos por día (excluye el pago de cancelación — solo cuenta plenos)
     for (const c of clientes) {
+      // Detectar la fecha en que este cliente quedó cancelado (saldo=0)
+      // El pago más reciente (index 0, ya que se hace unshift) es el de cancelación
+      const fechaCancelacion = (c.saldo === 0 && (c.pagos||[]).length > 0)
+        ? c.pagos[0].fecha
+        : null;
+
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (!dia) continue;
-        // Excluir si el cliente fue cancelado ese mismo día (saldo=0 y el pago más reciente es de ese día)
-        const esCanceladoEseDia = c.saldo === 0 &&
-          (c.pagos || []).length > 0 &&
-          c.pagos[0].fecha === p.fecha;
-        if (esCanceladoEseDia) continue; // es cancelado, no va como pleno
+        // Excluir únicamente el pago del día que cerró el préstamo (cancelación)
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
         dia.total += parseFloat(p.monto || 0);
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
