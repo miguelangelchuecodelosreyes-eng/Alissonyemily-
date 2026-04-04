@@ -741,11 +741,11 @@ body {
     <div style="margin-top:18px;margin-bottom:24px">
       <div style="font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-left:4px">🗂️ Historial de gastos</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-        <input type="date" id="filtro-gastos-fecha"
-          style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
-          oninput="renderHistorialGastos()"
-          onfocus="this.style.borderColor='#ff4444'"
-          onblur="this.style.borderColor='#ffc5c5'">
+        <select id="filtro-gastos-fecha"
+          onchange="renderHistorialGastos()"
+          style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
+          <option value="">-- Selecciona un día --</option>
+        </select>
         <button onclick="document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
           style="padding:10px 14px;background:#f3f4f6;color:#ff4444;border:1.5px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
           Ver todos
@@ -1937,38 +1937,50 @@ function renderHistorialGastos(){
   const filtroEl = document.getElementById('filtro-gastos-fecha');
   const filtroFecha = filtroEl ? filtroEl.value : '';
 
-  // Recopilar todas las fechas que tienen gastos en localStorage
+  // Recopilar todas las fechas que tienen gastos
   const fechasConGastos = [];
   try{
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
       if(k && k.startsWith('gastos_dia_')){
         const fecha = k.replace('gastos_dia_','');
-        if(!filtroFecha || fecha === filtroFecha) fechasConGastos.push(fecha);
+        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
       }
     }
   }catch(e){}
-  // También desde _memStorage
   try{
     Object.keys(window._memStorage||{}).forEach(k=>{
       if(k.startsWith('gastos_dia_')){
         const fecha = k.replace('gastos_dia_','');
-        if(!filtroFecha || fecha === filtroFecha){
-          if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
-        }
+        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
       }
     });
   }catch(e){}
 
-  // Ordenar de más reciente a más antiguo
   fechasConGastos.sort((a,b)=>b.localeCompare(a));
 
-  if(!fechasConGastos.length){
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">' + (filtroFecha ? '🔍 No hay gastos para esa fecha' : '📭 No hay gastos registrados') + '</div>';
+  // Llenar el dropdown
+  if(filtroEl && filtroEl.tagName==='SELECT'){
+    const valorActual = filtroEl.value;
+    filtroEl.innerHTML = '<option value="">-- Selecciona un día --</option>' +
+      fechasConGastos.map(f=>`<option value="${f}">${fechaBonita(f)}</option>`).join('');
+    if(valorActual && fechasConGastos.includes(valorActual)) filtroEl.value = valorActual;
+  }
+
+  // Si no hay fecha seleccionada, no mostrar nada
+  if(!filtroFecha){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">👆 Selecciona un día o pulsa "Ver todos"</div>';
     return;
   }
 
-  el.innerHTML = fechasConGastos.map(fecha => {
+  const fechasFiltradas = filtroFecha ? fechasConGastos.filter(f=>f===filtroFecha) : fechasConGastos;
+
+  if(!fechasFiltradas.length){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">🔍 No hay gastos para esa fecha</div>';
+    return;
+  }
+
+  el.innerHTML = fechasFiltradas.map(fecha => {
     let gastos = [];
     try{ gastos = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); }catch(e){}
     if(!gastos.length) return '';
@@ -1993,6 +2005,7 @@ function renderHistorialGastos(){
 
   if(!el.innerHTML.trim()) el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 No hay gastos registrados</div>';
 }
+
 
 function limpiarCuentas(){
   confirmarAccion(
