@@ -594,7 +594,10 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Sumar pagos por día igual que el detalle (incluye saldoQuedaba de renovaciones, excluye cancelados)
+    // Botones semana = PLENO (General - cancelados), usando historial guardado por la app
+    const historialMap = {};
+    (data.historial || []).forEach(h => { historialMap[h.fecha] = h; });
+
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
@@ -603,7 +606,7 @@ body {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (!dia) continue;
-        if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue; // excluir cancelados
         dia.total += parseFloat(p.monto || 0);
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
@@ -616,17 +619,25 @@ body {
             dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
           }
         }
-        // Sumar saldoQuedaba de renovaciones (igual que el detalle del día)
         const fechaRenov = (r.fecha || r.fechaCreado || '').substring(0, 10);
         if (r.saldoQuedaba) {
           const dia = dias.find(d => d.fecha === fechaRenov);
           if (dia) {
             dia.total += parseFloat(r.saldoQuedaba || 0);
-            dia.pagos.push({ nombre: c.nombre + ' (renovación)' || '?', monto: parseFloat(r.saldoQuedaba || 0) });
+            dia.pagos.push({ nombre: c.nombre + ' (renovación)', monto: parseFloat(r.saldoQuedaba || 0) });
           }
         }
       }
     }
+
+    // Si hay historial guardado, usar el pleno del historial (más preciso)
+    dias.forEach(d => {
+      const h = historialMap[d.fecha];
+      if (h && h.general !== undefined) {
+        const pleno = (h.general || 0) - (h.cancelados || 0);
+        if (pleno >= 0) d.total = pleno;
+      }
+    });
 
     const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
     const filasHtml = dias.map((d, idx) => `
