@@ -611,15 +611,17 @@ body {
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
       for (const r of (c.historialRenovaciones || [])) {
+        const fechaRenov = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        // Cuotas cobradas antes de renovar (r.pagos)
         for (const p of (r.pagos || [])) {
           if (!p.fecha) continue;
           const dia = dias.find(d => d.fecha === p.fecha);
-          if (dia) {
+          if (dia && !(fechaCancelacion && p.fecha === fechaCancelacion)) {
             dia.total += parseFloat(p.monto || 0);
             dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
           }
         }
-        const fechaRenov = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        // saldoQuedaba: lo que debían al renovar
         if (r.saldoQuedaba) {
           const dia = dias.find(d => d.fecha === fechaRenov);
           if (dia) {
@@ -1114,7 +1116,9 @@ body {
       }
       const hist = (c.historialRenovaciones || []);
       hist.forEach(r => {
+        // Cuotas cobradas antes de renovar (r.pagos)
         (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
+        // saldoQuedaba: lo que debían al renovar ese día
         const fechaRenov = (r.fecha || r.fechaCreado || "").substring(0, 10);
         if (fechaRenov === fechaDia && r.saldoQuedaba) cobradoDia += parseFloat(r.saldoQuedaba || 0);
       });
