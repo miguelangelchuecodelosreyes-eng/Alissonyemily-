@@ -647,11 +647,11 @@ body {
   <div class="historial-seccion">
     <div class="historial-titulo">📅 Días guardados</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-      <input type="date" id="filtro-historial-fecha"
-        style="flex:1;padding:10px 12px;border:2px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;"
-        oninput="renderHistorial()"
-        onfocus="this.style.borderColor='#ff00cc'"
-        onblur="this.style.borderColor='#e8ccf5'">
+      <select id="filtro-historial-fecha"
+        onchange="renderHistorial()"
+        style="flex:1;padding:10px 12px;border:2px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
+        <option value="">-- Selecciona un día --</option>
+      </select>
       <button onclick="document.getElementById('filtro-historial-fecha').value='';renderHistorial();"
         style="padding:10px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
         Ver todos
@@ -1593,8 +1593,16 @@ function irA(p) {
   if(p==='clientes') renderClientes();
   if(p==='cuentas'){
     setTimeout(cargarDesdeSupervisor, 100);
-    const filtroHist = document.getElementById('filtro-historial-fecha');
-    if(filtroHist && !filtroHist.value){ filtroHist.value = fechaHoy(); setTimeout(renderHistorial,150); }
+    setTimeout(()=>{
+      renderHistorial(); // llena el dropdown
+      // Si hay día de hoy guardado, lo preselecciona
+      const h = JSON.parse(lsGet('hist_v3')||'[]');
+      const filtroHist = document.getElementById('filtro-historial-fecha');
+      if(filtroHist && h.find(d=>d.fecha===fechaHoy())){
+        filtroHist.value = fechaHoy();
+        renderHistorial();
+      }
+    }, 150);
   }
   if(p==='gastos'){ setTimeout(renderGastosHoy, 100); setTimeout(renderHistorialGastos, 150); }
   if(p==='detalles'){
@@ -1755,9 +1763,9 @@ function guardarDia(){
       if(idx>=0) h[idx]=d; else h.unshift(d);
       lsSet('hist_v3', JSON.stringify(h));
       // Mostrar el día guardado en el filtro de historial
+      renderHistorial(); // primero llenar el dropdown
       const filtroHist = document.getElementById('filtro-historial-fecha');
-      if(filtroHist) filtroHist.value = d.fecha;
-      renderHistorial();
+      if(filtroHist){ filtroHist.value = d.fecha; renderHistorial(); }
       renderResumenSemanal();
       const hoy = fechaHoy();
       setFechaActiva(hoy);
@@ -2066,21 +2074,49 @@ function cargarDia(fecha){
 function renderHistorial(){
   const h=JSON.parse(lsGet('hist_v3')||'[]');
   const el=document.getElementById('historial-lista');
-  if(!h.length){el.innerHTML='<div class="empty-hist">📭 Aún no hay días guardados</div>';return;}
   const filtroEl=document.getElementById('filtro-historial-fecha');
+
+  // Llenar el dropdown con los días guardados
+  if(filtroEl && filtroEl.tagName==='SELECT'){
+    const valorActual = filtroEl.value;
+    filtroEl.innerHTML = '<option value="">-- Selecciona un día --</option>' +
+      h.map(d=>`<option value="${d.fecha}">${fechaBonita(d.fecha)}</option>`).join('');
+    // Restaurar valor seleccionado si sigue existiendo
+    if(valorActual && h.find(d=>d.fecha===valorActual)) filtroEl.value = valorActual;
+    else if(h.length) filtroEl.value = ''; // no preseleccionar nada
+  }
+
+  if(!h.length){el.innerHTML='<div class="empty-hist">📭 Aún no hay días guardados</div>';return;}
   const filtroFecha=filtroEl?filtroEl.value:'';
-  const hFiltrado=filtroFecha?h.filter(d=>d.fecha===filtroFecha):h;
+  
+  // Si no hay fecha seleccionada, no mostrar nada
+  if(!filtroFecha){
+    el.innerHTML='<div class="empty-hist" style="color:#bbb;font-size:13px;font-weight:700;text-align:center;padding:20px">👆 Selecciona un día o pulsa "Ver todos"</div>';
+    return;
+  }
+
+  const hFiltrado=h.filter(d=>d.fecha===filtroFecha);
   if(!hFiltrado.length){el.innerHTML='<div class="empty-hist">🔍 No hay día guardado para esa fecha</div>';return;}
   el.innerHTML=hFiltrado.map((d,i)=>{
     const pos=d.resultado>=0,nt=pos?fmt(d.resultado):'-'+fmt(Math.abs(d.resultado)),hs=encodeURIComponent(JSON.stringify(d));
-    // Cargar gastos guardados de ese día
-    let gastosHTML='';
-    try{
-      const gastos=JSON.parse(lsGet('gastos_dia_'+d.fecha)||'[]');
-      if(gastos.length){
-        const totalGastos=gastos.reduce((s,g)=>s+g.valor,0);
-        gastosHTML=`
-        <div style="margin:
+    return `<div class="historial-item">
+      <div class="h-top">
+        <div class="h-fecha">📅 ${fechaBonita(d.fecha)}</div>
+        <div class="h-num ${pos?'pos':'neg'}">${nt}</div>
+      </div>
+      <div class="h-grid">
+        <div class="h-cell"><div class="h-cell-label">Entradas</div><div class="h-cell-val" style="color:#cc00aa">${fmt(d.totalEntradas)}</div></div>
+        <div class="h-cell"><div class="h-cell-label">Salidas</div><div class="h-cell-val" style="color:#ff1111">${fmt(d.totalSalidas)}</div></div>
+        <div class="h-cell"><div class="h-cell-label">${d.entregado>0?'Entregado':'Resultado'}</div><div class="h-cell-val" style="color:${pos?'#00e65c':'#ff1111'}">${d.entregado>0?fmt(d.entregado):nt}</div></div>
+      </div>
+      <div class="h-actions">
+        <button class="h-btn h-btn-wa" onclick="compartirWA(JSON.parse(decodeURIComponent('${hs}')))">📲 WhatsApp</button>
+        <button class="h-btn" onclick="cargarDia('${d.fecha}')" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;font-weight:800">✏️ Ver y editar cuotas</button>
+        <button class="h-btn h-btn-del" onclick="eliminarDia(${i})">🗑️ Borrar día</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ===== SEMANA =====
 let semanaOffset=0;
