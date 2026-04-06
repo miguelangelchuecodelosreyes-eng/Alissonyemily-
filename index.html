@@ -1924,6 +1924,7 @@ function cerrarSesion() {
 
 // ===== NAV =====
 function irA(p) {
+  if(p==='ajustes'){ abrirPinAjustes(); return; }
   document.querySelectorAll('.pantalla').forEach(x=>x.classList.remove('activa'));
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
   document.getElementById('pantalla-'+p).classList.add('activa');
@@ -1951,11 +1952,6 @@ function irA(p) {
     renderDetalles();
   }
   if(p==='prestamos') renderPrestamos();
-  if(p==='ajustes'){
-    // Mostrar PIN antes de entrar a ajustes
-    abrirPinAjustes();
-    return;
-  }
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
@@ -7443,14 +7439,7 @@ function abrirPanelDiagnostico() {
   };
 
   window.abrirPinAjustes = function(){
-    // Ocultar contenido de ajustes hasta autenticarse
-    const cont = document.getElementById('ajustes-contenido');
-    if(cont) cont.style.display = 'none';
-
-    if(_pinSesionOk){
-      _entrarAjustes();
-      return;
-    }
+    if(_pinSesionOk){ _entrarAjustes(); return; }
     _pinActual = '';
     _pinBloqueado = false;
     _resetDots();
@@ -7459,8 +7448,6 @@ function abrirPanelDiagnostico() {
     document.getElementById('pinMsg').classList.remove('show');
     document.getElementById('pinMsg').textContent = '// ACCESO CONCEDIDO //';
     document.getElementById('pin-ajustes-overlay').classList.add('visible');
-    // Quitar tab activo para que no se muestre ajustes aún
-    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
   };
 
   window.cerrarPinAjustes = function(){
