@@ -5,23 +5,55 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v2.5 -->
+<!-- v3.0 — Rediseño completo -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Respaldo — Alisson & Emily</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+:root {
+  --blue: #1a6eff;
+  --blue-dark: #0040cc;
+  --green: #00cc55;
+  --green-dark: #008833;
+  --red: #ff1a1a;
+  --red-dark: #cc0000;
+  --orange: #e67e22;
+  --orange-dark: #cc5500;
+  --dark: #1a1a2e;
+  --darker: #0d0d1a;
+  --bg: #f0f4ff;
+  --card-bg: #ffffff;
+  --text: #111;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border: #e0e8ff;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  --radius: 16px;
+  --radius-sm: 12px;
+  --transition: 0.3s cubic-bezier(.4,0,.2,1);
+}
+
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
 body {
   font-family: 'Nunito', sans-serif;
-  background: #eaf0ff;
-  color: #111;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
   max-width: 480px;
   margin: 0 auto;
   padding: 0 0 40px;
+  overflow-x: hidden;
 }
 
-/* LOGIN */
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ===== LOGIN ===== */
 #login-screen {
   min-height: 100vh;
   display: flex;
@@ -35,165 +67,376 @@ body {
 .login-sky {
   position: fixed; inset: 0; z-index: 0;
   background: linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 15%,#c0392b 35%,#e67e22 50%,#f39c12 62%,#f9ca74 72%,#fdeaa8 82%,#fff8e1 100%);
-  animation: loginSunrise 8s ease-out forwards;
+  animation: loginSunrise 6s ease-out forwards;
 }
-@keyframes loginSunrise { 0%{filter:brightness(0.3)} 40%{filter:brightness(0.7)} 100%{filter:brightness(1)} }
+@keyframes loginSunrise { 0%{filter:brightness(0.2)} 30%{filter:brightness(0.6)} 100%{filter:brightness(1)} }
+
 .login-sun {
   position: fixed; bottom: 28%; left: 50%; transform: translateX(-50%);
-  width: 80px; height: 80px; border-radius: 50%; z-index: 1;
+  width: 90px; height: 90px; border-radius: 50%; z-index: 1;
   background: radial-gradient(circle,#fff7c0 0%,#ffd700 40%,#ffaa00 70%,transparent 100%);
-  box-shadow: 0 0 60px 30px rgba(255,200,0,0.35),0 0 120px 60px rgba(255,160,0,0.15);
-  animation: loginSunRise 8s ease-out forwards;
+  box-shadow: 0 0 80px 40px rgba(255,200,0,0.3),0 0 160px 80px rgba(255,160,0,0.1);
+  animation: loginSunRise 6s ease-out forwards;
 }
-@keyframes loginSunRise { 0%{bottom:5%;opacity:0.2} 50%{opacity:0.8} 100%{bottom:28%;opacity:1} }
+@keyframes loginSunRise { 0%{bottom:0%;opacity:0} 40%{opacity:0.7} 100%{bottom:28%;opacity:1} }
+
+.login-stars {
+  position: fixed; inset: 0; z-index: 0;
+  animation: starsOut 4s ease forwards;
+}
+@keyframes starsOut { 0%{opacity:1} 100%{opacity:0} }
+.star {
+  position: absolute; width: 3px; height: 3px; background: white; border-radius: 50%;
+  animation: twinkle 2s ease-in-out infinite alternate;
+}
+@keyframes twinkle { from{opacity:0.3;transform:scale(0.8)} to{opacity:1;transform:scale(1.2)} }
+
 .login-mountains { position: fixed; bottom: 0; left: 0; width: 100%; height: 35%; z-index: 2; pointer-events: none; }
+
 .login-bendicion {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-  display: flex; justify-content: center; padding: 12px 16px 0;
+  display: flex; justify-content: center; padding: 14px 16px 0;
 }
 .login-bendicion-box {
-  background: rgba(0,0,0,0.38); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.25); border-radius: 16px;
-  padding: 11px 16px; max-width: 340px; text-align: center;
-  animation: fadeDownL 1.5s ease 0.8s both;
+  background: rgba(0,0,0,0.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius);
+  padding: 12px 18px; max-width: 340px; text-align: center;
+  animation: fadeDown 1.2s ease 0.6s both;
 }
-@keyframes fadeDownL { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
-.login-bendicion-text { font-style: italic; font-size: 11.5px; color: rgba(255,255,255,0.95); line-height: 1.6; }
-.login-logo { font-size: 58px; margin-bottom: 8px; position: relative; z-index: 6; animation: bounceLogo 2s ease-in-out infinite alternate; }
-@keyframes bounceLogo { from{transform:translateY(0)} to{transform:translateY(-6px)} }
-.login-title { font-size: 26px; font-weight: 900; color: white; letter-spacing: -0.5px; text-align: center; position: relative; z-index: 6; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
-.login-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-bottom: 20px; margin-top: 5px; text-align: center; position: relative; z-index: 6; letter-spacing: 2px; }
-.login-card {
-  background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
-  border-radius: 24px; padding: 26px 22px; width: 100%; max-width: 340px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.3); position: relative; z-index: 6;
-  animation: cardUpL 1.2s cubic-bezier(.22,1,.36,1) 0.3s both;
-}
-@keyframes cardUpL { from{opacity:0;transform:translateY(40px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
-.login-divider { height: 1px; background: linear-gradient(90deg,transparent,#e0b070,transparent); margin: 0 0 16px; }
-.login-label { font-size: 11px; font-weight: 800; color: #8d6e63; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; display: block; }
-.login-input {
-  width: 100%; border: 2px solid #e8d5c0; border-radius: 12px;
-  padding: 13px 16px; font-family: 'Nunito', sans-serif;
-  font-size: 16px; font-weight: 700; outline: none;
-  transition: border-color 0.2s,box-shadow 0.2s; margin-bottom: 14px;
-  text-align: center; background: #fffbf7; color: #5d4037;
-}
-.login-input:focus { border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.15); }
-.login-btn {
-  width: 100%; padding: 15px;
-  background: linear-gradient(135deg,#ff6600,#cc2200);
-  color: white; border: none; border-radius: 14px;
-  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
-  cursor: pointer; box-shadow: 0 8px 24px rgba(204,34,0,0.5);
-}
-.login-error { color: #ff1111; font-size: 13px; font-weight: 700; text-align: center; margin-top: 10px; display: none; }
+@keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+.login-bendicion-text { font-style: italic; font-size: 11.5px; color: rgba(255,255,255,0.92); line-height: 1.6; }
 
-/* APP */
-#app-screen { display: none; }
+.login-logo {
+  font-size: 64px; margin-bottom: 6px; position: relative; z-index: 6;
+  animation: floatLogo 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+@keyframes floatLogo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+.login-title {
+  font-size: 28px; font-weight: 900; color: white; letter-spacing: -0.5px;
+  text-align: center; position: relative; z-index: 6;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+  animation: fadeDown 1s ease 0.3s both;
+}
+.login-sub {
+  font-size: 11px; color: rgba(255,255,255,0.7); margin-bottom: 22px; margin-top: 6px;
+  text-align: center; position: relative; z-index: 6; letter-spacing: 3px;
+  animation: fadeDown 1s ease 0.5s both;
+}
+.login-card {
+  background: rgba(255,255,255,0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px; padding: 28px 24px; width: 100%; max-width: 340px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5);
+  position: relative; z-index: 6;
+  animation: cardUp 1s cubic-bezier(.22,1,.36,1) 0.4s both;
+}
+@keyframes cardUp { from{opacity:0;transform:translateY(50px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+.login-divider { height: 1px; background: linear-gradient(90deg,transparent,#e0b070,transparent); margin: 0 0 18px; }
+.login-label { font-size: 10px; font-weight: 900; color: #8d6e63; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+.login-input {
+  width: 100%; border: 2px solid #e8d5c0; border-radius: var(--radius-sm);
+  padding: 14px 16px; font-family: 'Nunito', sans-serif;
+  font-size: 16px; font-weight: 700; outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  margin-bottom: 14px; text-align: center; background: #fffbf7; color: #5d4037;
+}
+.login-input:focus { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(230,126,34,0.12); }
+.login-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg,#ff6600,#cc2200);
+  color: white; border: none; border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(204,34,0,0.4);
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative; overflow: hidden;
+}
+.login-btn:active { transform: scale(0.97); box-shadow: 0 4px 12px rgba(204,34,0,0.4); }
+.login-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: btnShine 3s ease infinite;
+}
+@keyframes btnShine { 0%{transform:translateX(-100%)} 30%{transform:translateX(100%)} 100%{transform:translateX(100%)} }
+
+.login-error {
+  color: var(--red); font-size: 13px; font-weight: 700; text-align: center;
+  margin-top: 12px; display: none;
+  animation: shake 0.4s ease;
+}
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+/* ===== APP ===== */
+#app-screen { display: none; animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
 .header {
-  background: linear-gradient(135deg, #1a6eff, #0040cc);
-  padding: 20px 20px 16px;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  padding: 20px 20px 18px;
   color: white;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 4px 20px rgba(26,110,255,0.3);
 }
-.header h1 { font-size: 18px; font-weight: 900; }
-.header-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+.header h1 { font-size: 18px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+.header-sub { font-size: 11px; opacity: 0.7; margin-top: 3px; }
 .header-row { display: flex; justify-content: space-between; align-items: center; }
 .btn-logout {
-  background: rgba(255,255,255,0.2); border: none; color: white;
-  border-radius: 10px; padding: 6px 12px;
-  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800; cursor: pointer;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+  color: white; border-radius: 10px; padding: 7px 14px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: background var(--transition);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
+.btn-logout:active { background: rgba(255,255,255,0.25); }
 .sync-badge {
-  font-size: 11px; background: rgba(255,255,255,0.15);
-  border-radius: 8px; padding: 4px 10px; margin-top: 8px; display: inline-block;
+  font-size: 11px; background: rgba(255,255,255,0.12);
+  border-radius: 20px; padding: 5px 12px; margin-top: 10px; display: inline-block;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background var(--transition);
 }
 
-/* CARDS */
+/* ===== CARDS ===== */
 .card {
   margin: 14px 14px 0;
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  border: 1px solid #d0d8f0;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0,0,0,0.04);
+  animation: slideUp 0.4s ease both;
 }
+.card:nth-child(2) { animation-delay: 0.05s; }
+.card:nth-child(3) { animation-delay: 0.1s; }
+.card:nth-child(4) { animation-delay: 0.15s; }
+.card:nth-child(5) { animation-delay: 0.2s; }
+@keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
 .card-header {
-  padding: 12px 16px;
+  padding: 13px 18px;
   font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
   color: white;
+  display: flex; align-items: center; gap: 8px;
 }
-.bg-blue { background: linear-gradient(90deg, #1a6eff, #0040cc); }
-.bg-green { background: linear-gradient(90deg, #00cc55, #008833); }
-.bg-red { background: linear-gradient(90deg, #ff1a1a, #cc0000); }
-.bg-dark { background: linear-gradient(90deg, #1a1a2e, #0d0d1a); }
+.bg-blue { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+.bg-green { background: linear-gradient(135deg, var(--green), var(--green-dark)); }
+.bg-red { background: linear-gradient(135deg, var(--red), var(--red-dark)); }
+.bg-dark { background: linear-gradient(135deg, var(--dark), var(--darker)); }
 .card-body { padding: 16px; }
 
-/* STATS */
+/* ===== STATS ===== */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat-box {
-  background: #f4f7ff; border-radius: 14px; padding: 14px 12px; text-align: center;
+  background: linear-gradient(135deg, #f0f4ff, #e8eeff);
+  border-radius: var(--radius-sm); padding: 16px 12px; text-align: center;
+  border: 1px solid var(--border);
+  transition: transform var(--transition);
 }
-.stat-num { font-size: 26px; font-weight: 900; color: #1a6eff; }
-.stat-label { font-size: 11px; color: #888; font-weight: 700; margin-top: 2px; }
-.stat-box.red .stat-num { color: #ff1a1a; }
+.stat-box:active { transform: scale(0.97); }
+.stat-num { font-size: 28px; font-weight: 900; color: var(--blue); }
+.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 3px; }
+.stat-box.red .stat-num { color: var(--red); }
 .stat-box.green .stat-num { color: #00aa44; }
-.stat-box.orange .stat-num { color: #e67e22; }
+.stat-box.orange .stat-num { color: var(--orange); }
 
-/* BOTONES */
+/* ===== BUTTONS ===== */
 .btn-action {
-  width: 100%; padding: 15px; border: none; border-radius: 14px;
+  width: 100%; padding: 15px; border: none; border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
   cursor: pointer; margin-bottom: 10px; display: flex;
   align-items: center; justify-content: center; gap: 8px;
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative; overflow: hidden;
 }
-.btn-download { background: linear-gradient(135deg, #00cc55, #008833); color: white; box-shadow: 0 6px 20px rgba(0,180,80,0.35); }
-.btn-sync { background: linear-gradient(135deg, #1a6eff, #0040cc); color: white; box-shadow: 0 6px 20px rgba(26,110,255,0.35); }
-.btn-restore { background: linear-gradient(135deg, #ff6600, #cc2200); color: white; box-shadow: 0 6px 20px rgba(200,50,0,0.35); }
+.btn-action:active { transform: scale(0.97); }
+.btn-download { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; box-shadow: 0 6px 20px rgba(0,180,80,0.3); }
+.btn-sync { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); color: white; box-shadow: 0 6px 20px rgba(26,110,255,0.3); }
+.btn-restore { background: linear-gradient(135deg, #ff6600, #cc2200); color: white; box-shadow: 0 6px 20px rgba(200,50,0,0.3); }
 
-/* RESTORE AREA */
+/* ===== RESTORE ===== */
 .restore-drop {
-  border: 2px dashed #c0d0ff; border-radius: 14px; padding: 20px;
-  text-align: center; cursor: pointer; transition: border-color 0.2s;
+  border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 24px;
+  text-align: center; cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
   background: #f8faff;
 }
-.restore-drop:hover { border-color: #1a6eff; }
-.restore-drop p { font-size: 13px; color: #888; font-weight: 700; margin-top: 8px; }
-#restore-msg { font-size: 13px; font-weight: 800; text-align: center; margin-top: 10px; display: none; }
+.restore-drop:hover, .restore-drop:active { border-color: var(--blue); background: #f0f4ff; }
+.restore-drop p { font-size: 13px; color: var(--text-muted); font-weight: 700; margin-top: 10px; }
+#restore-msg { font-size: 13px; font-weight: 800; text-align: center; margin-top: 12px; display: none; }
 
-/* ÚLTIMA SYNC */
-.last-sync { font-size: 12px; color: #888; text-align: center; padding: 10px 0 0; font-weight: 700; }
-.no-data { font-size: 13px; color: #bbb; text-align: center; padding: 20px; font-weight: 700; }
+/* ===== SYNC/DATA ===== */
+.last-sync { font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0 0; font-weight: 700; }
+.no-data { font-size: 13px; color: #ccc; text-align: center; padding: 24px; font-weight: 700; }
 
-/* CLIENTES LIST */
+/* ===== CLIENTES ===== */
 .cliente-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0; border-bottom: 1px solid #f5f5f5;
+  transition: background var(--transition);
 }
 .cliente-row:last-child { border-bottom: none; }
 .cliente-nombre { font-size: 14px; font-weight: 800; color: #222; }
-.cliente-detalle { font-size: 11px; color: #888; margin-top: 1px; }
-.cliente-saldo { font-size: 16px; font-weight: 900; color: #ff1a1a; }
+.cliente-detalle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.cliente-saldo { font-size: 16px; font-weight: 900; color: var(--red); }
 
+/* ===== TOAST ===== */
 .toast {
-  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(60px);
-  background: #1a1a2e; color: white; padding: 12px 22px; border-radius: 14px;
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--dark); color: white; padding: 14px 24px; border-radius: var(--radius);
   font-size: 14px; font-weight: 800; z-index: 9999;
-  transition: transform 0.3s ease; white-space: nowrap; pointer-events: none;
+  transition: transform 0.4s cubic-bezier(.22,1,.36,1);
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
+/* ===== LOADING ===== */
 .loading {
   display: flex; align-items: center; justify-content: center;
-  padding: 30px; gap: 10px; color: #888; font-weight: 700; font-size: 14px;
+  padding: 30px; gap: 10px; color: var(--text-muted); font-weight: 700; font-size: 14px;
 }
 .spinner {
-  width: 20px; height: 20px; border: 3px solid #e0e8ff;
-  border-top-color: #1a6eff; border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  width: 22px; height: 22px; border: 3px solid var(--border);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== DIAGNOSTICO ===== */
+.diag-log {
+  display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f5f5f5;
+  animation: fadeIn 0.3s ease;
+}
+.diag-time { font-size: 10px; color: #bbb; font-weight: 700; white-space: nowrap; margin-top: 2px; }
+.diag-msg { font-size: 12px; font-weight: 800; line-height: 1.5; }
+.diag-ok { color: var(--green); }
+.diag-warn { color: var(--orange); }
+.diag-error { color: var(--red); }
+.diag-info { color: var(--blue); }
+
+/* ===== SEMANA BOTONES ===== */
+.week-nav-btn {
+  width: 32px; height: 32px; border: none; border-radius: 10px;
+  background: #e8eeff; color: var(--blue); font-size: 18px; font-weight: 900;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform var(--transition), background var(--transition);
+}
+.week-nav-btn:active { transform: scale(0.9); }
+.week-nav-btn:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
+
+/* ===== DIA ROW ===== */
+.dia-row {
+  cursor: pointer; border-radius: var(--radius-sm); margin-bottom: 6px;
+  overflow: hidden; border: 2px solid var(--border);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.dia-row:active { transform: scale(0.99); }
+.dia-row.hoy { border-color: var(--green); }
+.dia-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 14px; background: #f8faff;
+}
+.dia-row.hoy .dia-header { background: #f0fff5; }
+.dia-detalle {
+  display: none; background: white; padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== PRESTAMO CARD ===== */
+.prestamo-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
+  border: 2px solid var(--border); background: #f8faff;
+  transition: transform var(--transition);
+}
+.prestamo-item.nuevo { background: #fffbf0; border-color: #f9a825; }
+.prestamo-badge {
+  font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px;
+  display: inline-block;
+}
+.prestamo-badge.nuevo { background: #f9a825; color: white; }
+.prestamo-badge.renov { background: #c0d0ff; color: var(--blue-dark); }
+
+/* ===== MODAL ===== */
+#modal-reporte {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-inner {
+  background: var(--bg); border-radius: 28px 28px 0 0; width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto; padding: 0 0 40px;
+  animation: modalUp 0.4s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+}
+@keyframes modalUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-header {
+  background: linear-gradient(135deg, var(--dark), #16213e);
+  color: white; padding: 18px 20px; border-radius: 28px 28px 0 0;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; z-index: 1;
+}
+.modal-close {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+  color: white; border-radius: 10px; padding: 7px 16px;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: background var(--transition);
+}
+.modal-close:active { background: rgba(255,255,255,0.25); }
+
+/* ===== ADMIN CARDS ===== */
+.admin-stat {
+  border-radius: var(--radius-sm); padding: 14px; color: white; text-align: center;
+}
+.admin-cobrador-card {
+  background: white; border-radius: var(--radius); padding: 14px;
+  margin-bottom: 10px; box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: box-shadow var(--transition);
+}
+.admin-cobrador-card:active { box-shadow: var(--shadow-md); }
+
+/* ===== SEARCH INPUT ===== */
+.search-input {
+  flex: 1; border: 2px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 14px; font-family: 'Nunito', sans-serif;
+  font-size: 14px; font-weight: 700; outline: none; color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  background: white;
+}
+.search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,110,255,0.1); }
+
+.btn-toggle-list {
+  width: 100%; padding: 12px; background: #f0f4ff;
+  border: 2px solid var(--border); border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  color: var(--blue); cursor: pointer; margin-bottom: 12px;
+  transition: background var(--transition);
+}
+.btn-toggle-list:active { background: #e4ecff; }
+
+/* ===== ADMIN BUTTONS ===== */
+.btn-admin {
+  padding: 10px; border: none; border-radius: 10px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 900;
+  cursor: pointer; color: white;
+  transition: transform var(--transition);
+}
+.btn-admin:active { transform: scale(0.95); }
+.btn-admin.green { background: linear-gradient(135deg, var(--green), var(--green-dark)); }
+.btn-admin.blue { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+.btn-admin.red { background: linear-gradient(135deg, var(--red), var(--red-dark)); }
+.btn-admin.purple { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+
+.btn-diag {
+  flex: 1; padding: 12px; border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900;
+  cursor: pointer; transition: transform var(--transition);
+}
+.btn-diag:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -202,9 +445,11 @@ body {
 <div id="login-screen">
   <div class="login-sky"></div>
   <div class="login-sun"></div>
+  <div class="login-stars" id="login-stars"></div>
   <svg class="login-mountains" viewBox="0 0 400 120" preserveAspectRatio="none">
-    <polygon points="0,120 60,40 120,80 180,20 240,70 300,30 360,60 400,40 400,120" fill="#1a2a1a" opacity="0.7"/>
-    <polygon points="0,120 40,60 90,90 150,45 210,80 270,50 330,70 400,55 400,120" fill="#0d1a0d" opacity="0.5"/>
+    <polygon points="0,120 50,55 100,85 140,30 200,65 250,20 310,55 360,35 400,50 400,120" fill="rgba(26,42,26,0.8)"/>
+    <polygon points="0,120 30,70 80,95 130,50 190,80 240,45 300,65 350,50 400,60 400,120" fill="rgba(13,26,13,0.6)"/>
+    <polygon points="0,120 60,90 120,100 180,75 240,90 300,80 360,95 400,85 400,120" fill="rgba(10,20,10,0.4)"/>
   </svg>
   <div class="login-bendicion">
     <div class="login-bendicion-box">
@@ -217,9 +462,9 @@ body {
   <div class="login-card">
     <div class="login-divider"></div>
     <label class="login-label">Usuario</label>
-    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
     <label class="login-label">Contraseña</label>
-    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">🔐 Ingresar</button>
     <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
   </div>
@@ -251,14 +496,14 @@ body {
 
   <!-- DIAGNÓSTICO -->
   <div class="card">
-    <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff">🔧 Diagnóstico del Sistema</div>
+    <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:var(--blue)">🔧 Diagnóstico del Sistema</div>
     <div class="card-body">
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button onclick="window.correrDiagnostico()" style="flex:1;padding:11px;background:linear-gradient(135deg,#0d1117,#1a2a3a);color:#1a6eff;border:2px solid #1a6eff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🔍 Correr diagnóstico</button>
-        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" style="padding:11px 14px;background:#f4f7ff;color:#888;border:2px solid #e0e8ff;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button onclick="window.correrDiagnostico()" class="btn-diag" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:var(--blue);border:2px solid var(--blue)">🔍 Correr diagnóstico</button>
+        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" class="btn-diag" style="background:#f4f7ff;color:var(--text-muted);border:2px solid var(--border);width:50px;flex:none">🗑</button>
       </div>
-      <div id="diagnostico-logs" style="min-height:40px;max-height:200px;overflow-y:auto">
-        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:10px">Toca "Correr diagnóstico" para revisar el sistema</div>
+      <div id="diagnostico-logs" style="min-height:40px;max-height:220px;overflow-y:auto;scroll-behavior:smooth">
+        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:14px">Toca "Correr diagnóstico" para revisar el sistema</div>
       </div>
     </div>
   </div>
@@ -267,10 +512,7 @@ body {
   <div class="card">
     <div class="card-header bg-green">⬇️ Descargar Copia</div>
     <div class="card-body">
-      <button class="btn-action btn-download" onclick="descargarBackup()">
-        📥 Descargar JSON de Respaldo
-      </button>
-
+      <button class="btn-action btn-download" onclick="descargarBackup()">📥 Descargar JSON de Respaldo</button>
     </div>
   </div>
 
@@ -278,11 +520,11 @@ body {
   <div class="card" id="card-restaurar">
     <div class="card-header bg-red">📤 Restaurar a la App</div>
     <div class="card-body">
-      <p style="font-size:13px;color:#666;margin-bottom:12px;font-weight:600;line-height:1.5">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:600;line-height:1.6">
         Sube un archivo JSON de respaldo para restaurarlo en Firebase. La app lo recibirá automáticamente.
       </p>
       <div class="restore-drop" onclick="document.getElementById('file-restore').click()">
-        <div style="font-size:36px">📂</div>
+        <div style="font-size:40px">📂</div>
         <p>Toca para seleccionar archivo .json</p>
       </div>
       <input type="file" id="file-restore" accept=".json" style="display:none" onchange="restaurarBackup(event)">
@@ -303,8 +545,8 @@ body {
     <div class="card-header" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white">🛡️ Panel Administrador</div>
     <div class="card-body">
       <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
-      <button onclick="window.crearCobrador()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:12px">➕ Crear cobrador nuevo</button>
-      <div id="admin-cobradores-lista"><div style="text-align:center;padding:20px;color:#888;font-size:13px;font-weight:700">Cargando cobradores...</div></div>
+      <button onclick="window.crearCobrador()" class="btn-admin purple" style="width:100%;padding:13px;font-size:14px;margin-bottom:14px">➕ Crear cobrador nuevo</button>
+      <div id="admin-cobradores-lista"><div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;font-weight:700">Cargando cobradores...</div></div>
     </div>
   </div>
 </div>
@@ -312,15 +554,31 @@ body {
 <div class="toast" id="toast"></div>
 
 <!-- MODAL -->
-<div id="modal-reporte" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.6);align-items:flex-end;justify-content:center">
-  <div style="background:#eaf0ff;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 0 40px">
-    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:16px 20px;border-radius:24px 24px 0 0;display:flex;justify-content:space-between;align-items:center">
+<div id="modal-reporte">
+  <div class="modal-inner">
+    <div class="modal-header">
       <span id="modal-titulo" style="font-size:15px;font-weight:900">📊 Reporte</span>
-      <button onclick="window.cerrarModal()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:10px;padding:6px 14px;font-family:Nunito,sans-serif;font-size:13px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+      <button onclick="window.cerrarModal()" class="modal-close">✕ Cerrar</button>
     </div>
     <div id="modal-contenido"></div>
   </div>
 </div>
+
+<script>
+// Generate stars for login
+(function(){
+  const container = document.getElementById('login-stars');
+  for(let i=0;i<40;i++){
+    const star = document.createElement('div');
+    star.className='star';
+    star.style.left=Math.random()*100+'%';
+    star.style.top=Math.random()*60+'%';
+    star.style.animationDelay=Math.random()*3+'s';
+    star.style.width=star.style.height=(1+Math.random()*2)+'px';
+    container.appendChild(star);
+  }
+})();
+</script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -344,7 +602,6 @@ body {
   let dbRef = null;
   let app, db;
 
-  // ---- TOAST ----
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -378,7 +635,6 @@ body {
     esAdmin = (usuario === ADMIN_USER);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
-    // Restaurar disponible para todos
     iniciarFirebase();
     setInterval(() => { if (!horaPermitida()) cerrarSesion(); }, 60000);
   }
@@ -412,7 +668,6 @@ body {
       else { errEl.textContent = '❌ Contraseña incorrecta'; errEl.style.display = 'block'; }
       return;
     }
-    // Cobrador: verificar en Firebase
     try {
       const tmpApp = initializeApp(firebaseConfig, 'chk_' + Date.now());
       const tmpDb = getDatabase(tmpApp);
@@ -421,13 +676,13 @@ body {
       if (creds && creds.clave === pass) { guardarSesion(user); abrirApp(user); }
       else { errEl.textContent = '❌ Usuario o contraseña incorrectos'; errEl.style.display = 'block'; }
     } catch(e) {
-      errEl.textContent = '❌ Error de conexión'; errEl.style.display = 'block';
+      errEl.textContent = '❌ Error de conexión';
+      errEl.style.display = 'block';
     }
   };
 
   window.logout = function() { cerrarSesion(); };
 
-  // ---- FIREBASE ----
   function iniciarFirebase() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
@@ -436,7 +691,7 @@ body {
     window._fbRemoveFn = { remove };
   }
 
-  // ---- DIAGNÓSTICO LOGS ----
+  // ---- DIAGNÓSTICO ----
   const _diagLogs = [];
   function agregarLog(msg, tipo) {
     const hora = new Date().toLocaleTimeString('es-CO');
@@ -447,12 +702,8 @@ body {
   function renderDiagnostico() {
     const el = document.getElementById('diagnostico-logs');
     if (!el) return;
-    const colores = { ok: '#00cc55', warn: '#e07b00', error: '#ff2222', info: '#1a6eff' };
     el.innerHTML = _diagLogs.map(l =>
-      '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0">' +
-      '<span style="font-size:10px;color:#aaa;font-weight:700;white-space:nowrap;margin-top:1px">' + l.hora + '</span>' +
-      '<span style="font-size:12px;font-weight:800;color:' + (colores[l.tipo]||'#333') + ';line-height:1.4">' + l.msg + '</span>' +
-      '</div>'
+      '<div class="diag-log"><span class="diag-time">' + l.hora + '</span><span class="diag-msg diag-' + l.tipo + '">' + l.msg + '</span></div>'
     ).join('');
   }
 
@@ -482,13 +733,14 @@ body {
 
   window.toggleDetalleDia = function(idx) {
     const el = document.getElementById('detalle-dia-' + idx);
-    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el) {
+      const isOpen = el.style.display !== 'none';
+      el.style.display = isOpen ? 'none' : 'block';
+    }
   };
 
   function escucharDatos() {
     document.getElementById('sync-badge').textContent = '⏳ Conectando...';
-
-    // Monitor conexión Firebase
     const connRef = ref(db, '.info/connected');
     onValue(connRef, snap => {
       if (snap.val()) {
@@ -499,7 +751,6 @@ body {
       }
     });
 
-    // Auto-recargar datos cada 2 minutos para mantener sincronía
     setInterval(() => {
       get(ref(db, 'usuarios/' + usuarioActual)).then(snap => {
         const data = snap.val();
@@ -509,7 +760,7 @@ body {
           mostrarClientes(data.clientes || []);
           const ahora = new Date().toLocaleTimeString('es-CO');
           document.getElementById('sync-badge').textContent = '🟢 Actualizado ' + ahora;
-          agregarLog('🔄 Auto-actualización cada 2 min — ' + (data.clientes||[]).length + ' clientes', 'ok');
+          agregarLog('🔄 Auto-actualización — ' + (data.clientes||[]).length + ' clientes', 'ok');
         }
       }).catch(() => {});
     }, 2 * 60 * 1000);
@@ -518,14 +769,12 @@ body {
       const data = snapshot.val();
       if(data) {
         backupData = data;
-        const ahora = new Date().toLocaleTimeString('es-CO');
         document.getElementById('sync-badge').textContent = '🟢 Conectado en tiempo real';
         mostrarResumen(data);
         mostrarClientes(data.clientes || []);
         cargarPanelAdmin();
         const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
         document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
-        // Log con detalles
         const mins = data.fecha_backup ? Math.floor((Date.now() - new Date(data.fecha_backup).getTime()) / 60000) : null;
         const nClientes = (data.clientes || []).length;
         agregarLog('📥 Datos recibidos — ' + nClientes + ' clientes' + (mins !== null ? ', sync hace ' + mins + ' min' : ''), 'ok');
@@ -541,50 +790,38 @@ body {
     }, (error) => {
       document.getElementById('sync-badge').textContent = '🔴 Error de conexión';
       agregarLog('🔴 Error Firebase: ' + error.message, 'error');
-      console.error(error);
     });
   }
 
   let todosClientes = [];
-  let semanaOffset = 0; // 0 = semana actual, -1 = semana pasada, etc.
+  let semanaOffset = 0;
   let _dataGlobal = null;
 
   window.cambiarSemana = function(delta) {
     semanaOffset += delta;
-    if (semanaOffset > 0) semanaOffset = 0; // No ir al futuro
+    if (semanaOffset > 0) semanaOffset = 0;
     mostrarResumen(_dataGlobal);
   };
 
   function mostrarResumen(data) {
     _dataGlobal = data;
     const clientes = data.clientes || [];
-    const activos = clientes;
     const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
-
-    // Fecha local
     const ahora = new Date();
-    const hoy = ahora.getFullYear() + '-' +
-      String(ahora.getMonth()+1).padStart(2,'0') + '-' +
-      String(ahora.getDate()).padStart(2,'0');
-
-    // Lunes de la semana seleccionada
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
     const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
     const lunesHoy = new Date(ahora);
     lunesHoy.setDate(ahora.getDate() - diaSemana);
     const lunesDate = new Date(lunesHoy);
     lunesDate.setDate(lunesHoy.getDate() + (semanaOffset * 7));
-
-    // Sábado de esa semana
     const sabadoDate = new Date(lunesDate);
     sabadoDate.setDate(lunesDate.getDate() + 5);
-
     const fmtFecha = d => d.getDate() + '/' + (d.getMonth()+1);
     const esSemanActual = semanaOffset === 0;
     const tituloSemana = esSemanActual
       ? '📅 Esta semana (' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate) + ')'
       : '📅 Semana ' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate);
 
-    // Generar los 6 días lunes-sábado
     const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const dias = [];
     for (let i = 0; i < 6; i++) {
@@ -594,12 +831,9 @@ body {
       dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
     }
 
-    // Botones semana = PLENO (cuotas cobradas sin cancelados ni saldoQuedaba)
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
-
-      // Pagos directos — excluir el día que canceló
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
@@ -608,129 +842,99 @@ body {
         dia.total += parseFloat(p.monto || 0);
         dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
       }
-      // r.pagos: cuotas cobradas antes de renovar (son pleno, NO cancelado)
       for (const r of (c.historialRenovaciones || [])) {
         for (const p of (r.pagos || [])) {
           if (!p.fecha) continue;
           const dia = dias.find(d => d.fecha === p.fecha);
           if (!dia) continue;
-          // Excluir si coincide con fecha de cancelación
           if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
           dia.total += parseFloat(p.monto || 0);
           dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
         }
-        // saldoQuedaba: NO suma al botón (es cancelado, no pleno)
       }
     }
 
-
-
     const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
+
     const filasHtml = dias.map((d, idx) => `
-      <div onclick="window.toggleDetalleDia(${idx})" style="cursor:pointer;border-radius:12px;margin-bottom:6px;overflow:hidden;border:2px solid ${d.esHoy ? '#00cc55' : '#e0e8ff'}">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:${d.esHoy ? '#e8fff0' : '#f4f7ff'}">
-          <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : '#666'}">
+      <div class="dia-row ${d.esHoy ? 'hoy' : ''}" onclick="window.toggleDetalleDia(${idx})">
+        <div class="dia-header">
+          <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : 'var(--text-secondary)'}">
             ${d.esHoy ? '👉' : '📅'} ${d.nombre}
-            ${d.pagos.length > 0 ? '<span style="font-size:10px;color:#999;margin-left:5px">('+d.pagos.length+' pagos)</span>' : ''}
+            ${d.pagos.length > 0 ? '<span style="font-size:10px;color:var(--text-muted);margin-left:5px">('+d.pagos.length+' pagos)</span>' : ''}
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : '#1a6eff') : '#ccc'}">${d.total > 0 ? fmt(d.total) : '-'}</div>
-            ${d.pagos.length > 0 ? '<span style="font-size:11px;color:#aaa">▼</span>' : ''}
+            <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : 'var(--blue)') : '#ddd'}">${d.total > 0 ? fmt(d.total) : '-'}</div>
+            ${d.pagos.length > 0 ? '<span style="font-size:11px;color:#bbb;transition:transform 0.2s">▼</span>' : ''}
           </div>
         </div>
-        <div id="detalle-dia-${idx}" style="display:none;background:white;padding:8px 12px;border-top:1px solid #e0e8ff">
-          ${d.pagos.length === 0 ? '<div style="font-size:12px;color:#ccc;text-align:center;padding:6px">Sin pagos</div>' :
-            d.pagos.map(p => '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-weight:700;color:#333">👤 '+p.nombre+'</span><span style="font-weight:900;color:#1a6eff">'+fmt(p.monto)+'</span></div>').join('')
+        <div id="detalle-dia-${idx}" class="dia-detalle">
+          ${d.pagos.length === 0 ? '<div style="font-size:12px;color:#ccc;text-align:center;padding:8px">Sin pagos</div>' :
+            d.pagos.map(p => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-weight:700;color:#333">👤 '+p.nombre+'</span><span style="font-weight:900;color:var(--blue)">'+fmt(p.monto)+'</span></div>').join('')
           }
-          <div style="display:flex;justify-content:space-between;padding:7px 0 3px;font-size:13px;font-weight:900">
+          <div style="display:flex;justify-content:space-between;padding:8px 0 3px;font-size:13px;font-weight:900;border-top:2px solid #f0f0f0;margin-top:4px">
             <span style="color:#555">TOTAL</span>
-            <span style="color:${d.esHoy ? '#00aa44' : '#1a6eff'}">${fmt(d.total)}</span>
+            <span style="color:${d.esHoy ? '#00aa44' : 'var(--blue)'}">${fmt(d.total)}</span>
           </div>
         </div>
       </div>
     `).join('');
 
-    // ---- PRÉSTAMOS DE LA SEMANA (nuevos + renovaciones) ----
-    // Rango de fechas de la semana seleccionada
+    // Préstamos de la semana
     const fechaLunes = lunesDate.getFullYear() + '-' + String(lunesDate.getMonth()+1).padStart(2,'0') + '-' + String(lunesDate.getDate()).padStart(2,'0');
     const fechaSabado = sabadoDate.getFullYear() + '-' + String(sabadoDate.getMonth()+1).padStart(2,'0') + '-' + String(sabadoDate.getDate()).padStart(2,'0');
-
     const prestamosDelaSemana = [];
 
     for (const c of clientes) {
       if (!c.nombre) continue;
-
-      // Buscar renovaciones de esta semana primero
       const renovSemana = [];
       for (const r of (c.historialRenovaciones || [])) {
         const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
         if (fr >= fechaLunes && fr <= fechaSabado) {
-          renovSemana.push({
-            nombre: c.nombre,
-            monto: r.nuevoCapital || r.capitalCiclo || 0,
-            fecha: fr,
-            tipo: 'renovacion'
-          });
+          renovSemana.push({ nombre: c.nombre, monto: r.nuevoCapital || r.capitalCiclo || 0, fecha: fr, tipo: 'renovacion' });
         }
       }
-
       if (renovSemana.length > 0) {
-        // Tiene renovaciones esta semana — agregarlas y NO contar como nuevo (evita duplicados)
         prestamosDelaSemana.push(...renovSemana);
       } else {
-        // Verificar fechaRenovacion directamente en el cliente (cuando historialRenovaciones no tiene la fecha correcta)
         const fr2 = (c.fechaRenovacion || '').substring(0, 10);
         if (fr2 >= fechaLunes && fr2 <= fechaSabado) {
-          prestamosDelaSemana.push({
-            nombre: c.nombre,
-            monto: c.capital || c.prestamo || 0,
-            fecha: fr2,
-            tipo: 'renovacion'
-          });
+          prestamosDelaSemana.push({ nombre: c.nombre, monto: c.capital || c.prestamo || 0, fecha: fr2, tipo: 'renovacion' });
         } else {
-          // Sin renovaciones — verificar si es cliente nuevo esta semana
           const fc = (c.fechaCreado || '').substring(0, 10);
           if (fc >= fechaLunes && fc <= fechaSabado) {
-            prestamosDelaSemana.push({
-              nombre: c.nombre,
-              monto: c.capital || c.prestamo || 0,
-              fecha: fc,
-              tipo: 'nuevo'
-            });
+            prestamosDelaSemana.push({ nombre: c.nombre, monto: c.capital || c.prestamo || 0, fecha: fc, tipo: 'nuevo' });
           }
         }
       }
     }
-
-    // Ordenar por fecha
     prestamosDelaSemana.sort((a, b) => a.fecha.localeCompare(b.fecha));
-
     const totalPrestadoSemana = prestamosDelaSemana.reduce((s, p) => s + (p.monto || 0), 0);
 
     const prestamosHtml = prestamosDelaSemana.length === 0
-      ? '<div style="font-size:12px;color:#bbb;text-align:center;padding:10px">Sin préstamos esta semana</div>'
+      ? '<div style="font-size:12px;color:#bbb;text-align:center;padding:12px">Sin préstamos esta semana</div>'
       : prestamosDelaSemana.map(p => {
           const esNuevo = p.tipo === 'nuevo';
           const fechaLabel = p.fecha ? new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-CO') : '';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:10px;margin-bottom:5px;background:${esNuevo ? '#fff8e1' : '#f4f7ff'};border:2px solid ${esNuevo ? '#f9a825' : '#e0e8ff'}">
+          return `<div class="prestamo-item ${esNuevo ? 'nuevo' : ''}">
             <div>
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:13px;font-weight:800;color:#222">👤 ${p.nombre}</span>
-                ${esNuevo ? '<span style="background:#f9a825;color:white;font-size:9px;font-weight:900;padding:2px 7px;border-radius:20px">✨ NUEVO</span>' : '<span style="background:#c0d0ff;color:#0040cc;font-size:9px;font-weight:900;padding:2px 7px;border-radius:20px">🔄 RENOV.</span>'}
+                <span class="prestamo-badge ${esNuevo ? 'nuevo' : 'renov'}">${esNuevo ? '✨ NUEVO' : '🔄 RENOV.'}</span>
               </div>
-              ${fechaLabel ? '<div style="font-size:10px;color:#aaa;font-weight:700;margin-top:2px">📅 '+fechaLabel+'</div>' : ''}
+              ${fechaLabel ? '<div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-top:3px">📅 '+fechaLabel+'</div>' : ''}
             </div>
-            <div style="font-size:16px;font-weight:900;color:${esNuevo ? '#cc8800' : '#1a6eff'}">${fmt(p.monto)}</div>
+            <div style="font-size:16px;font-weight:900;color:${esNuevo ? '#cc8800' : 'var(--blue)'}">${fmt(p.monto)}</div>
           </div>`;
         }).join('') +
         (prestamosDelaSemana.length > 0 ? `
-          <div style="display:flex;justify-content:space-between;padding:8px 10px 2px;font-size:13px;font-weight:900;border-top:2px solid #e0e8ff;margin-top:4px">
+          <div style="display:flex;justify-content:space-between;padding:10px 10px 2px;font-size:13px;font-weight:900;border-top:2px solid var(--border);margin-top:4px">
             <span style="color:#555">TOTAL PRESTADO</span>
-            <span style="color:#cc2200">${fmt(totalPrestadoSemana)}</span>
+            <span style="color:var(--red-dark)">${fmt(totalPrestadoSemana)}</span>
           </div>` : '');
 
     document.getElementById('stats-area').innerHTML = `
-      <div class="stats-grid" style="margin-bottom:12px">
+      <div class="stats-grid" style="margin-bottom:14px">
         <div class="stat-box">
           <div class="stat-num">${clientes.length}</div>
           <div class="stat-label">Total Clientes</div>
@@ -740,19 +944,17 @@ body {
           <div class="stat-label">Activos</div>
         </div>
       </div>
-
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase">💰 Plenos de la Semana</div>
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase">💰 Plenos de la Semana</div>
         <div style="display:flex;align-items:center;gap:6px">
-          <button onclick="window.cambiarSemana(-1)" style="width:30px;height:30px;border:none;border-radius:8px;background:#e0e8ff;color:#1a6eff;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
-          <button onclick="window.cambiarSemana(1)" ${esSemanActual ? 'disabled' : ''} style="width:30px;height:30px;border:none;border-radius:8px;background:${esSemanActual ? '#f0f0f0' : '#e0e8ff'};color:${esSemanActual ? '#ccc' : '#1a6eff'};font-size:16px;font-weight:900;cursor:${esSemanActual ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center">›</button>
+          <button onclick="window.cambiarSemana(-1)" class="week-nav-btn">‹</button>
+          <button onclick="window.cambiarSemana(1)" ${esSemanActual ? 'disabled' : ''} class="week-nav-btn">›</button>
         </div>
       </div>
-      <div style="font-size:11px;font-weight:700;color:#aaa;margin-bottom:8px;text-align:center">${tituloSemana}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center">${tituloSemana}</div>
       ${filasHtml}
-
-      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#888;text-transform:uppercase;margin:14px 0 8px">💸 Préstamos de la Semana (${prestamosDelaSemana.length})</div>
-      <div style="background:white;border-radius:14px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin:16px 0 10px">💸 Préstamos de la Semana (${prestamosDelaSemana.length})</div>
+      <div style="background:white;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)">
         ${prestamosHtml}
       </div>
     `;
@@ -763,11 +965,9 @@ body {
     todosClientes = clientes.filter(c => !c.cancelado && !c.renovado);
     document.getElementById('clientes-area').innerHTML = `
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input type="text" id="buscador-cliente" placeholder="🔍 Buscar por nombre..." 
-          oninput="window.filtrarClientes()"
-          style="flex:1;border:2px solid #e0e8ff;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;color:#111">
+        <input type="text" id="buscador-cliente" placeholder="🔍 Buscar por nombre..." class="search-input" oninput="window.filtrarClientes()">
       </div>
-      <button id="btn-mostrar-todos" onclick="window.mostrarTodos()" style="width:100%;padding:11px;background:#f4f7ff;border:2px solid #d0d8ff;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#1a6eff;cursor:pointer;margin-bottom:12px">
+      <button id="btn-mostrar-todos" onclick="window.mostrarTodos()" class="btn-toggle-list">
         👥 Mostrar todos los clientes (${todosClientes.length})
       </button>
       <div id="lista-clientes"><div class="no-data">🔍 Busca un cliente por nombre</div></div>
@@ -817,16 +1017,11 @@ body {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
-    a.href = url;
-    a.download = `backup_${usuarioActual}_${fecha}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = `backup_${usuarioActual}_${fecha}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast('✅ Backup descargado correctamente');
   };
-
-
 
   // ---- RESTAURAR ----
   window.restaurarBackup = function(event) {
@@ -834,35 +1029,28 @@ body {
     if(!file) return;
     const msg = document.getElementById('restore-msg');
     msg.style.display = 'none';
-
     const reader = new FileReader();
     reader.onload = function(e) {
       try {
         const texto = e.target.result.replace(/^\uFEFF/, '').trim();
         const datos = JSON.parse(texto);
         if(!datos.clientes) {
-          msg.textContent = '❌ Archivo no válido';
-          msg.style.color = '#ff1111';
-          msg.style.display = 'block';
-          return;
+          msg.textContent = '❌ Archivo no válido'; msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
         }
         datos.fecha_backup = new Date().toISOString();
         set(ref(db, 'usuarios/' + usuarioActual), datos)
           .then(() => {
-            msg.textContent = '✅ Restaurado correctamente en Firebase. La app se actualizará automáticamente.';
-            msg.style.color = '#00aa44';
-            msg.style.display = 'block';
+            msg.textContent = '✅ Restaurado correctamente en Firebase.';
+            msg.style.color = '#00aa44'; msg.style.display = 'block';
             toast('✅ Datos restaurados en Firebase');
           })
           .catch(err => {
             msg.textContent = '❌ Error al subir: ' + err.message;
-            msg.style.color = '#ff1111';
-            msg.style.display = 'block';
+            msg.style.color = 'var(--red)'; msg.style.display = 'block';
           });
       } catch(err) {
         msg.textContent = '❌ Error al leer el archivo';
-        msg.style.color = '#ff1111';
-        msg.style.display = 'block';
+        msg.style.color = 'var(--red)'; msg.style.display = 'block';
       }
     };
     reader.readAsText(file);
@@ -888,10 +1076,11 @@ body {
       }
       const keys = Object.keys(usuarios);
       if (!keys.length) {
-        lista.innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-weight:700">No hay cobradores</div>';
+        lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-weight:700">No hay cobradores</div>';
         return;
       }
-      const _hd = new Date(); const hoy = _hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
+      const _hd = new Date();
+      const hoy = _hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
       const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
       let totalCartera = 0, totalHoy = 0, totalVencidos = 0;
       keys.forEach(u => {
@@ -903,25 +1092,25 @@ body {
       });
 
       resumen.innerHTML = `
-        <div style="background:linear-gradient(135deg,#1a6eff,#0040cc);border-radius:12px;padding:12px;color:white;text-align:center">
-          <div style="font-size:20px;font-weight:900">${keys.length}</div>
-          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADORES</div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,var(--blue),var(--blue-dark))">
+          <div style="font-size:22px;font-weight:900">${keys.length}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">COBRADORES</div>
         </div>
-        <div style="background:linear-gradient(135deg,#00aa55,#007733);border-radius:12px;padding:12px;color:white;text-align:center">
-          <div style="font-size:13px;font-weight:900">${fmt(totalCartera)}</div>
-          <div style="font-size:11px;opacity:0.85;font-weight:700">CARTERA TOTAL</div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,#00aa55,#007733)">
+          <div style="font-size:14px;font-weight:900">${fmt(totalCartera)}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">CARTERA TOTAL</div>
         </div>
-        <div style="background:linear-gradient(135deg,#ff9900,#cc6600);border-radius:12px;padding:12px;color:white;text-align:center">
-          <div style="font-size:13px;font-weight:900">${fmt(totalHoy)}</div>
-          <div style="font-size:11px;opacity:0.85;font-weight:700">COBRADO HOY</div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,#ff9900,#cc6600)">
+          <div style="font-size:14px;font-weight:900">${fmt(totalHoy)}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">COBRADO HOY</div>
         </div>
-        <div style="background:linear-gradient(135deg,#cc2200,#991100);border-radius:12px;padding:12px;color:white;text-align:center">
-          <div style="font-size:20px;font-weight:900">${totalVencidos}</div>
-          <div style="font-size:11px;opacity:0.85;font-weight:700">VENCIDOS</div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,var(--red-dark),#991100)">
+          <div style="font-size:22px;font-weight:900">${totalVencidos}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">VENCIDOS</div>
         </div>
       `;
 
-      lista.innerHTML = '<div style="font-size:12px;font-weight:900;color:#444;margin-bottom:10px">POR COBRADOR</div>';
+      lista.innerHTML = '<div style="font-size:12px;font-weight:900;color:#444;margin-bottom:12px;letter-spacing:1px">POR COBRADOR</div>';
 
       keys.forEach(usuario => {
         const data = usuarios[usuario];
@@ -933,57 +1122,50 @@ body {
         const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '—';
 
         const card = document.createElement('div');
-        card.style.cssText = 'background:white;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);cursor:pointer';
+        card.className = 'admin-cobrador-card';
         card.innerHTML = `
           <div onclick="window.abrirReporteAdmin('${usuario}')" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;cursor:pointer;padding:4px 0">
             <div>
-              <div style="font-size:14px;font-weight:900;color:#1a6eff;text-decoration:underline">👤 ${usuario}</div>
-              <div style="font-size:10px;color:#888;font-weight:600;margin-top:2px">Backup: ${fechaBackup}</div>
+              <div style="font-size:14px;font-weight:900;color:var(--blue);text-decoration:underline">👤 ${usuario}</div>
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;margin-top:3px">Backup: ${fechaBackup}</div>
             </div>
-            <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? '#cc2200' : '#007733'};border-radius:8px;padding:3px 8px;font-size:11px;font-weight:900">
+            <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? 'var(--red-dark)' : '#007733'};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:900">
               ${vencidos > 0 ? '⚠️ ' + vencidos + ' venc.' : '✅ Al día'}
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-            <div style="background:#f0f4ff;border-radius:8px;padding:8px;text-align:center">
-              <div style="font-size:16px;font-weight:900;color:#1a6eff">${activos.length}</div>
-              <div style="font-size:10px;color:#666;font-weight:700">Clientes</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#f0f4ff;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:18px;font-weight:900;color:var(--blue)">${activos.length}</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Clientes</div>
             </div>
-            <div style="background:#f0fff7;border-radius:8px;padding:8px;text-align:center">
+            <div style="background:#f0fff7;border-radius:10px;padding:10px;text-align:center">
               <div style="font-size:11px;font-weight:900;color:#00aa55">${fmt(cartera)}</div>
-              <div style="font-size:10px;color:#666;font-weight:700">Cartera</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Cartera</div>
             </div>
-            <div style="background:#fffbf0;border-radius:8px;padding:8px;text-align:center">
+            <div style="background:#fffbf0;border-radius:10px;padding:10px;text-align:center">
               <div style="font-size:11px;font-weight:900;color:#cc6600">${fmt(cobradoHoy)}</div>
-              <div style="font-size:10px;color:#666;font-weight:700">Hoy</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Hoy</div>
             </div>
           </div>
-          ${activos.length === 0 ? '<button onclick="event.stopPropagation();window.eliminarCobrador(\'' + usuario + '\')" style="width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,#ff1a1a,#cc0000);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">🗑️ Eliminar cobrador vacío</button>' : ''}
+          ${activos.length === 0 ? '<button onclick="event.stopPropagation();window.eliminarCobrador(\'' + usuario + '\')" class="btn-admin red" style="width:100%;margin-top:10px;padding:11px;font-size:13px">🗑️ Eliminar cobrador vacío</button>' : ''}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <button onclick="event.stopPropagation();window.descargarBackupCobrador('${usuario}')" class="btn-admin green">⬇️ Descargar JSON</button>
+            <button onclick="event.stopPropagation();window.editarCredenciales('${usuario}')" class="btn-admin blue">🔑 Cambiar clave</button>
+          </div>
         `;
-        // Botones admin por cobrador
-        const botonesDiv = document.createElement('div');
-        botonesDiv.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px';
-        botonesDiv.innerHTML = `
-          <button onclick="event.stopPropagation();window.descargarBackupCobrador('${usuario}')" style="padding:9px;background:linear-gradient(135deg,#00cc55,#008833);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:12px;font-weight:900;cursor:pointer">⬇️ Descargar JSON</button>
-          <button onclick="event.stopPropagation();window.editarCredenciales('${usuario}')" style="padding:9px;background:linear-gradient(135deg,#1a6eff,#0040cc);color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:12px;font-weight:900;cursor:pointer">🔑 Cambiar clave</button>
-        `;
-        card.appendChild(botonesDiv);
-        card.style.cursor = 'default';
         lista.appendChild(card);
       });
 
-      // Registrar función global para abrir reporte por nombre
       window._usuariosMap = usuarios;
       window.abrirReporteAdmin = function(usuario) {
         const data = window._usuariosMap[usuario];
         if (data) abrirReporte(usuario, data);
       };
     }).catch(err => {
-      lista.innerHTML = '<div style="text-align:center;padding:20px;color:#cc2200;font-weight:700">❌ Error: ' + err.message + '</div>';
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-weight:700">❌ Error: ' + err.message + '</div>';
     });
   }
 
-  // Descargar JSON de un cobrador específico (desde admin)
   window.descargarBackupCobrador = function(usuario) {
     get(ref(db, 'usuarios/' + usuario)).then(snap => {
       const data = snap.val();
@@ -993,17 +1175,13 @@ body {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
-      a.href = url;
-      a.download = 'backup_' + usuario + '_' + fecha + '.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.href = url; a.download = 'backup_' + usuario + '_' + fecha + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast('✅ JSON de ' + usuario + ' descargado');
     }).catch(() => toast('❌ Error al descargar'));
   };
 
-  // Editar usuario y clave de un cobrador
   window.editarCredenciales = function(usuario) {
     const nuevoUsuario = prompt('Nuevo usuario para "' + usuario + '":\n(deja igual si no quieres cambiarlo)', usuario);
     if (nuevoUsuario === null) return;
@@ -1012,15 +1190,12 @@ body {
     const usuFinal = (nuevoUsuario||usuario).trim().toLowerCase();
     if (!usuFinal) { toast('⚠️ Usuario no puede estar vacío'); return; }
     if (nuevaClave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
-
     const guardarCreds = (ruta) => {
       set(ref(db, ruta + '/credenciales'), { usuario: usuFinal, clave: nuevaClave })
         .then(() => { toast('✅ Credenciales actualizadas para ' + usuFinal); cargarPanelAdmin(); })
         .catch(e => toast('❌ Error: ' + e.message));
     };
-
     if (usuFinal !== usuario) {
-      // Mover datos al nuevo nombre
       get(ref(db, 'usuarios/' + usuario)).then(snap => {
         const data = snap.val() || {};
         set(ref(db, 'usuarios/' + usuFinal), data).then(() => {
@@ -1032,7 +1207,6 @@ body {
     }
   };
 
-  // Crear cobrador nuevo desde admin
   window.crearCobrador = function() {
     const usuario = prompt('Usuario del cobrador nuevo:\n(mínimo 3 letras, sin espacios)');
     if (!usuario) return;
@@ -1042,15 +1216,10 @@ body {
     const clave = prompt('Contraseña para "' + u + '":\n(mínimo 4 caracteres)');
     if (!clave) return;
     if (clave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
-    // Verificar que no exista ya
     get(ref(db, 'usuarios/' + u)).then(snap => {
       if (snap.exists()) { toast('⚠️ El usuario "' + u + '" ya existe'); return; }
-      // Crear en Firebase con credenciales y estructura mínima
       set(ref(db, 'usuarios/' + u + '/credenciales'), { usuario: u, clave: clave })
-        .then(() => {
-          toast('✅ Cobrador "' + u + '" creado correctamente');
-          cargarPanelAdmin();
-        })
+        .then(() => { toast('✅ Cobrador "' + u + '" creado'); cargarPanelAdmin(); })
         .catch(e => toast('❌ Error: ' + e.message));
     }).catch(e => toast('❌ Error: ' + e.message));
   };
@@ -1063,55 +1232,36 @@ body {
       .catch(e => toast('❌ ' + e.message));
   };
 
-  // Datos globales para el modal clicable
-  let _modalData = null;
-  let _modalActivos = [];
-  let _modalDias = [];
-  let _modalFmt = null;
-  let _modalClientes = [];
-  let _modalUsuario = '';
+  // ===== MODAL REPORTE =====
+  let _modalData = null, _modalActivos = [], _modalDias = [], _modalFmt = null, _modalClientes = [], _modalUsuario = '';
 
   window.renderDiaReporte = function(fechaDia) {
     const fmt = _modalFmt;
     const data = _modalData;
-    const activos = _modalActivos;
     const dias = _modalDias;
     const ahora = new Date();
     const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
-
-    // Buscar manual del día seleccionado
     const manuales = data.manuales || {};
     const manualDia = manuales['sup_manual_' + fechaDia] || {};
-    // Fallback: si es hoy, usar cuentas_dia
     const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
 
-    // General: TODOS los cobros del día (igual que la app)
-    let cobradoDia = 0;
-    let montoCanceladosDia = 0;
+    let cobradoDia = 0, montoCanceladosDia = 0;
     _modalClientes.forEach(c => {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
       const esCanceladoEseDia = (c.cancelado === true || c.saldo === 0) && ultimoPago && ultimoPago.fecha === fechaDia;
-      (c.pagos || []).forEach(p => {
-        if (p.fecha !== fechaDia) return;
-        cobradoDia += parseFloat(p.monto || 0);
-      });
-      if (esCanceladoEseDia) {
-        montoCanceladosDia += (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0);
-      }
-      const hist = (c.historialRenovaciones || []);
-      hist.forEach(r => {
-        // Cuotas cobradas antes de renovar (r.pagos)
+      (c.pagos || []).forEach(p => { if (p.fecha !== fechaDia) return; cobradoDia += parseFloat(p.monto || 0); });
+      if (esCanceladoEseDia) { montoCanceladosDia += (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0); }
+      (c.historialRenovaciones || []).forEach(r => {
         (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
-        // saldoQuedaba: lo que debían al renovar ese día
         const fechaRenov = (r.fecha || r.fechaCreado || "").substring(0, 10);
         if (fechaRenov === fechaDia && r.saldoQuedaba) cobradoDia += parseFloat(r.saldoQuedaba || 0);
       });
     });
 
-    const eBase      = parseFloat(manualDia.base      || (cuentas ? (cuentas.entradas||{}).base      : 0) || 0);
-    const ePapeleria = parseFloat(manualDia.papeleria  || (cuentas ? (cuentas.entradas||{}).papeleria : 0) || 0);
-    const eGeneral   = cobradoDia;
-    // Calcular préstamos del día automáticamente desde los clientes
+    const eBase = parseFloat(manualDia.base || (cuentas ? (cuentas.entradas||{}).base : 0) || 0);
+    const ePapeleria = parseFloat(manualDia.papeleria || (cuentas ? (cuentas.entradas||{}).papeleria : 0) || 0);
+    const eGeneral = cobradoDia;
+
     let prestamosAutoDia = 0;
     for (const c of _modalClientes) {
       if (!c.nombre) continue;
@@ -1129,55 +1279,53 @@ body {
         }
       }
     }
-    const sPrestamos = (manualDia.prestamos != null && manualDia.prestamos !== '')
-      ? parseFloat(manualDia.prestamos)
-      : (prestamosAutoDia > 0 ? prestamosAutoDia : parseFloat((cuentas ? (cuentas.salidas||{}).prestamos : 0) || 0));
-    const sNeki      = parseFloat(manualDia.neki       || (cuentas ? (cuentas.salidas||{}).neki       : 0) || 0);
-    const sGasto     = parseFloat(manualDia.gasto      || (cuentas ? (cuentas.salidas||{}).gasto      : 0) || 0);
-    const entregado  = parseFloat(manualDia.entregado  || (cuentas ? cuentas.entregado_oficina         : 0) || 0);
-    const totalEntradas = eBase + eGeneral + ePapeleria;
-    const totalSalidas  = sPrestamos + sNeki + sGasto;
-    const resultado     = totalEntradas - totalSalidas;
 
-    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const sPrestamos = (manualDia.prestamos != null && manualDia.prestamos !== '') ? parseFloat(manualDia.prestamos) : (prestamosAutoDia > 0 ? prestamosAutoDia : parseFloat((cuentas ? (cuentas.salidas||{}).prestamos : 0) || 0));
+    const sNeki = parseFloat(manualDia.neki || (cuentas ? (cuentas.salidas||{}).neki : 0) || 0);
+    const sGasto = parseFloat(manualDia.gasto || (cuentas ? (cuentas.salidas||{}).gasto : 0) || 0);
+    const entregado = parseFloat(manualDia.entregado || (cuentas ? cuentas.entregado_oficina : 0) || 0);
+    const totalEntradas = eBase + eGeneral + ePapeleria;
+    const totalSalidas = sPrestamos + sNeki + sGasto;
+    const resultado = totalEntradas - totalSalidas;
 
     document.getElementById('modal-contenido').innerHTML = `
-      <div style="margin:10px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      <div style="margin:12px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
         ${dias.map(d => `
-          <div onclick="window.renderDiaReporte('` + d.f + `')" style="cursor:pointer;text-align:center;padding:7px 4px;border-radius:10px;font-size:11px;font-weight:800;
-            background:${d.f===fechaDia ? (d.f===hoy?'#00cc55':'#1a6eff') : (d.f===hoy?'#e8fff0':'#f0f4ff')};
+          <div onclick="window.renderDiaReporte('${d.f}')" style="cursor:pointer;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:800;
+            background:${d.f===fechaDia ? (d.f===hoy?'var(--green)':'var(--blue)') : (d.f===hoy?'#e8fff0':'#f0f4ff')};
             color:${d.f===fechaDia ? 'white' : (d.f===hoy?'#008833':'#444')};
-            border:2px solid ${d.f===fechaDia ? 'transparent' : (d.f===hoy?'#00cc55':'#dde5ff')}">
+            border:2px solid ${d.f===fechaDia ? 'transparent' : (d.f===hoy?'var(--green)':'var(--border)')};
+            transition:all 0.2s ease">
             ${d.n.substring(0,3)}<br>
-            <span style="font-size:13px;font-weight:900;color:${d.f===fechaDia?'white':(d.t>0?'#1a6eff':'#ccc')}">${d.t>0?fmt(d.t):'-'}</span>
+            <span style="font-size:13px;font-weight:900;color:${d.f===fechaDia?'white':(d.t>0?'var(--blue)':'#ccc')}">${d.t>0?fmt(d.t):'-'}</span>
           </div>`).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 14px 0">
-        <div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
-          <div style="background:linear-gradient(135deg,#1a6eff,#0040cc);padding:10px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700"><span>💵 Base</span><span>${fmt(eBase)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;background:#f0fff7;font-size:13px;font-weight:800"><span style="color:#00aa44">📦 General</span><span style="color:#00aa44">${fmt(eGeneral)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;font-weight:700"><span>📋 Papelería</span><span>${fmt(ePapeleria)}</span></div>
-          ${montoCanceladosDia > 0 ? `<div style="font-size:10px;font-weight:800;color:#888;padding:3px 14px 5px;background:#f9f9f9">🎯 Pleno: ${fmt(eGeneral - montoCanceladosDia)} &nbsp;|&nbsp; ❌ Cancel.: ${fmt(montoCanceladosDia)}</div>` : ''}
-          <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#e8f0ff;font-size:14px;font-weight:900"><span style="color:#0040cc">TOTAL</span><span style="color:#0040cc">${fmt(totalEntradas)}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px 0">
+        <div style="background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <div style="background:linear-gradient(135deg,var(--blue),var(--blue-dark));padding:11px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span>💵 Base</span><span>${fmt(eBase)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;background:#f0fff7;font-size:13px;font-weight:800"><span style="color:#00aa44">📦 General</span><span style="color:#00aa44">${fmt(eGeneral)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;font-weight:700"><span>📋 Papelería</span><span>${fmt(ePapeleria)}</span></div>
+          ${montoCanceladosDia > 0 ? `<div style="font-size:10px;font-weight:800;color:var(--text-muted);padding:4px 14px 6px;background:#fafafa">🎯 Pleno: ${fmt(eGeneral - montoCanceladosDia)} · ❌ Cancel.: ${fmt(montoCanceladosDia)}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:#e8f0ff;font-size:14px;font-weight:900"><span style="color:var(--blue-dark)">TOTAL</span><span style="color:var(--blue-dark)">${fmt(totalEntradas)}</span></div>
         </div>
-        <div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
-          <div style="background:linear-gradient(135deg,#ff1a1a,#cc0000);padding:10px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">💸 SALIDAS</div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700"><span style="color:#cc2200">💰 Préstamos</span><span>${fmt(sPrestamos)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700"><span>🟡 Neki</span><span>${fmt(sNeki)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;font-weight:700"><span>🔧 Gasto</span><span>${fmt(sGasto)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#fff0ee;font-size:14px;font-weight:900"><span style="color:#cc0000">TOTAL</span><span style="color:#cc0000">${fmt(totalSalidas)}</span></div>
+        <div style="background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <div style="background:linear-gradient(135deg,var(--red),var(--red-dark));padding:11px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">💸 SALIDAS</div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span style="color:var(--red-dark)">💰 Préstamos</span><span>${fmt(sPrestamos)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span>🟡 Neki</span><span>${fmt(sNeki)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;font-weight:700"><span>🔧 Gasto</span><span>${fmt(sGasto)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:#fff0ee;font-size:14px;font-weight:900"><span style="color:var(--red-dark)">TOTAL</span><span style="color:var(--red-dark)">${fmt(totalSalidas)}</span></div>
         </div>
       </div>
-      <div style="margin:12px 14px 14px;background:#1a1a2e;border-radius:16px;padding:16px;color:white">
-        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">🏦 RESULTADO DEL DÍA</div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.1)"><span>Total entradas</span><span>${fmt(totalEntradas)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;font-weight:700"><span>Total salidas</span><span>${fmt(totalSalidas)}</span></div>
-        <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-top:10px;font-size:18px;font-weight:900">
+      <div style="margin:14px 14px 16px;background:var(--dark);border-radius:var(--radius);padding:18px;color:white">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;opacity:0.6;margin-bottom:10px">🏦 RESULTADO DEL DÍA</div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.08)"><span>Total entradas</span><span>${fmt(totalEntradas)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700"><span>Total salidas</span><span>${fmt(totalSalidas)}</span></div>
+        <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:14px 16px;margin-top:12px;font-size:18px;font-weight:900">
           <span style="font-size:14px;opacity:0.8">RESULTADO</span>
           <span style="color:${resultado >= 0 ? '#00ff88' : '#ff5555'}">${fmt(resultado)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;font-weight:700;opacity:0.75"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;font-weight:700;opacity:0.7"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
       </div>
     `;
   }
@@ -1187,7 +1335,6 @@ body {
     const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
     const ahora = new Date();
     const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
-
     const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
     const lunesDate = new Date(ahora);
     lunesDate.setDate(ahora.getDate() - diaSemana);
@@ -1199,37 +1346,20 @@ body {
       const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       dias.push({ n: nombresDia[i], f, t: 0 });
     }
-    // Calcular totales por día para los botones
     activos.forEach(c => {
-      (c.pagos || []).forEach(p => {
-        const d = dias.find(x => x.f === p.fecha);
-        if (d) d.t += parseFloat(p.monto || 0);
-      });
+      (c.pagos || []).forEach(p => { const d = dias.find(x => x.f === p.fecha); if (d) d.t += parseFloat(p.monto || 0); });
       (c.historialRenovaciones || []).forEach(r => {
-        (r.pagos || []).forEach(p => {
-          const d = dias.find(x => x.f === p.fecha);
-          if (d) d.t += parseFloat(p.monto || 0);
-        });
+        (r.pagos || []).forEach(p => { const d = dias.find(x => x.f === p.fecha); if (d) d.t += parseFloat(p.monto || 0); });
       });
     });
 
-    // Guardar en globals para renderDiaReporte
-    _modalData = data;
-    _modalActivos = activos;
-    _modalDias = dias;
-    _modalFmt = fmt;
-    _modalClientes = data.clientes || [];
-    _modalUsuario = usuario;
+    _modalData = data; _modalActivos = activos; _modalDias = dias; _modalFmt = fmt;
+    _modalClientes = data.clientes || []; _modalUsuario = usuario;
 
     document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
     document.getElementById('modal-contenido').innerHTML = '';
-    const modal = document.getElementById('modal-reporte');
-    modal.style.display = 'flex';
-
-    // Mostrar el día actual por defecto
+    document.getElementById('modal-reporte').style.display = 'flex';
     renderDiaReporte(hoy);
-
-
   }
 </script>
 </body>
