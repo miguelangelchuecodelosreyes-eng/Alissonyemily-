@@ -4065,7 +4065,7 @@ function diasVencidos(fechaInicio, tipo, pagos, diaSemana){
 function verAbonosCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
-  const pagos = c.pagos||[];
+  const pagos = (c.pagos||[]).slice().sort((a,b)=> b.fecha > a.fecha ? 1 : b.fecha < a.fecha ? -1 : 0);
   const boxId = 'abonos-inline-'+id;
 
   // Si ya está visible, ocultarlo (toggle)
@@ -4282,7 +4282,7 @@ function abonarDesdeDetalle(){
 function verAbonosDetalle(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
   if(!c) return;
-  const pagos = c.pagos||[];
+  const pagos = (c.pagos||[]).slice().sort((a,b)=> b.fecha > a.fecha ? 1 : b.fecha < a.fecha ? -1 : 0);
   const box = document.getElementById('det-historial-box');
   const lista = document.getElementById('det-historial-lista');
 
@@ -4350,6 +4350,8 @@ function guardarEditarCuota(i){
   const montoAnterior = clientes[idx].pagos[i].monto;
   clientes[idx].pagos[i].monto = nuevoMonto;
   clientes[idx].pagos[i].fecha = nuevaFecha;
+  // Reordenar pagos por fecha (más antiguo primero)
+  clientes[idx].pagos.sort((a,b)=> a.fecha > b.fecha ? 1 : a.fecha < b.fecha ? -1 : 0);
   // Recalcular saldo: diferencia entre monto viejo y nuevo
   const diff = nuevoMonto - montoAnterior;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - diff);
