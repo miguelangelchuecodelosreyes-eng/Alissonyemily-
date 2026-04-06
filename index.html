@@ -545,6 +545,90 @@ body {
 .cliente-card.dragging { opacity:0.5; transform:scale(0.98); box-shadow:0 8px 30px rgba(0,0,0,0.2); border:2px dashed var(--primary); }
 .cliente-card.drag-over { border:3px solid var(--primary); background:#faf5ff; transform:scale(1.01); transition:transform 0.1s,background 0.1s; }
 .drag-handle { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#cbd5e1; display:none; }
+
+/* ═══ PIN CYBER NEÓN — AJUSTES ═══ */
+#pin-ajustes-overlay {
+  display:none; position:fixed; inset:0; z-index:99999;
+  background:#050510;
+  background-image:
+    linear-gradient(rgba(0,255,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,255,0.03) 1px,transparent 1px);
+  background-size:30px 30px;
+  align-items:center; justify-content:center; flex-direction:column;
+}
+#pin-ajustes-overlay.visible { display:flex; }
+.pin-cyber-wrap { text-align:center; width:100%; max-width:320px; padding:20px; }
+.pin-cyber-title { font-family:'Orbitron','Nunito',sans-serif; font-size:12px; letter-spacing:5px; color:#00ffff; text-transform:uppercase; margin-bottom:4px; }
+.pin-cyber-sub   { font-size:11px; color:#334155; letter-spacing:3px; margin-bottom:24px; }
+.pin-ring-wrap { width:140px; height:140px; margin:0 auto 24px; position:relative; }
+.pin-ring1 {
+  width:100%; height:100%; border-radius:50%;
+  border:3px solid transparent; border-top:3px solid #00ffff; border-right:3px solid #ff00ff;
+  animation:pinCyberSpin 3s linear infinite; position:absolute; inset:0;
+}
+.pin-ring2 {
+  width:80%; height:80%; border-radius:50%; position:absolute; top:10%; left:10%;
+  border:2px solid transparent; border-bottom:2px solid #00ffff; border-left:2px solid #ff00ff;
+  animation:pinCyberSpin 2s linear infinite reverse;
+}
+@keyframes pinCyberSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.pin-ring-center {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:46px; transition:all 0.5s;
+}
+.pin-scanline {
+  position:absolute; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,transparent,#00ffff,transparent);
+  top:0; opacity:0; filter:blur(1px); border-radius:50%;
+}
+.pin-ring-wrap.pin-unlocking .pin-ring1 { animation:pinCyberSpin 0.3s linear infinite, pinGlowRing 1s ease 0.3s forwards; }
+@keyframes pinGlowRing {
+  0%{border-top-color:#00ffff;border-right-color:#ff00ff}
+  50%{border-top-color:#00ff88;border-right-color:#00ff88;border-bottom-color:#00ff88;border-left-color:#00ff88}
+  100%{border-top-color:#00ff88;border-right-color:#00ff88}
+}
+.pin-ring-wrap.pin-unlocking .pin-ring-center { animation:pinCenterPop 1s ease 0.3s forwards; }
+@keyframes pinCenterPop {
+  0%{transform:scale(1);filter:none}
+  50%{transform:scale(1.4);filter:drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 40px #ff00ff)}
+  100%{transform:scale(1);filter:drop-shadow(0 0 10px #00ff88)}
+}
+.pin-ring-wrap.pin-unlocking .pin-scanline { animation:pinScanDown 0.6s ease 0.3s forwards; }
+@keyframes pinScanDown { 0%{top:0%;opacity:1} 100%{top:100%;opacity:0} }
+.pin-cyber-dots { display:flex; gap:12px; justify-content:center; margin-bottom:20px; }
+.pin-cdot {
+  width:14px; height:14px; rotate:45deg; border-radius:3px;
+  border:2px solid #00ffff; background:transparent; transition:all 0.2s;
+}
+.pin-cdot.filled { background:#00ffff; box-shadow:0 0 10px #00ffff, 0 0 20px rgba(0,255,255,0.4); }
+.pin-cdot.correct { background:#00ff88; border-color:#00ff88; box-shadow:0 0 10px #00ff88; }
+.pin-cdot.error   { background:#ff0044; border-color:#ff0044; box-shadow:0 0 10px #ff0044; }
+.pin-cyber-dots.shake { animation:pinShake 0.4s ease; }
+@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+.pin-cyber-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:230px; margin:0 auto; }
+.pin-ckey {
+  aspect-ratio:1; border-radius:8px;
+  border:1px solid rgba(0,255,255,0.2); background:rgba(0,255,255,0.04);
+  color:#00ffff; font-family:'Orbitron','Nunito',sans-serif; font-size:16px; font-weight:700;
+  cursor:pointer; transition:all 0.1s; display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+}
+.pin-ckey:active { border-color:#00ffff; box-shadow:0 0 15px rgba(0,255,255,0.5), inset 0 0 10px rgba(0,255,255,0.1); transform:scale(0.92); }
+.pin-ckey.pin-del { color:#ff00ff; border-color:rgba(255,0,255,0.25); font-size:20px; font-family:'Nunito',sans-serif; }
+.pin-ckey.pin-del:active { border-color:#ff00ff; box-shadow:0 0 15px rgba(255,0,255,0.5); }
+.pin-access-msg {
+  font-family:'Orbitron','Nunito',sans-serif; font-size:13px; color:#00ff88;
+  letter-spacing:3px; margin-top:18px; opacity:0; min-height:22px;
+}
+.pin-access-msg.show { animation:pinFadeMsg 0.5s ease 0.8s forwards; }
+@keyframes pinFadeMsg { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.pin-cerrar-btn {
+  margin-top:20px; padding:10px 24px; background:transparent;
+  border:1px solid rgba(255,0,255,0.3); color:#ff00ff; border-radius:8px;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer;
+  letter-spacing:1px; transition:all 0.2s;
+}
+.pin-cerrar-btn:active { background:rgba(255,0,255,0.15); }
 </style>
 </head>
 <body>
@@ -1114,7 +1198,25 @@ body {
 <!-- ======= AJUSTES ======= -->
 <div class="pantalla" id="pantalla-ajustes">
 
-  <!-- ACTUALIZACIÓN DE LA APP -->
+  <!-- PIN DE ACCESO -->
+  <div class="seccion" style="margin-top:14px">
+    <div class="seccion-titulo" style="background:linear-gradient(135deg,#050510,#0d0d2e);border-bottom:1px solid #00ffff33">
+      <span style="color:#00ffff;letter-spacing:2px">⚡ PIN DE ACCESO — AJUSTES</span>
+    </div>
+    <div style="padding:14px 16px;background:#050510">
+      <div style="font-size:12px;color:#00ffff99;font-weight:700;margin-bottom:10px;letter-spacing:1px">Cambia tu PIN de 4 dígitos para proteger esta sección</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="input-nuevo-pin" placeholder="Nuevo PIN (4 dígitos)" maxlength="4"
+          style="flex:1;border:1.5px solid #00ffff44;border-radius:10px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;outline:none;background:#0a0a1e;color:#00ffff;text-align:center;letter-spacing:6px"
+          oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
+        <button onclick="setPinAjustes(document.getElementById('input-nuevo-pin').value); document.getElementById('input-nuevo-pin').value='';"
+          style="padding:12px 18px;background:linear-gradient(135deg,#00ffff,#ff00ff);color:#050510;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
+          💾 Guardar
+        </button>
+      </div>
+      <div style="font-size:11px;color:#334155;margin-top:8px;font-weight:700">PIN actual guardado en este dispositivo. Por defecto: <strong style="color:#00ffff">1234</strong></div>
+    </div>
+  </div>
   <div class="seccion" style="margin-top:14px">
     <div class="seccion-titulo" style="background:linear-gradient(90deg,#1a56db,#0ea5e9)">🔄 Actualización de la app</div>
     <div style="padding:14px 16px">
@@ -1846,7 +1948,11 @@ function irA(p) {
     renderDetalles();
   }
   if(p==='prestamos') renderPrestamos();
-  if(p==='ajustes'){ actualizarInfoCopia(); actualizarInfoPorcentaje(); cargarCredencialesEnAjustes(); mostrarVersionApp(); }
+  if(p==='ajustes'){
+    // Mostrar PIN antes de entrar a ajustes
+    abrirPinAjustes();
+    return;
+  }
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
@@ -4065,7 +4171,7 @@ function diasVencidos(fechaInicio, tipo, pagos, diaSemana){
 function verAbonosCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
-  const pagos = (c.pagos||[]).slice().sort((a,b)=> b.fecha > a.fecha ? 1 : b.fecha < a.fecha ? -1 : 0);
+  const pagos = c.pagos||[];
   const boxId = 'abonos-inline-'+id;
 
   // Si ya está visible, ocultarlo (toggle)
@@ -4282,7 +4388,7 @@ function abonarDesdeDetalle(){
 function verAbonosDetalle(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
   if(!c) return;
-  const pagos = (c.pagos||[]).slice().sort((a,b)=> b.fecha > a.fecha ? 1 : b.fecha < a.fecha ? -1 : 0);
+  const pagos = c.pagos||[];
   const box = document.getElementById('det-historial-box');
   const lista = document.getElementById('det-historial-lista');
 
@@ -4350,8 +4456,6 @@ function guardarEditarCuota(i){
   const montoAnterior = clientes[idx].pagos[i].monto;
   clientes[idx].pagos[i].monto = nuevoMonto;
   clientes[idx].pagos[i].fecha = nuevaFecha;
-  // Reordenar pagos por fecha (más antiguo primero)
-  clientes[idx].pagos.sort((a,b)=> a.fecha > b.fecha ? 1 : a.fecha < b.fecha ? -1 : 0);
   // Recalcular saldo: diferencia entre monto viejo y nuevo
   const diff = nuevoMonto - montoAnterior;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - diff);
@@ -7310,8 +7414,157 @@ function abrirPanelDiagnostico() {
     });
   })();
 
+// ═══ PIN CYBER NEÓN — AJUSTES ═══
+(function(){
+  // PIN guardado en localStorage. Si no existe, usa 1234 por defecto.
+  // Para cambiar el PIN: desde ajustes se puede actualizar con setPinAjustes('nuevopin')
+  const PIN_KEY = 'pin_ajustes_v1';
+  let _pinActual = '';
+  let _pinBloqueado = false;
+  let _pinSesionOk = false; // una vez ingresado, no pide de nuevo en la misma sesión
 
-</script>
+  function getPinGuardado(){ return localStorage.getItem(PIN_KEY) || '1234'; }
+
+  window.setPinAjustes = function(nuevo){
+    if(!nuevo || nuevo.length !== 4 || isNaN(nuevo)){ showToast('⚠️ El PIN debe ser 4 dígitos'); return; }
+    localStorage.setItem(PIN_KEY, nuevo);
+    showToast('✅ PIN actualizado correctamente');
+  };
+
+  window.abrirPinAjustes = function(){
+    if(_pinSesionOk){
+      // Ya autenticado en esta sesión, entrar directo
+      _entrarAjustes();
+      return;
+    }
+    _pinActual = '';
+    _pinBloqueado = false;
+    _resetDots();
+    document.getElementById('pinLockIcon').textContent = '🔒';
+    document.getElementById('pinRingWrap').classList.remove('pin-unlocking');
+    document.getElementById('pinMsg').classList.remove('show');
+    document.getElementById('pinMsg').textContent = '// ACCESO CONCEDIDO //';
+    document.getElementById('pin-ajustes-overlay').classList.add('visible');
+    // Quitar tab activo para que no se muestre ajustes aún
+    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
+  };
+
+  window.cerrarPinAjustes = function(){
+    document.getElementById('pin-ajustes-overlay').classList.remove('visible');
+    _pinActual = '';
+  };
+
+  window.pinKey = function(d){
+    if(_pinBloqueado || _pinActual.length >= 4) return;
+    _pinActual += d;
+    const i = _pinActual.length - 1;
+    const dot = document.getElementById('pinD'+i);
+    if(dot){ dot.classList.add('filled'); }
+    if(_pinActual.length === 4) setTimeout(_checkPin, 200);
+  };
+
+  window.pinDel = function(){
+    if(_pinBloqueado || _pinActual.length === 0) return;
+    const i = _pinActual.length - 1;
+    const dot = document.getElementById('pinD'+i);
+    if(dot){ dot.classList.remove('filled','correct','error'); }
+    _pinActual = _pinActual.slice(0,-1);
+  };
+
+  function _checkPin(){
+    if(_pinActual === getPinGuardado()){
+      // ✅ CORRECTO
+      _pinBloqueado = true;
+      for(let i=0;i<4;i++){
+        const d = document.getElementById('pinD'+i);
+        if(d){ d.classList.remove('filled'); d.classList.add('correct'); }
+      }
+      document.getElementById('pinRingWrap').classList.add('pin-unlocking');
+      document.getElementById('pinLockIcon').textContent = '🔓';
+      document.getElementById('pinMsg').classList.add('show');
+      _pinSesionOk = true;
+      setTimeout(()=>{
+        document.getElementById('pin-ajustes-overlay').classList.remove('visible');
+        _entrarAjustes();
+      }, 1600);
+    } else {
+      // ❌ ERROR
+      for(let i=0;i<4;i++){
+        const d = document.getElementById('pinD'+i);
+        if(d){ d.classList.remove('filled'); d.classList.add('error'); }
+      }
+      const dots = document.getElementById('pinDots');
+      dots.classList.add('shake');
+      showToast('❌ PIN incorrecto');
+      setTimeout(()=>{
+        dots.classList.remove('shake');
+        _resetDots();
+        _pinActual = '';
+        _pinBloqueado = false;
+      }, 500);
+    }
+  }
+
+  function _resetDots(){
+    for(let i=0;i<4;i++){
+      const d = document.getElementById('pinD'+i);
+      if(d){ d.classList.remove('filled','correct','error'); }
+    }
+  }
+
+  function _entrarAjustes(){
+    document.querySelectorAll('.pantalla').forEach(x=>x.classList.remove('activa'));
+    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
+    document.getElementById('pantalla-ajustes').classList.add('activa');
+    document.getElementById('tab-ajustes').classList.add('activo');
+    actualizarInfoCopia();
+    actualizarInfoPorcentaje();
+    cargarCredencialesEnAjustes();
+    mostrarVersionApp();
+  }
+})();
+
+
+
+<!-- MODAL PIN AJUSTES CYBER NEÓN -->
+<div id="pin-ajustes-overlay">
+  <div class="pin-cyber-wrap">
+    <div class="pin-cyber-title">// AJUSTES //</div>
+    <div class="pin-cyber-sub">VERIFICACIÓN REQUERIDA</div>
+
+    <div class="pin-ring-wrap" id="pinRingWrap">
+      <div class="pin-ring1"></div>
+      <div class="pin-ring2"></div>
+      <div class="pin-scanline"></div>
+      <div class="pin-ring-center" id="pinLockIcon">🔒</div>
+    </div>
+
+    <div class="pin-cyber-dots" id="pinDots">
+      <div class="pin-cdot" id="pinD0"></div>
+      <div class="pin-cdot" id="pinD1"></div>
+      <div class="pin-cdot" id="pinD2"></div>
+      <div class="pin-cdot" id="pinD3"></div>
+    </div>
+
+    <div class="pin-cyber-keypad">
+      <button class="pin-ckey" onclick="pinKey('1')">1</button>
+      <button class="pin-ckey" onclick="pinKey('2')">2</button>
+      <button class="pin-ckey" onclick="pinKey('3')">3</button>
+      <button class="pin-ckey" onclick="pinKey('4')">4</button>
+      <button class="pin-ckey" onclick="pinKey('5')">5</button>
+      <button class="pin-ckey" onclick="pinKey('6')">6</button>
+      <button class="pin-ckey" onclick="pinKey('7')">7</button>
+      <button class="pin-ckey" onclick="pinKey('8')">8</button>
+      <button class="pin-ckey" onclick="pinKey('9')">9</button>
+      <button class="pin-ckey" style="visibility:hidden"></button>
+      <button class="pin-ckey" onclick="pinKey('0')">0</button>
+      <button class="pin-ckey pin-del" onclick="pinDel()">⌫</button>
+    </div>
+
+    <div class="pin-access-msg" id="pinMsg">// ACCESO CONCEDIDO //</div>
+    <button class="pin-cerrar-btn" onclick="cerrarPinAjustes()">✕ CANCELAR</button>
+  </div>
+</div>
 
 <!-- MODAL CORREGIR SALDO -->
 <div id="modal-corregir-saldo" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);padding:24px;box-sizing:border-box">
