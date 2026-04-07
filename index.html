@@ -161,7 +161,7 @@ body {
 
 /* ═══ PANTALLAS ═══ */
 .pantalla { display:none; }
-.pantalla.activa { display:block; animation:fadeIn 0.3s ease; }
+.pantalla.activa { display:block; animation:fadeIn 0.15s ease; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
 /* ═══ SECCIONES ═══ */
@@ -726,7 +726,7 @@ body {
     </div>
   </div>
   <div style="padding:10px 14px 0">
-    <input type="text" id="buscar-cliente" oninput="renderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
+    <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
@@ -1870,6 +1870,7 @@ function cerrarSesion() {
         window.syncFirebase(false);
       }
       lsRemove('cobrador_sesion');
+      if(typeof window.bloquearPinAjustes==='function') window.bloquearPinAjustes();
       // Limpiar campos de login
       const uEl = document.getElementById('login-usuario');
       const cEl = document.getElementById('login-clave');
@@ -1884,25 +1885,24 @@ function cerrarSesion() {
 // ===== NAV =====
 function irA(p) {
   if(p==='ajustes'){ abrirPinAjustes(); return; }
+  // Bloquear PIN al salir de ajustes
+  if(typeof window.bloquearPinAjustes==='function') window.bloquearPinAjustes();
   document.querySelectorAll('.pantalla').forEach(x=>x.classList.remove('activa'));
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('activo'));
   document.getElementById('pantalla-'+p).classList.add('activa');
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
   if(p==='cuentas'){
-    setTimeout(cargarDesdeSupervisor, 100);
-    setTimeout(()=>{
-      renderHistorial(); // llena el dropdown
-      // Si hay día de hoy guardado, lo preselecciona
-      const h = JSON.parse(lsGet('hist_v3')||'[]');
-      const filtroHist = document.getElementById('filtro-historial-fecha');
-      if(filtroHist && h.find(d=>d.fecha===fechaHoy())){
-        filtroHist.value = fechaHoy();
-        renderHistorial();
-      }
-    }, 150);
+    cargarDesdeSupervisor();
+    renderHistorial();
+    const h = JSON.parse(lsGet('hist_v3')||'[]');
+    const filtroHist = document.getElementById('filtro-historial-fecha');
+    if(filtroHist && h.find(d=>d.fecha===fechaHoy())){
+      filtroHist.value = fechaHoy();
+      renderHistorial();
+    }
   }
-  if(p==='gastos'){ setTimeout(renderGastosHoy, 100); setTimeout(renderHistorialGastos, 150); }
+  if(p==='gastos'){ renderGastosHoy(); renderHistorialGastos(); }
   if(p==='detalles'){
     // Solo resetear a hoy si no viene de cargarDia
     if(!document.getElementById('det-filtro-fecha').value){
@@ -3336,6 +3336,8 @@ function avanzarSiguienteCliente(idActual){
   }
 }
 
+var _rcTimer=null;
+function debouncedRenderClientes(){clearTimeout(_rcTimer);_rcTimer=setTimeout(renderClientes,120);}
 function renderClientes(){
   const todosClientes=getClientes();
   const busq=(document.getElementById('buscar-cliente')||{}).value||'';
@@ -7452,6 +7454,13 @@ function abrirPanelDiagnostico() {
     return true;
   };
 
+  window.bloquearPinAjustes = function(){
+    _sesionOk = false;
+    _pin = '';
+    var ajCont = document.getElementById('ajustes-contenido');
+    if(ajCont) ajCont.style.display = 'none';
+  };
+
   window.abrirPinAjustes = function(){
     if(_sesionOk){ _entrar(); return; }
     _pin = ''; _bloqueado = false;
@@ -7490,7 +7499,7 @@ function abrirPanelDiagnostico() {
       document.getElementById('pinLockIcon').textContent = '🔓';
       document.getElementById('pinMsg').classList.add('show');
       _sesionOk = true;
-      setTimeout(()=>{ document.getElementById('pin-ajustes-overlay').classList.remove('visible'); _entrar(); }, 1600);
+      setTimeout(()=>{ document.getElementById('pin-ajustes-overlay').classList.remove('visible'); _entrar(); }, 800);
     } else {
       for(let i=0;i<4;i++){ const d=document.getElementById('pinD'+i); if(d){d.classList.remove('filled');d.classList.add('error');} }
       const dots = document.getElementById('pinDots');
