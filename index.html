@@ -859,9 +859,19 @@ body {
           <div id="cancelados-detalle" style="font-size:11px;color:#888;font-weight:700;text-align:right"></div>
         </div>
       </div>
-      <div class="descuadre-caja neutro" id="caja-pleno">
-        <div class="descuadre-label neutro" id="pleno-label">PLENO</div>
-        <div class="descuadre-num neutro" id="pleno-num">—</div>
+      <!-- DESGLOSE DE GASTOS + PLENO -->
+      <div style="margin-top:10px;background:rgba(255,255,255,0.05);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="font-size:11px;font-weight:900;color:#f59e0b;letter-spacing:1.5px;text-transform:uppercase">💸 GASTOS DEL DÍA</div>
+          <div style="font-size:13px;font-weight:900;color:#ff6666" id="cuentas-gastos-total">$0</div>
+        </div>
+        <div id="cuentas-gastos-lista" style="padding:4px 0">
+          <div style="padding:8px 14px;font-size:12px;color:#666;font-weight:700">Sin gastos registrados</div>
+        </div>
+        <div id="caja-pleno" style="border-top:1px solid rgba(255,255,255,0.08);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8" id="pleno-label">PLENO</div>
+          <div style="font-size:28px;font-weight:900;line-height:1;color:white" id="pleno-num">—</div>
+        </div>
       </div>
 
       <!-- CLIENTES NUEVOS Y RENOVACIONES DEL DÍA -->
@@ -2033,9 +2043,29 @@ function recalcularCuentas(){
   else{caja.className='resultado-caja neutro';lbl.className='resultado-caja-label neutro';lbl.textContent='RESULTADO';num.className='resultado-caja-num neutro';num.textContent='$0';}
 
   // Pleno
-  const cp=document.getElementById('caja-pleno'),lp=document.getElementById('pleno-label'),np=document.getElementById('pleno-num');
-  if(!cancelados){cp.className='descuadre-caja neutro';lp.className='descuadre-label neutro';lp.textContent='PLENO';np.className='descuadre-num neutro';np.textContent='—';}
-  else{cp.className=pleno>=0?'descuadre-caja ok':'descuadre-caja mal';lp.className=pleno>=0?'descuadre-label ok':'descuadre-label mal';lp.textContent='🎯 PLENO';np.className=pleno>=0?'descuadre-num ok':'descuadre-num mal';np.textContent=pleno>=0?fmt(pleno):'-'+fmt(Math.abs(pleno));}
+  const lp=document.getElementById('pleno-label'),np=document.getElementById('pleno-num');
+  if(!cancelados){lp.textContent='PLENO';lp.style.color='#94a3b8';np.textContent='—';np.style.color='white';}
+  else{lp.textContent='🎯 PLENO';lp.style.color=pleno>=0?'#10b981':'#ef4444';np.textContent=pleno>=0?fmt(pleno):'-'+fmt(Math.abs(pleno));np.style.color=pleno>=0?'#10b981':'#ef4444';}
+
+  // Desglose gastos en pantalla Cuentas
+  (function(){
+    const gastosHoy=(()=>{try{return JSON.parse(lsGet('gastos_dia_'+hoy)||'[]');}catch(e){return [];}})();
+    const totalEl=document.getElementById('cuentas-gastos-total');
+    const listaEl=document.getElementById('cuentas-gastos-lista');
+    if(!totalEl||!listaEl) return;
+    const total=gastosHoy.reduce((s,g)=>s+g.valor,0);
+    totalEl.textContent=total>0?fmt(total):'$0';
+    if(!gastosHoy.length){
+      listaEl.innerHTML='<div style="padding:8px 14px;font-size:12px;color:#555;font-weight:700">Sin gastos registrados</div>';
+    } else {
+      listaEl.innerHTML=gastosHoy.map(g=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="font-size:13px;font-weight:700;color:#ccc">${g.tipo}${g.desc?' <span style="color:#888;font-size:11px">— '+g.desc+'</span>':''}</div>
+          <div style="font-size:14px;font-weight:900;color:#ff9966">$${g.valor}</div>
+        </div>`
+      ).join('');
+    }
+  })();
 
   // Descuadre
   const cd=document.getElementById('caja-descuadre'),ld=document.getElementById('descuadre-label'),nd=document.getElementById('descuadre-num');
@@ -2172,6 +2202,7 @@ function registrarGasto(){
       if(box) box.style.display='none';
 
       renderGastosHoy();
+      recalcularCuentas();
       renderHistorialGastos();
       showToast('✅ Gasto registrado');
     }
@@ -2198,6 +2229,7 @@ function eliminarGasto(idx){
       if(inputGasto){ inputGasto.value = total || ''; }
       recalcularCuentas();
       renderGastosHoy();
+      recalcularCuentas();
       renderHistorialGastos();
       showToast('🗑️ Gasto eliminado');
     }
