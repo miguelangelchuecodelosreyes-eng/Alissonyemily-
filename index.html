@@ -788,9 +788,10 @@ body {
           <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería</span>
           <span style="font-size:14px;font-weight:800;color:#cc00aa" id="entradas-papeleria-total">$0</span>
         </div>
-        <div id="entradas-papeleria-lista" style="padding:0 8px 4px"></div>
+        <div id="entradas-papeleria-lista" style="display:none"></div>
         <input type="hidden" id="input-papeleria" value="0">
       </div>
+
       <div style="padding:5px 8px;background:#e8f0fe;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;font-weight:900;color:#cc00aa">TOTAL</span>
         <span style="font-size:16px;font-weight:900;color:#cc00aa" id="total-entradas">$0</span>
@@ -2304,6 +2305,22 @@ function eliminarGasto(idx){
   );
 }
 
+// Inyectar papelería de renovaciones de ayer si no existe (datos perdidos por actualización)
+(function(){
+  try{
+    const ayer = '2026-04-07';
+    const key = 'papeleria_renovaciones_' + ayer;
+    let papAyer = [];
+    try{ papAyer = JSON.parse(lsGet(key)||'[]'); }catch(e){}
+    // Solo agregar si no están ya
+    const tieneRicardo = papAyer.some(p=>p.cliente==='Ricardo tarifa');
+    const tieneOsvaldo = papAyer.some(p=>p.cliente==='Osvaldo cierra');
+    if(!tieneRicardo) papAyer.push({ cliente: 'Ricardo tarifa', valor: 10, fecha: ayer });
+    if(!tieneOsvaldo) papAyer.push({ cliente: 'Osvaldo cierra', valor: 35, fecha: ayer });
+    lsSet(key, JSON.stringify(papAyer));
+  }catch(e){}
+})();
+
 function renderGastosHoy(){
   const gastos = getGastosHoy();
   const lista = document.getElementById('gastos-lista-hoy');
@@ -3056,8 +3073,6 @@ function confirmarRenovar(){
     const keyPap = 'papeleria_renovaciones_' + hoyRen;
     let papList = [];
     try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
-    // Evitar duplicados del mismo cliente en el mismo día
-    papList = papList.filter(p => p.cliente !== c.nombre);
     papList.push({ cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen });
     lsSet(keyPap, JSON.stringify(papList));
   })();
@@ -3066,6 +3081,7 @@ function confirmarRenovar(){
 
   renderClientes();
   getDatos(); // actualizar resumen del día
+  renderGastosHoy(); // actualizar papelería en pantalla Gasto
   cerrarModal('modal-renovar-overlay');
   showToast('🔄 Préstamo renovado correctamente');
 }
@@ -6586,8 +6602,14 @@ function renderResumenSemanal(){
     const registro = hist.find(h=>h.fecha===iso);
     if(registro){
       if((registro.prestamos||0)>0){ totalPrestado+=registro.prestamos; diasConPrestamo++; }
-      if((registro.papeleria||0)>0){ totalPapeleria+=registro.papeleria; diasConPapeleria++; }
     }
+    // Papelería de renovaciones de ese día
+    let papList = [];
+    try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+iso)||'[]'); }catch(e){}
+    const sumPap = papList.reduce((s,p)=>s+p.valor,0);
+    const papManual = registro ? (registro.papeleria||0) : 0;
+    const totalDiaPap = sumPap + papManual;
+    if(totalDiaPap > 0){ totalPapeleria += totalDiaPap; diasConPapeleria++; }
   }
 
   const rangoEl = document.getElementById('resumen-sem-rango');
