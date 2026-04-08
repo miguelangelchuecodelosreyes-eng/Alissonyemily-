@@ -2138,14 +2138,7 @@ function recalcularCuentas(){
     const sumPapEnt = papList.reduce((s,p)=>s+p.valor,0);
     if(inputPap) inputPap.value = sumPapEnt;
     if(totalEnt) totalEnt.textContent = sumPapEnt > 0 ? fmt(sumPapEnt) : '$0';
-    if(listaEnt){
-      listaEnt.innerHTML = papList.map(p=>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 8px 2px 16px">
-          <span style="font-size:11px;font-weight:700;color:#888">👤 ${p.cliente}</span>
-          <span style="font-size:12px;font-weight:900;color:${p.valor>0?'#cc00aa':'#aaa'}">${p.valor>0?fmt(p.valor):'$0'}</span>
-        </div>`
-      ).join('');
-    }
+    if(listaEnt) listaEnt.innerHTML = '';
   })();
 
   window._datosHoy = {fecha:hoy,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:res};
