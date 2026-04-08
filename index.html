@@ -817,6 +817,14 @@ body {
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#ff4444;text-align:right;background:transparent;cursor:default"
           oninput="recalcularCuentas()">
       </div>
+      <!-- PAPELERÍA CLIENTES (al lado de Gasto) -->
+      <div style="border-bottom:1px solid #f0f0f0">
+        <div style="padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería</span>
+          <span style="font-size:14px;font-weight:800;color:#cc00aa" id="salidas-papeleria-total">$0</span>
+        </div>
+        <div id="salidas-papeleria-lista" style="padding:0 8px 6px"></div>
+      </div>
       <div style="padding:5px 8px;background:#ffe8e8;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;font-weight:900;color:#ff1111">TOTAL</span>
         <span style="font-size:16px;font-weight:900;color:#ff1111" id="total-salidas">$0</span>
@@ -872,6 +880,15 @@ body {
           <div style="font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8" id="pleno-label">PLENO</div>
           <div style="font-size:28px;font-weight:900;line-height:1;color:white" id="pleno-num">—</div>
         </div>
+      </div>
+
+      <!-- PAPELERÍA DE RENOVACIONES DEL DÍA -->
+      <div id="bloque-papeleria-renovaciones" style="display:none;margin-top:10px;background:rgba(255,255,255,0.05);border-radius:12px;overflow:hidden;border:1px solid rgba(204,0,170,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="font-size:11px;font-weight:900;color:#cc00aa;letter-spacing:1.5px;text-transform:uppercase">📋 PAPELERÍA CLIENTES</div>
+          <div style="font-size:13px;font-weight:900;color:#cc00aa" id="papeleria-ren-total">$0</div>
+        </div>
+        <div id="papeleria-ren-lista" style="padding:4px 0"></div>
       </div>
 
       <!-- CLIENTES NUEVOS Y RENOVACIONES DEL DÍA -->
@@ -1018,6 +1035,17 @@ body {
       </div>
       <div id="gastos-lista-hoy" style="padding:10px 14px">
         <div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 Sin gastos registrados hoy</div>
+      </div>
+    </div>
+
+    <!-- Papelería de clientes del día -->
+    <div id="bloque-papeleria-gastos" style="margin-top:14px;background:white;border-radius:20px;overflow:hidden;border:1.5px solid #e8b4f8;box-shadow:0 2px 12px rgba(0,0,0,0.07);display:none">
+      <div style="background:linear-gradient(135deg,#8b00ff,#cc00aa);padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Papelería clientes</div>
+        <div style="font-size:13px;font-weight:900;color:white" id="papeleria-gastos-total">Total: $0</div>
+      </div>
+      <div id="papeleria-gastos-lista" style="padding:10px 14px">
+        <div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">Sin papelería hoy</div>
       </div>
     </div>
 
@@ -1683,7 +1711,15 @@ body {
     </div>
     <div class="modal-campo">
       <label class="modal-label">💳 Nueva cuota sugerida (opcional)</label>
-      <input type="number" class="modal-input" id="ren-cuota" placeholder="0">
+      <input type="number" class="modal-input" id="ren-cuota" placeholder="0" oninput="actualizarResumenRenovar()">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">💵 Cuota cobrada hoy (descuento)</label>
+      <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">📋 Papelería (descuento al cliente)</label>
+      <input type="number" class="modal-input" id="ren-papeleria" placeholder="0" oninput="actualizarResumenRenovar()">
     </div>
     <input type="hidden" id="ren-id">
     <div class="modal-btns">
@@ -2073,6 +2109,53 @@ function recalcularCuentas(){
   else{const desc=res-entregado;if(desc===0){cd.className='descuadre-caja ok';ld.className='descuadre-label ok';ld.textContent='✅ CUADRA PERFECTO';nd.className='descuadre-num ok';nd.textContent='$0';}else if(desc>0){cd.className='descuadre-caja mal';ld.className='descuadre-label mal';ld.textContent='FALTA ENTREGAR';nd.className='descuadre-num mal';nd.textContent=fmt(desc);}else{cd.className='descuadre-caja mal';ld.className='descuadre-label mal';ld.textContent='DESCUADRE';nd.className='descuadre-num mal';nd.textContent='-'+fmt(desc);}}
 
   renderNuevosRenovacionesHoy();
+
+  // Papelería de renovaciones del día — en SALIDAS y en bloque inferior
+  (function(){
+    const keyPap = 'papeleria_renovaciones_' + hoy;
+    let papList = [];
+    try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
+
+    // --- Bloque inferior (resultado del día) ---
+    const bloque = document.getElementById('bloque-papeleria-renovaciones');
+    const listaRes  = document.getElementById('papeleria-ren-lista');
+    const totalRes  = document.getElementById('papeleria-ren-total');
+    if(bloque && listaRes && totalRes){
+      if(papList.length === 0){
+        bloque.style.display = 'none';
+      } else {
+        bloque.style.display = 'block';
+        const sum = papList.reduce((s,p)=>s+p.valor,0);
+        totalRes.textContent = fmt(sum);
+        listaRes.innerHTML = papList.map(p=>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <div style="font-size:13px;font-weight:700;color:#ddd">👤 ${p.cliente}</div>
+            <div style="font-size:14px;font-weight:900;color:${p.valor>0?'#cc00aa':'#888'}">${p.valor>0?fmt(p.valor):'$0'}</div>
+          </div>`
+        ).join('');
+      }
+    }
+
+    // --- Sección al lado de Gasto en SALIDAS ---
+    const totalSal = document.getElementById('salidas-papeleria-total');
+    const listaSal = document.getElementById('salidas-papeleria-lista');
+    if(totalSal && listaSal){
+      if(papList.length === 0){
+        totalSal.textContent = '$0';
+        listaSal.innerHTML = '';
+      } else {
+        const sum = papList.reduce((s,p)=>s+p.valor,0);
+        totalSal.textContent = fmt(sum);
+        listaSal.innerHTML = papList.map(p=>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+            <span style="font-size:11px;font-weight:700;color:#888">👤 ${p.cliente}</span>
+            <span style="font-size:12px;font-weight:900;color:${p.valor>0?'#cc00aa':'#aaa'}">${p.valor>0?fmt(p.valor):'$0'}</span>
+          </div>`
+        ).join('');
+      }
+    }
+  })();
+
   window._datosHoy = {fecha:hoy,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:res};
 }
 
@@ -2245,20 +2328,46 @@ function renderGastosHoy(){
   if(totalEl) totalEl.textContent = 'Total: '+fmt(total);
   if(!gastos.length){
     lista.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 Sin gastos registrados hoy</div>';
-    return;
+  } else {
+    lista.innerHTML = gastos.map((g,i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0${i===gastos.length-1?';border-bottom:none':''}">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#333">${g.tipo}</div>
+          ${g.desc ? `<div style="font-size:12px;color:#666;font-weight:600;margin-top:4px;line-height:1.4">📝 ${g.desc}</div>` : ''}
+          <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:4px">${g.hora||''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:18px;font-weight:900;color:#ff4444">${fmt(g.valor)}</div>
+          <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+        </div>
+      </div>`).join('');
   }
-  lista.innerHTML = gastos.map((g,i) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0${i===gastos.length-1?';border-bottom:none':''}">
-      <div>
-        <div style="font-size:14px;font-weight:800;color:#333">${g.tipo}</div>
-        ${g.desc ? `<div style="font-size:12px;color:#666;font-weight:600;margin-top:4px;line-height:1.4">📝 ${g.desc}</div>` : ''}
-        <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:4px">${g.hora||''}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:18px;font-weight:900;color:#ff4444">${fmt(g.valor)}</div>
-        <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
-      </div>
-    </div>`).join('');
+
+  // Papelería de clientes del día
+  const hoy = fechaHoy();
+  let papList = [];
+  try{ papList = JSON.parse(lsGet('papeleria_renovaciones_' + hoy)||'[]'); }catch(e){}
+  const bloquePap = document.getElementById('bloque-papeleria-gastos');
+  const listaPap  = document.getElementById('papeleria-gastos-lista');
+  const totalPap  = document.getElementById('papeleria-gastos-total');
+  if(bloquePap && listaPap && totalPap){
+    if(papList.length === 0){
+      bloquePap.style.display = 'none';
+    } else {
+      bloquePap.style.display = 'block';
+      const sumPap = papList.reduce((s,p)=>s+p.valor,0);
+      totalPap.textContent = 'Total: ' + fmt(sumPap);
+      listaPap.innerHTML = papList.map((p,i) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5eeff${i===papList.length-1?';border-bottom:none':''}">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#8b00ff">👤 ${p.cliente}</div>
+            <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:2px">Descuento papelería</div>
+          </div>
+          <div style="font-size:18px;font-weight:900;color:${p.valor>0?'#cc00aa':'#bbb'}">${p.valor>0?fmt(p.valor):'$0'}</div>
+        </div>`
+      ).join('');
+    }
+  }
 }
 
 function renderHistorialGastos(){
@@ -2588,33 +2697,37 @@ function actualizarResumenRenovar(){
     document.getElementById('rr-total').textContent=fmt(p.total);
     document.getElementById('rr-saldo-ant').textContent=fmt(saldoAnt);
 
-    // El cliente ya tiene su saldo a favor (lo que debe).
-    // Tú solo le entregas: CAPITAL - saldo que ya tiene
-    // Ejemplo: capital=500, saldo=285 → tú entregas 215
-    // Los intereses NO se entregan, solo se cobran después.
-    const aEntregar = p.capital - saldoAnt;
+    // Entregar al cliente: Capital − Saldo − Cuota cobrada hoy − Papelería
+    // Ejemplo: Capital 300 − Saldo 100 − Cuota 12 − Papelería 15 = 173
+    const papeleria  = parseFloat(document.getElementById('ren-papeleria').value)||0;
+    const cuotaHoy   = parseFloat(document.getElementById('ren-cuota-hoy').value)||0;
+    const aEntregar  = p.capital - saldoAnt - cuotaHoy - papeleria;
     const box   = document.getElementById('rr-diferencia-box');
     const lbl   = document.getElementById('rr-diferencia-label');
     const monto = document.getElementById('rr-diferencia-monto');
 
+    // Línea explicativa detallada
+    let subParts = [`Capital ${fmt(p.capital)} − Saldo ${fmt(saldoAnt)}`];
+    if(cuotaHoy>0)  subParts.push(`Cuota ${fmt(cuotaHoy)}`);
+    if(papeleria>0) subParts.push(`Pap. ${fmt(papeleria)}`);
+    const subTexto = subParts.join(' − ') + ` = ${fmt(Math.abs(aEntregar))}`;
+
     if(aEntregar > 0){
-      // Tú le das dinero para completar su préstamo
       box.style.background='#e8f4ff';
       box.style.border='2px solid #ff00cc';
       lbl.style.color='#ff00cc';
       lbl.textContent='💸 Tú le entregas al cliente';
       monto.style.color='#ff00cc';
       monto.textContent=fmt(aEntregar);
-      document.getElementById('rr-diferencia-sub').textContent=`Capital ${fmt(p.capital)} − Saldo ${fmt(saldoAnt)} = ${fmt(aEntregar)}`;
+      document.getElementById('rr-diferencia-sub').textContent=subTexto;
     } else if(aEntregar < 0){
-      // El cliente te da dinero (su saldo cubre y sobra)
       box.style.background='#fff3e0';
       box.style.border='2px solid #e07b00';
       lbl.style.color='#e07b00';
       lbl.textContent='⬆️ Cliente te entrega';
       monto.style.color='#e07b00';
       monto.textContent=fmt(Math.abs(aEntregar));
-      document.getElementById('rr-diferencia-sub').textContent=`Saldo ${fmt(saldoAnt)} − Capital ${fmt(p.capital)} = ${fmt(Math.abs(aEntregar))}`;
+      document.getElementById('rr-diferencia-sub').textContent=subTexto;
     } else {
       box.style.background='#e0fff0';
       box.style.border='2px solid #00e65c';
@@ -2905,7 +3018,24 @@ function confirmarRenovar(){
   clientes[idx].renovaciones=(c.renovaciones||0)+1;
   clientes[idx].fechaRenovacion=getFechaActiva();
   saveClientes(clientes);
+
+  // Guardar papelería de esta renovación (siempre, aunque sea 0)
+  const papeleriaRen = parseFloat(document.getElementById('ren-papeleria').value)||0;
+  (function(){
+    const hoyRen = getFechaActiva();
+    const keyPap = 'papeleria_renovaciones_' + hoyRen;
+    let papList = [];
+    try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
+    // Evitar duplicados del mismo cliente en el mismo día
+    papList = papList.filter(p => p.cliente !== c.nombre);
+    papList.push({ cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen });
+    lsSet(keyPap, JSON.stringify(papList));
+  })();
+  document.getElementById('ren-papeleria').value='';
+  document.getElementById('ren-cuota-hoy').value='';
+
   renderClientes();
+  getDatos(); // actualizar resumen del día
   cerrarModal('modal-renovar-overlay');
   showToast('🔄 Préstamo renovado correctamente');
 }
