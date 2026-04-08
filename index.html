@@ -3424,6 +3424,21 @@ function renderClientes(){
     const nCuotas = cuotaDia > 0 ? Math.ceil(c.prestamo / cuotaDia) : 0;
     const diasStr = nCuotas > 0 ? (c.tipo==='diario' ? `${nCuotas} días` : `${nCuotas} semanas`) : '';
     const cuotasPagadas = ultPagos.length;
+    // Calcular etiqueta de última cuota para mostrar en la tarjeta
+    const ultCuotaLabel = (()=>{
+      const up = ultPagos[0];
+      if(!up) return '';
+      const fd = up.fecha||'';
+      let label = fd;
+      try{
+        const [y,m,d] = fd.split('-');
+        const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+        const dt = new Date(Number(y),Number(m)-1,Number(d));
+        const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        label = dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];
+      }catch(e){}
+      return label+'-'+fmt(up.monto);
+    })();
     return `
     <div class="cliente-card" id="card-${c.id}">
       <div class="cliente-card-header" onclick="toggleBody('${c.id}')" >
@@ -3442,6 +3457,8 @@ function renderClientes(){
           ${fechaPrestamo ? `<div style="font-size:11px;color:#999;font-weight:700;margin-top:2px">📅 ${fechaBonita(fechaPrestamo)}</div>` : ''}
           <!-- Atraso -->
           ${debe ? `<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</span>${c.capital&&c.prestamo?`<span style="font-size:10px;font-weight:900;color:#8b00ff;background:#f3e8ff;border-radius:6px;padding:1px 6px;white-space:nowrap">${fmt(c.capital)}→${fmt(c.prestamo)}</span>`:''}</div>` : ''}
+          <!-- Última cuota -->
+          ${ultCuotaLabel ? `<div style="margin-top:2px;display:flex;align-items:center;gap:4px"><span style="font-size:10px;font-weight:800;color:#16a34a">✅ Últ.cuota:</span><span style="font-size:10px;font-weight:900;color:#16a34a;background:#d1fae5;border-radius:6px;padding:1px 6px;white-space:nowrap">${ultCuotaLabel}</span></div>` : ''}
         </div>
         <!-- Columna derecha: pago hoy + cuota + saldo -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:6px;flex-shrink:0;min-width:68px">
