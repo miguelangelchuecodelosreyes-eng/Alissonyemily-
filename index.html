@@ -783,11 +783,13 @@ body {
         </div>
         <div id="general-detalle" style="font-size:9px;font-weight:700;text-align:right;margin-top:1px"></div>
       </div>
-      <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;font-weight:700;color:#555">📋 Papelería</span>
-        <input type="number" id="input-papeleria" placeholder="0" inputmode="numeric"
-          style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
-          oninput="recalcularCuentas()">
+      <div style="border-bottom:1px solid #f0f0f0">
+        <div style="padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería</span>
+          <span style="font-size:14px;font-weight:800;color:#cc00aa" id="entradas-papeleria-total">$0</span>
+        </div>
+        <div id="entradas-papeleria-lista" style="padding:0 8px 4px"></div>
+        <input type="hidden" id="input-papeleria" value="0">
       </div>
       <div style="padding:5px 8px;background:#e8f0fe;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;font-weight:900;color:#cc00aa">TOTAL</span>
@@ -817,14 +819,7 @@ body {
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#ff4444;text-align:right;background:transparent;cursor:default"
           oninput="recalcularCuentas()">
       </div>
-      <!-- PAPELERÍA CLIENTES (al lado de Gasto) -->
-      <div style="border-bottom:1px solid #f0f0f0">
-        <div style="padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería</span>
-          <span style="font-size:14px;font-weight:800;color:#cc00aa" id="salidas-papeleria-total">$0</span>
-        </div>
-        <div id="salidas-papeleria-lista" style="padding:0 8px 6px"></div>
-      </div>
+
       <div style="padding:5px 8px;background:#ffe8e8;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;font-weight:900;color:#ff1111">TOTAL</span>
         <span style="font-size:16px;font-weight:900;color:#ff1111" id="total-salidas">$0</span>
@@ -2136,23 +2131,20 @@ function recalcularCuentas(){
       }
     }
 
-    // --- Sección al lado de Gasto en SALIDAS ---
-    const totalSal = document.getElementById('salidas-papeleria-total');
-    const listaSal = document.getElementById('salidas-papeleria-lista');
-    if(totalSal && listaSal){
-      if(papList.length === 0){
-        totalSal.textContent = '$0';
-        listaSal.innerHTML = '';
-      } else {
-        const sum = papList.reduce((s,p)=>s+p.valor,0);
-        totalSal.textContent = fmt(sum);
-        listaSal.innerHTML = papList.map(p=>
-          `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-            <span style="font-size:11px;font-weight:700;color:#888">👤 ${p.cliente}</span>
-            <span style="font-size:12px;font-weight:900;color:${p.valor>0?'#cc00aa':'#aaa'}">${p.valor>0?fmt(p.valor):'$0'}</span>
-          </div>`
-        ).join('');
-      }
+    // --- Papelería en ENTRADAS (total + desglose clientes) ---
+    const totalEnt = document.getElementById('entradas-papeleria-total');
+    const listaEnt = document.getElementById('entradas-papeleria-lista');
+    const inputPap = document.getElementById('input-papeleria');
+    const sumPapEnt = papList.reduce((s,p)=>s+p.valor,0);
+    if(inputPap) inputPap.value = sumPapEnt;
+    if(totalEnt) totalEnt.textContent = sumPapEnt > 0 ? fmt(sumPapEnt) : '$0';
+    if(listaEnt){
+      listaEnt.innerHTML = papList.map(p=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 8px 2px 16px">
+          <span style="font-size:11px;font-weight:700;color:#888">👤 ${p.cliente}</span>
+          <span style="font-size:12px;font-weight:900;color:${p.valor>0?'#cc00aa':'#aaa'}">${p.valor>0?fmt(p.valor):'$0'}</span>
+        </div>`
+      ).join('');
     }
   })();
 
