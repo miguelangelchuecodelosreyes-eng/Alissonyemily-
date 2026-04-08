@@ -3450,6 +3450,7 @@ function renderClientes(){
           <!-- Fila badges -->
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:3px">
             ${c.cedula ? `<span style="font-size:11px;color:#888;font-weight:700">🪪 ${c.cedula}</span>` : ""}
+            ${c.tel ? `<span style="font-size:11px;color:#1a56db;font-weight:700">📱 ${c.tel}</span>` : ""}
             <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
             ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
           </div>
