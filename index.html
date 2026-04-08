@@ -2306,6 +2306,7 @@ function eliminarGasto(idx){
 }
 
 // Inyectar papelería de renovaciones de ayer si no existe (datos perdidos por actualización)
+// Ayer (2026-04-07): Ricardo tarifa $10 + Osvaldo cierra $35 = $45 total
 (function(){
   try{
     const ayer = '2026-04-07';
@@ -2318,6 +2319,19 @@ function eliminarGasto(idx){
     if(!tieneRicardo) papAyer.push({ cliente: 'Ricardo tarifa', valor: 10, fecha: ayer });
     if(!tieneOsvaldo) papAyer.push({ cliente: 'Osvaldo cierra', valor: 35, fecha: ayer });
     lsSet(key, JSON.stringify(papAyer));
+  }catch(e){}
+})();
+
+// Corregir papelería de hoy (2026-04-08): Lorena $15 + Juan Orozco $25 = $40
+(function(){
+  try{
+    const hoy = '2026-04-08';
+    const key = 'papeleria_renovaciones_' + hoy;
+    const papHoy = [
+      { cliente: 'Lorena', valor: 15, fecha: hoy },
+      { cliente: 'Juan Orozco', valor: 25, fecha: hoy }
+    ];
+    lsSet(key, JSON.stringify(papHoy));
   }catch(e){}
 })();
 
