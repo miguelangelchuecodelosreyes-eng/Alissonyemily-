@@ -2396,6 +2396,25 @@ function renderHistorialGastos(){
     });
   }catch(e){}
 
+  // También incluir fechas con papelería de renovaciones
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('papeleria_renovaciones_')){
+        const fecha = k.replace('papeleria_renovaciones_','');
+        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
+      }
+    }
+  }catch(e){}
+  try{
+    Object.keys(window._memStorage||{}).forEach(k=>{
+      if(k.startsWith('papeleria_renovaciones_')){
+        const fecha = k.replace('papeleria_renovaciones_','');
+        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
+      }
+    });
+  }catch(e){}
+
   fechasConGastos.sort((a,b)=>b.localeCompare(a));
 
   // Llenar el dropdown
@@ -2422,7 +2441,10 @@ function renderHistorialGastos(){
   el.innerHTML = fechasFiltradas.map(fecha => {
     let gastos = [];
     try{ gastos = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); }catch(e){}
-    if(!gastos.length) return '';
+    let papList = [];
+    try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+fecha)||'[]'); }catch(e){}
+    if(!gastos.length && !papList.length) return '';
+
     const total = gastos.reduce((s,g)=>s+g.valor,0);
     const filas = gastos.map(g => `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f5">
@@ -2433,12 +2455,35 @@ function renderHistorialGastos(){
         </div>
         <div style="font-size:17px;font-weight:900;color:#ff4444;white-space:nowrap;padding-left:10px">${fmt(g.valor)}</div>
       </div>`).join('');
+
+    // Bloque papelería de ese día
+    let filaPapeleria = '';
+    if(papList.length > 0){
+      const sumPap = papList.reduce((s,p)=>s+p.valor,0);
+      const filasPap = papList.map(p=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f5eeff">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#8b00ff">👤 ${p.cliente}</div>
+            <div style="font-size:11px;color:#aaa;font-weight:700;margin-top:2px">Descuento papelería</div>
+          </div>
+          <div style="font-size:17px;font-weight:900;color:${p.valor>0?'#cc00aa':'#bbb'};white-space:nowrap;padding-left:10px">${p.valor>0?fmt(p.valor):'$0'}</div>
+        </div>`).join('');
+      filaPapeleria = `
+        <div style="margin-top:6px;border-top:2px solid #f0e0ff;padding-top:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-size:11px;font-weight:900;color:#cc00aa;letter-spacing:1px;text-transform:uppercase">📋 Papelería clientes</div>
+            <div style="font-size:13px;font-weight:900;color:#cc00aa">${fmt(sumPap)}</div>
+          </div>
+          ${filasPap}
+        </div>`;
+    }
+
     return `<div style="background:white;border-radius:16px;margin-bottom:10px;border:1.5px solid #ffc5c5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
       <div style="background:#1a1a2e;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
         <div style="font-size:13px;font-weight:900;color:white">📅 ${fechaBonita(fecha)}</div>
         <div style="font-size:13px;font-weight:900;color:#ff6666">${fmt(total)}</div>
       </div>
-      <div style="padding:4px 14px 6px">${filas}</div>
+      <div style="padding:4px 14px 10px">${filas}${filaPapeleria}</div>
     </div>`;
   }).filter(Boolean).join('');
 
