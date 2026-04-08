@@ -1690,6 +1690,14 @@ body {
       </div>
     </div>
     <div class="modal-campo" style="margin-top:14px">
+      <label class="modal-label">📋 Papelería (descuento al cliente)</label>
+      <input type="number" class="modal-input" id="ren-papeleria" placeholder="0" oninput="actualizarResumenRenovar()">
+    </div>
+    <div class="modal-campo">
+      <label class="modal-label">💵 Cuota cobrada hoy (descuento)</label>
+      <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()">
+    </div>
+    <div class="modal-campo">
       <label class="modal-label">📅 Tipo de pago</label>
       <select class="modal-select" id="ren-tipo" onchange="toggleDiaSemana('ren-dia-semana-row',this.value)">
         <option value="semanal">📅 Semanal</option>
@@ -1712,14 +1720,6 @@ body {
     <div class="modal-campo">
       <label class="modal-label">💳 Nueva cuota sugerida (opcional)</label>
       <input type="number" class="modal-input" id="ren-cuota" placeholder="0" oninput="actualizarResumenRenovar()">
-    </div>
-    <div class="modal-campo">
-      <label class="modal-label">💵 Cuota cobrada hoy (descuento)</label>
-      <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()">
-    </div>
-    <div class="modal-campo">
-      <label class="modal-label">📋 Papelería (descuento al cliente)</label>
-      <input type="number" class="modal-input" id="ren-papeleria" placeholder="0" oninput="actualizarResumenRenovar()">
     </div>
     <input type="hidden" id="ren-id">
     <div class="modal-btns">
