@@ -3751,13 +3751,25 @@ function borrarTodo(){
 // ===== COPIA DE SEGURIDAD =====
 function exportarDatos(){
   const creds = getCredencialesCobrador();
+  // Recopilar papelería y gastos de todos los días
+  const papelerias = {};
+  const gastos = {};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.startsWith('papeleria_renovaciones_')) try{papelerias[k]=JSON.parse(localStorage.getItem(k));}catch(e){}
+      if(k && k.startsWith('gastos_dia_')) try{gastos[k]=JSON.parse(localStorage.getItem(k));}catch(e){}
+    }
+  }catch(e){}
   const datos = {
-    version: '1.0',
+    version: '3',
     fechaExportacion: new Date().toISOString(),
     clientes: JSON.parse(lsGet('clientes_v1')||'[]'),
     historial: JSON.parse(lsGet('hist_v3')||'[]'),
     credenciales: creds || {},
-    historial_cedulas: JSON.parse(lsGet('historial_cedulas_v1')||'[]')
+    historial_cedulas: JSON.parse(lsGet('historial_cedulas_v1')||'[]'),
+    papelerias,
+    gastos
   };
   const json = JSON.stringify(datos, null, 2);
   const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g,'-');
@@ -3823,6 +3835,14 @@ function restaurarDesdeRegistro(event){
       if(datos.manuales){
         Object.keys(datos.manuales).forEach(k=>{ lsSet(k, JSON.stringify(datos.manuales[k])); });
       }
+      // Restaurar papelería de renovaciones
+      if(datos.papelerias){
+        Object.keys(datos.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(datos.papelerias[k])); });
+      }
+      // Restaurar gastos del día
+      if(datos.gastos){
+        Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
+      }
       // Pasar directo al login con mensaje
       const totalClientes = (datos.clientes||[]).length;
       setTimeout(()=>{
@@ -3875,6 +3895,18 @@ function importarDatos(event){
       if(datos.manuales){
         Object.keys(datos.manuales).forEach(k=>{
           lsSet(k, JSON.stringify(datos.manuales[k]));
+        });
+      }
+      // Restaurar papelería de renovaciones (antes se perdía)
+      if(datos.papelerias){
+        Object.keys(datos.papelerias).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.papelerias[k]));
+        });
+      }
+      // Restaurar gastos del día (antes se perdían)
+      if(datos.gastos){
+        Object.keys(datos.gastos).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.gastos[k]));
         });
       }
       renderClientes();
@@ -7423,10 +7455,18 @@ function abrirPanelDiagnostico() {
     const porcentaje = localStorage.getItem('porcentaje_interes') || '20';
     const historialCedulas = JSON.parse(localStorage.getItem('historial_cedulas_v1') || '[]');
     const manuales = {};
+    const papelerias = {};
+    const gastos = {};
     for(let i = 0; i < localStorage.length; i++){
       const k = localStorage.key(i);
       if(k && k.startsWith('sup_manual_')){
         try { manuales[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
+      }
+      if(k && k.startsWith('papeleria_renovaciones_')){
+        try { papelerias[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
+      }
+      if(k && k.startsWith('gastos_dia_')){
+        try { gastos[k] = JSON.parse(localStorage.getItem(k)); } catch(e){}
       }
     }
     const hoyKey = (function(){
@@ -7448,7 +7488,7 @@ function abrirPanelDiagnostico() {
       salidas: { prestamos: prestamosHoy, neki: manualHoy.neki || 0, gasto: manualHoy.gasto || 0 },
       entregado_oficina: manualHoy.entregado || 0
     };
-    return { version: 2, fecha_backup: new Date().toISOString(), clientes, historial, credenciales, porcentaje_interes: porcentaje, manuales, cuentas_dia, historial_cedulas: historialCedulas };
+    return { version: 3, fecha_backup: new Date().toISOString(), clientes, historial, credenciales, porcentaje_interes: porcentaje, manuales, papelerias, gastos, cuentas_dia, historial_cedulas: historialCedulas };
   }
 
   function actualizarIndicadorSync(estado) {
