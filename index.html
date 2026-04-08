@@ -1984,7 +1984,13 @@ function recalcularCuentas(){
   const clientes = getClientes();
 
   const base      = parseFloat(document.getElementById('input-base').value)||0;
-  const papeleria = parseFloat(document.getElementById('input-papeleria').value)||0;
+  // Papelería: leer SOLO desde renovaciones del día (fuente única, sin doble conteo)
+  let papeleria = 0;
+  (function(){
+    let papListTemp = [];
+    try{ papListTemp = JSON.parse(lsGet('papeleria_renovaciones_'+hoy)||'[]'); }catch(e){}
+    papeleria = papListTemp.reduce((s,p)=>s+p.valor,0);
+  })();
   const neki      = parseFloat(document.getElementById('input-neki').value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
   const entregado = parseFloat(document.getElementById('input-entregado').value)||0;
@@ -4535,7 +4541,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2025-03-30 v2';
+const APP_VERSION = '2026-04-08 v3';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -4545,18 +4551,64 @@ function mostrarVersionApp(){
 }
 
 function forzarActualizacion(){
-  showToast('🔄 Forzando actualización...');
-  // Limpiar caché del navegador
+  showToast('🔄 Actualizando...');
   if('caches' in window){
-    caches.keys().then(names => {
-      names.forEach(name => caches.delete(name));
-    });
+    caches.keys().then(names => { names.forEach(name => caches.delete(name)); });
   }
-  // Recargar sin caché
-  setTimeout(() => {
-    window.location.reload(true);
-  }, 800);
+  setTimeout(() => { window.location.reload(true); }, 800);
 }
+
+// ── Auto-actualización: compara versión del servidor vs local ──
+(function autoUpdate(){
+  try{
+    const VER_KEY = 'app_version_local';
+    const verLocal = localStorage.getItem(VER_KEY) || '';
+    // Fetch del propio index.html sin caché para leer su versión
+    fetch(window.location.href + '?_cache=' + Date.now(), {cache: 'no-store'})
+      .then(r => r.text())
+      .then(html => {
+        const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+        if(!m) return;
+        const verServidor = m[1];
+        if(verLocal && verLocal !== verServidor){
+          // Hay versión nueva — limpiar caché y recargar automáticamente
+          console.log('Nueva versión detectada:', verServidor, '→ recargando');
+          if('caches' in window){
+            caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
+          }
+          localStorage.setItem(VER_KEY, verServidor);
+          setTimeout(() => window.location.reload(true), 500);
+        } else {
+          // Guardar versión actual
+          localStorage.setItem(VER_KEY, verServidor);
+        }
+      })
+      .catch(() => {}); // Si no hay internet, no hacer nada
+  }catch(e){}
+  // Revisar de nuevo cada 5 minutos mientras la app está abierta
+  setInterval(function(){
+    try{
+      fetch(window.location.href + '?_cache=' + Date.now(), {cache: 'no-store'})
+        .then(r => r.text())
+        .then(html => {
+          const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+          if(!m) return;
+          const verServidor = m[1];
+          const verLocal = localStorage.getItem('app_version_local') || '';
+          if(verLocal && verLocal !== verServidor){
+            console.log('Versión nueva en segundo plano:', verServidor);
+            if('caches' in window){
+              caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
+            }
+            localStorage.setItem('app_version_local', verServidor);
+            showToast('🔄 Nueva versión disponible, actualizando...');
+            setTimeout(() => window.location.reload(true), 1500);
+          }
+        })
+        .catch(() => {});
+    }catch(e){}
+  }, 5 * 60 * 1000);
+})();
 
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
@@ -6626,7 +6678,10 @@ function renderResumenSemanal(){
     try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+iso)||'[]'); }catch(e){}
     const sumPap = papList.reduce((s,p)=>s+p.valor,0);
     const papManual = registro ? (registro.papeleria||0) : 0;
-    const totalDiaPap = sumPap + papManual;
+    // Usar solo UNA fuente para evitar doble conteo:
+    // si hay papelería de renovaciones en localStorage, esa es la fuente correcta.
+    // Solo usar papManual si no hay datos de renovaciones.
+    const totalDiaPap = sumPap > 0 ? sumPap : papManual;
     if(totalDiaPap > 0){ totalPapeleria += totalDiaPap; diasConPapeleria++; }
   }
 
@@ -6948,9 +7003,7 @@ function iniciarApp(){
   const vEl = document.getElementById('header-versiculo-text');
   if(vEl) vEl.textContent = getVersiculoDelDia();
   renderHistorial();
-  renderResumenSemanal();
-  renderClientes();
-  // ── Corrección papelería ──────────────────────────────────────
+  // ── Corrección papelería — DEBE correr ANTES de renderizar ──
   // Ayer (2026-04-07): Ricardo tarifa $10 + Osvaldo cierra $35 = $45
   (function(){
     const ayer = '2026-04-07';
@@ -6973,7 +7026,9 @@ function iniciarApp(){
     ];
     lsSet(key, JSON.stringify(papHoy));
   })();
-  // ─────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────
+  renderResumenSemanal();
+  renderClientes();
   cargarDesdeSupervisor();
   actualizarInfoPorcentaje();
 }
