@@ -3929,7 +3929,18 @@ function renderDetalles(){
   const totalCuotas = todasCuotas.reduce((s,c) => s+c.monto, 0);
   const montoCancelados = cancelados.reduce((s,c) => s+c.totalPagado, 0);
 
-  document.getElementById('res-total-cuotas').textContent = fmt(totalCuotas);
+  // Pleno real: misma lógica que recalcularCuentas (incluye pagos dentro de renovaciones)
+  let generalReal = 0;
+  clientes.forEach(c => {
+    (c.pagos||[]).filter(p=>p.fecha===filtroFecha).forEach(p=>{ generalReal += p.monto; });
+    (c.historialRenovaciones||[]).forEach(r=>{
+      (r.pagos||[]).filter(p=>p.fecha===filtroFecha).forEach(p=>{ generalReal += p.monto; });
+      if((r.fecha||r.fechaCreado||'').substring(0,10)===filtroFecha){ generalReal += r.saldoQuedaba || 0; }
+    });
+  });
+  const plenoReal = generalReal - montoCancelados;
+
+  document.getElementById('res-total-cuotas').textContent = fmt(plenoReal);
   document.getElementById('res-num-cuotas').textContent = todasCuotas.length + ' pago' + (todasCuotas.length!==1?'s':'');
   document.getElementById('res-total-cancelados').textContent = cancelados.length;
   document.getElementById('res-monto-cancelados').textContent = fmt(montoCancelados) + ' total';
