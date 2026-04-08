@@ -2305,35 +2305,7 @@ function eliminarGasto(idx){
   );
 }
 
-// Inyectar papelería de renovaciones de ayer si no existe (datos perdidos por actualización)
-// Ayer (2026-04-07): Ricardo tarifa $10 + Osvaldo cierra $35 = $45 total
-(function(){
-  try{
-    const ayer = '2026-04-07';
-    const key = 'papeleria_renovaciones_' + ayer;
-    let papAyer = [];
-    try{ papAyer = JSON.parse(lsGet(key)||'[]'); }catch(e){}
-    // Solo agregar si no están ya
-    const tieneRicardo = papAyer.some(p=>p.cliente==='Ricardo tarifa');
-    const tieneOsvaldo = papAyer.some(p=>p.cliente==='Osvaldo cierra');
-    if(!tieneRicardo) papAyer.push({ cliente: 'Ricardo tarifa', valor: 10, fecha: ayer });
-    if(!tieneOsvaldo) papAyer.push({ cliente: 'Osvaldo cierra', valor: 35, fecha: ayer });
-    lsSet(key, JSON.stringify(papAyer));
-  }catch(e){}
-})();
 
-// Corregir papelería de hoy (2026-04-08): Lorena $15 + Juan Orozco $25 = $40
-(function(){
-  try{
-    const hoy = '2026-04-08';
-    const key = 'papeleria_renovaciones_' + hoy;
-    const papHoy = [
-      { cliente: 'Lorena', valor: 15, fecha: hoy },
-      { cliente: 'Juan Orozco', valor: 25, fecha: hoy }
-    ];
-    lsSet(key, JSON.stringify(papHoy));
-  }catch(e){}
-})();
 
 function renderGastosHoy(){
   const gastos = getGastosHoy();
@@ -6978,6 +6950,30 @@ function iniciarApp(){
   renderHistorial();
   renderResumenSemanal();
   renderClientes();
+  // ── Corrección papelería ──────────────────────────────────────
+  // Ayer (2026-04-07): Ricardo tarifa $10 + Osvaldo cierra $35 = $45
+  (function(){
+    const ayer = '2026-04-07';
+    const key = 'papeleria_renovaciones_' + ayer;
+    let papAyer = [];
+    try{ papAyer = JSON.parse(lsGet(key)||'[]'); }catch(e){}
+    const tieneRicardo = papAyer.some(p=>p.cliente==='Ricardo tarifa');
+    const tieneOsvaldo = papAyer.some(p=>p.cliente==='Osvaldo cierra');
+    if(!tieneRicardo) papAyer.push({ cliente: 'Ricardo tarifa', valor: 10, fecha: ayer });
+    if(!tieneOsvaldo) papAyer.push({ cliente: 'Osvaldo cierra', valor: 35, fecha: ayer });
+    lsSet(key, JSON.stringify(papAyer));
+  })();
+  // Hoy (2026-04-08): Lorena $15 + Juan Orozco $25 = $40 — REEMPLAZA todo lo que haya
+  (function(){
+    const hoy = '2026-04-08';
+    const key = 'papeleria_renovaciones_' + hoy;
+    const papHoy = [
+      { cliente: 'Lorena', valor: 15, fecha: hoy },
+      { cliente: 'Juan Orozco', valor: 25, fecha: hoy }
+    ];
+    lsSet(key, JSON.stringify(papHoy));
+  })();
+  // ─────────────────────────────────────────────────────────────
   cargarDesdeSupervisor();
   actualizarInfoPorcentaje();
 }
