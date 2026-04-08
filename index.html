@@ -3957,7 +3957,20 @@ function renderDetalles(){
     listaCuotas.innerHTML = '<div style="text-align:center;padding:20px;background:white;border-radius:16px;color:#bbb;font-size:14px;font-weight:700;border:1px solid #e8ccf5">📭 No hay cuotas en esta fecha</div>';
   } else {
     listaCuotas.innerHTML = Object.entries(cuotasPorFecha).map(([fecha, cuotas]) => {
-      const totalDia = cuotas.reduce((s,c) => s+c.monto, 0);
+      // Total real del día: igual que recalcularCuentas (incluye pagos dentro de renovaciones, menos cancelados)
+      let totalDiaReal = 0, canceladosDia = 0;
+      getClientes().forEach(c => {
+        (c.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ totalDiaReal += p.monto; });
+        (c.historialRenovaciones||[]).forEach(r=>{
+          (r.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ totalDiaReal += p.monto; });
+          if((r.fecha||r.fechaCreado||'').substring(0,10)===fecha){ totalDiaReal += r.saldoQuedaba||0; }
+        });
+        const pl = c.pagos||[];
+        if(c.saldo===0 && pl.length>0 && pl[0].fecha===fecha) canceladosDia += pl.filter(p=>p.fecha===fecha).reduce((s,p)=>s+p.monto,0);
+        const hr = c.historialRenovaciones||[];
+        if(hr.length>0 && hr[0].fecha===fecha) canceladosDia += hr[0].saldoQuedaba||0;
+      });
+      const totalDia = totalDiaReal - canceladosDia;
       return `<div style="background:white;border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
         <div style="background:#f8eeff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8ccf5">
           <div style="font-size:13px;font-weight:800;color:#cc00aa">📅 ${fechaBonita(fecha)}</div>
