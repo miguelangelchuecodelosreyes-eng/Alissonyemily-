@@ -3686,6 +3686,7 @@ function renderClientes(){
             <div class="saldo-label">SALDO</div>
             <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
           </div>
+          ${(()=>{const hr=c.historialRenovaciones&&c.historialRenovaciones[0];if(!hr)return'';const nt=hr.nuevoTotal||c.prestamo||0;const cuota=hr.cuotaSugerida||c.cuotaSugerida||0;let pap=0;try{const pl=JSON.parse(lsGet('papeleria_renovaciones_'+(hr.fecha||''))||'[]');const pi=pl.find(p=>p.cliente===c.nombre);if(pi)pap=pi.valor||0;}catch(e){}const leQueda=nt-cuota-pap;return leQueda>0?`<div style="background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:3px 8px;margin-top:2px;text-align:center"><div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le queda</div><div style="font-size:13px;font-weight:900;color:#0077ff">${fmt(leQueda)}</div>${pap>0?`<div style="font-size:9px;color:#5599cc;font-weight:700">(−${fmt(pap)} pap. −${fmt(cuota)} cuota)</div>`:cuota>0?`<div style="font-size:9px;color:#5599cc;font-weight:700">(−${fmt(cuota)} cuota)</div>`:''}</div>`:''})()}
         </div>
       </div>
       <div class="cliente-body" id="cbody-${c.id}" style="display:none">
@@ -4313,9 +4314,7 @@ function renderDetalles(){
             <div>
               <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.clienteNombre}</div>
 
-              ${c.esRenovacion && c.saldoQuedaba > 0 ? `<div style="font-size:12px;color:#e07b00;font-weight:700;margin-top:2px">⚠️ Quedaba: ${fmt(c.saldoQuedaba)}</div>` : ''}
-              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#cc00aa;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
-              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:13px;color:#0077ff;font-weight:900;margin-top:3px;background:#e8f4ff;padding:3px 8px;border-radius:8px;display:inline-block">💵 Le queda: ${fmt((c.nuevoTotal||0) - (c.papeleria||0) - (c.cuotaSugerida||0))}${((c.papeleria||0)>0 || (c.cuotaSugerida||0)>0) ? ` <span style="font-size:10px;color:#5599cc;font-weight:700">(−${fmt(c.papeleria||0)} pap. −${fmt(c.cuotaSugerida||0)} cuota)</span>` : ''}</div>` : ''}
+
             </div>
             <div style="text-align:right">
               <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
