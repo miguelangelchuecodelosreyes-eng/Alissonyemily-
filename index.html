@@ -3790,47 +3790,57 @@ function renderClientes(){
             <div id="ns-bar-saldo-${c.id}" style="font-size:26px;font-weight:900;color:#ff2222">—</div>
           </div>
         </div>
-        ${(()=>{
-          const fa=getFechaActiva();
-          const pagosHoy=(c.pagos||[]).filter(p=>p.fecha===fa);
-          const totalHoy=pagosHoy.reduce((s,p)=>s+p.monto,0);
-          const bannerYaPago = totalHoy>0
-            ? `<div style="background:linear-gradient(135deg,#e8fff2,#d1fae5);border:2px solid #00cc55;border-radius:12px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div style="font-size:10px;font-weight:900;color:#00aa44;text-transform:uppercase;letter-spacing:1px">✅ Cobrado hoy</div>
-                  <div style="font-size:18px;font-weight:900;color:#00aa44">+${fmt(totalHoy)}</div>
-                </div>
-                <div style="font-size:11px;color:#666;font-weight:700;text-align:right">Saldo: ${fmt(c.saldo)}<br><span style="color:#aaa;font-size:10px">${pagosHoy.length} abono${pagosHoy.length!==1?'s':''}</span></div>
-              </div>`
-            : '';
-          return `${bannerYaPago}
-          <div class="cuota-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="number" class="cuota-input" style="flex:1;min-width:100px;" autocomplete="off" id="cuota-input-${c.id}"
-              placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
-              oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const bs=document.getElementById('ns-bar-saldo-${c.id}');if(bs){bs.textContent=v>0?(n===0?'✅ ¡Cancelado!':'$'+n.toLocaleString('es-CO')):'—';bs.style.color=n===0?'#00e65c':'#ff2222';}})(this);"
-              onfocus="(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='flex';})()"
-              onblur="setTimeout(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='none';},400)"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
-            <button class="btn-pagar-cuota" style="flex:1;" onclick="pagarCuotaYAvanzar('${c.id}')">${totalHoy>0?'➕ Otra cuota':'💰 Pagar'}</button>
-            <button class="btn-pagar-cuota" style="flex:1;background:#1a56db;" onclick="abrirCartonCliente('${c.id}')">📋 Cartón</button>
-          </div>`;
-        })()}
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button onclick="abrirRenovar('${c.id}')" style="flex:1;padding:12px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">🔄 Renovar</button>
-          <button onclick="verAbonosCliente('${c.id}')" style="flex:1;padding:12px;background:#e8f8f0;color:#00cc55;border:2px solid #66ffaa;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">💰 Abonos</button>
+        <!-- ══ COBRO ══ -->
+        <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">
+          <input type="number" class="cuota-input" style="flex:2;min-width:0;" autocomplete="off" id="cuota-input-${c.id}"
+            placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Ingresa cuota'}"
+            oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const bs=document.getElementById('ns-bar-saldo-${c.id}');if(bs){bs.textContent=v>0?(n===0?'✅ ¡Cancelado!':'$'+n.toLocaleString('es-CO')):'—';bs.style.color=n===0?'#00e65c':'#ff2222';}})(this);"
+            onfocus="(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='flex';})()"
+            onblur="setTimeout(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='none';},400)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
+          <button onclick="pagarCuotaYAvanzar('${c.id}')" style="flex:3;padding:13px 6px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 4px 14px rgba(0,200,83,0.35);display:flex;align-items:center;justify-content:center;gap:6px">
+            <span style="font-size:20px">💵</span> Cobrar
+          </button>
         </div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button onclick="navegarCliente('${c.id}',-1)" style="flex:1;padding:11px;background:#f8eeff;color:#2563eb;border:2px solid #93c5fd;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">‹ Anterior</button>
-          <button onclick="navegarCliente('${c.id}',1)" style="flex:1;padding:11px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">Siguiente ›</button>
-        </div>`:`<div style="text-align:center;padding:10px;color:#00cc55;font-weight:800;font-size:14px;">✅ Préstamo cancelado</div>`}
-        <div class="cliente-acciones">
-          <button class="btn-acc btn-acc-wa" onclick="compartirClienteWA('${c.id}')">📲 WA</button>
-          <button class="btn-acc" onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="background:#1a56db;color:white;">📞 Llamar</button>
-          <button class="btn-acc" onclick="moverCliente('${c.id}',-1)" style="background:#f8eeff;color:#cc00aa;border:2px solid #93c5fd;font-size:18px;min-width:44px">↑</button>
-          <button class="btn-acc" onclick="moverCliente('${c.id}',1)" style="background:#f8eeff;color:#cc00aa;border:2px solid #93c5fd;font-size:18px;min-width:44px">↓</button>
+
+        <!-- ══ ACCIONES PRINCIPALES ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <button onclick="abrirRenovar('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#ff6600,#ff9500);color:white;box-shadow:0 3px 10px rgba(255,102,0,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="font-size:20px">🔄</span>Renovar
+          </button>
+          <button onclick="verAbonosCliente('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;box-shadow:0 3px 10px rgba(124,58,237,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="font-size:20px">📋</span>Abonos
+          </button>
+          <button onclick="abrirCartonCliente('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 3px 10px rgba(26,86,219,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="font-size:20px">🗂️</span>Cartón
+          </button>
         </div>
-        <button onclick="verCancelados('${c.id}')" style="width:100%;margin-top:8px;padding:10px;background:#e0fff0;color:#00cc55;border:2px solid #66ffaa;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-align:center">
-          📋 Ver cancelados y renovaciones
+
+        <!-- ══ NAVEGACIÓN ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <button onclick="navegarCliente('${c.id}',-1)" style="padding:11px;border:2px solid #c4b5fd;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;gap:6px">
+            <span style="font-size:18px">⬅️</span> Anterior
+          </button>
+          <button onclick="navegarCliente('${c.id}',1)" style="padding:11px;border:2px solid #fed7aa;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#fff7ed;color:#ea580c;display:flex;align-items:center;justify-content:center;gap:6px">
+            Siguiente <span style="font-size:18px">➡️</span>
+          </button>
+        </div>`:`<div style="text-align:center;padding:12px;background:linear-gradient(135deg,#e8fff2,#d1fae5);border-radius:14px;color:#00aa44;font-weight:900;font-size:15px;border:2px solid #6ee7b7;">✅ Préstamo cancelado</div>`}
+
+        <!-- ══ CONTACTO + ORDEN ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 44px 44px;gap:8px;margin-bottom:8px">
+          <button onclick="compartirClienteWA('${c.id}')" style="padding:11px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#25D366,#128C7E);color:white;box-shadow:0 3px 10px rgba(37,211,102,0.3);display:flex;align-items:center;justify-content:center;gap:6px">
+            <span style="font-size:18px">💬</span> WhatsApp
+          </button>
+          <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:11px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 3px 10px rgba(26,86,219,0.25);display:flex;align-items:center;justify-content:center;gap:6px">
+            <span style="font-size:18px">📞</span> Llamar
+          </button>
+          <button onclick="moverCliente('${c.id}',-1)" style="padding:11px;border:2px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
+          <button onclick="moverCliente('${c.id}',1)" style="padding:11px;border:2px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
+        </div>
+
+        <!-- ══ HISTORIAL ══ -->
+        <button onclick="verCancelados('${c.id}')" style="width:100%;padding:11px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:2px solid #86efac;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <span style="font-size:16px">📜</span> Ver cancelados y renovaciones
         </button>
       </div>
     </div>`;
@@ -4683,7 +4693,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-08 v3';
+const APP_VERSION = '2026-04-09 v5';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -4699,6 +4709,33 @@ function forzarActualizacion(){
   }
   setTimeout(() => { window.location.reload(true); }, 800);
 }
+
+// ── Recarga al volver a la app (fix APK WebView caché) ──
+(function(){
+  // Cuando la APK vuelve a primer plano, forzar recarga si hay versión nueva
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){
+      try{
+        fetch(window.location.href + '?_v=' + Date.now(), {cache: 'no-store'})
+          .then(r => r.text())
+          .then(html => {
+            const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+            if(!m) return;
+            const verServidor = m[1];
+            const verLocal = localStorage.getItem('app_version_local') || '';
+            if(verLocal && verLocal !== verServidor){
+              if('caches' in window){
+                caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
+              }
+              localStorage.setItem('app_version_local', verServidor);
+              showToast('🔄 Actualizando app...');
+              setTimeout(() => window.location.reload(true), 800);
+            }
+          }).catch(()=>{});
+      }catch(e){}
+    }
+  });
+})();
 
 // ── Auto-actualización: compara versión del servidor vs local ──
 (function autoUpdate(){
