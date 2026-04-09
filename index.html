@@ -3157,6 +3157,7 @@ function confirmarRenovar(){
 
   // Guardar papelería de esta renovación (siempre, aunque sea 0)
   const papeleriaRen = parseFloat(document.getElementById('ren-papeleria').value)||0;
+  const cuotaRen = parseFloat(document.getElementById('ren-cuota-hoy').value)||0;
   (function(){
     const hoyRen = getFechaActiva();
     const keyPap = 'papeleria_renovaciones_' + hoyRen;
@@ -3164,6 +3165,12 @@ function confirmarRenovar(){
     try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
     papList.push({ cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen });
     lsSet(keyPap, JSON.stringify(papList));
+    // Guardar cuota cobrada hoy en localStorage como respaldo
+    const keyCuota = 'cuota_renovaciones_' + hoyRen;
+    let cuotaList = [];
+    try{ cuotaList = JSON.parse(lsGet(keyCuota)||'[]'); }catch(e){}
+    cuotaList.push({ cliente: c.nombre, valor: cuotaRen, fecha: hoyRen });
+    lsSet(keyCuota, JSON.stringify(cuotaList));
   })();
   document.getElementById('ren-papeleria').value='';
   document.getElementById('ren-cuota-hoy').value='';
@@ -5179,7 +5186,10 @@ function renderPrestamos(){
           // Fallback: buscar en localStorage por nombre del cliente y fecha
           try{ const pl=JSON.parse(lsGet('papeleria_renovaciones_'+(rInfo.fecha||''))||'[]'); const pi=pl.find(p=>p.cliente===c.nombre); return pi?pi.valor||0:0; }catch(e){return 0;}
         })();
-        const cuotaHoy = rInfo.cuotaCobradaHoy || 0;
+        const cuotaHoy = rInfo.cuotaCobradaHoy !== undefined ? rInfo.cuotaCobradaHoy : (()=>{
+          // Fallback: buscar cuota en localStorage por nombre del cliente y fecha
+          try{ const cl=JSON.parse(lsGet('cuota_renovaciones_'+(rInfo.fecha||''))||'[]'); const ci=cl.find(p=>p.cliente===c.nombre); return ci?ci.valor||0:0; }catch(e){return 0;}
+        })();
         const neto = (rInfo.nuevoCapital||c.capital||0) - (rInfo.saldoQuedaba||0) - cuotaHoy - pap;
         if(neto > 0){
           let detalle = `Capital ${fmt(rInfo.nuevoCapital||c.capital||0)} − Saldo ${fmt(rInfo.saldoQuedaba||0)}`;
