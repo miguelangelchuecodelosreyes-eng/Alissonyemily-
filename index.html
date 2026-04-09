@@ -3745,7 +3745,7 @@ function renderClientes(){
         <!-- Info izquierda -->
         <div style="flex:1;min-width:0;overflow:hidden">
           <!-- Nombre -->
-          <div class="cliente-nombre">👤 ${c.nombre}</div>
+          <div class="cliente-nombre">👤 ${c.nombre}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:10px;font-weight:900;border-radius:6px;padding:1px 7px;letter-spacing:0.5px;vertical-align:middle;margin-left:4px">✅ RF</span>':''}${ ((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:10px;font-weight:900;border-radius:6px;padding:1px 7px;letter-spacing:0.5px;vertical-align:middle;margin-left:4px">🆕 NP</span>':''}</div>
           <!-- Fila 1: cédula + teléfono -->
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px">
             ${c.cedula ? `<span style="font-size:11px;color:#888;font-weight:700">🪪 ${c.cedula}</span>` : ""}
