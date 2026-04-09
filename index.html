@@ -4205,7 +4205,15 @@ function renderDetalles(){
     // Renovaciones
     (c.historialRenovaciones||[]).forEach(r => {
       if(r.fecha === filtroFecha){
-        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: r.fecha, totalPagado: r.saldoQuedaba, capital: r.capitalCiclo||0, pagos: r.pagos?.length||0, saldoQuedaba: r.saldoQuedaba, esRenovacion: true, nuevoTotal: r.nuevoTotal });
+        // Buscar papelería cobrada a este cliente en esa fecha
+        let papeleriaCliente = 0;
+        try {
+          const papList = JSON.parse(lsGet('papeleria_renovaciones_' + r.fecha) || '[]');
+          const papItem = papList.find(p => p.cliente === c.nombre);
+          if(papItem) papeleriaCliente = papItem.valor || 0;
+        } catch(e){}
+        const cuotaCliente = c.cuotaSugerida || 0;
+        cancelados.push({ clienteNombre: c.nombre, clienteId: c.id, fecha: r.fecha, totalPagado: r.saldoQuedaba, capital: r.capitalCiclo||0, pagos: r.pagos?.length||0, saldoQuedaba: r.saldoQuedaba, esRenovacion: true, nuevoTotal: r.nuevoTotal, papeleria: papeleriaCliente, cuotaSugerida: cuotaCliente });
       }
       // Cuotas cobradas antes de renovar (r.pagos) — sí van a todasCuotas
       (r.pagos||[]).forEach(p => {
@@ -4307,6 +4315,7 @@ function renderDetalles(){
 
               ${c.esRenovacion && c.saldoQuedaba > 0 ? `<div style="font-size:12px;color:#e07b00;font-weight:700;margin-top:2px">⚠️ Quedaba: ${fmt(c.saldoQuedaba)}</div>` : ''}
               ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:12px;color:#cc00aa;font-weight:700;margin-top:2px">↻ Nuevo préstamo: ${fmt(c.nuevoTotal)}</div>` : ''}
+              ${c.esRenovacion && c.nuevoTotal ? `<div style="font-size:13px;color:#0077ff;font-weight:900;margin-top:3px;background:#e8f4ff;padding:3px 8px;border-radius:8px;display:inline-block">💵 Le queda: ${fmt((c.nuevoTotal||0) - (c.papeleria||0) - (c.cuotaSugerida||0))}${((c.papeleria||0)>0 || (c.cuotaSugerida||0)>0) ? ` <span style="font-size:10px;color:#5599cc;font-weight:700">(−${fmt(c.papeleria||0)} pap. −${fmt(c.cuotaSugerida||0)} cuota)</span>` : ''}</div>` : ''}
             </div>
             <div style="text-align:right">
               <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
