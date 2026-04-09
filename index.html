@@ -988,6 +988,12 @@ body {
             style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1">
             💼 Sueldo
           </button>
+          <button onclick="seleccionarTipoGastoOtros()" id="btn-gasto-otros"
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1">
+            ✏️ Otros
+          </button>
+          <input type="text" id="input-gasto-otros-texto" placeholder="Escribe el tipo de gasto..."
+            style="display:none;width:100%;grid-column:1/-1;border:2px solid #e8ccf5;border-radius:14px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;box-sizing:border-box" oninput="actualizarTipoOtros()">
         </div>
         <div id="gasto-tipo-seleccionado" style="margin-top:10px;display:none;background:#fff3e0;border:2px solid #ff9800;border-radius:12px;padding:10px 14px;align-items:center;gap:8px">
           <span style="font-size:13px;font-weight:700;color:#888">✅ Tipo:</span>
@@ -2197,7 +2203,8 @@ function seleccionarTipoGasto(tipo){
     'Gasolina': 'btn-gasto-gasolina',
     'Arreglo de moto': 'btn-gasto-arreglo',
     'Aceite': 'btn-gasto-aceite',
-    'Sueldo': 'btn-gasto-sueldo'
+    'Sueldo': 'btn-gasto-sueldo',
+    'Otros': 'btn-gasto-otros'
   };
   // Reset todos los botones
   Object.values(idMap).forEach(btnId => {
@@ -2208,6 +2215,9 @@ function seleccionarTipoGasto(tipo){
       btn.style.borderColor = '#e8ccf5';
     }
   });
+  // Ocultar input de Otros si se selecciona otro tipo
+  const inpOtros = document.getElementById('input-gasto-otros-texto');
+  if(inpOtros){ inpOtros.style.display='none'; inpOtros.value=''; }
   // Destacar el seleccionado
   const sel = document.getElementById(idMap[tipo]);
   if(sel){
@@ -2220,6 +2230,37 @@ function seleccionarTipoGasto(tipo){
   const txt = document.getElementById('gasto-tipo-texto');
   if(box){ box.style.display='flex'; }
   if(txt){ txt.textContent = tipo; }
+}
+
+function seleccionarTipoGastoOtros(){
+  // Reset todos los botones
+  ['btn-gasto-merienda','btn-gasto-gasolina','btn-gasto-arreglo','btn-gasto-aceite','btn-gasto-sueldo','btn-gasto-otros'].forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if(btn){ btn.style.background='#f8eeff'; btn.style.color='#555'; btn.style.borderColor='#e8ccf5'; }
+  });
+  // Destacar Otros
+  const btnOtros = document.getElementById('btn-gasto-otros');
+  if(btnOtros){ btnOtros.style.background='linear-gradient(135deg,#ff4444,#cc0000)'; btnOtros.style.color='white'; btnOtros.style.borderColor='#ff4444'; }
+  // Mostrar input de texto
+  const inp = document.getElementById('input-gasto-otros-texto');
+  if(inp){ inp.style.display='block'; inp.focus(); }
+  _tipoGastoSeleccionado = '';
+  const box = document.getElementById('gasto-tipo-seleccionado');
+  if(box) box.style.display='none';
+}
+
+function actualizarTipoOtros(){
+  const inp = document.getElementById('input-gasto-otros-texto');
+  const texto = inp ? inp.value.trim() : '';
+  _tipoGastoSeleccionado = texto || '';
+  const box = document.getElementById('gasto-tipo-seleccionado');
+  const txt = document.getElementById('gasto-tipo-texto');
+  if(texto){
+    if(box) box.style.display='flex';
+    if(txt) txt.textContent = texto;
+  } else {
+    if(box) box.style.display='none';
+  }
 }
 
 function actualizarGastoPreview(){
