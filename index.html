@@ -2003,12 +2003,14 @@ function recalcularCuentas(){
   const clientes = getClientes();
 
   const base      = parseFloat(document.getElementById('input-base').value)||0;
-  // Papelería: leer SOLO desde renovaciones del día (fuente única, sin doble conteo)
+  // Papelería: sumar renovaciones + nuevos del día
   let papeleria = 0;
   (function(){
-    let papListTemp = [];
-    try{ papListTemp = JSON.parse(lsGet('papeleria_renovaciones_'+hoy)||'[]'); }catch(e){}
-    papeleria = papListTemp.reduce((s,p)=>s+p.valor,0);
+    let papRen = [];
+    let papNuevos = [];
+    try{ papRen    = JSON.parse(lsGet('papeleria_renovaciones_'+hoy)||'[]'); }catch(e){}
+    try{ papNuevos = JSON.parse(lsGet('papeleria_nuevos_'+hoy)||'[]'); }catch(e){}
+    papeleria = [...papRen, ...papNuevos].reduce((s,p)=>s+p.valor,0);
   })();
   const neki      = parseFloat(document.getElementById('input-neki').value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
@@ -2131,11 +2133,14 @@ function recalcularCuentas(){
 
   renderNuevosRenovacionesHoy();
 
-  // Papelería de renovaciones del día — en SALIDAS y en bloque inferior
+  // Papelería de renovaciones + nuevos del día — en bloque inferior
   (function(){
     const keyPap = 'papeleria_renovaciones_' + hoy;
-    let papList = [];
-    try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
+    const keyNuevos = 'papeleria_nuevos_' + hoy;
+    let papRen = [], papNuevos = [];
+    try{ papRen    = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
+    try{ papNuevos = JSON.parse(lsGet(keyNuevos)||'[]'); }catch(e){}
+    const papList = [...papRen, ...papNuevos];
 
     // --- Bloque inferior (resultado del día) ---
     const bloque = document.getElementById('bloque-papeleria-renovaciones');
@@ -3064,7 +3069,9 @@ function guardarCliente(){
         const keyN='papeleria_nuevos_'+hoyN;
         let papListN=[];
         try{papListN=JSON.parse(lsGet(keyN)||'[]');}catch(e){}
-        papListN.push({cliente:nombre,valor:papNuevo,fecha:hoyN});
+        const idxN=papListN.findIndex(p=>p.cliente===nombre);
+        if(idxN>=0){ papListN[idxN]={cliente:nombre,valor:papNuevo,fecha:hoyN}; }
+        else { papListN.push({cliente:nombre,valor:papNuevo,fecha:hoyN}); }
         lsSet(keyN,JSON.stringify(papListN));
       }
     })();
@@ -7277,6 +7284,20 @@ function iniciarApp(){
   (function(){
     const hoy = '2026-04-09';
     const key = 'papeleria_renovaciones_' + hoy;
+    let papList = [];
+    try{ papList = JSON.parse(lsGet(key)||'[]'); }catch(e){}
+    if(papList.length === 0) return;
+    const seen = {};
+    for(let i = papList.length - 1; i >= 0; i--){
+      const nombre = papList[i].cliente;
+      if(!seen[nombre]) seen[nombre] = papList[i];
+    }
+    lsSet(key, JSON.stringify(Object.values(seen)));
+  })();
+  // Hoy (2026-04-09): Deduplicar papelería nuevos — quedarse con el último valor por cliente
+  (function(){
+    const hoy = '2026-04-09';
+    const key = 'papeleria_nuevos_' + hoy;
     let papList = [];
     try{ papList = JSON.parse(lsGet(key)||'[]'); }catch(e){}
     if(papList.length === 0) return;
