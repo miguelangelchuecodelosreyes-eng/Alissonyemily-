@@ -3170,7 +3170,10 @@ function confirmarRenovar(){
     const keyPap = 'papeleria_renovaciones_' + hoyRen;
     let papList = [];
     try{ papList = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
-    papList.push({ cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen });
+    // Reemplazar si ya existe entrada para este cliente (evita duplicados al editar)
+    const idxExist = papList.findIndex(p=>p.cliente===c.nombre);
+    if(idxExist>=0){ papList[idxExist] = { cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen }; }
+    else { papList.push({ cliente: c.nombre, valor: papeleriaRen, fecha: hoyRen }); }
     lsSet(keyPap, JSON.stringify(papList));
     // Guardar cuota cobrada hoy en localStorage como respaldo
     const keyCuota = 'cuota_renovaciones_' + hoyRen;
@@ -7269,6 +7272,20 @@ function iniciarApp(){
       { cliente: 'Juan Orozco', valor: 25, fecha: hoy }
     ];
     lsSet(key, JSON.stringify(papHoy));
+  })();
+  // Hoy (2026-04-09): Deduplicar papelería — quedarse con el último valor por cliente
+  (function(){
+    const hoy = '2026-04-09';
+    const key = 'papeleria_renovaciones_' + hoy;
+    let papList = [];
+    try{ papList = JSON.parse(lsGet(key)||'[]'); }catch(e){}
+    if(papList.length === 0) return;
+    const seen = {};
+    for(let i = papList.length - 1; i >= 0; i--){
+      const nombre = papList[i].cliente;
+      if(!seen[nombre]) seen[nombre] = papList[i];
+    }
+    lsSet(key, JSON.stringify(Object.values(seen)));
   })();
   // ────────────────────────────────────────────────────────────
   renderResumenSemanal();
