@@ -1617,6 +1617,19 @@ body {
       <div id="dias-prestamo-sub" style="font-size:12px;color:#a78bfa;font-weight:700;margin-top:2px"></div>
     </div>
 
+    <!-- PAPELERÍA (solo al crear nuevo) -->
+    <div id="mc-papeleria-row" style="margin-top:4px">
+      <div class="modal-campo">
+        <label class="modal-label">📄 Papelería cobrada al cliente (opcional)</label>
+        <input type="number" class="modal-input" id="mc-papeleria" placeholder="0" oninput="actualizarResumenPrestamo()">
+      </div>
+      <div id="mc-papeleria-preview" style="display:none;background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:6px 12px;margin-top:4px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le quedó al cliente</div>
+        <div style="font-size:16px;font-weight:900;color:#0077ff" id="mc-lequeda-monto">$0</div>
+        <div style="font-size:10px;color:#5599cc;font-weight:700" id="mc-lequeda-detalle"></div>
+      </div>
+    </div>
+
     <!-- CORREGIR SALDO (solo al editar) -->
     <div id="mc-saldo-row" style="display:none;margin-top:4px">
       <div class="modal-campo" style="background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px 14px">
@@ -2734,7 +2747,26 @@ function actualizarResumenPrestamo(){
     document.getElementById('pr-interes').textContent=fmt(interes);
     document.getElementById('pr-total').textContent=fmt(total);
     res.style.display='block';
-  } else { res.style.display='none'; }
+    // Preview de "le quedó al cliente" con papelería
+    const papEl=document.getElementById('mc-papeleria');
+    const cuotaEl=document.getElementById('mc-cuota');
+    const pap=papEl?parseFloat(papEl.value)||0:0;
+    const cuotaN=cuotaEl?parseFloat(cuotaEl.value)||0:0;
+    const papPrev=document.getElementById('mc-papeleria-preview');
+    const leQuedaMonto=document.getElementById('mc-lequeda-monto');
+    const leQuedaDetalle=document.getElementById('mc-lequeda-detalle');
+    if(papPrev && leQuedaMonto && leQuedaDetalle && (pap>0||cuotaN>0)){
+      const neto=v-pap-cuotaN;
+      if(neto>0){
+        leQuedaMonto.textContent=fmt(neto);
+        let det='Capital '+fmt(v);
+        if(pap>0) det+=' − Pap. '+fmt(pap);
+        if(cuotaN>0) det+=' − Cuota '+fmt(cuotaN);
+        leQuedaDetalle.textContent=det;
+        papPrev.style.display='block';
+      } else { papPrev.style.display='none'; }
+    } else if(papPrev){ papPrev.style.display='none'; }
+  } else { res.style.display='none'; const papPrev=document.getElementById('mc-papeleria-preview');if(papPrev)papPrev.style.display='none'; }
   actualizarDiasPrestamo();
 }
 
@@ -2845,7 +2877,7 @@ function abrirModalCliente(id){
     }
   } else {
     // Nuevo cliente: resetear todo y mostrar solo cédula+buscar
-    ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
+    ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id','mc-papeleria'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
     document.getElementById('mc-tipo').value='diario';
     document.getElementById('mc-dia-semana').value='';
     toggleDiaSemana('mc-dia-semana-row','diario');
@@ -2861,6 +2893,8 @@ function abrirModalCliente(id){
   const btnBuscar = document.getElementById('mc-btn-buscar');
   const mcSaldoRow = document.getElementById('mc-saldo-row');
   const mcSaldoInput = document.getElementById('mc-saldo-corregir');
+  const mcPapeleriaRow = document.getElementById('mc-papeleria-row');
+  const mcPapeleriaInput = document.getElementById('mc-papeleria');
   if(id){
     const camposC = document.getElementById('mc-campos-cliente');
     if(camposC) camposC.style.display='block';
@@ -2869,10 +2903,16 @@ function abrirModalCliente(id){
     if(btnBuscar) btnBuscar.style.display='none';
     if(mcSaldoRow) mcSaldoRow.style.display='block';
     if(mcSaldoInput) mcSaldoInput.value='';
+    if(mcPapeleriaRow) mcPapeleriaRow.style.display='none';
+    if(mcPapeleriaInput) mcPapeleriaInput.value='';
   } else {
     if(btnBuscar) btnBuscar.style.display='block';
     if(mcSaldoRow) mcSaldoRow.style.display='none';
     if(mcSaldoInput) mcSaldoInput.value='';
+    if(mcPapeleriaRow) mcPapeleriaRow.style.display='block';
+    if(mcPapeleriaInput) mcPapeleriaInput.value='';
+    const mcPapPrev = document.getElementById('mc-papeleria-preview');
+    if(mcPapPrev) mcPapPrev.style.display='none';
   }
   // Resetear panel de posición
   document.getElementById('mc-posicion-tipo').value='';
@@ -3013,8 +3053,21 @@ function guardarCliente(){
       tipo:document.getElementById('mc-tipo').value,
       diaSemana:document.getElementById('mc-dia-semana').value||'',
       cuotaSugerida:parseFloat(document.getElementById('mc-cuota').value)||0,
-      saldo:p.total, pagos:[], fechaCreado:getFechaActiva(), renovaciones:0
+      saldo:p.total, pagos:[], fechaCreado:getFechaActiva(), renovaciones:0,
+      papeleriaCreacion:parseFloat(document.getElementById('mc-papeleria')?.value)||0
     };
+    // Guardar papelería del nuevo préstamo en localStorage
+    (function(){
+      const papNuevo=parseFloat(document.getElementById('mc-papeleria')?.value)||0;
+      if(papNuevo>0){
+        const hoyN=getFechaActiva();
+        const keyN='papeleria_nuevos_'+hoyN;
+        let papListN=[];
+        try{papListN=JSON.parse(lsGet(keyN)||'[]');}catch(e){}
+        papListN.push({cliente:nombre,valor:papNuevo,fecha:hoyN});
+        lsSet(keyN,JSON.stringify(papListN));
+      }
+    })();
     if(posicionTipo && posicionRefId){
       const refIdx=clientes.findIndex(c=>c.id===posicionRefId);
       if(refIdx>=0){
@@ -3083,7 +3136,10 @@ function confirmarRenovar(){
     tipo: c.tipo,
     cuotaSugerida: c.cuotaSugerida||0,
     fechaCreado: c.fechaCreado,
-    fechaRenovacion: c.fechaRenovacion||null
+    fechaRenovacion: c.fechaRenovacion||null,
+    // Papelería y cuota cobrada al renovar (para calcular "le queda")
+    papeleriaRenovacion: parseFloat(document.getElementById('ren-papeleria').value)||0,
+    cuotaCobradaHoy: parseFloat(document.getElementById('ren-cuota-hoy').value)||0
   };
   clientes[idx].historialRenovaciones=clientes[idx].historialRenovaciones||[];
   clientes[idx].historialRenovaciones.unshift(entradaHistorial);
@@ -3686,7 +3742,7 @@ function renderClientes(){
             <div class="saldo-label">SALDO</div>
             <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
           </div>
-          ${(()=>{const hr=c.historialRenovaciones&&c.historialRenovaciones[0];if(!hr)return'';const nt=hr.nuevoTotal||c.prestamo||0;const cuota=hr.cuotaSugerida||c.cuotaSugerida||0;let pap=0;try{const pl=JSON.parse(lsGet('papeleria_renovaciones_'+(hr.fecha||''))||'[]');const pi=pl.find(p=>p.cliente===c.nombre);if(pi)pap=pi.valor||0;}catch(e){}const leQueda=nt-cuota-pap;return leQueda>0?`<div style="background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:3px 8px;margin-top:2px;text-align:center"><div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le queda</div><div style="font-size:13px;font-weight:900;color:#0077ff">${fmt(leQueda)}</div>${pap>0?`<div style="font-size:9px;color:#5599cc;font-weight:700">(−${fmt(pap)} pap. −${fmt(cuota)} cuota)</div>`:cuota>0?`<div style="font-size:9px;color:#5599cc;font-weight:700">(−${fmt(cuota)} cuota)</div>`:''}</div>`:''})()}
+
         </div>
       </div>
       <div class="cliente-body" id="cbody-${c.id}" style="display:none">
@@ -5059,24 +5115,54 @@ function renderPrestamos(){
   if(!nuevosHoy.length){
     listaNuevos.innerHTML = '<div style="text-align:center;padding:16px;background:white;border-radius:14px;color:#bbb;font-size:13px;font-weight:700;border:1px solid #e8ccf5">📭 No hay clientes nuevos hoy</div>';
   } else {
-    listaNuevos.innerHTML = nuevosHoy.map(c => `
+    listaNuevos.innerHTML = nuevosHoy.map(c => {
+      // Para préstamo nuevo: le queda = capital − papelería − cuota sugerida
+      const cuotaN = c.cuotaSugerida || 0;
+      // Buscar papelería: primero en el objeto cliente, luego en localStorage
+      let papNuevo = c.papeleriaCreacion || 0;
+      if(!papNuevo){
+        try{
+          const plN=JSON.parse(lsGet('papeleria_nuevos_'+(c.fechaCreado||''))||'[]');
+          const piN=plN.find(p=>p.cliente===c.nombre);
+          if(piN) papNuevo=piN.valor||0;
+        }catch(e){}
+      }
+      let leQuedaNuevo = '';
+      if(cuotaN > 0 || papNuevo > 0){
+        const netoN = (c.capital||0) - papNuevo - cuotaN;
+        if(netoN > 0){
+          let detN = `Capital ${fmt(c.capital||0)}`;
+          if(papNuevo>0) detN += ` − Pap. ${fmt(papNuevo)}`;
+          if(cuotaN>0) detN += ` − Cuota ${fmt(cuotaN)}`;
+          leQuedaNuevo = `<div style="background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le quedó al cliente</div>
+            <div style="font-size:15px;font-weight:900;color:#0077ff">${fmt(netoN)}</div>
+            <div style="font-size:9px;color:#5599cc;font-weight:700">${detN}</div>
+          </div>`;
+        }
+      }
+      return `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1px solid #e8ccf5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
-        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}','prestamos')">
-          <div>
-            <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
-            <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Cuota: ${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—'}</div>
+        <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}','prestamos')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
+              <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Cuota: ${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—'}</div>
+            </div>
+            <div style="text-align:right;margin-left:10px">
+              <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
+              <div style="font-size:18px;font-weight:900;color:#00e65c">${fmt(c.capital||0)}</div>
+              <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+            </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;color:#888;font-weight:700">Capital</div>
-            <div style="font-size:18px;font-weight:900;color:#00e65c">${fmt(c.capital||0)}</div>
-            <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
-          </div>
+          ${leQuedaNuevo}
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
           <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
           <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   // Lista renovados hoy
@@ -5086,19 +5172,51 @@ function renderPrestamos(){
   } else {
     listaRenovados.innerHTML = renovadosHoy.map(c => {
       const rInfo = (c.historialRenovaciones||[])[0];
+      // Calcular "le queda": nuevo capital − saldo anterior − cuota cobrada hoy − papelería
+      let leQuedaRen = '';
+      if(rInfo){
+        const pap = rInfo.papeleriaRenovacion !== undefined ? rInfo.papeleriaRenovacion : (()=>{
+          // Fallback: buscar en localStorage por nombre del cliente y fecha
+          try{ const pl=JSON.parse(lsGet('papeleria_renovaciones_'+(rInfo.fecha||''))||'[]'); const pi=pl.find(p=>p.cliente===c.nombre); return pi?pi.valor||0:0; }catch(e){return 0;}
+        })();
+        const cuotaHoy = rInfo.cuotaCobradaHoy || 0;
+        const neto = (rInfo.nuevoCapital||c.capital||0) - (rInfo.saldoQuedaba||0) - cuotaHoy - pap;
+        if(neto > 0){
+          let detalle = `Capital ${fmt(rInfo.nuevoCapital||c.capital||0)} − Saldo ${fmt(rInfo.saldoQuedaba||0)}`;
+          if(cuotaHoy>0) detalle += ` − Cuota ${fmt(cuotaHoy)}`;
+          if(pap>0) detalle += ` − Pap. ${fmt(pap)}`;
+          leQuedaRen = `<div style="background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le quedó al cliente</div>
+            <div style="font-size:15px;font-weight:900;color:#0077ff">${fmt(neto)}</div>
+            <div style="font-size:9px;color:#5599cc;font-weight:700">${detalle}</div>
+          </div>`;
+        } else if(neto < 0){
+          leQuedaRen = `<div style="background:#fff3e0;border:1.5px solid #f59e0b;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:#e07b00;text-transform:uppercase;letter-spacing:0.5px">⬆️ Cliente entregó de más</div>
+            <div style="font-size:15px;font-weight:900;color:#e07b00">${fmt(Math.abs(neto))}</div>
+          </div>`;
+        } else {
+          leQuedaRen = `<div style="background:#e0fff0;border:1.5px solid #00e65c;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:#00cc55;text-transform:uppercase;letter-spacing:0.5px">✅ Cuadró exacto</div>
+          </div>`;
+        }
+      }
       return `
       <div style="background:white;border-radius:16px;margin-bottom:8px;border:1.5px solid #f59e0b44;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
-        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center" onclick="abrirDetalle('${c.id}','prestamos')">
-          <div>
-            <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
-            <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">Renovación #${c.renovaciones||1} · ${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
-            ${rInfo ? `<div style="font-size:11px;color:#e07b00;font-weight:700;margin-top:2px">Anterior: ${fmt(rInfo.prestamoCiclo)} · Saldo que quedaba: ${fmt(rInfo.saldoQuedaba)}</div>` : ''}
+        <div style="padding:14px 16px" onclick="abrirDetalle('${c.id}','prestamos')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:800;color:#111">👤 ${c.nombre}</div>
+              <div style="font-size:12px;color:#666;font-weight:700;margin-top:2px">Renovación #${c.renovaciones||1} · ${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</div>
+              ${rInfo ? `<div style="font-size:11px;color:#e07b00;font-weight:700;margin-top:2px">Anterior: ${fmt(rInfo.prestamoCiclo)} · Saldo: ${fmt(rInfo.saldoQuedaba)}</div>` : ''}
+            </div>
+            <div style="text-align:right;margin-left:10px">
+              <div style="font-size:11px;color:#888;font-weight:700">Nuevo capital</div>
+              <div style="font-size:18px;font-weight:900;color:#f59e0b">${fmt(c.capital||0)}</div>
+              <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
+            </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;color:#888;font-weight:700">Nuevo capital</div>
-            <div style="font-size:18px;font-weight:900;color:#f59e0b">${fmt(c.capital||0)}</div>
-            <div style="font-size:11px;color:#cc00aa;font-weight:700">Total: ${fmt(c.prestamo)}</div>
-          </div>
+          ${leQuedaRen}
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
           <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
