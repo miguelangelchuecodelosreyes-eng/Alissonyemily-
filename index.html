@@ -891,7 +891,7 @@ body {
       <div id="bloque-nuevos-renovaciones" style="display:none">
         <div class="resultado-sep"></div>
         <div id="bloque-nuevos" style="display:none;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:900;color:#FFD700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">🆕 CLIENTES NUEVOS HOY</div>
+          <div style="font-size:11px;font-weight:900;color:#00e65c;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">🆕 CLIENTES NUEVOS HOY</div>
           <div id="lista-nuevos-hoy"></div>
         </div>
         <div id="bloque-renovaciones" style="display:none">
@@ -1107,7 +1107,7 @@ body {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
         <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;letter-spacing:1px">💰 Total cuotas</div>
-        <div id="res-total-cuotas" style="font-size:22px;font-weight:900;color:#FFD700;margin-top:4px">$0</div>
+        <div id="res-total-cuotas" style="font-size:22px;font-weight:900;color:#00e65c;margin-top:4px">$0</div>
         <div id="res-num-cuotas" style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700">0 pagos</div>
       </div>
       <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:12px">
@@ -3700,6 +3700,7 @@ function renderClientes(){
     el.innerHTML='<div class="empty-clientes">👥 No hay clientes activos<br><span style="font-size:12px;opacity:0.6;">Los cancelados aparecen en 📋 Detalles</span></div>';
     return;
   }
+  const _scrollY = window.scrollY;
   el.innerHTML=clientes.map((c,numeroCliente)=>{    const debe=c.saldo>0;
     const pagado=c.prestamo-c.saldo;
     const ultPagos=(c.pagos||[]);
@@ -3797,9 +3798,9 @@ function renderClientes(){
         </div>
         <!-- Círculo CUOTA HOY -->
         <div style="display:flex;flex-direction:column;align-items:center;min-width:58px;">
-          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${pagadoHoy>0?'#FFD700':'#d1d5db'};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pagadoHoy>0?'#fffbe6':'#f9fafb'};">
-            <span style="font-size:8px;color:${pagadoHoy>0?'#b8860b':'#9ca3af'};font-weight:700;line-height:1;">HOY</span>
-            <span style="font-size:12px;font-weight:900;color:${pagadoHoy>0?'#b8860b':'#9ca3af'};line-height:1.1;">${pagadoHoy>0?fmt(pagadoHoy):'—'}</span>
+          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${pagadoHoy>0?'#10b981':'#d1d5db'};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pagadoHoy>0?'#ecfdf5':'#f9fafb'};">
+            <span style="font-size:8px;color:${pagadoHoy>0?'#059669':'#9ca3af'};font-weight:700;line-height:1;">HOY</span>
+            <span style="font-size:12px;font-weight:900;color:${pagadoHoy>0?'#059669':'#9ca3af'};line-height:1.1;">${pagadoHoy>0?fmt(pagadoHoy):'—'}</span>
           </div>
         </div>
       </div>
@@ -3874,6 +3875,7 @@ function renderClientes(){
       </div>
     </div>`;
   }).join('');
+  window.scrollTo(0, _scrollY);
   setTimeout(initDrag, 50);
 }
 
