@@ -3738,46 +3738,73 @@ function renderClientes(){
       return label+'-'+fmt(up.monto);
     })();
     return `
-    <div class="cliente-card" id="card-${c.id}">
-      <div class="cliente-card-header" onclick="toggleBody('${c.id}')" >
-        <!-- Número del cliente -->
-        <div style="min-width:28px;height:28px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-right:6px;flex-shrink:0;align-self:flex-start;margin-top:4px">${numeroCliente+1}</div>
-        <!-- Info izquierda -->
-        <div style="flex:1;min-width:0;overflow:hidden">
-          <!-- Nombre -->
-          <div class="cliente-nombre">👤 ${c.nombre}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:10px;font-weight:900;border-radius:6px;padding:1px 7px;letter-spacing:0.5px;vertical-align:middle;margin-left:4px">✅ RF</span>':''}${ ((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:10px;font-weight:900;border-radius:6px;padding:1px 7px;letter-spacing:0.5px;vertical-align:middle;margin-left:4px">🆕 NP</span>':''}</div>
-          <!-- Fila 1: cédula + teléfono -->
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px">
-            ${c.cedula ? `<span style="font-size:11px;color:#888;font-weight:700">🪪 ${c.cedula}</span>` : ""}
-            ${c.tel ? `<span style="font-size:11px;color:#1a56db;font-weight:700">📱 ${c.tel}</span>` : ""}
-          </div>
-          <!-- Fila 2: badge tipo + día semana -->
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:3px">
-            <span class="badge-tipo badge-${c.tipo||'semanal'}">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'}</span>
-            ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
-          </div>
-          <!-- Fila 3: Fecha -->
-          ${fechaPrestamo ? `<div style="font-size:11px;color:#999;font-weight:700;margin-top:3px">📅 ${fechaBonita(fechaPrestamo)}</div>` : ''}
-          <!-- Fila 4: Atraso + capital→prestamo -->
-          ${debe ? `<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;color:${atrasoColor}">${atrasoLabel}</span>${c.capital&&c.prestamo?`<span style="font-size:10px;font-weight:900;color:#8b00ff;background:#f3e8ff;border-radius:6px;padding:1px 6px;white-space:nowrap">${fmt(c.capital)}→${fmt(c.prestamo)}</span>`:''}</div>` : (c.capital&&c.prestamo?`<div style="margin-top:3px"><span style="font-size:10px;font-weight:900;color:#8b00ff;background:#f3e8ff;border-radius:6px;padding:1px 6px;white-space:nowrap">${fmt(c.capital)}→${fmt(c.prestamo)}</span></div>`:'') }
-          <!-- Fila 5: Última cuota -->
-          ${ultCuotaLabel ? `<div style="margin-top:3px;display:flex;align-items:center;gap:4px"><span style="font-size:10px;font-weight:800;color:#16a34a">✅ Últ.cuota:</span><span style="font-size:10px;font-weight:900;color:#16a34a;background:#d1fae5;border-radius:6px;padding:1px 6px;white-space:nowrap">${ultCuotaLabel}</span></div>` : ''}
-        </div>
-        <!-- Columna derecha: días + cuota + saldo -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:8px;flex-shrink:0;min-width:72px">
-          ${diasStr ? `<div style="font-size:10px;font-weight:800;color:#8b00ff;text-align:center;white-space:nowrap">⏱ ${diasStr}</div>` : ''}
-          ${pagadoHoy > 0
-            ? `<div style="background:#00e65c;color:#004d1a;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;white-space:nowrap;text-align:center">+${fmt(pagadoHoy)}</div>`
-            : (cuotaDia > 0 ? `<div style="background:linear-gradient(135deg,#ff00cc,#00ccff);border-radius:10px;padding:5px 12px;font-size:15px;font-weight:900;color:white;text-align:center;box-shadow:0 3px 10px rgba(255,0,204,0.35)">${fmt(cuotaDia)}</div>` : '')
-          }
-          ${pagadoHoy > 0 && cuotaDia > 0 ? `<div style="background:linear-gradient(135deg,#ff00cc,#00ccff);border-radius:10px;padding:4px 10px;font-size:14px;font-weight:900;color:white;text-align:center">${fmt(cuotaDia)}</div>` : ''}
-          <div style="text-align:center;margin-top:2px">
-            <div class="saldo-label">SALDO</div>
-            <div class="saldo-monto ${debe?'debe':'pagado'}">${debe?fmt(c.saldo):'✅ $0'}</div>
-          </div>
+    <div class="cliente-card" id="card-${c.id}" style="border-radius:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border:1.5px solid #e4e4f0;overflow:hidden;background:white;">
 
+      <!-- ══ CABECERA COMPACTA ══ -->
+      <div style="padding:8px 10px 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+        <!-- Info izquierda -->
+        <div style="flex:1;min-width:0;" onclick="toggleBody('${c.id}')">
+          <!-- Número + Nombre -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <div style="min-width:24px;height:24px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#a855f7,#7c3aed);color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;">${numeroCliente+1}</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.2;">👤 ${c.nombre}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">✅ RF</span>':''}${((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">🆕 NP</span>':''}</div>
+              <div style="font-size:10px;color:#6366f1;font-weight:500;">${c.cedula?`🪪 ${c.cedula}&nbsp;&nbsp;`:''}${c.tel?`📱 ${c.tel}`:''}</div>
+            </div>
+          </div>
+          <!-- Badge tipo + fecha -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <span class="badge-tipo badge-${c.tipo||'semanal'}" style="font-size:9px;padding:2px 7px;">${c.tipo==='diario'?'☀️ DIARIO':'📅 SEMANAL'}</span>
+            ${(c.tipo==='semanal'||!c.tipo)&&c.diaSemana?`<span style="background:#ffe8e8;color:#cc0000;border-radius:6px;padding:1px 6px;font-size:9px;font-weight:900;text-transform:capitalize">${c.diaSemana}</span>`:''}
+            ${fechaPrestamo?`<span style="font-size:9px;color:#777;">📅 ${fechaBonita(fechaPrestamo)}</span>`:''}
+          </div>
+          <!-- Atraso + rango -->
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:800;color:${atrasoColor};">${atrasoLabel}</span>
+            ${c.capital&&c.prestamo?`<span style="background:#ede9fe;color:#7c3aed;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;">${fmt(c.capital)} → ${fmt(c.prestamo)}</span>`:''}
+          </div>
+          <!-- Última cuota debajo de atraso -->
+          ${ultCuotaLabel?`<div style="margin-top:2px;"><span style="font-size:9px;font-weight:600;color:#065f46;background:#d1fae5;padding:1px 6px;border-radius:8px;">✅ Últ: ${ultCuotaLabel}</span></div>`:''}
+        </div>
+        <!-- Botones Abonos + Renovar + WhatsApp -->
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button onclick="verAbonosCliente('${c.id}')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border:1.5px solid #6d28d9;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(124,58,237,.3);min-width:46px;line-height:1;">
+            <span style="font-size:12px;">📋</span>Abonos
+          </button>
+          <button onclick="abrirRenovar('${c.id}')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:white;border:1.5px solid #c2410c;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(249,115,22,.3);min-width:46px;line-height:1;">
+            <span style="font-size:12px;">🔄</span>Renovar
+          </button>
+          <button onclick="compartirClienteWA('${c.id}')" style="background:linear-gradient(135deg,#25d366,#128c7e);color:white;border:1.5px solid #0f7251;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(37,211,102,.3);min-width:46px;line-height:1;">
+            <span style="font-size:12px;">💬</span>WhatsApp
+          </button>
         </div>
       </div>
+
+      <!-- ══ FOOTER: Círculos Cuota + Saldo + Círculo Pagado ══ -->
+      <div onclick="toggleBody('${c.id}')" style="display:flex;align-items:center;justify-content:space-between;border-top:1.5px solid #f0f0f8;padding:6px 10px;background:#fafafa;cursor:pointer;border-radius:0 0 14px 14px;">
+        <!-- Círculo CUOTA ESTIPULADA -->
+        <div style="display:flex;flex-direction:column;align-items:center;min-width:58px;">
+          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid #7c3aed;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5f3ff;">
+            <span style="font-size:8px;color:#7c3aed;font-weight:700;line-height:1;">CUOTA</span>
+            <span style="font-size:12px;font-weight:900;color:#7c3aed;line-height:1.1;">${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—'}</span>
+          </div>
+        </div>
+        <!-- SALDO central -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <span style="font-size:8px;color:#aaa;letter-spacing:.5px;text-transform:uppercase;">SALDO</span>
+          <span style="font-size:22px;font-weight:900;color:${debe?'#ef4444':'#10b981'};line-height:1.1;">${debe?fmt(c.saldo):'✅ $0'}</span>
+          
+        </div>
+        <!-- Círculo CUOTA HOY -->
+        <div style="display:flex;flex-direction:column;align-items:center;min-width:58px;">
+          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${pagadoHoy>0?'#10b981':'#d1d5db'};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pagadoHoy>0?'#ecfdf5':'#f9fafb'};">
+            <span style="font-size:8px;color:${pagadoHoy>0?'#059669':'#9ca3af'};font-weight:700;line-height:1;">HOY</span>
+            <span style="font-size:12px;font-weight:900;color:${pagadoHoy>0?'#059669':'#9ca3af'};line-height:1.1;">${pagadoHoy>0?fmt(pagadoHoy):'—'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PANEL EXPANDIDO ══ -->
       <div class="cliente-body" id="cbody-${c.id}" style="display:none">
         ${c.dir?`<div class="cliente-dir">📍 ${c.dir}</div>`:''}
         <div class="cliente-detalle">
@@ -3790,67 +3817,59 @@ function renderClientes(){
           ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe;display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1;border-right:1.5px solid #d8b4fe;padding-right:10px"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div><div style="flex:1;padding-left:10px">${(()=>{const up=(c.pagos||[])[0];if(!up)return'<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#aaa;font-size:13px">Sin pagos</div>';const fd=up.fecha||'';let label=fd;try{const [y,m,d]=fd.split('-');const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const dt=new Date(Number(y),Number(m)-1,Number(d));const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];label=dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];}catch(e){}return`<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#16a34a;font-size:13px">${label}-${fmt(up.monto)}</div>`;})()} </div></div>`:''}
         </div>
         ${c.saldo>0?`
-        <div id="ns-bar-${c.id}" style="display:none;background:linear-gradient(135deg,#111827,#1f2937);border-radius:14px;padding:10px 16px;margin-bottom:8px;justify-content:space-between;align-items:center">
+        <div id="ns-bar-${c.id}" style="display:none;background:linear-gradient(135deg,#111827,#1f2937);border-radius:10px;padding:6px 10px;margin-bottom:5px;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:14px;font-weight:900;color:white">👤 ${c.nombre}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700">Ingresando cuota</div>
+            <div style="font-size:12px;font-weight:900;color:white">👤 ${c.nombre}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.5);font-weight:700">Ingresando cuota</div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px">NUEVO SALDO</div>
-            <div id="ns-bar-saldo-${c.id}" style="font-size:26px;font-weight:900;color:#ff2222">—</div>
+            <div style="font-size:8px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px">NUEVO SALDO</div>
+            <div id="ns-bar-saldo-${c.id}" style="font-size:18px;font-weight:900;color:#ff2222">—</div>
           </div>
         </div>
+        <!-- ══ CUOTA INFO ══ -->
+        ${cuotaDia>0?`<div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;padding:5px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:9px;color:rgba(255,255,255,.8);font-weight:700;letter-spacing:.5px;text-transform:uppercase;">💳 Cuota ${diasStr?'· '+diasStr:''}</span>
+          <span style="font-size:15px;font-weight:900;color:white;">${fmt(cuotaDia)}</span>
+        </div>`:''}
         <!-- ══ COBRO ══ -->
-        <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">
-          <input type="number" class="cuota-input" style="flex:2;min-width:0;" autocomplete="off" id="cuota-input-${c.id}"
-            placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Ingresa cuota'}"
+        <div style="display:flex;gap:5px;align-items:stretch;margin-bottom:5px">
+          <input type="number" class="cuota-input" style="flex:2;min-width:0;padding:8px 8px;font-size:14px;" autocomplete="off" id="cuota-input-${c.id}"
+            placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
             oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const bs=document.getElementById('ns-bar-saldo-${c.id}');if(bs){bs.textContent=v>0?(n===0?'✅ ¡Cancelado!':'$'+n.toLocaleString('es-CO')):'—';bs.style.color=n===0?'#00e65c':'#ff2222';}})(this);"
             onfocus="(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='flex';})()"
             onblur="setTimeout(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='none';},400)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
-          <button onclick="pagarCuotaYAvanzar('${c.id}')" style="flex:3;padding:13px 6px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 4px 14px rgba(0,200,83,0.35);display:flex;align-items:center;justify-content:center;gap:6px">
-            <span style="font-size:20px">💵</span> Cobrar
+          <button onclick="pagarCuotaYAvanzar('${c.id}')" style="flex:3;padding:8px 5px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 2px 8px rgba(0,200,83,0.3);display:flex;align-items:center;justify-content:center;gap:4px">
+            <span style="font-size:14px">💵</span> Cobrar
           </button>
         </div>
 
-        <!-- ══ ACCIONES PRINCIPALES ══ -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <button onclick="abrirRenovar('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#ff6600,#ff9500);color:white;box-shadow:0 3px 10px rgba(255,102,0,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:20px">🔄</span>Renovar
+        <!-- ══ ACCIONES: Cartón + Anterior + Siguiente ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:5px">
+          <button onclick="abrirCartonCliente('${c.id}')" style="padding:6px 3px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <span style="font-size:14px">🗂️</span>Cartón
           </button>
-          <button onclick="verAbonosCliente('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;box-shadow:0 3px 10px rgba(124,58,237,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:20px">📋</span>Abonos
+          <button onclick="navegarCliente('${c.id}',-1)" style="padding:6px 3px;border:1.5px solid #c4b5fd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <span style="font-size:14px">⬅️</span>Anterior
           </button>
-          <button onclick="abrirCartonCliente('${c.id}')" style="padding:12px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 3px 10px rgba(26,86,219,0.3);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:20px">🗂️</span>Cartón
+          <button onclick="navegarCliente('${c.id}',1)" style="padding:6px 3px;border:1.5px solid #fed7aa;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#fff7ed;color:#ea580c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <span style="font-size:14px">➡️</span>Siguiente
           </button>
-        </div>
-
-        <!-- ══ NAVEGACIÓN ══ -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <button onclick="navegarCliente('${c.id}',-1)" style="padding:11px;border:2px solid #c4b5fd;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;gap:6px">
-            <span style="font-size:18px">⬅️</span> Anterior
-          </button>
-          <button onclick="navegarCliente('${c.id}',1)" style="padding:11px;border:2px solid #fed7aa;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#fff7ed;color:#ea580c;display:flex;align-items:center;justify-content:center;gap:6px">
-            Siguiente <span style="font-size:18px">➡️</span>
-          </button>
-        </div>`:`<div style="text-align:center;padding:12px;background:linear-gradient(135deg,#e8fff2,#d1fae5);border-radius:14px;color:#00aa44;font-weight:900;font-size:15px;border:2px solid #6ee7b7;">✅ Préstamo cancelado</div>`}
+        </div>`:`<div style="text-align:center;padding:8px;background:linear-gradient(135deg,#e8fff2,#d1fae5);border-radius:10px;color:#00aa44;font-weight:900;font-size:13px;border:2px solid #6ee7b7;">✅ Préstamo cancelado</div>`}
 
         <!-- ══ CONTACTO + ORDEN ══ -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 44px 44px;gap:8px;margin-bottom:8px">
-          <button onclick="compartirClienteWA('${c.id}')" style="padding:11px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#25D366,#128C7E);color:white;box-shadow:0 3px 10px rgba(37,211,102,0.3);display:flex;align-items:center;justify-content:center;gap:6px">
-            <span style="font-size:18px">💬</span> WhatsApp
+        <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:5px;margin-bottom:5px">
+          <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:6px 3px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;align-items:center;justify-content:center;gap:4px">
+            <span style="font-size:13px">📞</span> Llamar
           </button>
-          <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:11px 4px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 3px 10px rgba(26,86,219,0.25);display:flex;align-items:center;justify-content:center;gap:6px">
-            <span style="font-size:18px">📞</span> Llamar
-          </button>
-          <button onclick="moverCliente('${c.id}',-1)" style="padding:11px;border:2px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
-          <button onclick="moverCliente('${c.id}',1)" style="padding:11px;border:2px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
+          <button onclick="moverCliente('${c.id}',-1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
+          <button onclick="moverCliente('${c.id}',1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
         </div>
 
         <!-- ══ HISTORIAL ══ -->
-        <button onclick="verCancelados('${c.id}')" style="width:100%;padding:11px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:2px solid #86efac;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          <span style="font-size:16px">📜</span> Ver cancelados y renovaciones
+        <button onclick="verCancelados('${c.id}')" style="width:100%;padding:7px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:1.5px solid #86efac;border-radius:10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
+          <span style="font-size:12px">📜</span> Ver cancelados y renovaciones
         </button>
       </div>
     </div>`;
@@ -4604,12 +4623,22 @@ function verAbonosCliente(id){
     </div>
   </div>`;
 
-  // Insertar después del botón de abonos (dentro del cbody)
-  const cbody = document.getElementById('cbody-'+id);
-  if(cbody){
-    const btnRow = cbody.querySelector('[onclick*="verAbonosCliente"]').closest('div');
-    btnRow.insertAdjacentHTML('afterend', html);
-    setTimeout(()=>document.getElementById(boxId).scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  // Insertar dentro de la tarjeta, antes del footer (cuota/saldo/whatsapp)
+  const card = document.getElementById('card-'+id);
+  if(card){
+    // Abrir el cuerpo expandido si estaba cerrado
+    const cbody = document.getElementById('cbody-'+id);
+    if(cbody) cbody.style.display = 'block';
+    // Insertar el panel al inicio del cbody
+    if(cbody){
+      cbody.insertAdjacentHTML('afterbegin', html);
+    } else {
+      // fallback: insertar antes del footer de la tarjeta
+      const footer = card.querySelector('[style*="border-top:1.5px solid #f0f0f8"]');
+      if(footer) footer.insertAdjacentHTML('beforebegin', html);
+      else card.insertAdjacentHTML('beforeend', html);
+    }
+    setTimeout(()=>document.getElementById(boxId).scrollIntoView({behavior:'smooth',block:'nearest'}),150);
   }
 }
 
