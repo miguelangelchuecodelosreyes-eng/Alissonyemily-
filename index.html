@@ -782,7 +782,15 @@ body {
 <button class="btn-nuevo-cliente" onclick="abrirModalNuevoOHistorial()">➕ Nuevo</button>
     </div>
   </div>
-  <div style="padding:10px 14px 0">
+  <!-- Selector de fecha en Clientes -->
+  <div style="margin:10px 14px 0;display:flex;gap:8px;align-items:center">
+    <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e8ccf5;display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;font-weight:800;color:#888">📅</span>
+      <input type="date" id="clientes-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="setFechaActiva(this.value);var df=document.getElementById('det-filtro-fecha');if(df)df.value=this.value;debouncedRenderClientes()">
+    </div>
+    <button onclick="document.getElementById('clientes-filtro-fecha').value=fechaHoy();var df=document.getElementById('det-filtro-fecha');if(df)df.value=fechaHoy();setFechaActiva(fechaHoy());debouncedRenderClientes();" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+  </div>
+  <div style="padding:6px 14px 0">
     <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" autocomplete="off" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
   </div>
   <!-- Resumen rápido clientes -->
@@ -1153,9 +1161,9 @@ body {
   <div style="margin:14px 14px 0;display:flex;gap:8px;align-items:center">
     <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e8ccf5;display:flex;align-items:center;gap:8px">
       <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
-      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles()">
+      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=this.value;">
     </div>
-    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
     <button onclick="imprimirReporteDia()" style="background:#FFD700;border:none;color:#111;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
   </div>
 
@@ -2070,6 +2078,9 @@ function irA(p) {
   document.getElementById('pantalla-'+p).classList.add('activa');
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes'){
+    // Sincronizar el selector de fecha con la fecha activa actual
+    const cfInput = document.getElementById('clientes-filtro-fecha');
+    if(cfInput) cfInput.value = getFechaActiva();
     // Mostrar pantalla inmediatamente, renderizar después
     requestAnimationFrame(function(){ renderClientes(); });
   }
@@ -2085,10 +2096,9 @@ function irA(p) {
   }
   if(p==='gastos'){ renderGastosHoy(); renderHistorialGastos(); }
   if(p==='detalles'){
-    // Solo resetear a hoy si no viene de cargarDia
-    if(!document.getElementById('det-filtro-fecha').value){
-      document.getElementById('det-filtro-fecha').value = fechaHoy();
-    }
+    // Sincronizar con la fecha activa actual (puede venir de Clientes)
+    const fa = getFechaActiva();
+    document.getElementById('det-filtro-fecha').value = fa;
     renderDetalles();
   }
   if(p==='prestamos') renderPrestamos();
@@ -5048,7 +5058,7 @@ function abonarDesdeDetalle(){
   if(idx<0) return;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - monto);
   clientes[idx].pagos = clientes[idx].pagos || [];
-  clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
+  clientes[idx].pagos.unshift({fecha: getFechaActiva(), monto});
   saveClientes(clientes);
   // Archivar en historial si tiene cédula
   const cActDet = getClientes().find(x=>x.id===clienteDetalleId);
