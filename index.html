@@ -790,6 +790,12 @@ body {
     </div>
     <button onclick="document.getElementById('clientes-filtro-fecha').value=fechaHoy();var df=document.getElementById('det-filtro-fecha');if(df)df.value=fechaHoy();setFechaActiva(fechaHoy());debouncedRenderClientes();" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
   </div>
+  <!-- Banner aviso fecha pasada/futura -->
+  <div id="banner-fecha-pasada" style="display:none;margin:6px 14px 0;background:#fff3cd;border:2px solid #ff9800;border-radius:12px;padding:8px 14px;align-items:center;gap:8px;">
+    <span style="font-size:18px;">⚠️</span>
+    <span id="banner-fecha-texto" style="font-size:12px;font-weight:800;color:#b45309;flex:1;"></span>
+    <button onclick="document.getElementById('clientes-filtro-fecha').value=fechaHoy();var df=document.getElementById('det-filtro-fecha');if(df)df.value=fechaHoy();setFechaActiva(fechaHoy());debouncedRenderClientes();" style="background:#ff9800;border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;">Ir a Hoy</button>
+  </div>
   <div style="padding:6px 14px 0">
     <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" autocomplete="off" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
   </div>
@@ -1161,9 +1167,9 @@ body {
   <div style="margin:14px 14px 0;display:flex;gap:8px;align-items:center">
     <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e8ccf5;display:flex;align-items:center;gap:8px">
       <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
-      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=this.value;">
+      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="setFechaActiva(this.value);renderDetalles();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=this.value;">
     </div>
-    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();var cf=document.getElementById('clientes-filtro-fecha');if(cf)cf.value=fechaHoy();setFechaActiva(fechaHoy());renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
     <button onclick="imprimirReporteDia()" style="background:#FFD700;border:none;color:#111;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
   </div>
 
@@ -3810,6 +3816,21 @@ function renderClientes(){
   const hoyCheck = getFechaActiva();
   const countEl=document.getElementById('clientes-count');
   if(countEl) countEl.textContent=clientes.length;
+
+  // Mostrar banner si la fecha activa NO es hoy
+  const bannerEl = document.getElementById('banner-fecha-pasada');
+  const bannerTxt = document.getElementById('banner-fecha-texto');
+  if(bannerEl && bannerTxt){
+    if(hoyCheck !== fechaHoy()){
+      const [y,m,d] = hoyCheck.split('-');
+      const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      const fechaLeg = d+'-'+meses[Number(m)-1]+'-'+y;
+      bannerTxt.textContent = `⚠️ MODO EDICIÓN: Fecha ${fechaLeg} — Los cobros se guardarán en esta fecha`;
+      bannerEl.style.display='flex';
+    } else {
+      bannerEl.style.display='none';
+    }
+  }
 
   const pagaronHoy = clientes.filter(c=>(c.pagos||[]).some(p=>p.fecha===hoyCheck)).length;
   const pagaronEl=document.getElementById('clientes-pagaron-hoy');
