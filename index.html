@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -24,15 +24,15 @@
    ══════════════════════════════════════════════════ */
 
 :root {
-  --primary: #e91e8a;
-  --primary-dark: #c2185b;
-  --primary-light: #ff6ec7;
-  --accent: #00d4aa;
-  --accent-dark: #00b894;
+  --primary: #ff0099;
+  --primary-dark: #d6006e;
+  --primary-light: #ff45b5;
+  --accent: #00ffcc;
+  --accent-dark: #00e6b0;
   --danger: #ef4444;
   --danger-light: #fecaca;
-  --warning: #f59e0b;
-  --success: #10b981;
+  --warning: #ffab00;
+  --success: #00e676;
   --success-light: #d1fae5;
   --bg: #faf5ff;
   --bg-card: #ffffff;
@@ -61,8 +61,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+
+/* ═══ PASSWORD STRENGTH ═══ */
+.pwd-strength { height:4px; border-radius:2px; margin-top:6px; background:#e5e7eb; overflow:hidden; transition:all 0.3s; }
+.pwd-strength-bar { height:100%; border-radius:2px; transition:width 0.3s, background 0.3s; }
+.pwd-strength-bar.weak { width:33%; background:#ef4444; }
+.pwd-strength-bar.medium { width:66%; background:#f59e0b; }
+.pwd-strength-bar.strong { width:100%; background:#10b981; }
+
+/* ═══ EMPTY STATE MEJORADO ═══ */
+.empty-state-icon { font-size:48px; margin-bottom:8px; animation:bounceLogo 2s ease-in-out infinite alternate; }
+
 /* ═══ SCROLLBAR ═══ */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
@@ -116,11 +127,18 @@ body {
 }
 .login-input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(233,30,138,0.1); }
 .login-btn {
-  width:100%; padding:15px; background:linear-gradient(135deg,#ff6600,#cc2200); color:white;
+  width:100%; padding:16px; background:linear-gradient(135deg,#ff6600,#cc2200); color:white;
   border:none; border-radius:var(--radius-sm); font-family:var(--font); font-size:15px; font-weight:800;
   cursor:pointer; box-shadow:0 6px 20px rgba(204,34,0,0.4);
-  transition:transform var(--transition), box-shadow var(--transition);
+  transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow var(--transition);
+  position:relative; overflow:hidden;
 }
+.login-btn::after {
+  content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  transition:left 0.5s;
+}
+.login-btn:hover::after { left:100%; }
 .login-btn:active { transform:scale(0.97); box-shadow:0 2px 8px rgba(204,34,0,0.3); }
 .login-error { color:var(--danger); font-size:13px; font-weight:700; text-align:center; margin-top:10px; display:none; }
 .login-hint  { font-size:11px; color:#bbb; text-align:center; margin-top:14px; }
@@ -128,12 +146,19 @@ body {
 /* ═══ APP ═══ */
 #app { display:none; }
 .header {
-  background:linear-gradient(135deg, var(--primary), var(--accent), #00ccff);
-  background-size:300% 300%; animation:neonShift 6s ease infinite;
+  background:linear-gradient(135deg, var(--primary), var(--accent), #00ccff, var(--primary));
+  background-size:400% 400%; animation:neonShift 8s ease infinite;
   padding:22px 20px 0; color:white;
-  border-radius: 0 0 24px 24px;
-  box-shadow: 0 4px 20px rgba(233,30,138,0.2);
+  border-radius: 0 0 28px 28px;
+  box-shadow: 0 8px 32px rgba(233,30,138,0.25), 0 2px 8px rgba(0,0,0,0.1);
+  position:relative; overflow:hidden;
 }
+.header::after {
+  content:''; position:absolute; top:0; left:-50%; width:200%; height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation:headerShimmer 4s ease-in-out infinite;
+}
+@keyframes headerShimmer { 0%{transform:translateX(-50%)} 100%{transform:translateX(50%)} }
 .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
 .header h1  { font-size:20px; font-weight:900; letter-spacing:-0.5px; }
 .header-fecha { font-size:12px; opacity:0.8; margin-top:3px; }
@@ -154,6 +179,7 @@ body {
   border:none; color:rgba(255,255,255,0.85); border-radius:var(--radius-sm) var(--radius-sm) 0 0;
   font-family:var(--font); font-size:13px; font-weight:800; cursor:pointer; text-align:center;
   transition:all var(--transition);
+  touch-action:manipulation; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none;
 }
 .nav-tab.activo {
   background:var(--bg); color:var(--primary); box-shadow:0 -2px 10px rgba(0,0,0,0.05);
@@ -161,8 +187,10 @@ body {
 
 /* ═══ PANTALLAS ═══ */
 .pantalla { display:none; }
-.pantalla.activa { display:block; animation:fadeIn 0.15s ease; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.pantalla.activa { display:block; animation:fadeIn 0.25s cubic-bezier(0.22,1,0.36,1); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideInRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes scaleIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
 
 /* ═══ SECCIONES ═══ */
 .seccion {
@@ -369,7 +397,8 @@ body {
   transition:box-shadow var(--transition), transform var(--transition);
   touch-action: pan-y;
 }
-.cliente-card:active { box-shadow:var(--shadow-md); }
+.cliente-card:active { box-shadow:var(--shadow-md); transform:scale(0.995); }
+.cliente-card { transition:box-shadow 0.2s, transform 0.15s; }
 .cliente-card-header { display:flex; justify-content:space-between; align-items:center; padding:8px 8px 8px 6px; cursor:pointer; position:relative; }
 .cliente-nombre { font-size:16px; font-weight:800; color:var(--text); }
 .cliente-sub { font-size:11px; color:#94a3b8; font-weight:600; margin-top:2px; display:flex; gap:8px; align-items:center; }
@@ -446,7 +475,7 @@ body {
 .modal {
   background:var(--bg-card); border-radius:24px 24px 0 0; padding:24px 20px 32px;
   width:100%; max-width:600px; transform:translateY(100%);
-  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1); max-height:92vh; overflow-y:auto;
+  transition:transform 0.4s cubic-bezier(0.22,1,0.36,1); max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
 }
 .modal-overlay.visible .modal { transform:translateY(0); }
 .modal-titulo { font-size:18px; font-weight:900; color:var(--text); margin-bottom:20px; }
@@ -504,12 +533,15 @@ body {
 
 /* ═══ TOAST ═══ */
 #toast {
-  position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
-  background:var(--bg-dark); color:white; padding:12px 22px;
-  border-radius:var(--radius-sm); font-size:14px; font-weight:700;
-  z-index:999; opacity:0; transition:opacity 0.25s; white-space:nowrap; pointer-events:none;
-  box-shadow:var(--shadow-lg);
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:linear-gradient(135deg, #1a1a2e, #16213e); color:white; padding:14px 24px;
+  border-radius:16px; font-size:14px; font-weight:700;
+  z-index:999; opacity:0; transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; pointer-events:none;
+  box-shadow:0 10px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  max-width:90vw; text-align:center;
 }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
 
 /* ═══ CANCELADOS HISTORIAL ═══ */
@@ -720,13 +752,14 @@ body {
 <div class="pantalla activa" id="pantalla-clientes">
   <div class="clientes-header">
     <div class="clientes-titulo">👥 Mis Clientes</div>
-    <div style="display:flex;gap:8px">
-      <button onclick="imprimirListaClientes()" style="background:#FFD700;color:#111;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
+    <div style="display:flex;gap:6px">
+      <button onclick="imprimirListaClientes()" style="background:#FFD700;color:#111;border:none;border-radius:12px;padding:10px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer" title="Imprimir">🖨️</button>
+      <button onclick="cobrarTodosRapido()" style="background:linear-gradient(135deg,#00c853,#00e676);color:white;border:none;border-radius:12px;padding:10px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,200,83,0.3)" title="Cobrar cuota a todos">Rápido</button>
       <button class="btn-nuevo-cliente" onclick="abrirModalNuevoOHistorial()">➕ Nuevo</button>
     </div>
   </div>
   <div style="padding:10px 14px 0">
-    <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
+    <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" autocomplete="off" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
@@ -734,14 +767,18 @@ body {
       <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;text-transform:uppercase">Resumen general</div>
       <div style="font-size:11px;font-weight:800;color:#ff6600" id="resumen-porcentaje-label">📈 20%</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="background:#f8eeff;border-radius:10px;padding:10px 12px;text-align:center">
-        <div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase;margin-bottom:2px">👥 Clientes activos</div>
-        <div id="clientes-count" style="font-size:26px;font-weight:900;color:#cc00aa">0</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <div style="background:#f8eeff;border-radius:10px;padding:8px 8px;text-align:center">
+        <div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase;margin-bottom:2px">👥 Activos</div>
+        <div id="clientes-count" style="font-size:22px;font-weight:900;color:#cc00aa">0</div>
       </div>
-      <div style="background:#e8fff2;border-radius:10px;padding:10px 12px;text-align:center;border:1.5px solid #66ffaa">
-        <div style="font-size:10px;color:#00cc55;font-weight:700;text-transform:uppercase;margin-bottom:2px" id="label-pagaron-hoy">✅ Pagaron hoy</div>
-        <div id="clientes-pagaron-hoy" style="font-size:26px;font-weight:900;color:#00cc55">0</div>
+      <div style="background:#e8fff2;border-radius:10px;padding:8px 8px;text-align:center;border:1.5px solid #66ffaa">
+        <div style="font-size:9px;color:#00cc55;font-weight:700;text-transform:uppercase;margin-bottom:2px" id="label-pagaron-hoy">✅ Pagaron</div>
+        <div id="clientes-pagaron-hoy" style="font-size:22px;font-weight:900;color:#00cc55">0</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:10px;padding:8px 8px;text-align:center;border:1.5px solid #ffd54f">
+        <div style="font-size:9px;color:#e07b00;font-weight:700;text-transform:uppercase;margin-bottom:2px">⏳ Faltan</div>
+        <div id="clientes-faltan-hoy" style="font-size:22px;font-weight:900;color:#e07b00">0</div>
       </div>
     </div>
   </div>
@@ -1810,8 +1847,8 @@ function fechaBonita(f) {
 }
 function showToast(msg) {
   const t=document.getElementById('toast');
-  t.textContent=msg; t.style.opacity='1';
-  clearTimeout(t._t); t._t=setTimeout(()=>t.style.opacity='0',2600);
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600);
 }
 function cerrarModal(id) { document.getElementById(id).classList.remove('visible'); }
 function cerrarModalSi(e,id) { if(e.target===document.getElementById(id)) cerrarModal(id); }
@@ -1832,6 +1869,34 @@ function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return window
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} window._memStorage[k]=v; }
 function lsRemove(k){ try{ localStorage.removeItem(k); }catch(e){} delete window._memStorage[k]; }
 
+
+// ===== SEGURIDAD: Hash SHA-256 =====
+async function hashPassword(password){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + '_alisson_emily_salt_2026');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ===== SEGURIDAD: Session timeout (8 horas) =====
+function checkSessionTimeout(){
+  const ts = parseInt(lsGet('cobrador_sesion_ts')||'0');
+  if(ts && (Date.now() - ts > 8*60*60*1000)){
+    cerrarSesion();
+    showToast('🔒 Sesión expirada por seguridad');
+  }
+}
+setInterval(checkSessionTimeout, 60000);
+
+// ===== SEGURIDAD: Sanitizar inputs =====
+function sanitize(str){
+  if(!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // ===== LOGIN =====
 function getCredencialesCobrador(){ 
   try{ 
@@ -1841,7 +1906,7 @@ function getCredencialesCobrador(){
   catch(e){ return null; }
 }
 
-function cambiarCredenciales(){
+async function cambiarCredenciales(){
   const u = (document.getElementById('cfg-usuario').value||'').trim();
   const c = document.getElementById('cfg-clave').value;
   const c2 = document.getElementById('cfg-clave2').value;
@@ -1849,8 +1914,14 @@ function cambiarCredenciales(){
   err.style.display='none';
   if(!u || u.length < 3){ err.textContent='⚠️ El usuario debe tener mínimo 3 letras'; err.style.display='block'; return; }
   if(!c || c.length < 4){ err.textContent='⚠️ La contraseña debe tener mínimo 4 caracteres'; err.style.display='block'; return; }
+  if(!/[A-Za-z]/.test(c) || !/[0-9]/.test(c)){ err.textContent='⚠️ La contraseña debe tener letras y números'; err.style.display='block'; return; }
   if(c !== c2){ err.textContent='❌ Las contraseñas no coinciden'; err.style.display='block'; return; }
-  lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+  const hash = await hashPassword(c);
+  lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:hash, v:2}));
+  // También actualizar en lista de usuarios
+  const lista = JSON.parse(lsGet('cobrador_usuarios')||'[]');
+  const idx = lista.findIndex(x=>x.usuario===u);
+  if(idx>=0){ lista[idx].clave=hash; lista[idx].v=2; lsSet('cobrador_usuarios',JSON.stringify(lista)); }
   document.getElementById('cfg-clave').value='';
   document.getElementById('cfg-clave2').value='';
   showToast('✅ Usuario y contraseña actualizados');
@@ -1870,7 +1941,7 @@ function abrirRegistroNuevo(){
   document.getElementById('pantalla-registro').style.display = 'flex';
 }
 
-function registrar(){
+async function registrar(){
   const u = (document.getElementById('reg-usuario').value||'').trim();
   const c = document.getElementById('reg-clave').value;
   const c2 = document.getElementById('reg-clave2').value;
@@ -1879,43 +1950,68 @@ function registrar(){
   if(!u || u.length < 3){ err.textContent='⚠️ El usuario debe tener mínimo 3 letras'; err.style.display='block'; return; }
   if(!c || c.length < 4){ err.textContent='⚠️ La contraseña debe tener mínimo 4 caracteres'; err.style.display='block'; return; }
   if(c !== c2){ err.textContent='❌ Las contraseñas no coinciden'; err.style.display='block'; return; }
-  // Guardar en lista de usuarios
+  // Validar fortaleza de contraseña
+  if(!/[A-Za-z]/.test(c) || !/[0-9]/.test(c)){ err.textContent='⚠️ La contraseña debe tener letras y números'; err.style.display='block'; return; }
+  const hash = await hashPassword(c);
   const listaUsuarios = JSON.parse(lsGet('cobrador_usuarios') || '[]');
   const existe = listaUsuarios.find(x => x.usuario === u);
   if(existe){ document.getElementById('reg-error').textContent='⚠️ Ese usuario ya existe'; document.getElementById('reg-error').style.display='block'; return; }
-  listaUsuarios.push({usuario:u, clave:c});
+  listaUsuarios.push({usuario:u, clave:hash, v:2});
   lsSet('cobrador_usuarios', JSON.stringify(listaUsuarios));
-  // Si es el primero, también guardar como credencial activa
   if(listaUsuarios.length === 1){
-    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:hash, v:2}));
   }
   document.getElementById('pantalla-registro').style.display='none';
   document.getElementById('pantalla-login').style.display='flex';
   showToast('✅ Usuario "' + u + '" creado. Inicia sesión');
 }
-function entrar() {
+async function entrar() {
   const u=document.getElementById('login-usuario').value.trim();
   const c=document.getElementById('login-clave').value;
   const creds=getCredencialesCobrador();
   const err=document.getElementById('login-error');
-  // Buscar en lista de usuarios
+  // Rate limiting: max 5 intentos en 5 minutos
+  const intentosKey = 'login_intentos';
+  const intentos = JSON.parse(lsGet(intentosKey)||'[]').filter(t => Date.now()-t < 300000);
+  if(intentos.length >= 5){
+    err.textContent='🔒 Demasiados intentos. Espera 5 minutos.';
+    err.style.display='block';
+    return;
+  }
   const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
-  const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
   if(!creds && listaUsuarios2.length === 0){ showToast('⚠️ No hay usuario creado'); return; }
-  if(u===creds.usuario && c===creds.clave || credEnLista){
-    // Actualizar credencial activa al usuario que entra
-    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+  // Verificar con hash o texto plano (migración)
+  let autenticado = false;
+  const hash = await hashPassword(c);
+  for(const usr of listaUsuarios2){
+    if(usr.usuario === u){
+      if(usr.v===2 && usr.clave===hash){ autenticado=true; break; }
+      if(!usr.v && usr.clave===c){ autenticado=true; usr.clave=hash; usr.v=2; lsSet('cobrador_usuarios',JSON.stringify(listaUsuarios2)); break; }
+    }
+  }
+  if(!autenticado && creds){
+    if(creds.v===2 && creds.usuario===u && creds.clave===hash) autenticado=true;
+    else if(!creds.v && creds.usuario===u && creds.clave===c) autenticado=true;
+  }
+  if(autenticado){
+    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:hash, v:2}));
     err.style.display='none';
     lsSet('cobrador_sesion','ok');
     lsSet('cobrador_sesion_fecha', new Date().toDateString());
     lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+    lsSet('cobrador_sesion_ts', String(Date.now()));
+    // Limpiar intentos
+    lsSet(intentosKey, '[]');
     document.getElementById('pantalla-login').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('login-clave').value='';
     document.getElementById('login-usuario').value='';
     iniciarApp();
   } else {
+    intentos.push(Date.now());
+    lsSet(intentosKey, JSON.stringify(intentos));
     err.style.display='block';
+    err.textContent = intentos.length >= 3 ? `❌ Incorrecto (${5-intentos.length} intentos restantes)` : '❌ Usuario o contraseña incorrectos';
     document.getElementById('login-clave').value='';
     setTimeout(()=>err.style.display='none',3000);
   }
@@ -2361,7 +2457,6 @@ function eliminarGasto(idx){
       lsSet('sup_manual_'+hoy, JSON.stringify(manual));
       const inputGasto = document.getElementById('input-gasto');
       if(inputGasto){ inputGasto.value = total || ''; }
-      recalcularCuentas();
       renderGastosHoy();
       recalcularCuentas();
       renderHistorialGastos();
@@ -3794,7 +3889,10 @@ function renderClientes(){
         <div style="display:flex;flex-direction:column;align-items:center;">
           <span style="font-size:8px;color:#aaa;letter-spacing:.5px;text-transform:uppercase;">SALDO</span>
           <span id="saldo-display-${c.id}" style="font-size:22px;font-weight:900;color:${debe?'#ef4444':'#10b981'};line-height:1.1;">${debe?fmt(c.saldo):'✅ $0'}</span>
-          
+          <div style="width:100%;max-width:120px;height:6px;background:#e5e7eb;border-radius:3px;margin-top:4px;overflow:hidden;">
+            <div style="width:${c.prestamo>0?Math.min(100,Math.round(pagado/c.prestamo*100)):0}%;height:100%;background:linear-gradient(90deg,#ff00cc,#00cc55);border-radius:3px;transition:width 0.5s ease;"></div>
+          </div>
+          <span style="font-size:9px;color:#888;font-weight:700;">${c.prestamo>0?Math.round(pagado/c.prestamo*100):0}%</span>
         </div>
         <!-- Círculo CUOTA HOY -->
         <div style="display:flex;flex-direction:column;align-items:center;min-width:58px;">
@@ -3868,6 +3966,57 @@ function renderClientes(){
   }).join('');
   window.scrollTo(0, _scrollY);
   setTimeout(initDrag, 50);
+}
+
+
+// ===== COBRO RÁPIDO: Cobra la cuota sugerida a todos los clientes activos =====
+function cobrarTodosRapido(){
+  const clientes = getClientes().filter(c=>c.saldo>0 && c.cuotaSugerida>0);
+  if(!clientes.length){ showToast('⚠️ No hay clientes con cuota sugerida'); return; }
+  const hoy = getFechaActiva();
+  // Filtrar los que ya pagaron hoy
+  const sinPagoHoy = clientes.filter(c=>!(c.pagos||[]).some(p=>p.fecha===hoy));
+  if(!sinPagoHoy.length){ showToast('✅ Todos ya pagaron hoy'); return; }
+  const totalACobrar = sinPagoHoy.reduce((s,c)=>s+c.cuotaSugerida,0);
+  confirmarAccion(
+    '⚡ Cobro rápido',
+    `¿Cobrar la cuota sugerida a ${sinPagoHoy.length} cliente${sinPagoHoy.length>1?'s':''}?\n\nTotal a cobrar: ${fmt(totalACobrar)}\n\nSolo se cobra a los que NO pagaron hoy.`,
+    '#00c853',
+    () => {
+      const cls = getClientes();
+      let cobrados = 0;
+      sinPagoHoy.forEach(cliente => {
+        const idx = cls.findIndex(c=>c.id===cliente.id);
+        if(idx>=0 && cls[idx].saldo>0){
+          const monto = Math.min(cls[idx].cuotaSugerida, cls[idx].saldo);
+          cls[idx].saldo = Math.max(0, cls[idx].saldo - monto);
+          cls[idx].pagos = cls[idx].pagos || [];
+          cls[idx].pagos.unshift({fecha:hoy, monto});
+          cobrados++;
+        }
+      });
+      saveClientes(cls);
+      renderClientes();
+      showToast(`⚡ ${cobrados} cuotas cobradas = ${fmt(totalACobrar)}`);
+    }
+  );
+}
+
+// ===== FUNCIONALIDAD: Resumen del día en header =====
+function actualizarResumenHeader(){
+  const hoy = getFechaActiva();
+  const clientes = getClientes();
+  const activos = clientes.filter(c=>c.saldo>0).length;
+  const pagaron = clientes.filter(c=>c.saldo>0 && (c.pagos||[]).some(p=>p.fecha===hoy)).length;
+  const el1 = document.getElementById('clientes-count');
+  const el2 = document.getElementById('clientes-pagaron-hoy');
+  if(el1) el1.textContent = activos;
+  if(el2) el2.textContent = pagaron;
+  const el3 = document.getElementById('clientes-faltan-hoy');
+  if(el3) el3.textContent = activos - pagaron;
+  // Porcentaje
+  const pctEl = document.getElementById('resumen-porcentaje-label');
+  if(pctEl) pctEl.textContent = '📈 ' + getPorcentaje() + '%';
 }
 
 // ===== CLAVE =====
@@ -4725,7 +4874,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-09 v5';
+const APP_VERSION = '2026-04-11 v6 — Mejorada';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8115,6 +8264,8 @@ function abrirPanelDiagnostico() {
   let _sesionOk = false;
 
   function getPIN(){ return localStorage.getItem(PIN_KEY) || '1234'; }
+  // Nota: PIN se mantiene en texto por simplicidad (4 dígitos)
+  // Para mayor seguridad, el acceso real se protege con contraseña hasheada
 
   window.setPinAjustes = function(nuevo){
     if(!nuevo || nuevo.length !== 4 || !/^\d{4}$/.test(nuevo)){ showToast('⚠️ El PIN debe ser 4 dígitos'); return false; }
@@ -8194,6 +8345,15 @@ function abrirPanelDiagnostico() {
     mostrarVersionApp();
   }
 })();
+
+
+// ===== FIX: Instant touch on nav tabs =====
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    this.click();
+  }, {passive: false});
+});
 </script>
 
 </body>
