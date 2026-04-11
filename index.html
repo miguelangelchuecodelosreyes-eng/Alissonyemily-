@@ -2596,7 +2596,7 @@ function generarTexto(h){
   return `📒 *MIS CUENTAS DEL DÍA*\n📅 *${fechaBonita(h.fecha)}*\n━━━━━━━━━━━━━━━━━━━━\n💰 *ENTRADAS*\n   💵 Base:          ${fmt(h.base)}\n   📦 General:       ${fmt(h.general)}\n   📋 Papelería:     ${fmt(h.papeleria)}\n   ➕ *TOTAL:        ${fmt(h.totalEntradas)}*\n━━━━━━━━━━━━━━━━━━━━\n📤 *SALIDAS*\n   📤 Préstamos:     ${fmt(h.prestamos)}\n   💳 Neki:          ${fmt(h.neki)}\n   💸 Gasto:         ${fmt(h.gasto)}\n   ➖ *TOTAL:        ${fmt(h.totalSalidas)}*\n━━━━━━━━━━━━━━━━━━━━\n📊 *RESULTADO: ${rs}*${h.cancelados>0?`\n❌ *Cancelados: ${fmt(h.cancelados)}*\n🎯 *Pleno: ${h.general-h.cancelados>=0?fmt(h.general-h.cancelados):'-'+fmt(h.general-h.cancelados)}*`:''}${h.entregado>0?`\n🏦 *Entregado: ${fmt(h.entregado)}*${dt}`:''}`;
 }
 
-function compartirWA(h){const d=h||getDatos();window.open('https://wa.me/?text='+encodeURIComponent(generarTexto(d)),'_blank');}
+function compartirWA(h){const d=h||getDatos();window.open('https://api.whatsapp.com/send?text='+encodeURIComponent(generarTexto(d)),'_blank');}
 function copiarTexto(h){const d=h||getDatos(),t=generarTexto(d);if(navigator.clipboard){navigator.clipboard.writeText(t).then(()=>showToast('📋 ¡Copiado!'));}else{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('📋 ¡Copiado!');}}
 
 function eliminarDia(i){
@@ -3522,7 +3522,7 @@ function compartirClienteWA(id){
   if(!c.tel){ showToast('⚠️ Este cliente no tiene teléfono guardado'); return; }
   const pagado=c.prestamo-c.saldo;
   const texto=`Hola ${c.nombre}, su saldo pendiente es *${fmt(c.saldo)}*. Ha abonado *${fmt(pagado)}* de *${fmt(c.prestamo)}*. Gracias 🙏`;
-  window.location.href='https://wa.me/57'+c.tel.replace(/\D/g,'')+  '?text='+encodeURIComponent(texto);
+  window.location.href='https://api.whatsapp.com/send?phone=57'+c.tel.replace(/\D/g,'')+  '&text='+encodeURIComponent(texto);
 }
 
 function mostrarBarraCuota(nombre, saldoActual, valorInput){
@@ -3793,7 +3793,7 @@ function renderClientes(){
         <!-- SALDO central -->
         <div style="display:flex;flex-direction:column;align-items:center;">
           <span style="font-size:8px;color:#aaa;letter-spacing:.5px;text-transform:uppercase;">SALDO</span>
-          <span style="font-size:22px;font-weight:900;color:${debe?'#ef4444':'#10b981'};line-height:1.1;">${debe?fmt(c.saldo):'✅ $0'}</span>
+          <span id="saldo-display-${c.id}" style="font-size:22px;font-weight:900;color:${debe?'#ef4444':'#10b981'};line-height:1.1;">${debe?fmt(c.saldo):'✅ $0'}</span>
           
         </div>
         <!-- Círculo CUOTA HOY -->
@@ -3804,6 +3804,28 @@ function renderClientes(){
           </div>
         </div>
       </div>
+
+      <!-- ══ INPUT COBRO VISIBLE ══ -->
+      ${c.saldo>0?`
+      <div style="display:flex;gap:6px;align-items:center;padding:6px 10px 8px;border-top:1px solid #f0f0f8;background:#fafafa;border-radius:0 0 14px 14px;">
+        <input type="number" class="cuota-input" id="cuota-input-${c.id}"
+          autocomplete="off"
+          placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
+          style="width:110px;flex:none;border:2px solid #e5e7eb;border-radius:10px;padding:8px 8px;font-size:16px;font-weight:800;font-family:'Nunito',sans-serif;text-align:center;outline:none;color:#1a1a2e;"
+          oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const hoyEl=document.getElementById('hoy-circulo-${c.id}');if(hoyEl){hoyEl.style.borderColor=v>0?'#FFD700':'#d1d5db';hoyEl.querySelector('.hoy-val').textContent=v>0?fmt(v):'—';hoyEl.querySelector('.hoy-val').style.color=v>0?'#b8860b':'#9ca3af';hoyEl.querySelector('.hoy-lbl').style.color=v>0?'#b8860b':'#9ca3af';}const saldoEl=document.getElementById('saldo-display-${c.id}');if(saldoEl){saldoEl.textContent=v>0?(n===0?'✅ $0':'$'+n.toLocaleString('es-CO')):'${fmt(c.saldo)}';saldoEl.style.color=v>0?(n===0?'#10b981':'#f59e0b'):'#ef4444';}})(this);"
+          onfocus="this.style.borderColor='#f59e0b';"
+          onblur="this.style.borderColor='#e5e7eb';"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
+        <button onclick="pagarCuotaYAvanzar('${c.id}')"
+          style="flex:1;padding:9px 8px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 2px 8px rgba(0,200,83,0.3);display:flex;align-items:center;justify-content:center;gap:5px;">
+          <span style="font-size:15px;">💵</span> Cobrar
+        </button>
+        <button onclick="abrirCartonCliente('${c.id}')"
+          style="padding:9px 10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 2px 8px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">
+          <span style="font-size:15px;">🗂️</span> Cartón
+        </button>
+      </div>
+      `:''}
 
       <!-- ══ PANEL EXPANDIDO ══ -->
       <div class="cliente-body" id="cbody-${c.id}" style="display:none">
@@ -3818,39 +3840,8 @@ function renderClientes(){
           ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe;display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1;border-right:1.5px solid #d8b4fe;padding-right:10px"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div><div style="flex:1;padding-left:10px">${(()=>{const up=(c.pagos||[])[0];if(!up)return'<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#aaa;font-size:13px">Sin pagos</div>';const fd=up.fecha||'';let label=fd;try{const [y,m,d]=fd.split('-');const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const dt=new Date(Number(y),Number(m)-1,Number(d));const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];label=dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];}catch(e){}return`<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#16a34a;font-size:13px">${label}-${fmt(up.monto)}</div>`;})()} </div></div>`:''}
         </div>
         ${c.saldo>0?`
-        <div id="ns-bar-${c.id}" style="display:none;background:linear-gradient(135deg,#111827,#1f2937);border-radius:10px;padding:6px 10px;margin-bottom:5px;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:12px;font-weight:900;color:white">👤 ${c.nombre}</div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.5);font-weight:700">Ingresando cuota</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:8px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px">NUEVO SALDO</div>
-            <div id="ns-bar-saldo-${c.id}" style="font-size:18px;font-weight:900;color:#ff2222">—</div>
-          </div>
-        </div>
-        <!-- ══ CUOTA INFO ══ -->
-        ${cuotaDia>0?`<div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;padding:5px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:9px;color:rgba(255,255,255,.8);font-weight:700;letter-spacing:.5px;text-transform:uppercase;">💳 Cuota ${diasStr?'· '+diasStr:''}</span>
-          <span style="font-size:15px;font-weight:900;color:white;">${fmt(cuotaDia)}</span>
-        </div>`:''}
-        <!-- ══ COBRO ══ -->
-        <div style="display:flex;gap:5px;align-items:stretch;margin-bottom:5px">
-          <input type="number" class="cuota-input" style="flex:2;min-width:0;padding:8px 8px;font-size:14px;" autocomplete="off" id="cuota-input-${c.id}"
-            placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
-            oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const bs=document.getElementById('ns-bar-saldo-${c.id}');if(bs){bs.textContent=v>0?(n===0?'✅ ¡Cancelado!':'$'+n.toLocaleString('es-CO')):'—';bs.style.color=n===0?'#00e65c':'#ff2222';}})(this);"
-            onfocus="(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='flex';})()"
-            onblur="setTimeout(function(){const bar=document.getElementById('ns-bar-${c.id}');if(bar)bar.style.display='none';},400)"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
-          <button onclick="pagarCuotaYAvanzar('${c.id}')" style="flex:3;padding:8px 5px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 2px 8px rgba(0,200,83,0.3);display:flex;align-items:center;justify-content:center;gap:4px">
-            <span style="font-size:14px">💵</span> Cobrar
-          </button>
-        </div>
-
-        <!-- ══ ACCIONES: Cartón + Anterior + Siguiente ══ -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:5px">
-          <button onclick="abrirCartonCliente('${c.id}')" style="padding:6px 3px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-            <span style="font-size:14px">🗂️</span>Cartón
-          </button>
+        <!-- ══ ACCIONES: Anterior + Siguiente ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
           <button onclick="navegarCliente('${c.id}',-1)" style="padding:6px 3px;border:1.5px solid #c4b5fd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
             <span style="font-size:14px">⬅️</span>Anterior
           </button>
@@ -5192,7 +5183,7 @@ function waCliente(){
   if(!c || !c.tel){ showToast('⚠️ Este cliente no tiene teléfono'); return; }
   const pagado = c.prestamo - c.saldo;
   const texto = `Hola ${c.nombre}, le informamos que su saldo es de *${fmt(c.saldo)}*. Ha abonado *${fmt(pagado)}* de *${fmt(c.prestamo)}*.`;
-  window.location.href = 'https://wa.me/57'+c.tel.replace(/\s/g,'')+  '?text='+encodeURIComponent(texto);
+  window.location.href = 'https://api.whatsapp.com/send?phone=57'+c.tel.replace(/\s/g,'')+  '&text='+encodeURIComponent(texto);
 }
 
 // ===== PANTALLA PRÉSTAMOS =====
@@ -5451,7 +5442,7 @@ function generarCartonWA(id){
   msg += `🔴 *Saldo actual: $${saldo.toLocaleString('es-CO')}*\n`;
   msg += '_Gracias por su puntualidad_ 🙏';
 
-  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  const url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 }
 
