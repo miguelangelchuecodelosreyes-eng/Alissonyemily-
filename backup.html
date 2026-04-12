@@ -521,14 +521,41 @@ body {
     <div class="card-header bg-red">📤 Restaurar a la App</div>
     <div class="card-body">
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:600;line-height:1.6">
-        Sube un archivo JSON de respaldo para restaurarlo en Firebase. La app lo recibirá automáticamente.
+        Pega el contenido de tu archivo JSON de respaldo. Se subirá a Firebase y la app lo recibirá automáticamente.
       </p>
+
+      <!-- Pasos -->
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:900;color:#059669;letter-spacing:1px;margin-bottom:6px">CÓMO HACERLO:</div>
+        <div style="font-size:12px;color:#374151;font-weight:700;line-height:2">
+          1️⃣ Busca el archivo <b>.json</b> en "Mis Archivos"<br>
+          2️⃣ Ábrelo con <b>Notas</b> o cualquier editor de texto<br>
+          3️⃣ Selecciona todo → Copia<br>
+          4️⃣ Pégalo aquí abajo y toca Restaurar 👇
+        </div>
+      </div>
+
+      <textarea id="restore-json-input"
+        placeholder='Pega aquí el contenido del archivo .json...'
+        style="width:100%;height:150px;border:2px solid #e0e8ff;border-radius:12px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#f8faff;box-sizing:border-box;line-height:1.5;margin-bottom:10px"
+        oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#00cc55' : '#ff9999'">
+      </textarea>
+
+      <button onclick="window.restaurarBackupPegado()" class="btn-action btn-restore" style="margin-bottom:10px">
+        ✅ Restaurar en Firebase
+      </button>
+
+      <!-- También mantener opción de archivo para quien lo abra en navegador -->
+      <div style="text-align:center;margin-bottom:6px">
+        <span style="font-size:11px;color:#bbb;font-weight:700">— o desde archivo (solo navegador) —</span>
+      </div>
       <div class="restore-drop" onclick="document.getElementById('file-restore').click()">
-        <div style="font-size:40px">📂</div>
+        <div style="font-size:32px">📂</div>
         <p>Toca para seleccionar archivo .json</p>
       </div>
       <input type="file" id="file-restore" accept=".json" style="display:none" onchange="restaurarBackup(event)">
-      <div id="restore-msg"></div>
+
+      <div id="restore-msg" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -1054,6 +1081,46 @@ body {
       }
     };
     reader.readAsText(file);
+  };
+
+  // ---- RESTAURAR DESDE TEXTO PEGADO ----
+  window.restaurarBackupPegado = function() {
+    const texto = (document.getElementById('restore-json-input').value || '').trim();
+    const msg = document.getElementById('restore-msg');
+    msg.style.display = 'none';
+
+    if (!texto) {
+      msg.textContent = '⚠️ El campo está vacío. Pega el contenido del archivo .json';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+    }
+    if (!texto.startsWith('{')) {
+      msg.textContent = '❌ Esto no parece un archivo válido. Debe comenzar con {';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+    }
+    try {
+      const datos = JSON.parse(texto.replace(/^\uFEFF/, ''));
+      if (!datos.clientes) {
+        msg.textContent = '❌ Archivo no válido — no se encontraron clientes';
+        msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+      }
+      msg.textContent = '⏳ Subiendo a Firebase...';
+      msg.style.color = 'var(--blue)'; msg.style.display = 'block';
+      datos.fecha_backup = new Date().toISOString();
+      set(ref(db, 'usuarios/' + usuarioActual), datos)
+        .then(() => {
+          msg.textContent = '✅ ¡Restaurado! ' + datos.clientes.length + ' clientes subidos a Firebase. La app los recibirá automáticamente.';
+          msg.style.color = '#00aa44'; msg.style.display = 'block';
+          document.getElementById('restore-json-input').value = '';
+          toast('✅ ' + datos.clientes.length + ' clientes restaurados en Firebase');
+        })
+        .catch(err => {
+          msg.textContent = '❌ Error al subir: ' + err.message;
+          msg.style.color = 'var(--red)'; msg.style.display = 'block';
+        });
+    } catch(err) {
+      msg.textContent = '❌ Error al leer el JSON. Asegúrate de copiar TODO el contenido del archivo.';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block';
+    }
   };
 
   // ===== PANEL ADMIN =====
