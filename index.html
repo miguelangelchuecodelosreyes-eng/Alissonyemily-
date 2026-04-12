@@ -116,16 +116,12 @@ body {
 }
 .login-input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(233,30,138,0.1); }
 .login-btn {
-  width:100%; padding:15px; 
-  background:linear-gradient(135deg,#a855f7,#ec4899,#f97316);
-  background-size:200% 200%; animation:neonShift 4s ease infinite;
-  color:white;
+  width:100%; padding:15px; background:linear-gradient(135deg,#ff6600,#cc2200); color:white;
   border:none; border-radius:var(--radius-sm); font-family:var(--font); font-size:15px; font-weight:800;
-  cursor:pointer; box-shadow:0 6px 24px rgba(168,85,247,0.45), 0 2px 8px rgba(236,72,153,0.3);
+  cursor:pointer; box-shadow:0 6px 20px rgba(204,34,0,0.4);
   transition:transform var(--transition), box-shadow var(--transition);
-  letter-spacing:0.5px;
 }
-.login-btn:active { transform:scale(0.97); box-shadow:0 2px 10px rgba(168,85,247,0.3); }
+.login-btn:active { transform:scale(0.97); box-shadow:0 2px 8px rgba(204,34,0,0.3); }
 .login-error { color:var(--danger); font-size:13px; font-weight:700; text-align:center; margin-top:10px; display:none; }
 .login-hint  { font-size:11px; color:#bbb; text-align:center; margin-top:14px; }
 
@@ -142,27 +138,25 @@ body {
 .header h1  { font-size:20px; font-weight:900; letter-spacing:-0.5px; }
 .header-fecha { font-size:12px; opacity:0.8; margin-top:3px; }
 .btn-logout {
-  background:rgba(255,255,255,0.25); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  border:1.5px solid rgba(255,255,255,0.5); color:white; border-radius:20px; padding:6px 14px;
+  background:rgba(255,255,255,0.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.3); color:white; border-radius:var(--radius-xs); padding:6px 12px;
   font-family:var(--font); font-size:12px; font-weight:800; cursor:pointer;
-  transition:all var(--transition); letter-spacing:0.3px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  transition:background var(--transition);
 }
-.btn-logout:active { background:rgba(255,255,255,0.4); transform:scale(0.95); }
+.btn-logout:active { background:rgba(255,255,255,0.35); }
 
 /* ═══ NAV ═══ */
 .nav-tabs { display:flex; gap:4px; padding:12px 10px 0; margin-top:8px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
 .nav-tabs::-webkit-scrollbar { display:none; }
 .nav-tab {
   flex:1; min-width:60px; padding:12px 2px;
-  background:rgba(255,255,255,0.14); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
-  border:none; color:rgba(255,255,255,0.8); border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  background:rgba(255,255,255,0.18); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  border:none; color:rgba(255,255,255,0.85); border-radius:var(--radius-sm) var(--radius-sm) 0 0;
   font-family:var(--font); font-size:13px; font-weight:800; cursor:pointer; text-align:center;
   transition:all var(--transition);
 }
 .nav-tab.activo {
-  background:var(--bg); color:var(--primary); box-shadow:0 -3px 12px rgba(168,85,247,0.15);
-  border-top:2px solid rgba(168,85,247,0.4);
+  background:var(--bg); color:var(--primary); box-shadow:0 -2px 10px rgba(0,0,0,0.05);
 }
 
 /* ═══ PANTALLAS ═══ */
@@ -280,37 +274,31 @@ body {
 /* ═══ BOTONES ═══ */
 .botones { display:flex; gap:10px; padding:14px 14px 0; }
 .btn {
-  flex:1; padding:15px; border:none; border-radius:20px;
+  flex:1; padding:15px; border:none; border-radius:var(--radius-sm);
   font-family:var(--font); font-size:14px; font-weight:800; cursor:pointer;
-  transition:all var(--transition); letter-spacing:0.3px;
+  transition:all var(--transition);
 }
-.btn:active { transform:scale(0.95); }
+.btn:active { transform:scale(0.96); }
 .btn-guardar {
-  background:linear-gradient(135deg,#a855f7,#ec4899); color:white;
-  box-shadow:0 6px 20px rgba(168,85,247,0.35), 0 2px 6px rgba(236,72,153,0.2);
+  background:linear-gradient(135deg, var(--primary), var(--accent)); color:white;
+  box-shadow:0 4px 16px rgba(233,30,138,0.25);
 }
-.btn-guardar:active { box-shadow:0 2px 8px rgba(168,85,247,0.25); }
-.btn-limpiar { 
-  background:rgba(168,85,247,0.07); color:var(--primary); 
-  border:2px solid rgba(168,85,247,0.35); 
-  box-shadow:0 2px 8px rgba(168,85,247,0.08);
-}
+.btn-limpiar { background:var(--bg); color:var(--primary); border:2px solid var(--primary); }
 .botones-compartir { display:flex; gap:10px; padding:10px 14px 0; }
 .btn-wa {
-  flex:1; padding:14px; border:none; border-radius:20px;
+  flex:1; padding:14px; border:none; border-radius:var(--radius-sm);
   font-family:var(--font); font-size:15px; font-weight:800; cursor:pointer;
   background:linear-gradient(135deg,#25D366,#128C7E); color:white;
-  box-shadow:0 6px 20px rgba(37,211,102,0.35), 0 2px 6px rgba(18,140,126,0.2);
+  box-shadow:0 4px 16px rgba(37,211,102,0.3);
   display:flex; align-items:center; justify-content:center; gap:8px;
   transition:all var(--transition);
 }
-.btn-wa:active { transform:scale(0.95); box-shadow:0 2px 8px rgba(37,211,102,0.25); }
+.btn-wa:active { transform:scale(0.96); }
 .btn-copiar {
-  padding:14px 16px; border:none; border-radius:20px;
+  padding:14px 16px; border:none; border-radius:var(--radius-sm);
   font-family:var(--font); font-size:14px; font-weight:800; cursor:pointer;
-  background:rgba(168,85,247,0.07); color:#64748b; border:2px solid rgba(168,85,247,0.35);
+  background:var(--bg); color:#64748b; border:2px solid var(--primary);
   transition:all var(--transition);
-  box-shadow:0 2px 8px rgba(168,85,247,0.08);
 }
 
 /* ═══ HISTORIAL ═══ */
@@ -333,13 +321,13 @@ body {
 .h-cell-val   { font-size:13px; font-weight:800; }
 .h-actions { display:flex; gap:8px; }
 .h-btn {
-  flex:1; padding:9px; border:none; border-radius:16px;
+  flex:1; padding:9px; border:none; border-radius:var(--radius-xs);
   font-family:var(--font); font-size:12px; font-weight:800; cursor:pointer;
   transition:all var(--transition);
 }
-.h-btn:active { transform:scale(0.95); }
-.h-btn.h-btn-wa  { background:linear-gradient(135deg,#25D366,#128C7E); color:white; box-shadow:0 4px 12px rgba(37,211,102,0.3); }
-.h-btn.h-btn-del { background:#fef2f2; color:var(--danger); border:1.5px solid #fca5a5; box-shadow:0 2px 6px rgba(239,68,68,0.1); }
+.h-btn:active { transform:scale(0.96); }
+.h-btn.h-btn-wa  { background:#25D366; color:white; }
+.h-btn.h-btn-del { background:#fef2f2; color:var(--danger); border:1px solid #fca5a5; }
 .empty-hist { text-align:center; padding:24px; color:#cbd5e1; font-size:14px; font-weight:700; }
 
 /* ═══ SEMANA ═══ */
@@ -367,13 +355,13 @@ body {
 .clientes-header { display:flex; justify-content:space-between; align-items:center; padding:14px 14px 0; }
 .clientes-titulo { font-size:16px; font-weight:900; color:var(--text); }
 .btn-nuevo-cliente {
-  background:linear-gradient(135deg,#a855f7,#ec4899); color:white;
-  border:none; border-radius:20px; padding:10px 18px;
+  background:linear-gradient(135deg, var(--primary), #00ccff); color:white;
+  border:none; border-radius:var(--radius-sm); padding:10px 16px;
   font-family:var(--font); font-size:13px; font-weight:800; cursor:pointer;
-  box-shadow:0 4px 16px rgba(168,85,247,0.35), 0 2px 6px rgba(236,72,153,0.2);
-  transition:all var(--transition); letter-spacing:0.3px;
+  box-shadow:0 2px 10px rgba(233,30,138,0.2);
+  transition:all var(--transition);
 }
-.btn-nuevo-cliente:active { transform:scale(0.95); box-shadow:0 2px 8px rgba(168,85,247,0.25); }
+.btn-nuevo-cliente:active { transform:scale(0.96); }
 
 .cliente-card {
   background:var(--bg-card); border-radius:18px; margin:10px 4px 0;
@@ -424,11 +412,11 @@ body {
 }
 .cuota-input:focus { border-color:var(--primary); box-shadow:none; -webkit-tap-highlight-color:transparent; }
 .btn-pagar-cuota {
-  background:linear-gradient(135deg,#10b981,#059669); color:white; border:none; border-radius:16px;
-  padding:12px 16px; font-family:var(--font); font-size:13px; font-weight:800; cursor:pointer;
-  transition:all var(--transition); box-shadow:0 4px 14px rgba(16,185,129,0.35);
+  background:var(--success); color:white; border:none; border-radius:var(--radius-sm);
+  padding:12px 14px; font-family:var(--font); font-size:13px; font-weight:800; cursor:pointer;
+  transition:all var(--transition);
 }
-.btn-pagar-cuota:active { transform:scale(0.95); box-shadow:0 2px 6px rgba(16,185,129,0.25); }
+.btn-pagar-cuota:active { transform:scale(0.96); }
 
 .historial-pagos-titulo { font-size:11px; font-weight:900; color:#94a3b8; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
 .pago-item { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f8f4ff; font-size:13px; }
@@ -438,16 +426,15 @@ body {
 
 .cliente-acciones { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .btn-acc {
-  flex:1; min-width:80px; padding:10px 6px; border-radius:16px;
+  flex:1; min-width:80px; padding:9px 6px; border-radius:var(--radius-xs);
   font-family:var(--font); font-size:11px; font-weight:800; cursor:pointer;
   text-align:center; border:none; transition:all var(--transition);
-  box-shadow:0 2px 6px rgba(0,0,0,0.07);
 }
-.btn-acc:active { transform:scale(0.95); }
-.btn-acc-editar  { background:rgba(168,85,247,0.1); color:#a855f7; border:2px solid rgba(168,85,247,0.4); }
-.btn-acc-renovar { background:#fff7ed; color:#ea580c; border:2px solid rgba(245,158,11,0.45); }
-.btn-acc-wa      { background:linear-gradient(135deg,#25D366,#128C7E); color:white; box-shadow:0 3px 10px rgba(37,211,102,0.3); }
-.btn-acc-del     { background:#fef2f2; color:var(--danger); border:1.5px solid #fca5a5; }
+.btn-acc:active { transform:scale(0.96); }
+.btn-acc-editar  { background:#f8f4ff; color:var(--primary); border:2px solid var(--primary); }
+.btn-acc-renovar { background:#fff7ed; color:#ea580c; border:2px solid var(--warning); }
+.btn-acc-wa      { background:#25D366; color:white; }
+.btn-acc-del     { background:#fef2f2; color:var(--danger); border:1px solid #fca5a5; }
 
 /* ═══ MODAL ═══ */
 .modal-overlay {
@@ -494,20 +481,16 @@ body {
 
 .modal-btns { display:flex; gap:10px; margin-top:20px; }
 .modal-btn-ok {
-  flex:2; padding:15px; background:linear-gradient(135deg,#a855f7,#ec4899);
-  color:white; border:none; border-radius:20px;
+  flex:2; padding:15px; background:linear-gradient(135deg, var(--primary), #00ccff);
+  color:white; border:none; border-radius:var(--radius-sm);
   font-family:var(--font); font-size:15px; font-weight:800; cursor:pointer;
-  transition:all var(--transition); letter-spacing:0.3px;
-  box-shadow:0 6px 20px rgba(168,85,247,0.35);
-}
-.modal-btn-ok:active { transform:scale(0.96); box-shadow:0 2px 8px rgba(168,85,247,0.25); }
-.modal-btn-cancel {
-  flex:1; padding:15px; background:rgba(168,85,247,0.07); color:#94a3b8; 
-  border:2px solid rgba(168,85,247,0.3);
-  border-radius:20px; font-family:var(--font); font-size:14px; font-weight:800; cursor:pointer;
   transition:all var(--transition);
 }
-.modal-btn-cancel:active { transform:scale(0.96); }
+.modal-btn-ok:active { transform:scale(0.97); }
+.modal-btn-cancel {
+  flex:1; padding:15px; background:#f8f4ff; color:#94a3b8; border:2px solid var(--primary);
+  border-radius:var(--radius-sm); font-family:var(--font); font-size:14px; font-weight:800; cursor:pointer;
+}
 
 /* ═══ RENOVAR MODAL ═══ */
 .renovar-info {
@@ -595,15 +578,14 @@ body {
 .pin-cyber-dots.shake { animation:pinShake 0.4s ease; }
 @keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
 .pin-cyber-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:230px; margin:0 auto; }
-.pin-ckey { aspect-ratio:1; border-radius:14px; border:1px solid rgba(0,255,255,0.25); background:rgba(0,255,255,0.05); color:#00ffff; font-family:'Orbitron','Nunito',sans-serif; font-size:16px; font-weight:700; cursor:pointer; transition:all 0.1s; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
-.pin-ckey:active { border-color:#00ffff; box-shadow:0 0 18px rgba(0,255,255,0.55),inset 0 0 12px rgba(0,255,255,0.12); transform:scale(0.91); background:rgba(0,255,255,0.1); }
-.pin-ckey.pin-del { color:#ff00ff; border-color:rgba(255,0,255,0.3); font-size:20px; font-family:'Nunito',sans-serif; }
-.pin-ckey.pin-del:active { border-color:#ff00ff; box-shadow:0 0 18px rgba(255,0,255,0.55); background:rgba(255,0,255,0.08); }
+.pin-ckey { aspect-ratio:1; border-radius:8px; border:1px solid rgba(0,255,255,0.2); background:rgba(0,255,255,0.04); color:#00ffff; font-family:'Orbitron','Nunito',sans-serif; font-size:16px; font-weight:700; cursor:pointer; transition:all 0.1s; display:flex; align-items:center; justify-content:center; }
+.pin-ckey:active { border-color:#00ffff; box-shadow:0 0 15px rgba(0,255,255,0.5),inset 0 0 10px rgba(0,255,255,0.1); transform:scale(0.92); }
+.pin-ckey.pin-del { color:#ff00ff; border-color:rgba(255,0,255,0.25); font-size:20px; font-family:'Nunito',sans-serif; }
+.pin-ckey.pin-del:active { border-color:#ff00ff; box-shadow:0 0 15px rgba(255,0,255,0.5); }
 .pin-access-msg { font-family:'Orbitron','Nunito',sans-serif; font-size:13px; color:#00ff88; letter-spacing:3px; margin-top:18px; opacity:0; min-height:22px; }
 .pin-access-msg.show { animation:pinFadeMsg 0.5s ease 0.8s forwards; }
 @keyframes pinFadeMsg { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.pin-cerrar-btn { margin-top:20px; padding:11px 28px; background:transparent; border:1.5px solid rgba(255,0,255,0.4); color:#ff00ff; border-radius:20px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; letter-spacing:1px; transition:all 0.2s; box-shadow:0 0 12px rgba(255,0,255,0.1); }
-.pin-cerrar-btn:active { background:rgba(255,0,255,0.08); transform:scale(0.96); }
+.pin-cerrar-btn { margin-top:20px; padding:10px 24px; background:transparent; border:1px solid rgba(255,0,255,0.3); color:#ff00ff; border-radius:8px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; letter-spacing:1px; }
 </style>
 </head>
 <body>
@@ -619,7 +601,7 @@ body {
     <div style="background:rgba(255,255,255,0.95);border-radius:24px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,0.3);margin-bottom:14px">
       <div style="font-size:13px;font-weight:900;color:#00cc55;margin-bottom:4px">📂 ¿Ya tienes una copia de seguridad?</div>
       <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:12px;line-height:1.5">Restaura tu backup y entra con tu mismo usuario y contraseña de siempre.</div>
-      <label style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.4)">
+      <label style="display:block;width:100%;padding:14px;background:#00cc55;color:white;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 6px 20px rgba(0,204,85,0.4)">
         📂 Restaurar copia de seguridad
         <input type="file" accept=".json" onchange="restaurarDesdeRegistro(event)" style="display:none">
       </label>
@@ -645,7 +627,7 @@ body {
       <label class="login-label">🔒 Confirma tu contraseña</label>
       <input type="password" class="login-input" id="reg-clave2" placeholder="••••" maxlength="20"
         onkeydown="if(event.key==='Enter')registrar()">
-      <button class="login-btn" onclick="registrar()" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 6px 20px rgba(168,85,247,0.4)">✅ Crear acceso nuevo</button>
+      <button class="login-btn" onclick="registrar()">✅ Crear acceso nuevo</button>
       <div id="reg-error" style="color:#ff3d3d;font-size:13px;font-weight:700;text-align:center;margin-top:10px;display:none"></div>
     </div>
   </div>
@@ -681,14 +663,11 @@ body {
       onkeydown="if(event.key==='Enter')entrar()">
     <button class="login-btn" onclick="entrar()">🔓 Entrar</button>
     <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
-    <div id="login-ayuda" style="display:none;font-size:12px;color:#888;text-align:center;margin-top:6px;line-height:1.5">
-      Si eres la primera vez en este dispositivo,<br>usa <b>Restaurar copia de seguridad</b> 👇
-    </div>
     <div style="text-align:center;margin-top:14px">
-      <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#a855f7;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
+      <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#cc00aa;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,#e0b070,transparent);margin:16px 0 12px"></div>
-    <label style="display:block;width:100%;padding:13px;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(5,150,105,0.08));color:#059669;border:2px solid rgba(16,185,129,0.4);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
+    <label style="display:block;width:100%;padding:13px;background:#f0fff8;color:#00aa44;border:2px solid #00cc55;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
       📂 Restaurar copia de seguridad
       <input type="file" accept=".json" onchange="restaurarDesdeRegistro(event)" style="display:none">
     </label>
@@ -722,7 +701,7 @@ body {
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px">
     <div id="sync-status-badge" style="font-size:12px;font-weight:900;color:#aaa;flex:1;transition:color 0.3s">⏳ Sin sincronizar</div>
-    <button onclick="window.syncForzado && window.syncForzado()" style="background:rgba(255,255,255,0.22);border:1.5px solid rgba(255,255,255,0.4);color:white;border-radius:16px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15)">⚡ Guardar ya</button>
+    <button onclick="window.syncForzado && window.syncForzado()" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer">⚡ Guardar ya</button>
   </div>
   <div id="header-versiculo" style="margin:2px 0 2px;background:rgba(255,255,255,0.13);border-radius:10px;padding:7px 12px;font-size:11px;color:rgba(255,255,255,0.93);font-style:italic;line-height:1.5;text-align:center;border:1px solid rgba(255,255,255,0.18)">
     <span id="header-versiculo-text"></span>
@@ -742,7 +721,7 @@ body {
   <div class="clientes-header">
     <div class="clientes-titulo">👥 Mis Clientes</div>
     <div style="display:flex;gap:8px">
-      <button onclick="imprimirListaClientes()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:16px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(245,158,11,0.35)">🖨️</button>
+      <button onclick="imprimirListaClientes()" style="background:#FFD700;color:#111;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
       <button class="btn-nuevo-cliente" onclick="abrirModalNuevoOHistorial()">➕ Nuevo</button>
     </div>
   </div>
@@ -768,10 +747,10 @@ body {
   </div>
   <!-- Botones PDF y Backup -->
   <div style="margin:10px 14px 0;display:flex;gap:8px">
-    <button onclick="generarPDFRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+    <button onclick="generarPDFRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
       📄 PDF Ruta
     </button>
-    <button onclick="descargarBackupDirecto()" style="flex:1;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.35)">
+    <button onclick="descargarBackupDirecto()" style="flex:1;padding:13px;background:linear-gradient(135deg,#00874a,#00b84a);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
       💾 Backup
     </button>
   </div>
@@ -956,9 +935,9 @@ body {
       </div>
     </div>
     <div style="background:#f5eeff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;">
-      <button onclick="cambiarSemanaResumen(-1)" style="padding:6px 16px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">← Ant.</button>
+      <button onclick="cambiarSemanaResumen(-1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">← Ant.</button>
       <div style="font-size:12px;font-weight:800;color:#666;" id="resumen-sem-semana">Semana actual</div>
-      <button onclick="cambiarSemanaResumen(1)" style="padding:6px 16px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">Sig. →</button>
+      <button onclick="cambiarSemanaResumen(1)" style="padding:6px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;">Sig. →</button>
     </div>
   </div>
 
@@ -971,7 +950,7 @@ body {
         <option value="">-- Selecciona un día --</option>
       </select>
       <button onclick="document.getElementById('filtro-historial-fecha').value='';renderHistorial();"
-        style="padding:10px 16px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
+        style="padding:10px 14px;background:#f3f4f6;color:#555;border:1.5px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
         Ver todos
       </button>
     </div>
@@ -990,28 +969,28 @@ body {
         <div style="font-size:11px;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">Tipo de gasto</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button onclick="seleccionarTipoGasto('Merienda')" id="btn-gasto-merienda"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Merienda
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            🍎 Merienda
           </button>
           <button onclick="seleccionarTipoGasto('Gasolina')" id="btn-gasto-gasolina"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Gasolina
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            ⛽ Gasolina
           </button>
           <button onclick="seleccionarTipoGasto('Arreglo de moto')" id="btn-gasto-arreglo"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Arreglo moto
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            🔧 Arreglo moto
           </button>
           <button onclick="seleccionarTipoGasto('Aceite')" id="btn-gasto-aceite"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Aceite
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%">
+            🛢️ Aceite
           </button>
           <button onclick="seleccionarTipoGasto('Sueldo')" id="btn-gasto-sueldo"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Sueldo
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1">
+            💼 Sueldo
           </button>
           <button onclick="seleccionarTipoGastoOtros()" id="btn-gasto-otros"
-            style="padding:13px 8px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1;transition:all 0.2s;box-shadow:0 4px 12px rgba(168,85,247,0.3)">
-            Otros
+            style="padding:13px 8px;background:#f8eeff;color:#555;border:2px solid #e8ccf5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;width:100%;grid-column:1/-1">
+            ✏️ Otros
           </button>
           <input type="text" id="input-gasto-otros-texto" placeholder="Escribe el tipo de gasto..."
             style="display:none;width:100%;grid-column:1/-1;border:2px solid #e8ccf5;border-radius:14px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;box-sizing:border-box" oninput="actualizarTipoOtros()">
@@ -1044,7 +1023,7 @@ body {
       <!-- Botón registrar -->
       <div style="padding:14px 16px">
         <button onclick="registrarGasto()"
-          style="width:100%;padding:15px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:20px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(239,68,68,0.4)">
+          style="width:100%;padding:15px;background:linear-gradient(135deg,#ff4444,#cc0000);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(255,0,0,0.3)">
           ✅ Registrar Gasto
         </button>
       </div>
@@ -1082,7 +1061,7 @@ body {
           <option value="">-- Selecciona un día --</option>
         </select>
         <button onclick="document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
-          style="padding:10px 16px;background:rgba(239,68,68,0.08);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
+          style="padding:10px 14px;background:#f3f4f6;color:#ff4444;border:1.5px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
           Ver todos
         </button>
       </div>
@@ -1118,8 +1097,8 @@ body {
       <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
       <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles()">
     </div>
-    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#a855f7,#ec4899);border:none;color:white;border-radius:16px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(168,85,247,0.35)">Hoy</button>
-    <button onclick="imprimirReporteDia()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:white;border-radius:16px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(245,158,11,0.35)">🖨️</button>
+    <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);border:none;color:white;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Hoy</button>
+    <button onclick="imprimirReporteDia()" style="background:#FFD700;border:none;color:#111;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🖨️</button>
   </div>
 
   <!-- Resumen total -->
@@ -1194,7 +1173,7 @@ body {
   <!-- Todos los clientes con su total prestado -->
   <div style="margin:12px 14px 8px">
     <button onclick="toggleHistorialClientes()" id="btn-ver-historial"
-      style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#ec4899,#00ccff);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 18px rgba(168,85,247,0.35)">
+      style="width:100%;padding:14px;background:linear-gradient(135deg,#ff00cc,#00ff88,#00ccff);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(255,0,204,0.3)">
       <span>👥 Ver clientes</span><span id="historial-flecha">▼</span>
     </button>
   </div>
@@ -1228,7 +1207,7 @@ body {
           style="width:100%;border:2px solid #00ffff66;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;outline:none;background:#0a0a1e;color:#00ffff;text-align:center;letter-spacing:12px"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
         <button onclick="if(setPinAjustes(document.getElementById('input-nuevo-pin').value)) document.getElementById('input-nuevo-pin').value='';"
-          style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#00ffff,#a855f7);color:#050510;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:1px;box-shadow:0 5px 16px rgba(0,255,255,0.25)">
+          style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#00ffff,#ff00ff);color:#050510;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:1px">
           💾 GUARDAR PIN
         </button>
       </div>
@@ -1248,7 +1227,7 @@ body {
         </div>
         <div id="app-version-badge" style="font-size:22px">⏳</div>
       </div>
-      <button onclick="forzarActualizacion()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(26,86,219,0.35)">🔄 Verificar y actualizar ahora</button>
+      <button onclick="forzarActualizacion()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔄 Verificar y actualizar ahora</button>
       <div style="font-size:11px;color:#888;font-weight:600;margin-top:8px;text-align:center;line-height:1.5">Si instalaste la app y no ves los últimos cambios,<br>presiona este botón para forzar la actualización.</div>
     </div>
   </div>
@@ -1259,15 +1238,15 @@ body {
     <div style="padding:14px 16px">
       <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px;line-height:1.5">Muestra en tiempo real lo que hace Firebase: si sube los datos, si hay errores, o por qué no sincroniza.</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-        <button onclick="abrirPanelDiagnostico()" style="flex:1;padding:12px;background:#0d1117;color:#00ffff;border:1.5px solid rgba(0,255,255,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.3)">🔧 Abrir panel</button>
-        <button onclick="diagnosticoCompleto()" style="flex:1;padding:12px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(168,85,247,0.35)">🔍 DIAGNÓSTICO COMPLETO</button>
+        <button onclick="abrirPanelDiagnostico()" style="flex:1;padding:12px;background:#0d1117;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🔧 Abrir panel</button>
+        <button onclick="diagnosticoCompleto()" style="flex:1;padding:12px;background:#ff00cc;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🔍 DIAGNÓSTICO COMPLETO</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <button onclick="verificarReglasFirebase()" style="flex:1;padding:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(245,158,11,0.3)">🔥 Verificar reglas</button>
-        <button onclick="diagnosticarTamanioDatos()" style="flex:1;padding:10px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(139,92,246,0.3)">📊 Tamaño datos</button>
-        <button onclick="mostrarErroresDetallados()" style="flex:1;padding:10px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(239,68,68,0.3)">🔍 Ver errores</button>
-        <button onclick="verEstadoNube()" style="flex:1;padding:10px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(14,165,233,0.3)">☁️ Ver estado nube</button>
-        <button onclick="verHistorialErrores()" style="flex:1;padding:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(124,58,237,0.3)">📜 Historial errores</button>
+        <button onclick="verificarReglasFirebase()" style="flex:1;padding:10px;background:#f0883e;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔥 Verificar reglas</button>
+        <button onclick="diagnosticarTamanioDatos()" style="flex:1;padding:10px;background:#a371f7;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📊 Tamaño datos</button>
+        <button onclick="mostrarErroresDetallados()" style="flex:1;padding:10px;background:#f85149;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔍 Ver errores</button>
+        <button onclick="verEstadoNube()" style="flex:1;padding:10px;background:#58a6ff;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">☁️ Ver estado nube</button>
+        <button onclick="verHistorialErrores()" style="flex:1;padding:10px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📜 Historial errores</button>
       </div>
     </div>
   </div>
@@ -1286,7 +1265,7 @@ body {
     <div class="campo" style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:8px">
       <div style="font-size:14px;font-weight:800;color:#111">📤 Exportar datos</div>
       <div style="font-size:12px;color:#666;font-weight:700">Descarga un archivo con todos tus datos actuales</div>
-      <button onclick="exportarDatos()" style="width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;box-shadow:0 5px 16px rgba(16,185,129,0.35)">📥 Descargar copia de seguridad</button>
+      <button onclick="exportarDatos()" style="width:100%;padding:14px;background:#00cc55;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px">📥 Descargar copia de seguridad</button>
 
     </div>
 
@@ -1294,7 +1273,7 @@ body {
     <div class="campo" style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:8px;border-top:1px solid #f0f0f0">
       <div style="font-size:14px;font-weight:800;color:#111">📂 Restaurar datos</div>
       <div style="font-size:12px;color:#666;font-weight:700">Carga una copia guardada anteriormente</div>
-      <label style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(236,72,153,0.08));color:#a855f7;border:2px solid rgba(168,85,247,0.35);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;display:block;margin-top:4px;transition:all 0.2s">
+      <label style="width:100%;padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;display:block;margin-top:4px">
         📂 Seleccionar archivo de copia
         <input type="file" accept=".json" onchange="importarDatos(event)" style="display:none">
       </label>
@@ -1326,7 +1305,7 @@ body {
         style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:14px;box-sizing:border-box"
         onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
       <div id="cfg-creds-error" style="color:#ff1111;font-size:13px;font-weight:700;text-align:center;margin-bottom:10px;display:none"></div>
-      <button onclick="cambiarCredenciales()" style="width:100%;padding:14px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(139,92,246,0.35)">🔐 Guardar cambios</button>
+      <button onclick="cambiarCredenciales()" style="width:100%;padding:14px;background:linear-gradient(135deg,#8b00ff,#5c00aa);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">🔐 Guardar cambios</button>
     </div>
   </div>
 
@@ -1357,7 +1336,7 @@ body {
           <span style="color:#111;font-weight:900">Total a cobrar</span><span id="prev-total" style="font-weight:900;color:#111">$0</span>
         </div>
       </div>
-      <button onclick="guardarPorcentaje()" style="width:100%;padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(245,158,11,0.35)">💾 Guardar porcentaje</button>
+      <button onclick="guardarPorcentaje()" style="width:100%;padding:14px;background:linear-gradient(135deg,#ff6600,#f59e0b);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">💾 Guardar porcentaje</button>
       <div id="porcentaje-actual-info" style="text-align:center;margin-top:10px;font-size:13px;color:#888;font-weight:700"></div>
     </div>
   </div>
@@ -1376,7 +1355,7 @@ body {
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#111827,#1f2937);padding:18px 16px 14px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10">
-    <button onclick="cerrarDetalle()" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.3);color:white;border-radius:16px;padding:8px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;backdrop-filter:blur(4px)">← Volver</button>
+    <button onclick="cerrarDetalle()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:10px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">← Volver</button>
     <div>
       <div id="det-nombre" style="font-size:17px;font-weight:900;color:white"></div>
       <div id="det-cedula" style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:600"></div>
@@ -1482,27 +1461,27 @@ body {
       <input type="number" id="det-abonar-input" placeholder="Ingrese el valor"
         style="flex:1;min-width:0;border:2px solid #e8ccf5;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
         oninput="actualizarNuevoSaldo()">
-      <button onclick="abonarDesdeDetalle()" style="flex-shrink:0;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:16px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.35)">💰 PAGAR</button>
+      <button onclick="abonarDesdeDetalle()" style="flex-shrink:0;background:#00cc55;color:white;border:none;border-radius:12px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">💰 PAGAR</button>
     </div>
     <div style="margin-top:8px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff1111">$0</span></div>
-    <button onclick="generarCartonImagen()" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#1a56db,#1e40af);color:white;border:none;border-radius:16px;padding:13px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(26,86,219,0.35)">📋 VER CARTÓN DE CUENTA</button>
+    <button onclick="generarCartonImagen()" style="width:100%;margin-top:10px;background:#1a56db;color:white;border:none;border-radius:12px;padding:13px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER CARTÓN DE CUENTA</button>
   </div>
 
   <!-- Botones acción -->
   <div style="margin:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <button onclick="verAbonosDetalle()" style="background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(168,85,247,0.35)">ABONOS</button>
-    <button onclick="renovarDesdeDetalle()" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:18px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(239,68,68,0.35)">RENOVAR</button>
+    <button onclick="verAbonosDetalle()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">ABONOS</button>
+    <button onclick="renovarDesdeDetalle()" style="background:#ff1111;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">RENOVAR</button>
   </div>
   <div style="margin:10px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <button onclick="llamarCliente()" style="background:linear-gradient(135deg,#1a56db,#1e40af);color:white;border:none;border-radius:18px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(26,86,219,0.35)">📞 LLAMAR</button>
-    <button onclick="waCliente()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:18px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(37,211,102,0.35)">💬 WHATSAPP</button>
+    <button onclick="llamarCliente()" style="background:#1a56db;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📞 LLAMAR</button>
+    <button onclick="waCliente()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">💬 WHATSAPP</button>
   </div>
   <div style="margin:10px 14px 0">
-    <button id="btn-ver-hist-cedula" onclick="verHistorialDesdeDetalle()" style="display:none;width:100%;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;border:2px solid #93c5fd;border-radius:18px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 3px 10px rgba(26,86,219,0.12)">📋 VER HISTORIAL COMPLETO DE ESTE CLIENTE</button>
+    <button id="btn-ver-hist-cedula" onclick="verHistorialDesdeDetalle()" style="display:none;width:100%;background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📋 VER HISTORIAL COMPLETO DE ESTE CLIENTE</button>
   </div>
   <!-- Botón corregir saldo: solo visible desde Préstamos -->
   <div style="margin:10px 14px 0">
-    <button id="btn-corregir-saldo" onclick="abrirCorregirSaldo()" style="display:none;width:100%;background:#fff3e0;color:#e65100;border:2px solid #ff9800;border-radius:18px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 3px 10px rgba(255,152,0,0.15)">✏️ CORREGIR SALDO</button>
+    <button id="btn-corregir-saldo" onclick="abrirCorregirSaldo()" style="display:none;width:100%;background:#fff3e0;color:#e65100;border:2px solid #ff9800;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✏️ CORREGIR SALDO</button>
   </div>
 
 
@@ -1513,7 +1492,7 @@ body {
   <div id="det-historial-box" style="display:none;margin:14px 14px 0;background:white;border-radius:20px;overflow:hidden;border:1px solid #e8ccf5">
     <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
-      <button onclick="document.getElementById('det-historial-box').style.display='none'" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:14px;padding:4px 12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+      <button onclick="document.getElementById('det-historial-box').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
     <div id="det-historial-lista" style="padding:0 16px"></div>
     <div style="background:#e8fff2;padding:10px 16px;display:flex;justify-content:space-between;border-top:2px solid #66ffaa">
@@ -1529,14 +1508,14 @@ body {
   <div class="modal">
     <div class="modal-titulo">📋 Ordenar Clientes</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-      <button onclick="ordenarClientes('nombre')" style="padding:14px;background:rgba(168,85,247,0.08);color:#a855f7;border:2px solid rgba(168,85,247,0.35);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;transition:all 0.2s">🔤 Ordenar por nombre (A-Z)</button>
-      <button onclick="ordenarClientes('saldo-desc')" style="padding:14px;background:rgba(239,68,68,0.07);color:#ef4444;border:2px solid rgba(239,68,68,0.3);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;transition:all 0.2s">🔴 Mayor saldo primero</button>
-      <button onclick="ordenarClientes('saldo-asc')" style="padding:14px;background:rgba(16,185,129,0.07);color:#10b981;border:2px solid rgba(16,185,129,0.3);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;transition:all 0.2s">🟢 Menor saldo primero</button>
-      <button onclick="ordenarClientes('fecha-nuevo')" style="padding:14px;background:rgba(245,158,11,0.07);color:#f59e0b;border:2px solid rgba(245,158,11,0.3);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;transition:all 0.2s">🆕 Más reciente primero</button>
-      <button onclick="ordenarClientes('fecha-viejo')" style="padding:14px;background:rgba(139,92,246,0.07);color:#8b5cf6;border:2px solid rgba(139,92,246,0.3);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;transition:all 0.2s">📅 Más antiguo primero</button>
-      <button onclick="ordenarClientes('atraso')" style="padding:14px;background:linear-gradient(135deg,#111827,#1f2937);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.2)">⏰ Mayor atraso primero</button>
+      <button onclick="ordenarClientes('nombre')" style="padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔤 Ordenar por nombre (A-Z)</button>
+      <button onclick="ordenarClientes('saldo-desc')" style="padding:14px;background:#ffe8e8;color:#ff1111;border:2px solid #ff8888;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🔴 Mayor saldo primero</button>
+      <button onclick="ordenarClientes('saldo-asc')" style="padding:14px;background:#e0fff0;color:#00cc55;border:2px solid #66ffaa;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🟢 Menor saldo primero</button>
+      <button onclick="ordenarClientes('fecha-nuevo')" style="padding:14px;background:#fff3e0;color:#ff6600;border:2px solid #ffaa00;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">🆕 Más reciente primero</button>
+      <button onclick="ordenarClientes('fecha-viejo')" style="padding:14px;background:#f5eeff;color:#7c3aed;border:2px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">📅 Más antiguo primero</button>
+      <button onclick="ordenarClientes('atraso')" style="padding:14px;background:#111827;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:left">⏰ Mayor atraso primero</button>
     </div>
-    <button onclick="cerrarModal('modal-ordenar-overlay')" style="width:100%;padding:14px;background:rgba(168,85,247,0.06);color:#94a3b8;border:2px solid rgba(168,85,247,0.2);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s">Cancelar</button>
+    <button onclick="cerrarModal('modal-ordenar-overlay')" style="width:100%;padding:14px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
   </div>
 </div>
 
@@ -1551,7 +1530,7 @@ body {
         <input type="text" class="modal-input" id="mc-cedula" placeholder="Cédula del cliente" inputmode="numeric"
           style="flex:1;min-width:0"
           onkeydown="if(event.key==='Enter'){event.preventDefault();buscarClientePorCedula();}">
-        <button id="mc-btn-buscar" onclick="buscarClientePorCedula()" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:white;border:none;border-radius:16px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,0.35)">
+        <button id="mc-btn-buscar" onclick="buscarClientePorCedula()" style="flex-shrink:0;background:#1d4ed8;color:white;border:none;border-radius:12px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
           🔍 Buscar
         </button>
       </div>
@@ -1664,7 +1643,7 @@ body {
     <!-- ORDENAR POSICIÓN -->
     <div style="margin-top:16px">
       <button onclick="togglePosicion()" id="btn-toggle-posicion"
-        style="width:100%;padding:13px;background:rgba(168,85,247,0.08);color:#a855f7;border:2px solid rgba(168,85,247,0.35);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s">
+        style="width:100%;padding:13px;background:#f5eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
         <span>📋 ¿Dónde va en la lista?</span>
         <span id="posicion-btn-arrow" style="font-size:18px">›</span>
       </button>
@@ -1673,11 +1652,11 @@ body {
         <!-- Botones Antes / Después -->
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <button onclick="seleccionarPosicion('antes')" id="btn-pos-antes"
-            style="flex:1;padding:11px;border-radius:16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:rgba(168,85,247,0.08);color:#a855f7;border:2px solid rgba(168,85,247,0.35);transition:all 0.2s">
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc">
             ⬆️ Antes de...
           </button>
           <button onclick="seleccionarPosicion('despues')" id="btn-pos-despues"
-            style="flex:1;padding:11px;border-radius:16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:rgba(168,85,247,0.08);color:#a855f7;border:2px solid rgba(168,85,247,0.35);transition:all 0.2s">
+            style="flex:1;padding:11px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc">
             ⬇️ Después de...
           </button>
         </div>
@@ -1807,8 +1786,8 @@ body {
     <div id="modal-confirmar-titulo" style="font-size:18px;font-weight:900;color:#111;margin-bottom:10px"></div>
     <div id="modal-confirmar-msg" style="font-size:14px;color:#555;font-weight:600;line-height:1.6;margin-bottom:20px;white-space:pre-line"></div>
     <div style="display:flex;gap:10px">
-      <button id="modal-confirmar-ok" style="flex:2;padding:15px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 14px rgba(239,68,68,0.35)">Sí, continuar</button>
-      <button onclick="cerrarModal('modal-confirmar-overlay')" style="flex:1;padding:15px;background:rgba(168,85,247,0.08);color:#888;border:2px solid rgba(168,85,247,0.3);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button id="modal-confirmar-ok" style="flex:2;padding:15px;background:#ff1111;color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Sí, continuar</button>
+      <button onclick="cerrarModal('modal-confirmar-overlay')" style="flex:1;padding:15px;background:#f8eeff;color:#888;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1922,45 +1901,24 @@ function entrar() {
   // Buscar en lista de usuarios
   const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
   const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
-
-  // Sin credenciales guardadas en este dispositivo
-  if(!creds && listaUsuarios2.length === 0){
-    // Si hay datos de clientes, permitir entrar y guardar las credenciales nuevas
-    const hayDatos = lsGet('clientes_v2') || lsGet('clientes_v1') || lsGet('hist_v3');
-    if(hayDatos && u.length >= 3 && c.length >= 4){
-      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
-      _abrirApp(u, c);
-      return;
-    }
-    showToast('⚠️ No hay usuario creado. Usa "Crear usuario nuevo"');
-    return;
-  }
-
-  const matchCreds = creds && u===creds.usuario && c===creds.clave;
-  if(matchCreds || credEnLista){
-    _abrirApp(u, c);
+  if(!creds && listaUsuarios2.length === 0){ showToast('⚠️ No hay usuario creado'); return; }
+  if(u===creds.usuario && c===creds.clave || credEnLista){
+    // Actualizar credencial activa al usuario que entra
+    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+    err.style.display='none';
+    lsSet('cobrador_sesion','ok');
+    lsSet('cobrador_sesion_fecha', new Date().toDateString());
+    lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+    document.getElementById('pantalla-login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('login-clave').value='';
+    document.getElementById('login-usuario').value='';
+    iniciarApp();
   } else {
     err.style.display='block';
-    const ayuda = document.getElementById('login-ayuda');
-    if(ayuda) ayuda.style.display='block';
     document.getElementById('login-clave').value='';
-    setTimeout(()=>{ err.style.display='none'; }, 5000);
+    setTimeout(()=>err.style.display='none',3000);
   }
-}
-
-function _abrirApp(u, c){
-  const err=document.getElementById('login-error');
-  lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-  err.style.display='none';
-  lsSet('cobrador_sesion','ok');
-  lsSet('cobrador_sesion_fecha', new Date().toDateString());
-  lsSet('cobrador_sesion_hora', String(new Date().getHours()));
-  document.getElementById('pantalla-login').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('login-clave').value='';
-  document.getElementById('login-usuario').value='';
-  iniciarApp();
 }
 function cerrarSesion() {
   confirmarAccion(
@@ -2257,6 +2215,7 @@ let _tipoGastoSeleccionado = '';
 
 function seleccionarTipoGasto(tipo){
   _tipoGastoSeleccionado = tipo;
+  // Map tipo → id del botón
   const idMap = {
     'Merienda': 'btn-gasto-merienda',
     'Gasolina': 'btn-gasto-gasolina',
@@ -2265,26 +2224,24 @@ function seleccionarTipoGasto(tipo){
     'Sueldo': 'btn-gasto-sueldo',
     'Otros': 'btn-gasto-otros'
   };
-  // Reset todos — vuelven al estilo base opción 3
+  // Reset todos los botones
   Object.values(idMap).forEach(btnId => {
     const btn = document.getElementById(btnId);
     if(btn){
-      btn.style.background = 'linear-gradient(135deg,#a855f7,#ec4899)';
-      btn.style.color = 'white';
-      btn.style.boxShadow = '0 4px 12px rgba(168,85,247,0.3)';
-      btn.style.opacity = '1';
-      btn.style.transform = 'scale(1)';
+      btn.style.background = '#f8eeff';
+      btn.style.color = '#555';
+      btn.style.borderColor = '#e8ccf5';
     }
   });
-  // Ocultar input de Otros
+  // Ocultar input de Otros si se selecciona otro tipo
   const inpOtros = document.getElementById('input-gasto-otros-texto');
   if(inpOtros){ inpOtros.style.display='none'; inpOtros.value=''; }
-  // Destacar el seleccionado — más brillante y escalado
+  // Destacar el seleccionado
   const sel = document.getElementById(idMap[tipo]);
   if(sel){
-    sel.style.background = 'linear-gradient(135deg,#7c3aed,#be185d)';
-    sel.style.boxShadow = '0 6px 20px rgba(124,58,237,0.55)';
-    sel.style.transform = 'scale(1.04)';
+    sel.style.background = 'linear-gradient(135deg,#ff4444,#cc0000)';
+    sel.style.color = 'white';
+    sel.style.borderColor = '#ff4444';
   }
   // Mostrar label
   const box = document.getElementById('gasto-tipo-seleccionado');
@@ -2294,23 +2251,14 @@ function seleccionarTipoGasto(tipo){
 }
 
 function seleccionarTipoGastoOtros(){
-  // Reset todos
+  // Reset todos los botones
   ['btn-gasto-merienda','btn-gasto-gasolina','btn-gasto-arreglo','btn-gasto-aceite','btn-gasto-sueldo','btn-gasto-otros'].forEach(btnId => {
     const btn = document.getElementById(btnId);
-    if(btn){
-      btn.style.background = 'linear-gradient(135deg,#a855f7,#ec4899)';
-      btn.style.color = 'white';
-      btn.style.boxShadow = '0 4px 12px rgba(168,85,247,0.3)';
-      btn.style.transform = 'scale(1)';
-    }
+    if(btn){ btn.style.background='#f8eeff'; btn.style.color='#555'; btn.style.borderColor='#e8ccf5'; }
   });
   // Destacar Otros
   const btnOtros = document.getElementById('btn-gasto-otros');
-  if(btnOtros){
-    btnOtros.style.background = 'linear-gradient(135deg,#7c3aed,#be185d)';
-    btnOtros.style.boxShadow = '0 6px 20px rgba(124,58,237,0.55)';
-    btnOtros.style.transform = 'scale(1.04)';
-  }
+  if(btnOtros){ btnOtros.style.background='linear-gradient(135deg,#ff4444,#cc0000)'; btnOtros.style.color='white'; btnOtros.style.borderColor='#ff4444'; }
   // Mostrar input de texto
   const inp = document.getElementById('input-gasto-otros-texto');
   if(inp){ inp.style.display='block'; inp.focus(); }
@@ -2443,7 +2391,7 @@ function renderGastosHoy(){
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font-size:18px;font-weight:900;color:#ff4444">${fmt(g.valor)}</div>
-          <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:12px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.2)">✕</button>
+          <button onclick="eliminarGasto(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
         </div>
       </div>`).join('');
   }
@@ -3087,11 +3035,11 @@ function guardarCliente(){
           </div>
           <div style="display:grid;gap:10px">
             <button onclick="document.getElementById('modal-confirmar-edicion').remove();window._aplicarCambiosPendiente&&window._aplicarCambiosPendiente();"
-              style="padding:14px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(168,85,247,0.35)">
+              style="padding:14px;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
               ✅ Sí, guardar cambios
             </button>
             <button onclick="document.getElementById('modal-confirmar-edicion').remove();window._aplicarCambiosPendiente=null;window._saldoCorregidoTemp=null;"
-              style="padding:12px;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+              style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
               ← Cancelar, no cambiar nada
             </button>
           </div>
@@ -3440,15 +3388,15 @@ function eliminarCliente(id){
         </div>
         <div style="display:grid;gap:10px">
           <button onclick="deshacerRenovacionYEliminar('${id}')"
-            style="padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px rgba(245,158,11,0.35)">
+            style="padding:14px;background:#ff6600;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
             ↩️ Deshacer renovación y eliminar
           </button>
           <button onclick="document.getElementById('modal-advertencia-renovacion').remove();confirmarEliminarDirecto('${id}')"
-            style="padding:14px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px rgba(239,68,68,0.35)">
+            style="padding:14px;background:#dc2626;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
             🗑️ Borrar de todas formas
           </button>
           <button onclick="document.getElementById('modal-advertencia-renovacion').remove()"
-            style="padding:12px;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+            style="padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
             Cancelar
           </button>
         </div>
@@ -3523,16 +3471,16 @@ function pedirCedulaYEliminar(id){
         oninput="this.style.borderColor=this.value.trim().length>3?'#00cc55':'#e8ccf5'">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button onclick="document.getElementById('modal-pedir-cedula').remove()"
-          style="padding:14px;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+          style="padding:14px;background:#f5f5f5;color:#555;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
           Cancelar
         </button>
         <button onclick="confirmarEliminarConCedula('${id}')"
-          style="padding:14px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px rgba(239,68,68,0.35)">
+          style="padding:14px;background:#dc2626;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
           🗑️ Eliminar
         </button>
       </div>
       <button onclick="eliminarSinCedula('${id}')"
-        style="width:100%;margin-top:10px;padding:12px;background:rgba(168,85,247,0.05);color:#94a3b8;border:1.5px solid rgba(168,85,247,0.2);border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+        style="width:100%;margin-top:10px;padding:12px;background:white;color:#888;border:1px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
         Eliminar sin guardar historial
       </button>
     </div>
@@ -3821,13 +3769,13 @@ function renderClientes(){
         </div>
         <!-- Botones Abonos + Renovar + WhatsApp -->
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-          <button onclick="verAbonosCliente('${c.id}')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border:none;border-radius:12px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 2px 6px rgba(124,58,237,.35);min-width:46px;line-height:1;">
+          <button onclick="verAbonosCliente('${c.id}')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border:1.5px solid #6d28d9;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(124,58,237,.3);min-width:46px;line-height:1;">
             <span style="font-size:12px;">📋</span>Abonos
           </button>
-          <button onclick="abrirRenovar('${c.id}')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:white;border:none;border-radius:12px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 2px 6px rgba(249,115,22,.35);min-width:46px;line-height:1;">
+          <button onclick="abrirRenovar('${c.id}')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:white;border:1.5px solid #c2410c;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(249,115,22,.3);min-width:46px;line-height:1;">
             <span style="font-size:12px;">🔄</span>Renovar
           </button>
-          <button onclick="compartirClienteWA('${c.id}')" style="background:linear-gradient(135deg,#25d366,#128c7e);color:white;border:none;border-radius:12px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 2px 6px rgba(37,211,102,.35);min-width:46px;line-height:1;">
+          <button onclick="compartirClienteWA('${c.id}')" style="background:linear-gradient(135deg,#25d366,#128c7e);color:white;border:1.5px solid #0f7251;border-radius:8px;padding:4px 6px;font-size:9px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 1px 4px rgba(37,211,102,.3);min-width:46px;line-height:1;">
             <span style="font-size:12px;">💬</span>WhatsApp
           </button>
         </div>
@@ -3869,11 +3817,11 @@ function renderClientes(){
           onblur="this.style.borderColor='#e5e7eb';"
           onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
         <button onclick="pagarCuotaYAvanzar('${c.id}')"
-          style="flex:1;padding:9px 8px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 3px 10px rgba(0,200,83,0.35);display:flex;align-items:center;justify-content:center;gap:5px;">
+          style="flex:1;padding:9px 8px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white;box-shadow:0 2px 8px rgba(0,200,83,0.3);display:flex;align-items:center;justify-content:center;gap:5px;">
           <span style="font-size:15px;">💵</span> Cobrar
         </button>
         <button onclick="abrirCartonCliente('${c.id}')"
-          style="padding:9px 10px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 3px 10px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">
+          style="padding:9px 10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#3b82f6);color:white;box-shadow:0 2px 8px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">
           <span style="font-size:15px;">🗂️</span> Cartón
         </button>
       </div>
@@ -3894,25 +3842,25 @@ function renderClientes(){
         ${c.saldo>0?`
         <!-- ══ ACCIONES: Anterior + Siguiente ══ -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
-          <button onclick="navegarCliente('${c.id}',-1)" style="padding:6px 3px;border:1.5px solid #c4b5fd;border-radius:14px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <button onclick="navegarCliente('${c.id}',-1)" style="padding:6px 3px;border:1.5px solid #c4b5fd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#f5f3ff;color:#7c3aed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
             <span style="font-size:14px">⬅️</span>Anterior
           </button>
-          <button onclick="navegarCliente('${c.id}',1)" style="padding:6px 3px;border:1.5px solid #fed7aa;border-radius:14px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#fff7ed;color:#ea580c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <button onclick="navegarCliente('${c.id}',1)" style="padding:6px 3px;border:1.5px solid #fed7aa;border-radius:10px;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;cursor:pointer;background:#fff7ed;color:#ea580c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
             <span style="font-size:14px">➡️</span>Siguiente
           </button>
         </div>`:`<div style="text-align:center;padding:8px;background:linear-gradient(135deg,#e8fff2,#d1fae5);border-radius:10px;color:#00aa44;font-weight:900;font-size:13px;border:2px solid #6ee7b7;">✅ Préstamo cancelado</div>`}
 
         <!-- ══ CONTACTO + ORDEN ══ -->
         <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:5px;margin-bottom:5px">
-          <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:6px 3px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;align-items:center;justify-content:center;gap:4px">
+          <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:6px 3px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;align-items:center;justify-content:center;gap:4px">
             <span style="font-size:13px">📞</span> Llamar
           </button>
-          <button onclick="moverCliente('${c.id}',-1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
-          <button onclick="moverCliente('${c.id}',1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
+          <button onclick="moverCliente('${c.id}',-1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
+          <button onclick="moverCliente('${c.id}',1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
         </div>
 
         <!-- ══ HISTORIAL ══ -->
-        <button onclick="verCancelados('${c.id}')" style="width:100%;padding:7px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:1.5px solid #86efac;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
+        <button onclick="verCancelados('${c.id}')" style="width:100%;padding:7px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:1.5px solid #86efac;border-radius:10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
           <span style="font-size:12px">📜</span> Ver cancelados y renovaciones
         </button>
       </div>
@@ -4017,11 +3965,8 @@ function restaurarDesdeRegistro(event){
     try {
       texto = texto.replace(/^﻿/, '').trim();
       const datos = JSON.parse(texto);
-      // Validación flexible
-      const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
-      const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
-      if(!tieneAlgo){
-        msg.textContent='❌ Archivo no válido — no se encontraron datos'; msg.style.color='#ff1111'; msg.style.display='block'; return;
+      if(!datos.version || !datos.clientes){
+        msg.textContent='❌ Archivo no válido'; msg.style.color='#ff1111'; msg.style.display='block'; return;
       }
       // Restaurar todos los datos
       lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
@@ -4043,24 +3988,13 @@ function restaurarDesdeRegistro(event){
       if(datos.gastos){
         Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
       }
-      // Marcar que se acaba de restaurar un backup — evita que Firebase sobreescriba
-      localStorage.setItem('backup_restaurado_ts', Date.now().toString());
       // Pasar directo al login con mensaje
       const totalClientes = (datos.clientes||[]).length;
-      const credRestaur = datos.credenciales;
       setTimeout(()=>{
         document.getElementById('pantalla-registro').style.display='none';
-        // Si el backup tiene credenciales, entrar directo a la app
-        if(credRestaur && credRestaur.usuario && credRestaur.clave){
-          document.getElementById('pantalla-login').style.display='none';
-          document.getElementById('app').style.display='block';
-          iniciarApp();
-          showToast('✅ ' + totalClientes + ' clientes restaurados. ¡Bienvenida!');
-        } else {
-          document.getElementById('pantalla-login').style.display='flex';
-          showToast('✅ ' + totalClientes + ' clientes restaurados. Ingresa con tu usuario y contraseña.');
-        }
-      }, 1000);
+        document.getElementById('pantalla-login').style.display='flex';
+        showToast('✅ ' + totalClientes + ' clientes restaurados. Ingresa con tu usuario y contraseña.');
+      }, 1500);
       const msgEl = document.getElementById('reg-restore-msg');
       if(msgEl){ msgEl.textContent='✅ Listo — ahora ingresa tu usuario y contraseña'; msgEl.style.color='#00cc55'; msgEl.style.display='block'; }
     } catch(err){
@@ -4092,14 +4026,11 @@ function importarDatos(event){
     try {
       texto = texto.replace(/^﻿/, '').trim();
       const datos = JSON.parse(texto);
-      // Validación flexible — acepta cualquier JSON con clientes o con algún dato reconocible
-      const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
-      const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
-      if(!tieneAlgo){
-        showToast('❌ Archivo no válido — no se encontraron datos'); return;
+      if(!datos.version || !datos.clientes){
+        showToast('Error: Archivo no valido'); return;
       }
-      if(tieneClientes) lsSet('clientes_v1', JSON.stringify(datos.clientes));
-      if(datos.historial) lsSet('hist_v3', JSON.stringify(datos.historial));
+      lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
+      lsSet('hist_v3', JSON.stringify(datos.historial||[]));
       if(datos.credenciales && datos.credenciales.usuario){
         lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
       }
@@ -4107,23 +4038,29 @@ function importarDatos(event){
         lsSet('historial_cedulas_v1', JSON.stringify(datos.historial_cedulas));
       }
       if(datos.manuales){
-        Object.keys(datos.manuales).forEach(k=>{ lsSet(k, JSON.stringify(datos.manuales[k])); });
+        Object.keys(datos.manuales).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.manuales[k]));
+        });
       }
+      // Restaurar papelería de renovaciones (antes se perdía)
       if(datos.papelerias){
-        Object.keys(datos.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(datos.papelerias[k])); });
+        Object.keys(datos.papelerias).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.papelerias[k]));
+        });
       }
+      // Restaurar gastos del día (antes se perdían)
       if(datos.gastos){
-        Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
+        Object.keys(datos.gastos).forEach(k=>{
+          lsSet(k, JSON.stringify(datos.gastos[k]));
+        });
       }
-      // Proteger contra sobreescritura de Firebase
-      localStorage.setItem('backup_restaurado_ts', Date.now().toString());
       renderClientes();
       try{ renderHistorial(); }catch(e){}
       try{ cargarDesdeSupervisor(); }catch(e){}
       actualizarInfoCopia();
-      showToast('✅ ' + (datos.clientes||[]).length + ' clientes restaurados');
+      showToast('OK: ' + (datos.clientes||[]).length + ' clientes restaurados');
     } catch(err){
-      showToast('❌ Error al leer el archivo: ' + err.message);
+      showToast('Error al leer: ' + err.message);
     }
     event.target.value='';
   }
@@ -4476,7 +4413,7 @@ function renderDetalles(){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(c.monto)}</div>
-            <button onclick="eliminarCuotaDeDetalle('${c.clienteId}','${c.fecha}',${c.monto})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:12px;padding:6px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.2)">🗑️</button>
+            <button onclick="eliminarCuotaDeDetalle('${c.clienteId}','${c.fecha}',${c.monto})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:6px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
           </div>
         </div>`).join('')}
       </div>`;
@@ -4494,7 +4431,7 @@ function renderDetalles(){
           <div style="font-size:11px;font-weight:900;color:#ff1111;letter-spacing:1px;text-transform:uppercase">${c.esRenovacion ? '🔄 Renovado (ciclo cerrado)' : '✅ Cancelado completo'}</div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:12px;color:#888;font-weight:700">📅 ${fechaBonita(c.fecha)}</div>
-            <button onclick="eliminarCanceladoDeDetalle('${c.clienteId}',${c.esRenovacion||false})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:12px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.2)">🗑️</button>
+            <button onclick="eliminarCanceladoDeDetalle('${c.clienteId}',${c.esRenovacion||false})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
           </div>
         </div>
         <div style="padding:12px 14px" onclick="abrirDetalle('${c.clienteId}')">
@@ -4661,7 +4598,7 @@ function verAbonosCliente(id){
   const html = `<div id="${boxId}" style="margin:10px 0 4px;background:#f5eeff;border-radius:14px;overflow:hidden;border:1px solid #e8ccf5">
     <div style="background:linear-gradient(135deg,#ff00cc,#00ccff);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:11px;font-weight:900;color:white;letter-spacing:1.5px;text-transform:uppercase">📋 Historial de abonos</div>
-      <button onclick="document.getElementById('${boxId}').remove()" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:14px;padding:4px 12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+      <button onclick="document.getElementById('${boxId}').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:0 14px">
       ${pagos.length ? pagos.map((p,i)=>`
@@ -4964,8 +4901,8 @@ function verAbonosDetalle(){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(p.monto)}</div>
-            <button onclick="mostrarEditarCuota(${i})" style="background:rgba(168,85,247,0.1);border:1.5px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:12px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
-            <button onclick="deshacerCuota(${i})" style="background:#ffe8e8;border:1.5px solid #fca5a5;color:#ef4444;border-radius:12px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">↩️</button>
+            <button onclick="mostrarEditarCuota(${i})" style="background:#f8eeff;border:1.5px solid #ff66dd;color:#cc00aa;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
+            <button onclick="deshacerCuota(${i})" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:8px;padding:5px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">↩️</button>
           </div>
         </div>
         <!-- Panel editar (oculto) -->
@@ -4982,8 +4919,8 @@ function verAbonosDetalle(){
             </div>
           </div>
           <div style="display:flex;gap:8px">
-            <button onclick="guardarEditarCuota(${i})" style="flex:2;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(168,85,247,0.3)">💾 Guardar</button>
-            <button onclick="cancelarEditarCuota(${i})" style="flex:1;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Cancelar</button>
+            <button onclick="guardarEditarCuota(${i})" style="flex:2;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
+            <button onclick="cancelarEditarCuota(${i})" style="flex:1;background:#f8eeff;color:#888;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Cancelar</button>
           </div>
         </div>
       </div>`).join('');
@@ -5327,8 +5264,8 @@ function renderPrestamos(){
           ${leQuedaNuevo}
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.4);border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
-          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.1)">🗑️ Eliminar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`;
     }).join('');
@@ -5391,8 +5328,8 @@ function renderPrestamos(){
           ${leQuedaRen}
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.4);border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
-          <button onclick="advertenciaEliminarRenovacion('${c.id}')" style="flex:1;padding:9px;background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.1)">🗑️ Eliminar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="advertenciaEliminarRenovacion('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`;
     }).join('');
@@ -5437,8 +5374,8 @@ function renderPrestamos(){
           </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:rgba(168,85,247,0.1);color:#a855f7;border:1.5px solid rgba(168,85,247,0.4);border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
-          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(239,68,68,0.1)">🗑️ Eliminar</button>
+          <button onclick="confirmarEditarCliente('${c.id}')" style="flex:1;padding:9px;background:#f8eeff;color:#cc00aa;border:1.5px solid #ff66dd;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✏️ Editar</button>
+          <button onclick="eliminarCliente('${c.id}')" style="flex:1;padding:9px;background:#ffe8e8;color:#ff1111;border:1.5px solid #ff8888;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑️ Eliminar</button>
         </div>
       </div>`).join('');
   }
@@ -5908,11 +5845,11 @@ function buscarHistorialPorCedula(){
         <div style="font-size:15px;font-weight:700;color:#dc2626;margin-top:4px">Este cliente no tiene historial registrado</div>
       </div>
       <button onclick="abrirCrearHistorialManual('${cedula}')"
-        style="width:100%;padding:14px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 5px 16px rgba(139,92,246,0.35)">
+        style="width:100%;padding:14px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px">
         ➕ Crear historial manualmente
       </button>
       <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
-        style="width:100%;padding:12px;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+        style="width:100%;padding:12px;background:#f5f5f5;color:#888;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
         Cancelar
       </button>
     </div>
@@ -5934,7 +5871,7 @@ function abrirCrearHistorialManual(cedula){
           <div style="color:rgba(255,255,255,0.75);font-size:12px">Cédula: ${cedula}</div>
         </div>
         <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
-          style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:14px;padding:7px 13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
+          style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:7px 13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
       </div>
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
         <div>
@@ -5983,7 +5920,7 @@ function abrirCrearHistorialManual(cedula){
           </select>
         </div>
         <button onclick="guardarHistorialManual('${cedula}')"
-          style="width:100%;padding:15px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(139,92,246,0.35)">
+          style="width:100%;padding:15px;background:#7c3aed;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer">
           💾 Guardar historial
         </button>
       </div>
@@ -6415,15 +6352,15 @@ function verHistorialCompleto(cedula){
             <div style="color:rgba(255,255,255,0.75);font-size:12px">C.C. ${registro.cedula} · ${registro.tel||'Sin tel'}</div>
           </div>
           <button onclick="document.getElementById('modal-hist-cedula-overlay').remove()"
-            style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:14px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
+            style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:10px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button onclick="prestarAClienteHistorial('${registro.cedula}','${registro.nombre}','${registro.tel||''}','${registro.dir||''}')"
-            style="padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.35)">
+            style="padding:13px;background:#00cc55;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
             💵 PRÉSTAMO NUEVO
           </button>
           <button onclick="reactivarClienteHistorial('${registro.cedula}')"
-            style="padding:13px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(245,158,11,0.35)">
+            style="padding:13px;background:#ff6600;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">
             ♻️ REACTIVAR
           </button>
         </div>
@@ -7234,16 +7171,16 @@ function abrirModalNuevoOHistorial() {
           onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'"
           onkeydown="if(event.key==='Enter'){event.preventDefault();procesarCedulaNuevo();}">
         <button onclick="procesarCedulaNuevo()"
-          style="flex-shrink:0;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:16px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(168,85,247,0.35)">
+          style="flex-shrink:0;background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
           🔍 Buscar
         </button>
       </div>
       <button onclick="document.getElementById('modal-nuevo-o-hist').remove();abrirModalCliente();"
-        style="width:100%;padding:14px;background:rgba(168,85,247,0.08);color:#a855f7;border:2px solid rgba(168,85,247,0.35);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px;transition:all 0.2s">
+        style="width:100%;padding:14px;background:#f8eeff;color:#cc00aa;border:2px solid #ff00cc;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px">
         ➕ Cliente completamente nuevo (sin cédula previa)
       </button>
       <button onclick="document.getElementById('modal-nuevo-o-hist').remove()"
-        style="width:100%;padding:13px;background:rgba(168,85,247,0.05);color:#94a3b8;border:2px solid rgba(168,85,247,0.2);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+        style="width:100%;padding:13px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
         Cancelar
       </button>
     </div>`;
@@ -7458,13 +7395,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   <div style="background:white;border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
     <div style="background:#1a56db;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
       <span style="color:white;font-weight:900;font-size:15px;font-family:'Nunito',sans-serif">📋 Cartón del Cliente</span>
-      <button onclick="document.getElementById('modal-carton-overlay').style.display='none'" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:14px;padding:5px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✕ Cerrar</button>
+      <button onclick="document.getElementById('modal-carton-overlay').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:5px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:14px;text-align:center">
       <canvas id="canvas-carton" style="width:100%;border-radius:12px;border:1px solid #e8ccf5"></canvas>
       <div style="margin-top:12px;display:flex;gap:10px">
-        <button onclick="compartirCartonImagen()" style="flex:1;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;border-radius:18px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px rgba(37,211,102,0.35)">📲 Enviar por WhatsApp</button>
-        <button onclick="descargarCarton()" style="background:linear-gradient(135deg,#1a56db,#1e40af);color:white;border:none;border-radius:18px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px rgba(26,86,219,0.35)">⬇️</button>
+        <button onclick="compartirCartonImagen()" style="flex:1;background:#25D366;color:white;border:none;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">📲 Enviar por WhatsApp</button>
+        <button onclick="descargarCarton()" style="background:#1a56db;color:white;border:none;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">⬇️</button>
       </div>
       <p style="font-size:11px;color:#999;margin-top:8px;font-family:'Nunito',sans-serif">Mantén presionada la imagen para guardarla y compartirla</p>
     </div>
@@ -7478,14 +7415,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   <div style="display:flex;justify-content:space-between;padding:8px 14px;background:#161b22;position:sticky;top:0;flex-wrap:wrap;gap:6px">
     <span style="color:#cc00aa;font-weight:900">🔧 DIAGNÓSTICO FIREBASE</span>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="window.syncForzado&&window.syncForzado()" style="background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar</button>
-      <button onclick="verificarReglasFirebase()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer">🔥 Reglas</button>
-      <button onclick="diagnosticarTamanioDatos()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer">📊 Tamaño</button>
-      <button onclick="mostrarErroresDetallados()" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer">🔍 Errores</button>
-      <button onclick="verEstadoNube()" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer">☁️ Nube</button>
-      <button onclick="probarConexionFirebase()" style="background:linear-gradient(135deg,#1e88e5,#1565c0);color:white;border:none;border-radius:14px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">🔌 Conexión</button>
-      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:14px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
-      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+      <button onclick="window.syncForzado&&window.syncForzado()" style="background:linear-gradient(135deg,#ff00cc,#00ccff);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">⚡ Guardar</button>
+      <button onclick="verificarReglasFirebase()" style="background:#f0883e;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🔥 Reglas</button>
+      <button onclick="diagnosticarTamanioDatos()" style="background:#a371f7;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">📊 Tamaño</button>
+      <button onclick="mostrarErroresDetallados()" style="background:#f85149;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🔍 Errores</button>
+      <button onclick="verEstadoNube()" style="background:#58a6ff;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">☁️ Nube</button>
+      <button onclick="probarConexionFirebase()" style="background:#1e88e5;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer">🔌 Conexión</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑 Limpiar</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:#cc2200;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer">✕</button>
     </div>
   </div>
   <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
@@ -8047,19 +7984,6 @@ function abrirPanelDiagnostico() {
   // Sincronizar al cargar la app
   window.addEventListener('load', () => {
     setTimeout(() => {
-      // Si se restauró un backup hace menos de 5 minutos, NO bajar de Firebase
-      const tsRestaurado = parseInt(localStorage.getItem('backup_restaurado_ts') || '0');
-      const cincoMinutos = 5 * 60 * 1000;
-      if (Date.now() - tsRestaurado < cincoMinutos) {
-        // Subir el backup a Firebase en lugar de bajar
-        showToast('📤 Subiendo backup a la nube...');
-        setTimeout(() => {
-          window.syncFirebase && window.syncFirebase(true);
-          localStorage.removeItem('backup_restaurado_ts');
-        }, 1000);
-        return;
-      }
-
       // Si el localStorage está vacío (teléfono nuevo), cargar desde Firebase
       const clientesLocales = JSON.parse(localStorage.getItem('clientes_v1') || '[]');
       if (clientesLocales.length === 0) {
@@ -8139,8 +8063,8 @@ function abrirPanelDiagnostico() {
       style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px;box-sizing:border-box">
     <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo visible. No modifica el historial de pagos.</div>
     <div style="display:flex;gap:10px">
-      <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:rgba(168,85,247,0.07);color:#888;border:2px solid rgba(168,85,247,0.3);border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s">Cancelar</button>
-      <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:linear-gradient(135deg,#f59e0b,#ea580c);color:white;border:none;border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(245,158,11,0.4)">✅ Guardar</button>
+      <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarCorregirSaldo()" style="flex:1;padding:14px;background:#ff9800;color:white;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">✅ Guardar</button>
     </div>
   </div>
 </div>
