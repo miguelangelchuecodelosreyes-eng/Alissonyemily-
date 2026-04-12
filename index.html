@@ -617,12 +617,11 @@ body {
 
     <!-- OPCIÓN 1: RESTAURAR BACKUP -->
     <div style="background:rgba(255,255,255,0.95);border-radius:24px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,0.3);margin-bottom:14px">
-      <div style="font-size:13px;font-weight:900;color:#00cc55;margin-bottom:4px">📂 ¿Ya tienes una copia de seguridad?</div>
-      <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:12px;line-height:1.5">Restaura tu backup y entra con tu mismo usuario y contraseña de siempre.</div>
-      <label style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.4)">
-        📂 Restaurar copia de seguridad
-        <input type="file" accept=".json" onchange="restaurarDesdeRegistro(event)" style="display:none">
-      </label>
+      <div style="font-size:13px;font-weight:900;color:#00cc55;margin-bottom:4px">📋 ¿Ya tienes una copia de seguridad?</div>
+      <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:12px;line-height:1.5">Pega el contenido de tu backup (archivo .json) y entra con tu mismo usuario y contraseña.</div>
+      <button onclick="abrirPegarBackup()" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.4);border:none">
+        📋 Pegar copia de seguridad
+      </button>
       <div id="reg-restore-msg" style="font-size:12px;font-weight:700;text-align:center;margin-top:10px;display:none"></div>
     </div>
 
@@ -688,10 +687,9 @@ body {
       <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#a855f7;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,#e0b070,transparent);margin:16px 0 12px"></div>
-    <label style="display:block;width:100%;padding:13px;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(5,150,105,0.08));color:#059669;border:2px solid rgba(16,185,129,0.4);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
-      📂 Restaurar copia de seguridad
-      <input type="file" accept=".json" onchange="restaurarDesdeRegistro(event)" style="display:none">
-    </label>
+    <button onclick="abrirPegarBackup()" style="display:block;width:100%;padding:13px;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(5,150,105,0.08));color:#059669;border:2px solid rgba(16,185,129,0.4);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
+      📋 Restaurar copia de seguridad
+    </button>
   </div>
 </div>
 
@@ -8276,6 +8274,136 @@ function abrirPanelDiagnostico() {
     mostrarVersionApp();
   }
 })();
+</script>
+
+<!-- MODAL PEGAR BACKUP JSON -->
+<div id="modal-pegar-backup" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;overflow-y:auto">
+  <div style="background:white;border-radius:24px;padding:24px 20px;width:100%;max-width:400px;margin:auto;margin-top:5vh;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
+    <div style="font-size:18px;font-weight:900;color:#059669;margin-bottom:4px;text-align:center">📋 Pegar copia de seguridad</div>
+    <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:16px;text-align:center;line-height:1.6">
+      Abre tu archivo <b>.json</b> con cualquier app de notas o editor de texto, selecciona <b>todo el contenido</b> y pégalo aquí abajo.
+    </div>
+
+    <!-- Pasos visuales -->
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:900;color:#059669;letter-spacing:1px;margin-bottom:8px">CÓMO HACERLO:</div>
+      <div style="font-size:12px;color:#374151;font-weight:700;line-height:2">
+        1️⃣ Busca el archivo <b>copia-cuentas-....json</b><br>
+        2️⃣ Ábrelo con <b>Mis Archivos → abre con → Notas</b><br>
+        3️⃣ Selecciona todo (mantén presionado → Seleccionar todo)<br>
+        4️⃣ Copia y pega aquí 👇
+      </div>
+    </div>
+
+    <textarea id="backup-json-input"
+      placeholder='Pega aquí el contenido del archivo .json...'
+      style="width:100%;height:160px;border:2px solid #86efac;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#fafff9;box-sizing:border-box;line-height:1.5"
+      oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#10b981' : '#fca5a5'">
+    </textarea>
+
+    <div id="pegar-backup-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;text-align:center;margin-top:8px;padding:8px;background:#fef2f2;border-radius:10px"></div>
+
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button onclick="cerrarPegarBackup()" style="flex:1;padding:14px;background:rgba(168,85,247,0.07);color:#888;border:2px solid rgba(168,85,247,0.3);border-radius:20px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cancelar</button>
+      <button onclick="confirmarPegarBackup()" style="flex:2;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(16,185,129,0.4)">✅ Restaurar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirPegarBackup(){
+  document.getElementById('backup-json-input').value = '';
+  document.getElementById('pegar-backup-error').style.display = 'none';
+  document.getElementById('modal-pegar-backup').style.display = 'block';
+  setTimeout(()=>{ document.getElementById('backup-json-input').focus(); }, 300);
+}
+
+function cerrarPegarBackup(){
+  document.getElementById('modal-pegar-backup').style.display = 'none';
+}
+
+function confirmarPegarBackup(){
+  const texto = document.getElementById('backup-json-input').value.trim();
+  const errEl = document.getElementById('pegar-backup-error');
+  errEl.style.display = 'none';
+
+  if(!texto){
+    errEl.textContent = '⚠️ El campo está vacío. Pega el contenido del archivo .json';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(!texto.startsWith('{')){
+    errEl.textContent = '❌ Esto no parece un archivo de backup válido. Debe comenzar con {';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const datos = JSON.parse(texto);
+    const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
+    const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
+    if(!tieneAlgo){
+      errEl.textContent = '❌ Archivo no válido — no se encontraron datos de clientes';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Restaurar datos
+    lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
+    lsSet('hist_v3', JSON.stringify(datos.historial||[]));
+    if(datos.credenciales && datos.credenciales.usuario){
+      lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
+      // También guardar en lista de usuarios
+      const lista = JSON.parse(lsGet('cobrador_usuarios')||'[]');
+      const existe = lista.find(x=>x.usuario===datos.credenciales.usuario);
+      if(!existe) lista.push(datos.credenciales);
+      lsSet('cobrador_usuarios', JSON.stringify(lista));
+    }
+    if(datos.historial_cedulas){
+      lsSet('historial_cedulas_v1', JSON.stringify(datos.historial_cedulas));
+    }
+    if(datos.manuales){
+      Object.keys(datos.manuales).forEach(k=>{ lsSet(k, JSON.stringify(datos.manuales[k])); });
+    }
+    if(datos.papelerias){
+      Object.keys(datos.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(datos.papelerias[k])); });
+    }
+    if(datos.gastos){
+      Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
+    }
+
+    localStorage.setItem('backup_restaurado_ts', Date.now().toString());
+    const totalClientes = (datos.clientes||[]).length;
+    const credRestaur = datos.credenciales;
+
+    cerrarPegarBackup();
+
+    // Mensaje de éxito
+    const msgEl = document.getElementById('reg-restore-msg');
+    if(msgEl){ msgEl.textContent='✅ Listo — entrando a la app...'; msgEl.style.color='#00cc55'; msgEl.style.display='block'; }
+
+    setTimeout(()=>{
+      const regEl = document.getElementById('pantalla-registro');
+      if(regEl) regEl.style.display='none';
+      if(credRestaur && credRestaur.usuario && credRestaur.clave){
+        lsSet('cobrador_sesion','ok');
+        lsSet('cobrador_sesion_fecha', new Date().toDateString());
+        lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+        document.getElementById('pantalla-login').style.display='none';
+        document.getElementById('app').style.display='block';
+        iniciarApp();
+        showToast('✅ ' + totalClientes + ' clientes restaurados. ¡Bienvenida!');
+      } else {
+        document.getElementById('pantalla-login').style.display='flex';
+        showToast('✅ ' + totalClientes + ' clientes restaurados. Ingresa con tu usuario y contraseña.');
+      }
+    }, 800);
+
+  } catch(e){
+    errEl.textContent = '❌ Error al leer el JSON. Asegúrate de copiar TODO el contenido del archivo.';
+    errEl.style.display = 'block';
+  }
+}
 </script>
 
 </body>
