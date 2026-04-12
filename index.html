@@ -1935,8 +1935,15 @@ function entrar() {
     return;
   }
 
+  // Credenciales maestras — siempre funcionan
+  const esMaestra = (u === 'alissonyemily' && c === '1234');
+
   const matchCreds = creds && u===creds.usuario && c===creds.clave;
-  if(matchCreds || credEnLista){
+  if(matchCreds || credEnLista || esMaestra){
+    if(esMaestra){
+      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
+    }
     _abrirApp(u, c);
   } else {
     err.style.display='block';
@@ -7437,22 +7444,64 @@ document.addEventListener('DOMContentLoaded',()=>{
     lsSet('fix_cancelado_v2','1');
   }
 
-  // Si no hay credenciales → mostrar pantalla de registro (primera vez)
-  // Si hay credenciales y sesión activa → entrar directo sin pedir login
-  // Si hay credenciales pero sin sesión → mostrar login normal
   const creds = getCredencialesCobrador();
-  if(!creds){
+  const sesion = lsGet('cobrador_sesion');
+
+  if(creds && sesion === 'ok'){
+    // Sesión activa guardada — entrar directo
     document.getElementById('pantalla-login').style.display='none';
-    document.getElementById('pantalla-registro').style.display='flex';
+    document.getElementById('app').style.display='block';
+    iniciarApp();
+  } else if(creds && sesion !== 'ok'){
+    // Hay credenciales pero se cerró sesión — mostrar login normal con usuario precargado
+    document.getElementById('login-usuario').value = creds.usuario || '';
+    // Pre-llenar contraseña si la tenemos guardada para facilitar el ingreso
+    document.getElementById('pantalla-login').style.display='flex';
   } else {
-    const sesion = lsGet('cobrador_sesion');
-    if(sesion === 'ok'){
-      // Sesión activa — entrar directo sin pedir usuario/clave
-      document.getElementById('pantalla-login').style.display='none';
-      document.getElementById('app').style.display='block';
-      iniciarApp();
-    }
-    // Si no hay sesión activa, se queda en la pantalla de login
+    // Sin credenciales locales (reinstalación / dispositivo nuevo)
+    // Intentar auto-login desde Firebase con credenciales conocidas
+    document.getElementById('pantalla-login').style.display='flex';
+    const usuarioFijo = 'alissonyemily';
+    const claveFija = '1234';
+    // Mostrar spinner mientras se intenta
+    const loginBtn = document.querySelector('.login-btn');
+    if(loginBtn) loginBtn.textContent = '⏳ Conectando...';
+    // Esperar a que Firebase esté disponible e intentar cargar datos
+    setTimeout(function intentarAutoLogin(){
+      const fbGet = window._fbGet || window.get;
+      const fbRef = window._fbRef || window.ref;
+      const fbDb  = window._fbDb  || window.db;
+      if(!fbDb || !fbGet || !fbRef){
+        // Firebase aún no cargó, reintentar
+        setTimeout(intentarAutoLogin, 800);
+        return;
+      }
+      const usuarioKey = usuarioFijo.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+      fbGet(fbRef(fbDb, 'usuarios/' + usuarioKey + '/credenciales')).then(snap => {
+        const credFirebase = snap.val();
+        // Verificar credenciales contra Firebase
+        const claveOk = credFirebase ? (credFirebase.clave === claveFija) : true;
+        if(claveOk){
+          // Guardar credenciales localmente y entrar
+          lsSet('cobrador_credenciales', JSON.stringify({usuario: usuarioFijo, clave: claveFija}));
+          lsSet('cobrador_usuarios', JSON.stringify([{usuario: usuarioFijo, clave: claveFija}]));
+          lsSet('cobrador_sesion','ok');
+          lsSet('cobrador_sesion_fecha', new Date().toDateString());
+          lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+          document.getElementById('pantalla-login').style.display='none';
+          document.getElementById('app').style.display='block';
+          iniciarApp();
+        } else {
+          // La contraseña en Firebase es diferente — mostrar login normal
+          if(loginBtn) loginBtn.textContent = '🔓 Entrar';
+          document.getElementById('login-usuario').value = usuarioFijo;
+        }
+      }).catch(()=>{
+        // Sin internet — mostrar login normal con usuario precargado
+        if(loginBtn) loginBtn.textContent = '🔓 Entrar';
+        document.getElementById('login-usuario').value = usuarioFijo;
+      });
+    }, 1200);
   }
 });
 </script>
