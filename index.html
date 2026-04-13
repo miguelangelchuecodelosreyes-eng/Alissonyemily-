@@ -1732,6 +1732,11 @@ body {
       <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()">
     </div>
     <div class="modal-campo">
+      <label class="modal-label">💸 Entregado al cliente (opcional)</label>
+      <input type="number" class="modal-input" id="ren-entregado" placeholder="Dejar en blanco si entregó todo" oninput="actualizarResumenRenovar()">
+      <div id="ren-entregado-info" style="display:none;margin-top:8px;background:#fff3e0;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;color:#c05e00;text-align:center"></div>
+    </div>
+    <div class="modal-campo">
       <label class="modal-label">📅 Tipo de pago</label>
       <select class="modal-select" id="ren-tipo" onchange="toggleDiaSemana('ren-dia-semana-row',this.value)">
         <option value="semanal">📅 Semanal</option>
@@ -2911,6 +2916,32 @@ function actualizarResumenRenovar(){
       monto.textContent='$0';
       document.getElementById('rr-diferencia-sub').textContent='El saldo cubre exactamente el capital';
     }
+
+    // Lógica campo "Entregado al cliente"
+    const entregadoVal = parseFloat(document.getElementById('ren-entregado').value);
+    const infoEl = document.getElementById('ren-entregado-info');
+    if(!isNaN(entregadoVal) && entregadoVal > 0 && aEntregar > 0){
+      const noEntregado = aEntregar - entregadoVal;
+      if(noEntregado > 0){
+        infoEl.style.display='block';
+        infoEl.innerHTML=`✂️ Le retuviste <strong style="font-size:16px;color:#c05e00">${fmt(noEntregado)}</strong> al cliente<br><span style="font-size:11px;font-weight:700;color:#999">(${fmt(aEntregar)} − ${fmt(entregadoVal)} = ${fmt(noEntregado)} se verá en préstamos)</span>`;
+      } else if(noEntregado < 0){
+        infoEl.style.display='block';
+        infoEl.innerHTML=`⚠️ Entregaste <strong style="font-size:16px;color:#c05e00">${fmt(Math.abs(noEntregado))}</strong> de más al cliente`;
+      } else {
+        infoEl.style.display='block';
+        infoEl.innerHTML=`✅ Entregaste exactamente lo calculado`;
+        infoEl.style.background='#e0fff0';
+        infoEl.style.borderColor='#00e65c';
+        infoEl.style.color='#00a843';
+      }
+    } else {
+      infoEl.style.display='none';
+      infoEl.style.background='#fff3e0';
+      infoEl.style.borderColor='#f59e0b';
+      infoEl.style.color='#c05e00';
+    }
+
     res.style.display='block';
   } else { res.style.display='none'; }
 }
@@ -3203,7 +3234,8 @@ function confirmarRenovar(){
     fechaRenovacion: c.fechaRenovacion||null,
     // Papelería y cuota cobrada al renovar (para calcular "le queda")
     papeleriaRenovacion: parseFloat(document.getElementById('ren-papeleria').value)||0,
-    cuotaCobradaHoy: parseFloat(document.getElementById('ren-cuota-hoy').value)||0
+    cuotaCobradaHoy: parseFloat(document.getElementById('ren-cuota-hoy').value)||0,
+    entregadoAlCliente: parseFloat(document.getElementById('ren-entregado').value)||null
   };
   clientes[idx].historialRenovaciones=clientes[idx].historialRenovaciones||[];
   clientes[idx].historialRenovaciones.unshift(entradaHistorial);
@@ -3248,6 +3280,8 @@ function confirmarRenovar(){
   })();
   document.getElementById('ren-papeleria').value='';
   document.getElementById('ren-cuota-hoy').value='';
+  document.getElementById('ren-entregado').value='';
+  document.getElementById('ren-entregado-info').style.display='none';
 
   renderClientes();
   getDatos(); // actualizar resumen del día
@@ -5364,14 +5398,28 @@ function renderPrestamos(){
           try{ const cl=JSON.parse(lsGet('cuota_renovaciones_'+(rInfo.fecha||''))||'[]'); const ci=cl.find(p=>p.cliente===c.nombre); return ci?ci.valor||0:0; }catch(e){return 0;}
         })();
         const neto = (rInfo.nuevoCapital||c.capital||0) - (rInfo.saldoQuedaba||0) - cuotaHoy - pap;
+        // Calcular si se usó campo "entregado" (retención parcial)
+        const entregadoGuardado = (rInfo.entregadoAlCliente !== null && rInfo.entregadoAlCliente !== undefined)
+          ? rInfo.entregadoAlCliente : null;
+        const retenido = (entregadoGuardado !== null && neto > 0) ? (neto - entregadoGuardado) : 0;
+
         if(neto > 0){
           let detalle = `Capital ${fmt(rInfo.nuevoCapital||c.capital||0)} − Saldo ${fmt(rInfo.saldoQuedaba||0)}`;
           if(cuotaHoy>0) detalle += ` − Cuota ${fmt(cuotaHoy)}`;
           if(pap>0) detalle += ` − Pap. ${fmt(pap)}`;
+          // Montos a mostrar: lo que le quedó físicamente y (entre paréntesis) lo retenido
+          const montoMostrar = entregadoGuardado !== null ? entregadoGuardado : neto;
+          const retenidoTag = (retenido > 0)
+            ? `<span style="color:#e07b00;font-size:13px;font-weight:900;margin-left:4px">(${fmt(retenido)})</span>`
+            : '';
+          const retenidoDesc = (retenido > 0)
+            ? `<div style="font-size:9px;color:#c05e00;font-weight:800;margin-top:2px">✂️ Retenido: ${fmt(retenido)}</div>`
+            : '';
           leQuedaRen = `<div style="background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
             <div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le quedó al cliente</div>
-            <div style="font-size:15px;font-weight:900;color:#0077ff">${fmt(neto)}</div>
+            <div style="font-size:15px;font-weight:900;color:#0077ff">${fmt(montoMostrar)}${retenidoTag}</div>
             <div style="font-size:9px;color:#5599cc;font-weight:700">${detalle}</div>
+            ${retenidoDesc}
           </div>`;
         } else if(neto < 0){
           leQuedaRen = `<div style="background:#fff3e0;border:1.5px solid #f59e0b;border-radius:10px;padding:4px 10px;margin-top:6px;text-align:center">
