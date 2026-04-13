@@ -6743,13 +6743,14 @@ function imprimirReporteDia(){
 
     // CABECERA TABLA
     const cols = [
-      {label:'#',         w:8},
-      {label:'CLIENTE',   w:60},
-      {label:'CEDULA',    w:28},
-      {label:'TOTAL',     w:28},
-      {label:'V.CUOTA',   w:28},
-      {label:'DIO',       w:28},
-      {label:'SALDO',     w:28},
+      {label:'#',         w:7},
+      {label:'CLIENTE',   w:50},
+      {label:'CEDULA',    w:25},
+      {label:'TELEFONO',  w:25},
+      {label:'TOTAL',     w:24},
+      {label:'V.CUOTA',   w:24},
+      {label:'DIO',       w:24},
+      {label:'SALDO',     w:24},
     ];
     const rowH = 7;
 
@@ -6781,8 +6782,9 @@ function imprimirReporteDia(){
 
       const vals = [
         String(f.num),
-        (f.nombre||'').substring(0,32),
-        f.cedula,
+        (f.nombre||'').substring(0,28),
+        f.cedula||'-',
+        f.tel||'-',
         '$'+f.total.toLocaleString('es-CO'),
         '$'+f.vCuota.toLocaleString('es-CO'),
         '$'+f.dio.toLocaleString('es-CO'),
@@ -6791,8 +6793,8 @@ function imprimirReporteDia(){
 
       cx = margin+1;
       vals.forEach((val,vi)=>{
-        if(vi===5){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
-        else if(vi===6){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
+        if(vi===6){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
+        else if(vi===7){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
         else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
         doc.setFontSize(7);
         doc.text(val, cx, y+5);
@@ -6810,9 +6812,9 @@ function imprimirReporteDia(){
     doc.setFontSize(8);
     doc.setTextColor(0,0,0);
     cx=margin+1;
-    const tots=['','TOTAL RECAUDADO','','','','$'+totalRecaudado.toLocaleString('es-CO'),''];
+    const tots=['','TOTAL RECAUDADO','','','','','$'+totalRecaudado.toLocaleString('es-CO'),''];
     tots.forEach((val,vi)=>{
-      if(vi===5) doc.setTextColor(0,130,0);
+      if(vi===6) doc.setTextColor(0,130,0);
       else doc.setTextColor(0,0,0);
       doc.text(val, cx, y+5);
       cx+=cols[vi].w;
@@ -6937,13 +6939,14 @@ function generarPDFRuta(){
     const cols=[
       {h:'#',      w:8,  r:true},
       {h:'CLIENTE',w:0,  r:false, auto:true},
-      {h:'TEL',    w:24, r:false},
-      {h:'TIPO',   w:16, r:false},
-      {h:'TOTAL',  w:22, r:true},
-      {h:'SALDO',  w:22, r:true},
-      {h:'CUOTA',  w:20, r:true},
-      {h:'ESTADO', w:24, r:false},
-      {h:'HOY',    w:20, r:true},
+      {h:'CEDULA', w:26, r:false},
+      {h:'TEL',    w:26, r:false},
+      {h:'TIPO',   w:14, r:false},
+      {h:'TOTAL',  w:20, r:true},
+      {h:'SALDO',  w:20, r:true},
+      {h:'CUOTA',  w:18, r:true},
+      {h:'ESTADO', w:20, r:false},
+      {h:'HOY',    w:18, r:true},
     ];
     const fixedW=cols.filter(c=>!c.auto).reduce((s,c)=>s+c.w,0);
     cols[1].w=UW-fixedW;
@@ -6969,9 +6972,9 @@ function generarPDFRuta(){
       doc.text('TOTALES', ML+1, yy+6.5);
       let cx=ML+1;
       cols.forEach((col,i)=>{
-        if(i===5) doc.text(fmtN(totalSaldo), cx+col.w-2, yy+6.5, {align:'right'});
-        if(i===6) doc.text(fmtN(cuotasDia),  cx+col.w-2, yy+6.5, {align:'right'});
-        if(i===8) doc.text(fmtN(recaudado),   cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===6) doc.text(fmtN(totalSaldo), cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===7) doc.text(fmtN(cuotasDia),  cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===9) doc.text(fmtN(recaudado),   cx+col.w-2, yy+6.5, {align:'right'});
         cx+=col.w;
       });
     }
@@ -6991,7 +6994,7 @@ function generarPDFRuta(){
       else if(idx%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,y,UW,rowH,'F'); }
 
       const vals=[
-        String(f.num), f.nombre, f.tel||'-', f.tipo,
+        String(f.num), f.nombre, f.cedula||'-', f.tel||'-', f.tipo,
         fmtN(f.total), fmtN(f.saldo),
         f.cuota>0?fmtN(f.cuota):'-',
         estadoStr(f.atraso,f.tipo),
@@ -7000,13 +7003,14 @@ function generarPDFRuta(){
       let cx=ML+1;
       vals.forEach((val,vi)=>{
         const col=cols[vi];
-        doc.setFontSize(8.5); doc.setFont('helvetica', vi===1||vi===5||vi===8?'bold':'normal');
-        if(vi===5)      doc.setTextColor(...ROJO);
-        else if(vi===7) doc.setTextColor(f.atraso>0?ROJO[0]:f.atraso<0?VERDE[0]:AZUL_E[0], f.atraso>0?ROJO[1]:f.atraso<0?VERDE[1]:AZUL_E[1], f.atraso>0?ROJO[2]:f.atraso<0?VERDE[2]:AZUL_E[2]);
-        else if(vi===8 && f.mp>0) doc.setTextColor(...VERDE);
+        doc.setFontSize(8); doc.setFont('helvetica', vi===1||vi===6||vi===9?'bold':'normal');
+        if(vi===6)      doc.setTextColor(...ROJO);
+        else if(vi===8) doc.setTextColor(f.atraso>0?ROJO[0]:f.atraso<0?VERDE[0]:AZUL_E[0], f.atraso>0?ROJO[1]:f.atraso<0?VERDE[1]:AZUL_E[1], f.atraso>0?ROJO[2]:f.atraso<0?VERDE[2]:AZUL_E[2]);
+        else if(vi===9 && f.mp>0) doc.setTextColor(...VERDE);
         else doc.setTextColor(0,0,0);
         let txt=val;
         if(vi===1) txt=doc.splitTextToSize(val,col.w-2)[0]||val;
+        if(vi===2||vi===3) txt=doc.splitTextToSize(val,col.w-1)[0]||val;
         doc.text(txt, col.r?cx+col.w-2:cx, y+6, {align:col.r?'right':'left'});
         cx+=col.w;
       });
