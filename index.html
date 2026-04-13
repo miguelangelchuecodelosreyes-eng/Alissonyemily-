@@ -3423,6 +3423,40 @@ function editarMontoRenovacion(clienteId, ri, valorActual){
   verCancelados(clienteId);
 }
 
+// Limpia la papelería de un cliente al eliminarlo
+function _limpiarPapeleriaCliente(c){
+  if(!c) return;
+  const nombre = c.nombre || '';
+  const fechaCreado = (c.fechaCreado||'').substring(0,10);
+  const hoyStr = getFechaActiva();
+
+  // Limpiar de papeleria_nuevos_ (cliente nuevo)
+  [fechaCreado, hoyStr].filter(Boolean).forEach(f => {
+    const key = 'papeleria_nuevos_' + f;
+    try{
+      let lista = JSON.parse(lsGet(key)||'[]');
+      const antes = lista.length;
+      lista = lista.filter(p => p.cliente !== nombre);
+      if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
+    }catch(e){}
+  });
+
+  // Limpiar de papeleria_renovaciones_ (renovaciones del cliente)
+  const fechasRen = (c.historialRenovaciones||[])
+    .map(r => (r.fecha||r.fechaCreado||'').substring(0,10))
+    .filter(Boolean);
+  fechasRen.push(hoyStr);
+  [...new Set(fechasRen)].forEach(f => {
+    const key = 'papeleria_renovaciones_' + f;
+    try{
+      let lista = JSON.parse(lsGet(key)||'[]');
+      const antes = lista.length;
+      lista = lista.filter(p => p.cliente !== nombre);
+      if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
+    }catch(e){}
+  });
+}
+
 function eliminarCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
@@ -3440,6 +3474,8 @@ function eliminarCliente(id){
           // Archivar con cédula temporal '0000' para no perder historial
           const cCopia = {...cD, cedula: cD.cedula||'0000'};
           archivarClienteEnHistorial(cCopia);
+          // Limpiar papelería de este cliente
+          _limpiarPapeleriaCliente(cD);
         }
         saveClientes(cls.filter(x=>x.id!==id));
         renderClientes();
@@ -3508,7 +3544,10 @@ function confirmarEliminarDirecto(id){
     () => {
       const clientes = getClientes();
       const cDel = clientes.find(x=>x.id===id);
-      if(cDel) archivarClienteEnHistorial(cDel);
+      if(cDel){
+        archivarClienteEnHistorial(cDel);
+        _limpiarPapeleriaCliente(cDel);
+      }
       saveClientes(clientes.filter(x=>x.id!==id));
       renderClientes();
       showToast('✅ Cliente eliminado y guardado en historial');
@@ -3592,6 +3631,7 @@ function confirmarEliminarConCedula(id){
   if(idx < 0) return;
   clientes[idx].cedula = cedula;
   saveClientes(clientes);
+  _limpiarPapeleriaCliente(clientes[idx]);
   archivarClienteEnHistorial(clientes[idx]);
   saveClientes(getClientes().filter(x=>x.id!==id));
   document.getElementById('modal-pedir-cedula')?.remove();
