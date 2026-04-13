@@ -740,7 +740,6 @@ body {
   <div class="clientes-header">
     <div class="clientes-titulo">👥 Mis Clientes</div>
     <div style="display:flex;gap:8px">
-      <button onclick="imprimirListaClientes()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:16px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(245,158,11,0.35)">🖨️</button>
       <button class="btn-nuevo-cliente" onclick="abrirModalNuevoOHistorial()">➕ Nuevo</button>
     </div>
   </div>
@@ -6559,9 +6558,9 @@ function imprimirListaClientes(){
 
     const cols = [
       {label:'#',        w:7  },
-      {label:'CLIENTE',  w:42 },
-      {label:'CEDULA',   w:16 },
-      {label:'TELEFONO', w:28 },
+      {label:'CLIENTE',  w:38 },
+      {label:'CEDULA',   w:24 },
+      {label:'TELEFONO', w:26 },
       {label:'TOTAL',    w:22 },
       {label:'SALDO',    w:22 },
       {label:'CUOTA',    w:20 },
@@ -6570,16 +6569,16 @@ function imprimirListaClientes(){
     ];
     const sumW = cols.reduce((s,c)=>s+c.w,0);
     const extra = tableW - sumW;
-    cols[1].w += Math.round(extra * 0.6);
-    cols[3].w += Math.round(extra * 0.4);
-    const rowH = 8;
-    const fs = 11;
+    cols[1].w += Math.round(extra * 0.5);
+    cols[3].w += Math.round(extra * 0.5);
+    const rowH = 7;
+    const fs = 7;
 
     function dibujarCabecera(yPos){
       doc.setFillColor(30,30,30);
       doc.rect(margin, yPos, tableW, rowH+2, 'F');
       doc.setTextColor(255,255,255);
-      doc.setFontSize(11);
+      doc.setFontSize(7);
       doc.setFont('helvetica','bold');
       let cx = margin+1.5;
       cols.forEach(col=>{ doc.text(col.label, cx, yPos+7); cx+=col.w; });
@@ -6621,7 +6620,8 @@ function imprimirListaClientes(){
         else if(vi===7&&pagadoHoy>0){ doc.setTextColor(0,140,0); doc.setFont('helvetica','bold'); }
         else if(vi===8){ doc.setTextColor(dias>0?180:0,dias<=0?120:0,0); doc.setFont('helvetica','bold'); }
         else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
-        doc.text(val, cx, y+6.5);
+        const txt = doc.splitTextToSize(val, cols[vi].w - 1)[0] || val;
+        doc.text(txt, cx, y+6.5);
         cx+=cols[vi].w;
       });
       doc.setDrawColor(220,220,220);
@@ -6632,7 +6632,7 @@ function imprimirListaClientes(){
     doc.setFillColor(30,30,30);
     doc.rect(margin, y, tableW, rowH+1, 'F');
     doc.setFont('helvetica','bold');
-    doc.setFontSize(fs);
+    doc.setFontSize(7);
     let cx = margin+1.5;
     const tots=['','TOTALES','','','$'+clientes.reduce((s,c)=>s+c.prestamo,0).toLocaleString('es-CO'),'$'+totalSaldo.toLocaleString('es-CO'),'$'+totalCuotas.toLocaleString('es-CO'),'$'+recaudadoHoy.toLocaleString('es-CO'),''];
     tots.forEach((val,vi)=>{
