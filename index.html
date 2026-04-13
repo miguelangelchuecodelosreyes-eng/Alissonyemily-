@@ -3550,6 +3550,7 @@ function confirmarEliminarDirecto(id){
       }
       saveClientes(clientes.filter(x=>x.id!==id));
       renderClientes();
+      actualizarCuentas();
       showToast('✅ Cliente eliminado y guardado en historial');
     }
   );
@@ -3562,6 +3563,8 @@ function deshacerRenovacionYEliminar(id){
   if(idx<0) return;
   const hist = clientes[idx].historialRenovaciones||[];
   if(hist.length > 0){
+    // Limpiar papelería de esta renovación antes de restaurar
+    _limpiarPapeleriaCliente(clientes[idx]);
     // Restaurar ciclo anterior
     const u = hist[0];
     clientes[idx].capital = u.capitalCiclo || 0;
@@ -5206,6 +5209,8 @@ function deshacerRenovacion(){
       const i = cl.findIndex(c=>c.id===clienteDetalleId);
       if(i<0) return;
       const u = cl[i].historialRenovaciones[0];
+      // Limpiar papelería de esta renovación
+      _limpiarPapeleriaCliente(cl[i]);
       cl[i].capital = u.capitalCiclo || 0;
       cl[i].interes = u.interesCiclo || 0;
       cl[i].prestamo = u.prestamoCiclo;
@@ -5219,6 +5224,7 @@ function deshacerRenovacion(){
       cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
       saveClientes(cl);
       showToast('↩️ Renovación deshecha, préstamo anterior restaurado');
+      actualizarCuentas();
       abrirDetalle(clienteDetalleId);
     }
   );
@@ -5296,6 +5302,8 @@ function deshacerRenovacionConConfirm(id){
       const i = cl.findIndex(x=>x.id===id);
       if(i<0) return;
       const u = cl[i].historialRenovaciones[0];
+      // Limpiar papelería de esta renovación
+      _limpiarPapeleriaCliente(cl[i]);
       cl[i].capital = u.capitalCiclo || 0;
       cl[i].interes = u.interesCiclo || 0;
       cl[i].prestamo = u.prestamoCiclo;
@@ -5309,6 +5317,7 @@ function deshacerRenovacionConConfirm(id){
       cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
       saveClientes(cl);
       renderPrestamos();
+      actualizarCuentas();
       showToast('✅ Renovación deshecha — préstamo anterior restaurado');
     }
   );
