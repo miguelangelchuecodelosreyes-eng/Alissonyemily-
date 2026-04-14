@@ -2111,7 +2111,7 @@ function recalcularCuentas(){
   // Cancelados: saldo cerrado HOY — solo si el último pago fue hoy (no clientes cancelados antes)
   let cancelados = 0;
   clientes.forEach(c=>{
-    const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+    const ultimoPago = (c.pagos||[]).length > 0 ? (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0] : null;
     if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
       cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
     }
@@ -3836,7 +3836,7 @@ function renderClientes(){
   const _scrollY = window.scrollY;
   el.innerHTML=clientes.map((c,numeroCliente)=>{    const debe=c.saldo>0;
     const pagado=c.prestamo-c.saldo;
-    const ultPagos=(c.pagos||[]);
+    const ultPagos=(c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0);
     const totalCancelado=(c.historialRenovaciones||[]).reduce((s,r)=>s+r.totalCancelado,0)+pagado;
     const fechaPrestamo = c.fechaRenovacion || c.fechaCreado || '';
     const diasAtraso = debe ? calcularAtraso(c) : 0;
@@ -3970,7 +3970,7 @@ function renderClientes(){
           <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00cc55">${fmt(pagado)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff1111':'#00e65c'}">${fmt(c.saldo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">➡️ Nuevo saldo</div><div class="cliente-det-val" id="nuevo-saldo-inline-${c.id}" style="color:#888">—</div></div>
-          ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe;display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1;border-right:1.5px solid #d8b4fe;padding-right:10px"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div><div style="flex:1;padding-left:10px">${(()=>{const up=(c.pagos||[])[0];if(!up)return'<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#aaa;font-size:13px">Sin pagos</div>';const fd=up.fecha||'';let label=fd;try{const [y,m,d]=fd.split('-');const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const dt=new Date(Number(y),Number(m)-1,Number(d));const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];label=dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];}catch(e){}return`<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#16a34a;font-size:13px">${label}-${fmt(up.monto)}</div>`;})()} </div></div>`:''}
+          ${c.cuotaSugerida>0?`<div class="cliente-det-item" style="grid-column:1/-1;background:#f8f0ff;border:1.5px solid #d8b4fe;display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1;border-right:1.5px solid #d8b4fe;padding-right:10px"><div class="cliente-det-label" style="color:#7c3aed">💳 Cuota</div><div class="cliente-det-val" style="color:#7c3aed">${nCuotas>0?`${fmt(c.cuotaSugerida)}×${nCuotas}`:fmt(c.cuotaSugerida)}</div></div><div style="flex:1;padding-left:10px">${(()=>{const up=(c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];if(!up)return'<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#aaa;font-size:13px">Sin pagos</div>';const fd=up.fecha||'';let label=fd;try{const [y,m,d]=fd.split('-');const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const dt=new Date(Number(y),Number(m)-1,Number(d));const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];label=dias[dt.getDay()]+'-'+String(d).padStart(2,'0')+'-'+meses[dt.getMonth()];}catch(e){}return`<div class="cliente-det-label" style="color:#16a34a">✅ Ult.cuota</div><div class="cliente-det-val" style="color:#16a34a;font-size:13px">${label}-${fmt(up.monto)}</div>`;})()} </div></div>`:''}
         </div>
         ${c.saldo>0?`
         <!-- ══ ACCIONES: Anterior + Siguiente ══ -->
@@ -4330,7 +4330,7 @@ function sincronizarDesdeclientes(){
       detalleCuotas.push(`${c.nombre}: ${fmt(sumPagosDia)}`);
     }
     // Cancelados: saldo=0 y último pago fue hoy
-    if(c.saldo === 0 && c.pagos && c.pagos.length > 0 && c.pagos[0].fecha === hoy){
+    if(c.saldo === 0 && c.pagos && c.pagos.length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === hoy){
       totalCancelados++;
       detalleCancelados.push(c.nombre);
     }
@@ -4461,7 +4461,7 @@ function renderDetalles(){
 
   clientes.forEach(c => {
     // Detectar si este cliente fue cancelado completo en la fecha filtro
-    const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && c.pagos[0].fecha === filtroFecha;
+    const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === filtroFecha;
     // Detectar si este cliente fue renovado en la fecha filtro
     const esRenovadoHoy = (c.historialRenovaciones||[]).some(r => r.fecha === filtroFecha);
     // Solo excluir pagos de cancelados (saldo=0). Los renovados SÍ pueden tener cuota cobrada al renovar en c.pagos
@@ -4798,7 +4798,7 @@ function abrirDetalle(id, desde){
   const nCuotas = c.cuotaSugerida > 0 ? Math.ceil(c.prestamo / c.cuotaSugerida) : (c.pagos||[]).length;
   const diasAtraso = calcularAtraso(c);
   const dvencidos = diasAtraso > 0 ? diasAtraso : 0;
-  const ultPago = (c.pagos||[])[0];
+  const ultPago = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
   const cuotasPagadas = (c.pagos||[]).length;
   const fechaFinal = calcularFechaFinal(fechaInicio, c.tipo||'diario', nCuotas, c.diaSemana||'');
 
@@ -5153,7 +5153,9 @@ function borrarUltimaCuota(){
   if(idx<0) return;
   const pagos = clientes[idx].pagos||[];
   if(!pagos.length){ showToast('⚠️ No hay cuotas para borrar'); return; }
-  const ult = pagos[0];
+  // Ordenar para encontrar el pago más reciente por fecha
+  const pagosSorted = pagos.slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0);
+  const ult = pagosSorted[0];
   confirmarAccion(
     '🗑️ Borrar última cuota',
     `¿Borrar la cuota de ${fmt(ult.monto)} del ${fechaBonita(ult.fecha)}?\n\nEse monto se devolverá al saldo.`,
@@ -5162,8 +5164,12 @@ function borrarUltimaCuota(){
       const cl = getClientes();
       const i = cl.findIndex(c=>c.id===clienteDetalleId);
       if(i<0) return;
-      const m = cl[i].pagos[0].monto;
-      cl[i].pagos.splice(0,1);
+      // Encontrar el índice real del pago más reciente
+      const psSorted = (cl[i].pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0);
+      const ultPago = psSorted[0];
+      const realIdx = cl[i].pagos.findIndex(p=>p===ultPago);
+      const m = cl[i].pagos[realIdx].monto;
+      cl[i].pagos.splice(realIdx,1);
       cl[i].saldo += m;
       saveClientes(cl);
       showToast(`↩️ Cuota de ${fmt(m)} eliminada, saldo restaurado`);
