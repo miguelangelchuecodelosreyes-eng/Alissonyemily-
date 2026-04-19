@@ -2530,38 +2530,36 @@ function renderHistorialGastos(){
   // Recopilar todas las fechas que tienen gastos
   const fechasConGastos = [];
   try{
+    // Método robusto: convertir a array primero
+    const allKeys = [];
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
-      if(k && k.startsWith('gastos_dia_')){
-        const fecha = k.replace('gastos_dia_','');
-        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
-      }
+      if(k) allKeys.push(k);
     }
-  }catch(e){}
-  try{
-    Object.keys(window._memStorage||{}).forEach(k=>{
+    // También incluir _memStorage
+    Object.keys(window._memStorage||{}).forEach(k=>{ if(!allKeys.includes(k)) allKeys.push(k); });
+
+    allKeys.forEach(k=>{
       if(k.startsWith('gastos_dia_')){
         const fecha = k.replace('gastos_dia_','');
-        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
+        // Validar que la fecha tenga formato YYYY-MM-DD y tenga gastos reales
+        if(/^\d{4}-\d{2}-\d{2}$/.test(fecha)){
+          try{
+            const g = JSON.parse(lsGet(k)||'[]');
+            if(Array.isArray(g) && g.length > 0 && !fechasConGastos.includes(fecha)){
+              fechasConGastos.push(fecha);
+            }
+          }catch(e){}
+        }
       }
-    });
-  }catch(e){}
-
-  // También incluir fechas con papelería de renovaciones
-  try{
-    for(let i=0;i<localStorage.length;i++){
-      const k = localStorage.key(i);
-      if(k && k.startsWith('papeleria_renovaciones_')){
-        const fecha = k.replace('papeleria_renovaciones_','');
-        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
-      }
-    }
-  }catch(e){}
-  try{
-    Object.keys(window._memStorage||{}).forEach(k=>{
       if(k.startsWith('papeleria_renovaciones_')){
         const fecha = k.replace('papeleria_renovaciones_','');
-        if(!fechasConGastos.includes(fecha)) fechasConGastos.push(fecha);
+        if(/^\d{4}-\d{2}-\d{2}$/.test(fecha) && !fechasConGastos.includes(fecha)){
+          try{
+            const p = JSON.parse(lsGet(k)||'[]');
+            if(Array.isArray(p) && p.length > 0) fechasConGastos.push(fecha);
+          }catch(e){}
+        }
       }
     });
   }catch(e){}
@@ -4970,7 +4968,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-18 v15';
+const APP_VERSION = '2026-04-18 v16';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
