@@ -1941,46 +1941,64 @@ function registrar(){
   document.getElementById('pantalla-login').style.display='flex';
   showToast('✅ Usuario "' + u + '" creado. Inicia sesión');
 }
-function entrar() {
+async function entrar() {
   const u=document.getElementById('login-usuario').value.trim();
   const c=document.getElementById('login-clave').value;
-  const creds=getCredencialesCobrador();
   const err=document.getElementById('login-error');
-  // Buscar en lista de usuarios
-  const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
-  const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
+  const btn = document.querySelector('.login-btn');
+  const ayuda = document.getElementById('login-ayuda');
 
-  // Sin credenciales guardadas en este dispositivo
-  if(!creds && listaUsuarios2.length === 0){
-    // Si hay datos de clientes, permitir entrar y guardar las credenciales nuevas
-    const hayDatos = lsGet('clientes_v2') || lsGet('clientes_v1') || lsGet('hist_v3');
-    if(hayDatos && u.length >= 3 && c.length >= 4){
-      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
-      _abrirApp(u, c);
-      return;
-    }
-    showToast('⚠️ No hay usuario creado. Usa "Crear usuario nuevo"');
+  if(!u || !c){
+    if(err){ err.textContent='Ingresa usuario y contraseña'; err.style.display='block'; setTimeout(()=>{err.style.display='none';},4000); }
     return;
   }
 
-  // Credenciales maestras — siempre funcionan
-  const esMaestra = (u === 'alissonyemily' && c === '1234');
+  if(btn){ btn._txt = btn.textContent; btn.textContent='⏳ Verificando...'; btn.disabled = true; }
 
-  const matchCreds = creds && u===creds.usuario && c===creds.clave;
-  if(matchCreds || credEnLista || esMaestra){
-    if(esMaestra){
-      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
+  // 1) Intentar autenticar con Firebase Auth (registro abierto si la cuenta no existe)
+  let authRes = { ok:false, code:'no-auth' };
+  if(typeof window.firebaseAuthLogin === 'function'){
+    try { authRes = await window.firebaseAuthLogin(u, c); } catch(e){ authRes = { ok:false, code:'exception', error:String(e) }; }
+  }
+
+  if(btn){ btn.textContent = btn._txt || '🔓 Entrar'; btn.disabled = false; }
+
+  if(authRes.ok){
+    // ✅ Login real con Firebase Auth — guardar y entrar
+    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+    const lista = JSON.parse(lsGet('cobrador_usuarios') || '[]');
+    if(!lista.find(x => x.usuario === u)){
+      lista.push({usuario:u, clave:c});
+      lsSet('cobrador_usuarios', JSON.stringify(lista));
+    }
+    if(authRes.modo === 'registro'){
+      showToast('✅ Cuenta creada e iniciada (' + authRes.email + ')');
     }
     _abrirApp(u, c);
-  } else {
-    err.style.display='block';
-    const ayuda = document.getElementById('login-ayuda');
-    if(ayuda) ayuda.style.display='block';
-    document.getElementById('login-clave').value='';
-    setTimeout(()=>{ err.style.display='none'; }, 5000);
+    return;
   }
+
+  // 2) Modo OFFLINE — permitir entrar con credenciales locales si Firebase no está disponible
+  if(authRes.code === 'offline' || authRes.code === 'auth/network-request-failed'){
+    const creds=getCredencialesCobrador();
+    const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
+    const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
+    const matchCreds = creds && u===creds.usuario && c===creds.clave;
+    const esMaestra = (u === 'alissonyemily' && c === '1234');
+    if(matchCreds || credEnLista || esMaestra){
+      showToast('📴 Sin internet — modo offline');
+      _abrirApp(u, c);
+      return;
+    }
+    if(err){ err.textContent='Sin internet y no hay credenciales locales'; err.style.display='block'; setTimeout(()=>{err.style.display='none';},5000); }
+    return;
+  }
+
+  // 3) Error de autenticación
+  if(err){ err.textContent = authRes.error || 'Usuario o contraseña incorrectos'; err.style.display='block'; }
+  if(ayuda) ayuda.style.display='block';
+  document.getElementById('login-clave').value='';
+  setTimeout(()=>{ if(err) err.style.display='none'; }, 5000);
 }
 
 function _abrirApp(u, c){
@@ -2005,6 +2023,10 @@ function cerrarSesion() {
       // Sync final antes de cerrar
       if (typeof window.syncFirebase === 'function') {
         window.syncFirebase(false);
+      }
+      // Cerrar sesión también en Firebase Auth
+      if (typeof window.firebaseAuthLogout === 'function') {
+        try { window.firebaseAuthLogout(); } catch(_){}
       }
       lsRemove('cobrador_sesion');
       if(typeof window.bloquearPinAjustes==='function') window.bloquearPinAjustes();
@@ -2645,9 +2667,9 @@ function renderHistorialGastos(){
     let papList = [];
     try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+fecha)||'[]'); }catch(e){}
     if(!gastos.length && !papList.length) return '';
+    if(gastos.length === 0 && total === 0) return ''; // ocultar días sin gastos reales
 
     const total = gastos.reduce((s,g)=>s+g.valor,0);
-    if(gastos.length === 0 && papList.length === 0) return ''; // ocultar días sin gastos reales
     const filas = gastos.map(g => `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f5">
         <div>
@@ -4968,7 +4990,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-18 v16';
+const APP_VERSION = '2026-04-19 v18';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -4982,27 +5004,40 @@ function mostrarVersionApp(){
 //  Detecta versión nueva y recarga SIN borrar caché manualmente
 // ══════════════════════════════════════════════
 
-function _borrarTodoCacheSW(){
-  // 1) Borrar caches del Service Worker
-  if('caches' in window){
-    caches.keys().then(names => names.forEach(n => caches.delete(n)));
-  }
-  // 2) Desregistrar el Service Worker para que no vuelva a servir archivos viejos
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(reg => reg.unregister());
-    });
-  }
+async function _borrarTodoCacheSW(){
+  // 1) Borrar TODOS los caches del Service Worker
+  try{
+    if('caches' in window){
+      const names = await caches.keys();
+      await Promise.all(names.map(n => caches.delete(n)));
+    }
+  }catch(e){ console.warn('cache clear err', e); }
+  // 2) Desregistrar TODOS los Service Workers (no volverán a servir archivos viejos)
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  }catch(e){ console.warn('sw unreg err', e); }
+  // 3) Borrar IndexedDB (cachés de PWA / Workbox)
+  try{
+    if(indexedDB && indexedDB.databases){
+      const dbs = await indexedDB.databases();
+      dbs.forEach(d => { if(d.name) try{ indexedDB.deleteDatabase(d.name); }catch(_){} });
+    }
+  }catch(e){}
+  // 4) Limpiar sessionStorage (no tocamos localStorage para no perder datos del usuario)
+  try{ sessionStorage.clear(); }catch(_){}
 }
 
-function forzarActualizacion(){
-  showToast('🔄 Actualizando...');
-  _borrarTodoCacheSW();
+async function forzarActualizacion(){
+  showToast('🔄 Actualizando ahora...');
+  // Marcar flag ANTES de limpiar (localStorage se preserva)
   localStorage.setItem('app_actualizada_flag', APP_VERSION + ' (manual)');
-  setTimeout(() => {
-    const url = window.location.pathname + '?_fv=' + Date.now();
-    window.location.replace(url);
-  }, 700);
+  await _borrarTodoCacheSW();
+  // Recarga DURA con cache-buster — el navegador pedirá el HTML al servidor
+  const url = window.location.pathname + '?_fv=' + Date.now() + '&r=' + Math.random().toString(36).slice(2);
+  window.location.replace(url);
 }
 
 function _checkVersionServidor(callback){
@@ -5034,23 +5069,21 @@ function _aplicarActualizacion(verServidor){
   localStorage.setItem(VER_KEY, verServidor);  // guardar siempre la versión actual
   if(verLocal && verLocal !== verServidor){
     console.log('Nueva versión:', verServidor, '(tenía:', verLocal, ')');
-    _borrarTodoCacheSW();
     localStorage.setItem('app_actualizada_flag', verServidor); // flag para mostrar banner
     showToast('🔄 Nueva versión disponible, actualizando...');
-    setTimeout(() => {
+    _borrarTodoCacheSW().finally(() => {
       window.location.replace(window.location.pathname + '?_uv=' + Date.now());
-    }, 1200);
+    });
     return true;
   }
   return false;
 }
 
-// ── Verificar al abrir la app ──
+// ── Verificar al abrir la app (CASI INMEDIATO para que la app coja la actualización ya) ──
 (function checkAlInicio(){
-  // Pequeño delay para no bloquear el arranque
   setTimeout(()=>{
     _checkVersionServidor(ver => _aplicarActualizacion(ver));
-  }, 3000);
+  }, 300);
 })();
 
 // ── Verificar al volver a la app (primer plano) ──
@@ -5064,10 +5097,10 @@ document.addEventListener('visibilitychange', function(){
   }
 });
 
-// ── Verificar cada 3 minutos ──
+// ── Verificar cada 60 segundos (más agresivo: APK coge actualización rápido) ──
 setInterval(function(){
   _checkVersionServidor(ver => _aplicarActualizacion(ver));
-}, 3 * 60 * 1000);
+}, 60 * 1000);
 
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
@@ -7852,8 +7885,23 @@ async function verificarReglasFirebase() {
       addLog('💡 SOLUCIÓN:');
       addLog('1. Ve a https://console.firebase.google.com');
       addLog('2. Proyecto "alissonyemily-7014a" → Realtime Database → Reglas');
-      addLog('3. Cambia a: { "rules": { ".read": true, ".write": true } }');
-      addLog('⚠️ Solo para pruebas. En producción usa autenticación.');
+      addLog('3. Pega estas REGLAS SEGURAS (usan Firebase Auth — auth.uid):');
+      addLog('   {');
+      addLog('     "rules": {');
+      addLog('       "usuarios": {');
+      addLog('         "$usuarioKey": {');
+      addLog('           ".read":  "auth != null",');
+      addLog('           ".write": "auth != null"');
+      addLog('         }');
+      addLog('       }');
+      addLog('     }');
+      addLog('   }');
+      addLog('✅ Solo usuarios autenticados con email/contraseña pueden leer/escribir.');
+      addLog('✅ Esto QUITA la advertencia naranja de Firebase.');
+      addLog('');
+      addLog('🔒 VERSIÓN MÁS ESTRICTA (un usuario por cuenta):');
+      addLog('   ".read":  "auth != null && auth.token.email.split(\'@\')[0] == $usuarioKey"');
+      addLog('   ".write": "auth != null && auth.token.email.split(\'@\')[0] == $usuarioKey"');
     } else if (e.message.includes('NETWORK')) {
       addLog('🌐 ERROR DE RED - Conéctate a Wi-Fi o datos móviles');
     } else {
@@ -8129,6 +8177,7 @@ function abrirPanelDiagnostico() {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -8142,6 +8191,68 @@ function abrirPanelDiagnostico() {
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
+  const auth = getAuth(app);
+
+  // ── Helper: convierte usuario → email para Firebase Auth ──
+  function _userToEmail(usuario){
+    const u = String(usuario || '').trim();
+    if(!u) return '';
+    if(u.indexOf('@') !== -1) return u.toLowerCase();
+    return u.toLowerCase().replace(/[^a-z0-9_.-]/g,'_') + '@app.local';
+  }
+
+  // ── Login con Firebase Auth (con auto-registro abierto) ──
+  // Devuelve {ok:true, uid, email, modo:'login'|'registro'} o {ok:false, error, code}
+  window.firebaseAuthLogin = async function(usuario, clave){
+    if(!navigator.onLine){
+      return { ok:false, code:'offline', error:'Sin conexión — entrando en modo offline' };
+    }
+    const email = _userToEmail(usuario);
+    if(!email || !clave || clave.length < 4){
+      return { ok:false, code:'invalid-input', error:'Usuario o clave inválidos' };
+    }
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, clave);
+      window._fbAuthUser = cred.user;
+      return { ok:true, uid: cred.user.uid, email, modo:'login' };
+    } catch(e1){
+      // Si la cuenta no existe → registro abierto automático
+      if(e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential'){
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, email, clave);
+          window._fbAuthUser = cred.user;
+          return { ok:true, uid: cred.user.uid, email, modo:'registro' };
+        } catch(e2){
+          if(e2.code === 'auth/email-already-in-use'){
+            return { ok:false, code:e2.code, error:'❌ Contraseña incorrecta' };
+          }
+          if(e2.code === 'auth/weak-password'){
+            return { ok:false, code:e2.code, error:'❌ Clave muy corta (mínimo 6 caracteres)' };
+          }
+          return { ok:false, code:e2.code || 'auth-error', error:'❌ ' + (e2.message || 'Error de autenticación') };
+        }
+      }
+      if(e1.code === 'auth/wrong-password'){
+        return { ok:false, code:e1.code, error:'❌ Contraseña incorrecta' };
+      }
+      if(e1.code === 'auth/network-request-failed'){
+        return { ok:false, code:'offline', error:'Sin conexión — entrando en modo offline' };
+      }
+      return { ok:false, code:e1.code || 'auth-error', error:'❌ ' + (e1.message || 'Error de autenticación') };
+    }
+  };
+
+  window.firebaseAuthLogout = async function(){
+    try { await signOut(auth); } catch(_){}
+    window._fbAuthUser = null;
+  };
+
+  // Mantener referencia del user actual
+  onAuthStateChanged(auth, (user) => {
+    window._fbAuthUser = user || null;
+    window._fbAuthUid = user ? user.uid : null;
+    window._fbAuthEmail = user ? user.email : null;
+  });
 
   // Obtener nombre de usuario activo
   function getUsuarioActivo() {
@@ -8230,6 +8341,7 @@ function abrirPanelDiagnostico() {
   window.set = set;
   window.onValue = onValue;
   window.getUsuarioActivo = getUsuarioActivo;
+  window._fbAuth = auth;
 
   // Función global para subir datos a Firebase
   window.syncFirebase = async function(forzado = false) {
