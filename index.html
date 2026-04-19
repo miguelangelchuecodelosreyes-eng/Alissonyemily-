@@ -1078,7 +1078,7 @@ body {
           style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
           <option value="">-- Selecciona un día --</option>
         </select>
-        <button onclick="document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
+        <button onclick="document.getElementById('filtro-gastos-fecha').value='TODOS';renderHistorialGastos();"
           style="padding:10px 16px;background:rgba(239,68,68,0.08);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
           Ver todos
         </button>
@@ -1831,6 +1831,13 @@ function fechaBonita(f) {
   const dia=diasSemana[fecha.getDay()];
   return `${dia} ${parseInt(d)}-${mes[parseInt(m)-1]}-${y}`;
 }
+function nombreDia(f) {
+  if(!f) return '';
+  const [y,m,d]=f.split('-');
+  const diasSemana=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const fecha=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+  return diasSemana[fecha.getDay()];
+}
 function showToast(msg) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.style.opacity='1';
@@ -2539,13 +2546,14 @@ function renderHistorialGastos(){
     if(valorActual && fechasConGastos.includes(valorActual)) filtroEl.value = valorActual;
   }
 
-  // Si no hay fecha seleccionada, no mostrar nada
+  // Si no hay fecha seleccionada, mostrar instrucción
   if(!filtroFecha){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">👆 Selecciona un día o pulsa "Ver todos"</div>';
     return;
   }
 
-  const fechasFiltradas = filtroFecha ? fechasConGastos.filter(f=>f===filtroFecha) : fechasConGastos;
+  // Si es TODOS, mostrar todas las fechas
+  const fechasFiltradas = filtroFecha === 'TODOS' ? fechasConGastos : fechasConGastos.filter(f=>f===filtroFecha);
 
   if(!fechasFiltradas.length){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">🔍 No hay gastos para esa fecha</div>';
@@ -2594,12 +2602,31 @@ function renderHistorialGastos(){
 
     return `<div style="background:white;border-radius:16px;margin-bottom:10px;border:1.5px solid #ffc5c5;box-shadow:0 1px 8px rgba(0,0,0,0.05);overflow:hidden">
       <div style="background:#1a1a2e;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:900;color:white">📅 ${fechaBonita(fecha)}</div>
+        <div>
+          <div style="font-size:11px;font-weight:900;color:#aaa;letter-spacing:1.5px;text-transform:uppercase">${nombreDia(fecha)}</div>
+          <div style="font-size:13px;font-weight:900;color:white">📅 ${fechaBonita(fecha)}</div>
+        </div>
         <div style="font-size:13px;font-weight:900;color:#ff6666">${fmt(total)}</div>
       </div>
       <div style="padding:4px 14px 10px">${filas}${filaPapeleria}</div>
     </div>`;
   }).filter(Boolean).join('');
+
+  // Si es "ver todos" y hay contenido, agregar total general al inicio
+  if(filtroFecha === 'TODOS' && el.innerHTML.trim()){
+    let totalGeneral = 0;
+    fechasFiltradas.forEach(fecha => {
+      try{ const g = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); totalGeneral += g.reduce((s,x)=>s+x.valor,0); }catch(e){}
+    });
+    const resumen = `<div style="background:linear-gradient(135deg,#1a1a2e,#2d1b4e);border-radius:16px;margin-bottom:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+      <div>
+        <div style="font-size:11px;font-weight:900;color:#aaa;letter-spacing:1.5px;text-transform:uppercase">Total semana</div>
+        <div style="font-size:14px;font-weight:900;color:white">${fechasFiltradas.length} día${fechasFiltradas.length!==1?'s':''} con gastos</div>
+      </div>
+      <div style="font-size:20px;font-weight:900;color:#ff6666">${fmt(totalGeneral)}</div>
+    </div>`;
+    el.innerHTML = resumen + el.innerHTML;
+  }
 
   if(!el.innerHTML.trim()) el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 No hay gastos registrados</div>';
 }
