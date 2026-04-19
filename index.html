@@ -1074,11 +1074,11 @@ body {
       <div style="font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-left:4px">🗂️ Historial de gastos</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
         <select id="filtro-gastos-fecha"
-          onchange="renderHistorialGastos()"
+          onchange="_gastosVerTodos=false;renderHistorialGastos()"
           style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
           <option value="">-- Selecciona un día --</option>
         </select>
-        <button onclick="document.getElementById('filtro-gastos-fecha').value='TODOS';renderHistorialGastos();"
+        <button onclick="_gastosVerTodos=true;document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
           style="padding:10px 16px;background:rgba(239,68,68,0.08);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
           Ver todos
         </button>
@@ -2491,6 +2491,9 @@ function renderGastosHoy(){
   }
 }
 
+// Variable global: true cuando el usuario presionó "Ver todos"
+if(typeof window._gastosVerTodos === 'undefined') window._gastosVerTodos = false;
+
 function renderHistorialGastos(){
   const el = document.getElementById('historial-gastos-lista');
   if(!el) return;
@@ -2537,26 +2540,25 @@ function renderHistorialGastos(){
 
   fechasConGastos.sort((a,b)=>b.localeCompare(a));
 
-  // Guardar valor ANTES de reconstruir el dropdown (TODOS no es una opcion del select)
-  const valorAntes = filtroEl ? filtroEl.value : '';
-
   // Llenar el dropdown
+  const diaSeleccionado = filtroEl ? filtroEl.value : '';
   if(filtroEl && filtroEl.tagName==='SELECT'){
     filtroEl.innerHTML = '<option value="">-- Selecciona un día --</option>' +
       fechasConGastos.map(f=>`<option value="${f}">${fechaBonita(f)}</option>`).join('');
-    if(valorAntes && valorAntes !== 'TODOS' && fechasConGastos.includes(valorAntes)) filtroEl.value = valorAntes;
+    if(diaSeleccionado && fechasConGastos.includes(diaSeleccionado)) filtroEl.value = diaSeleccionado;
   }
 
-  // Usar el valor guardado (no el del select, que ya fue reconstruido)
-  const filtroFinal = valorAntes;
+  // Decidir qué mostrar: variable global _gastosVerTodos tiene prioridad
+  const verTodos = window._gastosVerTodos;
+  const filtroFinal = verTodos ? 'TODOS' : diaSeleccionado;
 
-  // Si no hay fecha seleccionada, mostrar instrucción
+  // Si no hay nada seleccionado, mostrar instrucción
   if(!filtroFinal){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">👆 Selecciona un día o pulsa "Ver todos"</div>';
     return;
   }
 
-  // Si es TODOS, mostrar todas las fechas
+  // Si es TODOS, usar todas las fechas; si no, filtrar por día
   const fechasFiltradas = filtroFinal === 'TODOS' ? fechasConGastos : fechasConGastos.filter(f=>f===filtroFinal);
 
   if(!fechasFiltradas.length){
