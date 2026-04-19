@@ -1072,6 +1072,11 @@ body {
     <!-- Historial de gastos por fecha -->
     <div style="margin-top:18px;margin-bottom:24px">
       <div style="font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-left:4px">🗂️ Historial de gastos</div>
+      <!-- Botón ver todos esta semana -->
+      <button onclick="window._gastosVerTodos=true;window._gastosSemanaOffset=0;document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
+        style="width:100%;padding:12px;background:linear-gradient(135deg,#e91e8a,#ff6ec7);color:white;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 14px rgba(233,30,138,0.3);">
+        📋 Ver todos esta semana
+      </button>
       <!-- Navegación de semanas -->
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
         <button onclick="_gastosNavSemana(-1);renderHistorialGastos();"
@@ -1093,7 +1098,7 @@ body {
         <select id="filtro-gastos-fecha"
           onchange="_gastosVerTodos=false;renderHistorialGastos()"
           style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
-          <option value="">-- Ver semana completa --</option>
+          <option value="">-- Ver todos los días --</option>
         </select>
       </div>
       <div id="historial-gastos-lista"></div>
@@ -2034,7 +2039,7 @@ function irA(p) {
       renderHistorial();
     }
   }
-  if(p==='gastos'){ renderGastosHoy(); window._gastosVerTodos=true; window._gastosSemanaOffset=0; document.getElementById('filtro-gastos-fecha').value=''; renderHistorialGastos(); }
+  if(p==='gastos'){ renderGastosHoy(); window._gastosVerTodos=false; window._gastosSemanaOffset=0; document.getElementById('filtro-gastos-fecha').value=''; renderHistorialGastos(); }
   if(p==='detalles'){
     // Solo resetear a hoy si no viene de cargarDia
     if(!document.getElementById('det-filtro-fecha').value){
@@ -2577,7 +2582,7 @@ function renderHistorialGastos(){
 
   // Si no hay nada seleccionado, mostrar instrucción
   if(!filtroFinal){
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">👆 Selecciona un día o pulsa "Ver todos"</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 16px;color:#bbb;font-size:13px;font-weight:700;line-height:2">‹ › Navega entre semanas<br>o selecciona un día del menú</div>';
     return;
   }
 
@@ -4965,7 +4970,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-18 v11';
+const APP_VERSION = '2026-04-18 v15';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
