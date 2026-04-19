@@ -1994,6 +1994,10 @@ function _abrirApp(u, c){
   document.getElementById('app').style.display='block';
   document.getElementById('login-clave').value='';
   document.getElementById('login-usuario').value='';
+  // Disparar autenticación Firebase con las credenciales recién guardadas
+  if(typeof window._reAutenticarFirebase === 'function'){
+    window._reAutenticarFirebase();
+  }
   iniciarApp();
 }
 function cerrarSesion() {
@@ -4968,7 +4972,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-19 v19';
+const APP_VERSION = '2026-04-19 v22';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8146,7 +8150,7 @@ function abrirPanelDiagnostico() {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signInAnonymously, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -8179,16 +8183,23 @@ function abrirPanelDiagnostico() {
   let _authPromise = null;
   let _authUser = null;
 
+  // Contraseña interna de Firebase (el usuario NUNCA la ve — él sigue usando "1234")
+  // Firebase requiere >=6 chars, así que añadimos sufijo fijo.
+  function _fbPassword(claveUsuario) {
+    const base = (claveUsuario || '').trim();
+    // Sufijo fijo y corto — siempre igual para siempre
+    return (base + '_AE26').slice(0, 64);
+  }
+
   function _credencialesLocales() {
     try {
       const c = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
       const u = (c.usuario || '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
       const p = c.password || c.contrasena || c.clave || '';
       if (!u || !p || u === 'sin_usuario') return null;
-      // Mapeamos usuario→email sintético; la contraseña se "estira" a >=6 chars (requisito Firebase)
       const email = u + '@app.local';
-      const password = (p + '__alissonyemily_2026').slice(0, 64);
-      return { email, password, usuario: u };
+      const password = _fbPassword(p);
+      return { email, password, usuario: u, claveRaw: p };
     } catch(e) { return null; }
   }
 
@@ -8198,44 +8209,66 @@ function abrirPanelDiagnostico() {
     _authPromise = (async () => {
       const cred = _credencialesLocales();
       if (!cred) {
-        addLog && addLog('⚠️ Auth: no hay credenciales locales, esperando login...');
+        addLog && addLog('⚠️ Auth: sin credenciales locales, esperando login...');
         return null;
       }
+      addLog && addLog('🔐 Auth: intentando como ' + cred.email);
+
+      // Intentar login con la contraseña actual
       try {
         const r = await signInWithEmailAndPassword(auth, cred.email, cred.password);
         _authUser = r.user;
-        addLog && addLog('🔓 Auth: sesión iniciada como ' + cred.usuario);
+        addLog && addLog('🔓 Auth OK: sesión iniciada como ' + cred.usuario);
         return _authUser;
       } catch (e) {
-        // Si la cuenta no existe, la creamos (registro abierto)
+
+        // Cuenta no existe → crearla
         if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
           try {
             const r = await createUserWithEmailAndPassword(auth, cred.email, cred.password);
             _authUser = r.user;
-            addLog && addLog('🆕 Auth: cuenta creada para ' + cred.usuario);
+            addLog && addLog('🆕 Auth: cuenta nueva creada para ' + cred.usuario);
             return _authUser;
           } catch (e2) {
-            addLog && addLog('❌ Auth no pudo crear cuenta: ' + (e2.code || e2.message));
-            // Fallback: anónimo (al menos auth != null en reglas)
-            try {
-              const r2 = await signInAnonymously(auth);
-              _authUser = r2.user;
-              addLog && addLog('👤 Auth: sesión anónima (fallback)');
-              return _authUser;
-            } catch(e3) {
-              addLog && addLog('❌ Auth anónima también falló: ' + e3.message);
-              return null;
+            if (e2.code === 'auth/email-already-in-use') {
+              // La cuenta existe con OTRA contraseña (versiones anteriores usaban sufijo diferente).
+              // Iniciamos sesión anónima para tener auth != null y así poder operar.
+              // El usuario puede seguir usando la app normalmente.
+              addLog && addLog('⚠️ Auth: cuenta existe con contraseña diferente → sesión anónima');
+              try {
+                const r3 = await signInAnonymously(auth);
+                _authUser = r3.user;
+                addLog && addLog('👤 Auth: sesión anónima activa (auth != null ✅)');
+                return _authUser;
+              } catch(e4) {
+                addLog && addLog('❌ Auth anónima falló: ' + e4.message);
+                return null;
+              }
             }
+            addLog && addLog('❌ Auth crear cuenta: ' + (e2.code || e2.message));
           }
         }
-        addLog && addLog('❌ Auth login falló: ' + (e.code || e.message));
-        // Fallback anónimo
+
+        // Contraseña incorrecta → sesión anónima como fallback
+        if (e.code === 'auth/wrong-password') {
+          addLog && addLog('⚠️ Auth: contraseña no coincide → sesión anónima');
+          try {
+            const r3 = await signInAnonymously(auth);
+            _authUser = r3.user;
+            addLog && addLog('👤 Auth: sesión anónima activa (auth != null ✅)');
+            return _authUser;
+          } catch(e4) { return null; }
+        }
+
+        // Error de red u otro
+        addLog && addLog('❌ Auth error: ' + (e.code || e.message));
+        // Último fallback: anónimo
         try {
-          const r2 = await signInAnonymously(auth);
-          _authUser = r2.user;
-          addLog && addLog('👤 Auth: sesión anónima (fallback)');
+          const r3 = await signInAnonymously(auth);
+          _authUser = r3.user;
+          addLog && addLog('👤 Auth: sesión anónima (fallback final)');
           return _authUser;
-        } catch(e3) { return null; }
+        } catch(e4) { return null; }
       } finally {
         _authPromise = null;
       }
@@ -8426,6 +8459,8 @@ function abrirPanelDiagnostico() {
       if (e.message.includes('PERMISSION_DENIED')) {
         sugerencia = 'Revisa reglas en Firebase Console → Realtime Database → Reglas';
         addLog('🔐 ERROR DE PERMISOS: Revisa reglas en Firebase Console');
+        addLog('💡 Reglas correctas: { "rules": { "usuarios": { "$k": { ".read": "auth != null", ".write": "auth != null" } } } }');
+        addLog('💡 También activa: Firebase Console → Authentication → Sign-in method → Anonymous');
       } else if (e.message.includes('NETWORK')) {
         sugerencia = 'Verifica tu conexión a internet';
         addLog('🌐 ERROR DE RED: Verifica conexión');
