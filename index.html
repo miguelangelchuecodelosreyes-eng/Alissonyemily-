@@ -2642,6 +2642,7 @@ function renderHistorialGastos(){
     let papList = [];
     try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+fecha)||'[]'); }catch(e){}
     if(!gastos.length && !papList.length) return '';
+    if(gastos.length === 0 && total === 0) return ''; // ocultar días sin gastos reales
 
     const total = gastos.reduce((s,g)=>s+g.valor,0);
     const filas = gastos.map(g => `
@@ -2688,21 +2689,7 @@ function renderHistorialGastos(){
     </div>`;
   }).filter(Boolean).join('');
 
-  // Si es "ver todos" y hay contenido, agregar total general al inicio
-  if(filtroFinal === 'TODOS' && el.innerHTML.trim()){
-    let totalGeneral = 0;
-    fechasFiltradas.forEach(fecha => {
-      try{ const g = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); totalGeneral += g.reduce((s,x)=>s+x.valor,0); }catch(e){}
-    });
-    const resumen = `<div style="background:linear-gradient(135deg,#1a1a2e,#2d1b4e);border-radius:16px;margin-bottom:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
-      <div>
-        <div style="font-size:11px;font-weight:900;color:#aaa;letter-spacing:1.5px;text-transform:uppercase">📅 Total esta semana</div>
-        <div style="font-size:14px;font-weight:900;color:white">${fechasFiltradas.length} día${fechasFiltradas.length!==1?'s':''} con gastos</div>
-      </div>
-      <div style="font-size:20px;font-weight:900;color:#ff6666">${fmt(totalGeneral)}</div>
-    </div>`;
-    el.innerHTML = resumen + el.innerHTML;
-  }
+
 
   if(!el.innerHTML.trim()) el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">📭 No hay gastos registrados</div>';
 }
@@ -4978,7 +4965,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-18 v9';
+const APP_VERSION = '2026-04-18 v11';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
