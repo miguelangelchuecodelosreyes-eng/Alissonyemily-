@@ -1072,16 +1072,29 @@ body {
     <!-- Historial de gastos por fecha -->
     <div style="margin-top:18px;margin-bottom:24px">
       <div style="font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-left:4px">🗂️ Historial de gastos</div>
+      <!-- Navegación de semanas -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <button onclick="_gastosNavSemana(-1);renderHistorialGastos();"
+          style="padding:10px 14px;background:rgba(233,30,138,0.08);color:#e91e8a;border:1.5px solid rgba(233,30,138,0.3);border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;">
+          ‹
+        </button>
+        <div id="gastos-semana-label"
+          style="flex:1;text-align:center;background:linear-gradient(135deg,rgba(233,30,138,0.08),rgba(0,212,170,0.08));border:1.5px solid #ffc5c5;border-radius:14px;padding:10px 8px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;color:#c2185b;">
+          Esta semana
+        </div>
+        <button onclick="_gastosNavSemana(1);renderHistorialGastos();"
+          id="btn-semana-sig"
+          style="padding:10px 14px;background:rgba(233,30,138,0.08);color:#e91e8a;border:1.5px solid rgba(233,30,138,0.3);border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;">
+          ›
+        </button>
+      </div>
+      <!-- Filtro por día específico -->
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
         <select id="filtro-gastos-fecha"
           onchange="_gastosVerTodos=false;renderHistorialGastos()"
           style="flex:1;padding:10px 12px;border:2px solid #ffc5c5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;background:white;outline:none;appearance:auto;">
-          <option value="">-- Selecciona un día --</option>
+          <option value="">-- Ver semana completa --</option>
         </select>
-        <button onclick="_gastosVerTodos=true;document.getElementById('filtro-gastos-fecha').value='';renderHistorialGastos();"
-          style="padding:10px 16px;background:rgba(239,68,68,0.08);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">
-          Ver todos
-        </button>
       </div>
       <div id="historial-gastos-lista"></div>
     </div>
@@ -2021,7 +2034,7 @@ function irA(p) {
       renderHistorial();
     }
   }
-  if(p==='gastos'){ renderGastosHoy(); renderHistorialGastos(); }
+  if(p==='gastos'){ renderGastosHoy(); window._gastosVerTodos=true; window._gastosSemanaOffset=0; document.getElementById('filtro-gastos-fecha').value=''; renderHistorialGastos(); }
   if(p==='detalles'){
     // Solo resetear a hoy si no viene de cargarDia
     if(!document.getElementById('det-filtro-fecha').value){
@@ -2491,8 +2504,18 @@ function renderGastosHoy(){
   }
 }
 
-// Variable global: true cuando el usuario presionó "Ver todos"
+// Variables globales para historial de gastos
 if(typeof window._gastosVerTodos === 'undefined') window._gastosVerTodos = false;
+if(typeof window._gastosSemanaOffset === 'undefined') window._gastosSemanaOffset = 0; // 0=esta semana, -1=semana pasada, etc.
+
+function _gastosNavSemana(dir){
+  const nuevoOffset = (window._gastosSemanaOffset || 0) + dir;
+  if(nuevoOffset > 0) return; // no ir al futuro
+  window._gastosSemanaOffset = nuevoOffset;
+  window._gastosVerTodos = true;
+  const sel = document.getElementById('filtro-gastos-fecha');
+  if(sel) sel.value = '';
+}
 
 function renderHistorialGastos(){
   const el = document.getElementById('historial-gastos-lista');
@@ -2559,7 +2582,54 @@ function renderHistorialGastos(){
   }
 
   // Si es TODOS, usar todas las fechas; si no, filtrar por día
-  const fechasFiltradas = filtroFinal === 'TODOS' ? fechasConGastos : fechasConGastos.filter(f=>f===filtroFinal);
+  // Calcular fechas de la semana según el offset (0=esta semana, -1=anterior, etc.)
+  const offset = window._gastosSemanaOffset || 0;
+  const fechasSemana = (()=>{
+    const hoy = new Date();
+    const diaSemana = hoy.getDay();
+    const diasDesdeHoy = diaSemana === 0 ? 6 : diaSemana - 1;
+    // Lunes de esta semana
+    const lunesEsta = new Date(hoy);
+    lunesEsta.setDate(hoy.getDate() - diasDesdeHoy);
+    // Lunes de la semana objetivo
+    const lunesObj = new Date(lunesEsta);
+    lunesObj.setDate(lunesEsta.getDate() + (offset * 7));
+    // Domingo de la semana objetivo
+    const domingoObj = new Date(lunesObj);
+    domingoObj.setDate(lunesObj.getDate() + 6);
+    // Si es semana actual, solo hasta hoy
+    const fin = offset === 0 ? hoy : domingoObj;
+    const semana = [];
+    let d = new Date(lunesObj);
+    while(d <= fin){
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      semana.push(`${yy}-${mm}-${dd}`);
+      d.setDate(d.getDate() + 1);
+    }
+    return semana;
+  })();
+
+  // Actualizar label de semana y botón siguiente
+  const labelEl = document.getElementById('gastos-semana-label');
+  const btnSig = document.getElementById('btn-semana-sig');
+  if(labelEl){
+    if(offset === 0){
+      labelEl.textContent = '📅 Esta semana';
+      if(btnSig) btnSig.style.opacity = '0.3';
+    } else {
+      const primerDia = fechasSemana[0] || '';
+      const ultimoDia = fechasSemana[fechasSemana.length-1] || '';
+      const fmt2 = f => { if(!f) return ''; const [y,m,d]=f.split('-'); return `${parseInt(d)}/${parseInt(m)}`; };
+      labelEl.textContent = `📅 ${fmt2(primerDia)} - ${fmt2(ultimoDia)}`;
+      if(btnSig) btnSig.style.opacity = '1';
+    }
+  }
+
+  const fechasFiltradas = filtroFinal === 'TODOS'
+    ? fechasConGastos.filter(f => fechasSemana.includes(f))
+    : fechasConGastos.filter(f => f === filtroFinal);
 
   if(!fechasFiltradas.length){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">🔍 No hay gastos para esa fecha</div>';
@@ -2626,7 +2696,7 @@ function renderHistorialGastos(){
     });
     const resumen = `<div style="background:linear-gradient(135deg,#1a1a2e,#2d1b4e);border-radius:16px;margin-bottom:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
       <div>
-        <div style="font-size:11px;font-weight:900;color:#aaa;letter-spacing:1.5px;text-transform:uppercase">Total semana</div>
+        <div style="font-size:11px;font-weight:900;color:#aaa;letter-spacing:1.5px;text-transform:uppercase">📅 Total esta semana</div>
         <div style="font-size:14px;font-weight:900;color:white">${fechasFiltradas.length} día${fechasFiltradas.length!==1?'s':''} con gastos</div>
       </div>
       <div style="font-size:20px;font-weight:900;color:#ff6666">${fmt(totalGeneral)}</div>
@@ -4908,7 +4978,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-18 v6';
+const APP_VERSION = '2026-04-18 v9';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -4938,7 +5008,7 @@ function _borrarTodoCacheSW(){
 function forzarActualizacion(){
   showToast('🔄 Actualizando...');
   _borrarTodoCacheSW();
-  // Redirigir con timestamp en URL para romper caché del WebView/navegador
+  localStorage.setItem('app_actualizada_flag', APP_VERSION + ' (manual)');
   setTimeout(() => {
     const url = window.location.pathname + '?_fv=' + Date.now();
     window.location.replace(url);
@@ -4975,6 +5045,7 @@ function _aplicarActualizacion(verServidor){
   if(verLocal && verLocal !== verServidor){
     console.log('Nueva versión:', verServidor, '(tenía:', verLocal, ')');
     _borrarTodoCacheSW();
+    localStorage.setItem('app_actualizada_flag', verServidor); // flag para mostrar banner
     showToast('🔄 Nueva versión disponible, actualizando...');
     setTimeout(() => {
       window.location.replace(window.location.pathname + '?_uv=' + Date.now());
@@ -7493,6 +7564,38 @@ function getVersiculoDelDia() {
 // ===== INIT =====
 function iniciarApp(){
   document.getElementById('header-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Mostrar banner si la app acaba de actualizarse
+  (function(){
+    const verNueva = localStorage.getItem('app_actualizada_flag');
+    if(verNueva){
+      localStorage.removeItem('app_actualizada_flag');
+      setTimeout(()=>{
+        const banner = document.createElement('div');
+        banner.id = 'banner-actualizada';
+        banner.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:28px">🎉</div>
+            <div>
+              <div style="font-size:14px;font-weight:900;color:white">¡App actualizada!</div>
+              <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.85)">Versión ${verNueva} instalada correctamente</div>
+            </div>
+            <button onclick="document.getElementById('banner-actualizada').remove()"
+              style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;color:white;font-size:16px;cursor:pointer;font-weight:900;flex-shrink:0;">✕</button>
+          </div>`;
+        banner.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#10b981,#059669);border-radius:18px;padding:14px 16px;box-shadow:0 8px 30px rgba(16,185,129,0.5);max-width:340px;width:calc(100% - 32px);box-sizing:border-box;animation:slideDownBanner 0.4s cubic-bezier(.22,1,.36,1)';
+        // Agregar animación si no existe
+        if(!document.getElementById('banner-style')){
+          const s = document.createElement('style');
+          s.id = 'banner-style';
+          s.textContent = '@keyframes slideDownBanner{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+          document.head.appendChild(s);
+        }
+        document.body.appendChild(banner);
+        // Auto-cerrar después de 5 segundos
+        setTimeout(()=>{ if(document.getElementById('banner-actualizada')) document.getElementById('banner-actualizada').remove(); }, 5000);
+      }, 800);
+    }
+  })();
   // Versículo del día en header
   const vEl = document.getElementById('header-versiculo-text');
   if(vEl) vEl.textContent = getVersiculoDelDia();
