@@ -1941,64 +1941,46 @@ function registrar(){
   document.getElementById('pantalla-login').style.display='flex';
   showToast('✅ Usuario "' + u + '" creado. Inicia sesión');
 }
-async function entrar() {
+function entrar() {
   const u=document.getElementById('login-usuario').value.trim();
   const c=document.getElementById('login-clave').value;
+  const creds=getCredencialesCobrador();
   const err=document.getElementById('login-error');
-  const btn = document.querySelector('.login-btn');
-  const ayuda = document.getElementById('login-ayuda');
+  // Buscar en lista de usuarios
+  const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
+  const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
 
-  if(!u || !c){
-    if(err){ err.textContent='Ingresa usuario y contraseña'; err.style.display='block'; setTimeout(()=>{err.style.display='none';},4000); }
-    return;
-  }
-
-  if(btn){ btn._txt = btn.textContent; btn.textContent='⏳ Verificando...'; btn.disabled = true; }
-
-  // 1) Intentar autenticar con Firebase Auth (registro abierto si la cuenta no existe)
-  let authRes = { ok:false, code:'no-auth' };
-  if(typeof window.firebaseAuthLogin === 'function'){
-    try { authRes = await window.firebaseAuthLogin(u, c); } catch(e){ authRes = { ok:false, code:'exception', error:String(e) }; }
-  }
-
-  if(btn){ btn.textContent = btn._txt || '🔓 Entrar'; btn.disabled = false; }
-
-  if(authRes.ok){
-    // ✅ Login real con Firebase Auth — guardar y entrar
-    lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-    const lista = JSON.parse(lsGet('cobrador_usuarios') || '[]');
-    if(!lista.find(x => x.usuario === u)){
-      lista.push({usuario:u, clave:c});
-      lsSet('cobrador_usuarios', JSON.stringify(lista));
-    }
-    if(authRes.modo === 'registro'){
-      showToast('✅ Cuenta creada e iniciada (' + authRes.email + ')');
-    }
-    _abrirApp(u, c);
-    return;
-  }
-
-  // 2) Modo OFFLINE — permitir entrar con credenciales locales si Firebase no está disponible
-  if(authRes.code === 'offline' || authRes.code === 'auth/network-request-failed'){
-    const creds=getCredencialesCobrador();
-    const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
-    const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
-    const matchCreds = creds && u===creds.usuario && c===creds.clave;
-    const esMaestra = (u === 'alissonyemily' && c === '1234');
-    if(matchCreds || credEnLista || esMaestra){
-      showToast('📴 Sin internet — modo offline');
+  // Sin credenciales guardadas en este dispositivo
+  if(!creds && listaUsuarios2.length === 0){
+    // Si hay datos de clientes, permitir entrar y guardar las credenciales nuevas
+    const hayDatos = lsGet('clientes_v2') || lsGet('clientes_v1') || lsGet('hist_v3');
+    if(hayDatos && u.length >= 3 && c.length >= 4){
+      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
       _abrirApp(u, c);
       return;
     }
-    if(err){ err.textContent='Sin internet y no hay credenciales locales'; err.style.display='block'; setTimeout(()=>{err.style.display='none';},5000); }
+    showToast('⚠️ No hay usuario creado. Usa "Crear usuario nuevo"');
     return;
   }
 
-  // 3) Error de autenticación
-  if(err){ err.textContent = authRes.error || 'Usuario o contraseña incorrectos'; err.style.display='block'; }
-  if(ayuda) ayuda.style.display='block';
-  document.getElementById('login-clave').value='';
-  setTimeout(()=>{ if(err) err.style.display='none'; }, 5000);
+  // Credenciales maestras — siempre funcionan
+  const esMaestra = (u === 'alissonyemily' && c === '1234');
+
+  const matchCreds = creds && u===creds.usuario && c===creds.clave;
+  if(matchCreds || credEnLista || esMaestra){
+    if(esMaestra){
+      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
+      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
+    }
+    _abrirApp(u, c);
+  } else {
+    err.style.display='block';
+    const ayuda = document.getElementById('login-ayuda');
+    if(ayuda) ayuda.style.display='block';
+    document.getElementById('login-clave').value='';
+    setTimeout(()=>{ err.style.display='none'; }, 5000);
+  }
 }
 
 function _abrirApp(u, c){
@@ -2023,10 +2005,6 @@ function cerrarSesion() {
       // Sync final antes de cerrar
       if (typeof window.syncFirebase === 'function') {
         window.syncFirebase(false);
-      }
-      // Cerrar sesión también en Firebase Auth
-      if (typeof window.firebaseAuthLogout === 'function') {
-        try { window.firebaseAuthLogout(); } catch(_){}
       }
       lsRemove('cobrador_sesion');
       if(typeof window.bloquearPinAjustes==='function') window.bloquearPinAjustes();
@@ -4990,7 +4968,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-19 v18';
+const APP_VERSION = '2026-04-19 v19';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5004,44 +4982,37 @@ function mostrarVersionApp(){
 //  Detecta versión nueva y recarga SIN borrar caché manualmente
 // ══════════════════════════════════════════════
 
-async function _borrarTodoCacheSW(){
-  // 1) Borrar TODOS los caches del Service Worker
-  try{
+function _borrarTodoCacheSW(){
+  // 1) Borrar caches del Service Worker
+  try {
     if('caches' in window){
-      const names = await caches.keys();
-      await Promise.all(names.map(n => caches.delete(n)));
+      caches.keys().then(names => names.forEach(n => caches.delete(n)));
     }
-  }catch(e){ console.warn('cache clear err', e); }
-  // 2) Desregistrar TODOS los Service Workers (no volverán a servir archivos viejos)
-  try{
+  } catch(e){}
+  // 2) Desregistrar el Service Worker
+  try {
     if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+      });
     }
-  }catch(e){ console.warn('sw unreg err', e); }
-  // 3) Borrar IndexedDB (cachés de PWA / Workbox)
-  try{
-    if(indexedDB && indexedDB.databases){
-      const dbs = await indexedDB.databases();
-      dbs.forEach(d => { if(d.name) try{ indexedDB.deleteDatabase(d.name); }catch(_){} });
-    }
-  }catch(e){}
-  // 4) Limpiar sessionStorage (no tocamos localStorage para no perder datos del usuario)
-  try{ sessionStorage.clear(); }catch(_){}
+  } catch(e){}
+  // 3) Limpiar IndexedDB y sessionStorage (no localStorage para no perder datos)
+  try { if(window.indexedDB && indexedDB.databases){ indexedDB.databases().then(dbs => dbs.forEach(d => d.name && indexedDB.deleteDatabase(d.name))); } } catch(e){}
+  try { sessionStorage.clear(); } catch(e){}
 }
 
-async function forzarActualizacion(){
-  showToast('🔄 Actualizando ahora...');
-  // Marcar flag ANTES de limpiar (localStorage se preserva)
+function forzarActualizacion(){
+  showToast('🔄 Actualizando...');
+  _borrarTodoCacheSW();
   localStorage.setItem('app_actualizada_flag', APP_VERSION + ' (manual)');
-  await _borrarTodoCacheSW();
-  // Recarga DURA con cache-buster — el navegador pedirá el HTML al servidor
-  const url = window.location.pathname + '?_fv=' + Date.now() + '&r=' + Math.random().toString(36).slice(2);
-  window.location.replace(url);
+  setTimeout(() => {
+    const url = window.location.pathname + '?_fv=' + Date.now() + '&r=' + Math.random();
+    window.location.replace(url);
+  }, 700);
 }
 
 function _checkVersionServidor(callback){
-  // fetch con headers agresivos anti-caché + URL única por llamada
   const url = window.location.pathname + '?_vc=' + Date.now() + '&r=' + Math.random();
   fetch(url, {
     cache: 'no-store',
@@ -5063,23 +5034,24 @@ function _checkVersionServidor(callback){
 }
 
 function _aplicarActualizacion(verServidor){
-  if(!verServidor) return false;  // nunca guardar versión vacía
+  if(!verServidor) return false;
   const VER_KEY = 'app_version_local';
   const verLocal = localStorage.getItem(VER_KEY) || '';
-  localStorage.setItem(VER_KEY, verServidor);  // guardar siempre la versión actual
+  localStorage.setItem(VER_KEY, verServidor);
   if(verLocal && verLocal !== verServidor){
     console.log('Nueva versión:', verServidor, '(tenía:', verLocal, ')');
-    localStorage.setItem('app_actualizada_flag', verServidor); // flag para mostrar banner
+    _borrarTodoCacheSW();
+    localStorage.setItem('app_actualizada_flag', verServidor);
     showToast('🔄 Nueva versión disponible, actualizando...');
-    _borrarTodoCacheSW().finally(() => {
-      window.location.replace(window.location.pathname + '?_uv=' + Date.now());
-    });
+    setTimeout(() => {
+      window.location.replace(window.location.pathname + '?_uv=' + Date.now() + '&r=' + Math.random());
+    }, 1200);
     return true;
   }
   return false;
 }
 
-// ── Verificar al abrir la app (CASI INMEDIATO para que la app coja la actualización ya) ──
+// ── Verificar al abrir la app (rápido) ──
 (function checkAlInicio(){
   setTimeout(()=>{
     _checkVersionServidor(ver => _aplicarActualizacion(ver));
@@ -5090,14 +5062,14 @@ function _aplicarActualizacion(verServidor){
 let _primeraVezVisible = true;
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'visible'){
-    if(_primeraVezVisible){ _primeraVezVisible = false; return; } // ignorar carga inicial
+    if(_primeraVezVisible){ _primeraVezVisible = false; return; }
     setTimeout(()=>{
       _checkVersionServidor(ver => _aplicarActualizacion(ver));
-    }, 1500);
+    }, 500);
   }
 });
 
-// ── Verificar cada 60 segundos (más agresivo: APK coge actualización rápido) ──
+// ── Verificar cada 60 segundos ──
 setInterval(function(){
   _checkVersionServidor(ver => _aplicarActualizacion(ver));
 }, 60 * 1000);
@@ -7838,7 +7810,7 @@ function addLog(msg) {
 
 async function verificarReglasFirebase() {
   addLog('═══════════════════════════════════════');
-  addLog('🔥 VERIFICANDO REGLAS DE FIREBASE');
+  addLog('🔥 VERIFICANDO REGLAS + AUTH DE FIREBASE');
   addLog('═══════════════════════════════════════');
 
   const db = window.db, ref = window.ref, set = window.set, get = window.get;
@@ -7846,70 +7818,67 @@ async function verificarReglasFirebase() {
 
   if (!db) {
     addLog('❌ Firebase NO está inicializado correctamente');
-    addLog('💡 Revisa que el script de Firebase se haya cargado');
     return false;
   }
 
   const usuarioKey = getUsuarioActivo ? getUsuarioActivo() : null;
   if (!usuarioKey || usuarioKey === 'sin_usuario') {
-    addLog('❌ No se pudo obtener el usuario activo');
-    addLog('💡 Inicia sesión primero');
+    addLog('❌ No hay usuario activo. Inicia sesión primero.');
     return false;
   }
 
   addLog(`👤 Usuario: ${usuarioKey}`);
-  addLog(`📡 Probando escritura en: usuarios/${usuarioKey}/test_permiso`);
 
+  // 🔐 Forzar autenticación con Firebase Auth
+  if (window._reAutenticarFirebase) {
+    addLog('🔐 Autenticando contra Firebase Auth...');
+    try {
+      await window._reAutenticarFirebase();
+    } catch(e) { addLog('⚠️ Auth error: ' + e.message); }
+  }
+
+  // Verificar estado real de Auth
+  try {
+    const _auth = window._fbAuth;
+    const u = (_auth && _auth.currentUser) || null;
+    if (u) {
+      addLog('✅ Auth OK — uid: ' + u.uid.slice(0,12) + '…');
+      addLog('📧 Email: ' + (u.email || '(anónimo)'));
+    } else {
+      addLog('❌ NO autenticado — las escrituras serán rechazadas');
+      addLog('💡 Cierra sesión y vuelve a entrar para forzar Auth');
+    }
+  } catch(e) {}
+
+  addLog(`📡 Probando escritura en: usuarios/${usuarioKey}/test_permiso`);
   const testRef = ref(db, 'usuarios/' + usuarioKey + '/test_permiso');
-  const testData = { test: true, timestamp: Date.now(), mensaje: 'Prueba de escritura desde diagnóstico' };
+  const testData = { test: true, timestamp: Date.now() };
 
   try {
     await set(testRef, testData);
-    addLog('✅ ESCRITURA EXITOSA - Permiso concedido');
-
+    addLog('✅ ESCRITURA EXITOSA');
     const snap = await get(testRef);
-    if (snap.exists()) addLog('✅ LECTURA EXITOSA - Puedes leer tus datos');
-
+    if (snap.exists()) addLog('✅ LECTURA EXITOSA');
     await set(testRef, null);
-    addLog('✅ ELIMINACIÓN EXITOSA - Puedes borrar datos');
+    addLog('✅ ELIMINACIÓN EXITOSA');
     addLog('');
-    addLog('🎉 REGLAS CORRECTAS - Firebase funciona perfectamente');
-
+    addLog('🎉 TODO CORRECTO — Firebase + Auth funcionan');
   } catch (e) {
     addLog(`❌ ERROR: ${e.message}`);
     if (e.code) addLog(`📋 Código: ${e.code}`);
-    addLog('');
-    addLog('🔍 ANÁLISIS DEL ERROR:');
     if (e.message.includes('PERMISSION_DENIED')) {
-      addLog('❌ PERMISSION_DENIED - Firebase bloquea la escritura');
-      addLog('💡 SOLUCIÓN:');
-      addLog('1. Ve a https://console.firebase.google.com');
-      addLog('2. Proyecto "alissonyemily-7014a" → Realtime Database → Reglas');
-      addLog('3. Pega estas REGLAS SEGURAS (usan Firebase Auth — auth.uid):');
-      addLog('   {');
-      addLog('     "rules": {');
-      addLog('       "usuarios": {');
-      addLog('         "$usuarioKey": {');
-      addLog('           ".read":  "auth != null",');
-      addLog('           ".write": "auth != null"');
-      addLog('         }');
-      addLog('       }');
-      addLog('     }');
-      addLog('   }');
-      addLog('✅ Solo usuarios autenticados con email/contraseña pueden leer/escribir.');
-      addLog('✅ Esto QUITA la advertencia naranja de Firebase.');
       addLog('');
-      addLog('🔒 VERSIÓN MÁS ESTRICTA (un usuario por cuenta):');
-      addLog('   ".read":  "auth != null && auth.token.email.split(\'@\')[0] == $usuarioKey"');
-      addLog('   ".write": "auth != null && auth.token.email.split(\'@\')[0] == $usuarioKey"');
-    } else if (e.message.includes('NETWORK')) {
-      addLog('🌐 ERROR DE RED - Conéctate a Wi-Fi o datos móviles');
-    } else {
-      addLog(`❌ Error desconocido: ${e.message}`);
+      addLog('🔐 Las reglas exigen autenticación pero no la tienes.');
+      addLog('💡 Reglas SEGURAS recomendadas (pega en Firebase Console):');
+      addLog('{ "rules": { "usuarios": { "$u": {');
+      addLog('  ".read":  "auth != null",');
+      addLog('  ".write": "auth != null"');
+      addLog('} } } }');
+      addLog('');
+      addLog('Si ya están pegadas, sal y vuelve a entrar al login para que Firebase Auth se active.');
     }
     return false;
   }
-
   addLog('═══════════════════════════════════════');
   return true;
 }
@@ -8177,7 +8146,7 @@ function abrirPanelDiagnostico() {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -8193,67 +8162,6 @@ function abrirPanelDiagnostico() {
   const db = getDatabase(app);
   const auth = getAuth(app);
 
-  // ── Helper: convierte usuario → email para Firebase Auth ──
-  function _userToEmail(usuario){
-    const u = String(usuario || '').trim();
-    if(!u) return '';
-    if(u.indexOf('@') !== -1) return u.toLowerCase();
-    return u.toLowerCase().replace(/[^a-z0-9_.-]/g,'_') + '@app.local';
-  }
-
-  // ── Login con Firebase Auth (con auto-registro abierto) ──
-  // Devuelve {ok:true, uid, email, modo:'login'|'registro'} o {ok:false, error, code}
-  window.firebaseAuthLogin = async function(usuario, clave){
-    if(!navigator.onLine){
-      return { ok:false, code:'offline', error:'Sin conexión — entrando en modo offline' };
-    }
-    const email = _userToEmail(usuario);
-    if(!email || !clave || clave.length < 4){
-      return { ok:false, code:'invalid-input', error:'Usuario o clave inválidos' };
-    }
-    try {
-      const cred = await signInWithEmailAndPassword(auth, email, clave);
-      window._fbAuthUser = cred.user;
-      return { ok:true, uid: cred.user.uid, email, modo:'login' };
-    } catch(e1){
-      // Si la cuenta no existe → registro abierto automático
-      if(e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential'){
-        try {
-          const cred = await createUserWithEmailAndPassword(auth, email, clave);
-          window._fbAuthUser = cred.user;
-          return { ok:true, uid: cred.user.uid, email, modo:'registro' };
-        } catch(e2){
-          if(e2.code === 'auth/email-already-in-use'){
-            return { ok:false, code:e2.code, error:'❌ Contraseña incorrecta' };
-          }
-          if(e2.code === 'auth/weak-password'){
-            return { ok:false, code:e2.code, error:'❌ Clave muy corta (mínimo 6 caracteres)' };
-          }
-          return { ok:false, code:e2.code || 'auth-error', error:'❌ ' + (e2.message || 'Error de autenticación') };
-        }
-      }
-      if(e1.code === 'auth/wrong-password'){
-        return { ok:false, code:e1.code, error:'❌ Contraseña incorrecta' };
-      }
-      if(e1.code === 'auth/network-request-failed'){
-        return { ok:false, code:'offline', error:'Sin conexión — entrando en modo offline' };
-      }
-      return { ok:false, code:e1.code || 'auth-error', error:'❌ ' + (e1.message || 'Error de autenticación') };
-    }
-  };
-
-  window.firebaseAuthLogout = async function(){
-    try { await signOut(auth); } catch(_){}
-    window._fbAuthUser = null;
-  };
-
-  // Mantener referencia del user actual
-  onAuthStateChanged(auth, (user) => {
-    window._fbAuthUser = user || null;
-    window._fbAuthUid = user ? user.uid : null;
-    window._fbAuthEmail = user ? user.email : null;
-  });
-
   // Obtener nombre de usuario activo
   function getUsuarioActivo() {
     try {
@@ -8261,6 +8169,128 @@ function abrirPanelDiagnostico() {
       return (creds.usuario || 'sin_usuario').toLowerCase().replace(/[^a-z0-9_]/g, '_');
     } catch(e) { return 'sin_usuario'; }
   }
+
+  // ============================================================
+  // 🔐 AUTENTICACIÓN AUTOMÁTICA CONTRA FIREBASE AUTH
+  // Usa el usuario+contraseña local como credenciales reales.
+  // Si no existe la cuenta, la crea (registro abierto).
+  // ============================================================
+  let _authReady = false;
+  let _authPromise = null;
+  let _authUser = null;
+
+  function _credencialesLocales() {
+    try {
+      const c = JSON.parse(localStorage.getItem('cobrador_credenciales') || '{}');
+      const u = (c.usuario || '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const p = c.password || c.contrasena || c.clave || '';
+      if (!u || !p || u === 'sin_usuario') return null;
+      // Mapeamos usuario→email sintético; la contraseña se "estira" a >=6 chars (requisito Firebase)
+      const email = u + '@app.local';
+      const password = (p + '__alissonyemily_2026').slice(0, 64);
+      return { email, password, usuario: u };
+    } catch(e) { return null; }
+  }
+
+  async function _autenticar() {
+    if (_authUser) return _authUser;
+    if (_authPromise) return _authPromise;
+    _authPromise = (async () => {
+      const cred = _credencialesLocales();
+      if (!cred) {
+        addLog && addLog('⚠️ Auth: no hay credenciales locales, esperando login...');
+        return null;
+      }
+      try {
+        const r = await signInWithEmailAndPassword(auth, cred.email, cred.password);
+        _authUser = r.user;
+        addLog && addLog('🔓 Auth: sesión iniciada como ' + cred.usuario);
+        return _authUser;
+      } catch (e) {
+        // Si la cuenta no existe, la creamos (registro abierto)
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+          try {
+            const r = await createUserWithEmailAndPassword(auth, cred.email, cred.password);
+            _authUser = r.user;
+            addLog && addLog('🆕 Auth: cuenta creada para ' + cred.usuario);
+            return _authUser;
+          } catch (e2) {
+            addLog && addLog('❌ Auth no pudo crear cuenta: ' + (e2.code || e2.message));
+            // Fallback: anónimo (al menos auth != null en reglas)
+            try {
+              const r2 = await signInAnonymously(auth);
+              _authUser = r2.user;
+              addLog && addLog('👤 Auth: sesión anónima (fallback)');
+              return _authUser;
+            } catch(e3) {
+              addLog && addLog('❌ Auth anónima también falló: ' + e3.message);
+              return null;
+            }
+          }
+        }
+        addLog && addLog('❌ Auth login falló: ' + (e.code || e.message));
+        // Fallback anónimo
+        try {
+          const r2 = await signInAnonymously(auth);
+          _authUser = r2.user;
+          addLog && addLog('👤 Auth: sesión anónima (fallback)');
+          return _authUser;
+        } catch(e3) { return null; }
+      } finally {
+        _authPromise = null;
+      }
+    })();
+    return _authPromise;
+  }
+
+  // Espera hasta que haya un usuario autenticado (con timeout)
+  function _esperarAuth(timeoutMs = 8000) {
+    return new Promise(async (resolve) => {
+      if (auth.currentUser) { _authUser = auth.currentUser; return resolve(auth.currentUser); }
+      const t = setTimeout(() => resolve(auth.currentUser || null), timeoutMs);
+      await _autenticar();
+      clearTimeout(t);
+      resolve(auth.currentUser || null);
+    });
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    _authUser = user || null;
+    _authReady = true;
+    if (user) {
+      addLog && addLog('✅ Auth listo: uid=' + user.uid.slice(0,8) + '…');
+      // Reintentar sync pendiente apenas haya sesión
+      if (_syncPendiente && navigator.onLine) {
+        setTimeout(() => window.syncFirebase && window.syncFirebase(false), 500);
+      }
+    }
+  });
+
+  // Reintentar autenticación cuando cambien las credenciales locales (login del usuario)
+  window.addEventListener('storage', (ev) => {
+    if (ev.key === 'cobrador_credenciales') {
+      _authUser = null;
+      _autenticar();
+    }
+  });
+  // Hook para que el login interno dispare la autenticación
+  window._reAutenticarFirebase = () => { _authUser = null; return _autenticar(); };
+
+  // Parche: detectar cambios en credenciales en la MISMA pestaña (storage event no se dispara aquí)
+  try {
+    const _origSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(k, v) {
+      const prev = (k === 'cobrador_credenciales') ? this.getItem(k) : null;
+      _origSetItem.apply(this, arguments);
+      if (k === 'cobrador_credenciales' && prev !== v) {
+        _authUser = null;
+        setTimeout(() => _autenticar(), 50);
+      }
+    };
+  } catch(e) { console.warn('No se pudo parchar setItem:', e); }
+
+  // Lanzar autenticación al arrancar
+  setTimeout(() => _autenticar(), 100);
 
   // ---- ESTADO DE SYNC ----
   let _syncPendiente = false;
@@ -8350,6 +8380,18 @@ function abrirPanelDiagnostico() {
     const usuarioKey = getUsuarioActivo();
     if (!usuarioKey || usuarioKey === 'sin_usuario') { addLog('❌ No hay usuario activo'); return false; }
     addLog('👤 Usuario: ' + usuarioKey);
+    // 🔐 Asegurar autenticación antes de cualquier escritura (reglas exigen auth != null)
+    if (!auth.currentUser) {
+      addLog('🔐 Esperando autenticación con Firebase Auth...');
+      await _esperarAuth(8000);
+    }
+    if (!auth.currentUser) {
+      addLog('❌ No se pudo autenticar — guardado pospuesto');
+      _syncPendiente = true;
+      actualizarIndicadorSync('error');
+      return false;
+    }
+    addLog('🔓 Auth OK (uid=' + auth.currentUser.uid.slice(0,8) + '…)');
     try {
       const backup = construirBackup();
       addLog('📦 Backup: ' + backup.clientes.length + ' clientes, ' + backup.historial.length + ' días');
@@ -8467,6 +8509,9 @@ function abrirPanelDiagnostico() {
       if (clientesLocales.length === 0) {
         const usuarioKey = getUsuarioActivo();
         if (usuarioKey && usuarioKey !== 'sin_usuario') {
+          // Esperar Auth antes de leer (las reglas exigen auth != null)
+          _esperarAuth(8000).then(() => {
+            if (!auth.currentUser) { addLog('⚠️ Sin auth — no se puede leer desde la nube'); return; }
           get(ref(db, 'usuarios/' + usuarioKey)).then(snap => {
             const data = snap.val();
             if (data && data.clientes && data.clientes.length > 0) {
@@ -8496,15 +8541,16 @@ function abrirPanelDiagnostico() {
               setTimeout(() => location.reload(), 1500);
             }
           }).catch(e => console.warn('Error cargando desde Firebase:', e));
+          }); // cierre de _esperarAuth().then
         }
       } else {
         window.syncFirebase();
       }
-    }, 2000);
+    }, 800);
   });
 
-  // Sincronizar cada 5 minutos automáticamente
-  setInterval(() => window.syncFirebase(false), 5 * 60 * 1000);
+  // Sincronizar cada 2 minutos automáticamente
+  setInterval(() => window.syncFirebase(false), 2 * 60 * 1000);
 
   // Listener: detectar señal de sync forzado desde backup.html
   (function escucharSyncRequest() {
