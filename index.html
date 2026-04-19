@@ -2495,7 +2495,6 @@ function renderHistorialGastos(){
   const el = document.getElementById('historial-gastos-lista');
   if(!el) return;
   const filtroEl = document.getElementById('filtro-gastos-fecha');
-  const filtroFecha = filtroEl ? filtroEl.value : '';
 
   // Recopilar todas las fechas que tienen gastos
   const fechasConGastos = [];
@@ -2538,22 +2537,27 @@ function renderHistorialGastos(){
 
   fechasConGastos.sort((a,b)=>b.localeCompare(a));
 
+  // Guardar valor ANTES de reconstruir el dropdown (TODOS no es una opcion del select)
+  const valorAntes = filtroEl ? filtroEl.value : '';
+
   // Llenar el dropdown
   if(filtroEl && filtroEl.tagName==='SELECT'){
-    const valorActual = filtroEl.value;
     filtroEl.innerHTML = '<option value="">-- Selecciona un día --</option>' +
       fechasConGastos.map(f=>`<option value="${f}">${fechaBonita(f)}</option>`).join('');
-    if(valorActual && fechasConGastos.includes(valorActual)) filtroEl.value = valorActual;
+    if(valorAntes && valorAntes !== 'TODOS' && fechasConGastos.includes(valorAntes)) filtroEl.value = valorAntes;
   }
 
+  // Usar el valor guardado (no el del select, que ya fue reconstruido)
+  const filtroFinal = valorAntes;
+
   // Si no hay fecha seleccionada, mostrar instrucción
-  if(!filtroFecha){
+  if(!filtroFinal){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">👆 Selecciona un día o pulsa "Ver todos"</div>';
     return;
   }
 
   // Si es TODOS, mostrar todas las fechas
-  const fechasFiltradas = filtroFecha === 'TODOS' ? fechasConGastos : fechasConGastos.filter(f=>f===filtroFecha);
+  const fechasFiltradas = filtroFinal === 'TODOS' ? fechasConGastos : fechasConGastos.filter(f=>f===filtroFinal);
 
   if(!fechasFiltradas.length){
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px;font-weight:700">🔍 No hay gastos para esa fecha</div>';
@@ -2613,7 +2617,7 @@ function renderHistorialGastos(){
   }).filter(Boolean).join('');
 
   // Si es "ver todos" y hay contenido, agregar total general al inicio
-  if(filtroFecha === 'TODOS' && el.innerHTML.trim()){
+  if(filtroFinal === 'TODOS' && el.innerHTML.trim()){
     let totalGeneral = 0;
     fechasFiltradas.forEach(fecha => {
       try{ const g = JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); totalGeneral += g.reduce((s,x)=>s+x.valor,0); }catch(e){}
@@ -4902,7 +4906,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-09 v5';
+const APP_VERSION = '2026-04-18 v6';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -4911,92 +4915,96 @@ function mostrarVersionApp(){
   if(badge) badge.textContent = '✅';
 }
 
-function forzarActualizacion(){
-  showToast('🔄 Actualizando...');
+// ══════════════════════════════════════════════
+//  SISTEMA DE AUTO-ACTUALIZACIÓN MEJORADO
+//  Detecta versión nueva y recarga SIN borrar caché manualmente
+// ══════════════════════════════════════════════
+
+function _borrarTodoCacheSW(){
+  // 1) Borrar caches del Service Worker
   if('caches' in window){
-    caches.keys().then(names => { names.forEach(name => caches.delete(name)); });
+    caches.keys().then(names => names.forEach(n => caches.delete(n)));
   }
-  setTimeout(() => { window.location.reload(true); }, 800);
+  // 2) Desregistrar el Service Worker para que no vuelva a servir archivos viejos
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+  }
 }
 
-// ── Recarga al volver a la app (fix APK WebView caché) ──
-(function(){
-  // Cuando la APK vuelve a primer plano, forzar recarga si hay versión nueva
-  document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible'){
-      try{
-        fetch(window.location.href + '?_v=' + Date.now(), {cache: 'no-store'})
-          .then(r => r.text())
-          .then(html => {
-            const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-            if(!m) return;
-            const verServidor = m[1];
-            const verLocal = localStorage.getItem('app_version_local') || '';
-            if(verLocal && verLocal !== verServidor){
-              if('caches' in window){
-                caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
-              }
-              localStorage.setItem('app_version_local', verServidor);
-              showToast('🔄 Actualizando app...');
-              setTimeout(() => window.location.reload(true), 800);
-            }
-          }).catch(()=>{});
-      }catch(e){}
+function forzarActualizacion(){
+  showToast('🔄 Actualizando...');
+  _borrarTodoCacheSW();
+  // Redirigir con timestamp en URL para romper caché del WebView/navegador
+  setTimeout(() => {
+    const url = window.location.pathname + '?_fv=' + Date.now();
+    window.location.replace(url);
+  }, 700);
+}
+
+function _checkVersionServidor(callback){
+  // fetch con headers agresivos anti-caché + URL única por llamada
+  const url = window.location.pathname + '?_vc=' + Date.now() + '&r=' + Math.random();
+  fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     }
-  });
+  })
+  .then(r => {
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  })
+  .then(html => {
+    const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+    if(m) callback(m[1]);
+  })
+  .catch(()=>{});
+}
+
+function _aplicarActualizacion(verServidor){
+  if(!verServidor) return false;  // nunca guardar versión vacía
+  const VER_KEY = 'app_version_local';
+  const verLocal = localStorage.getItem(VER_KEY) || '';
+  localStorage.setItem(VER_KEY, verServidor);  // guardar siempre la versión actual
+  if(verLocal && verLocal !== verServidor){
+    console.log('Nueva versión:', verServidor, '(tenía:', verLocal, ')');
+    _borrarTodoCacheSW();
+    showToast('🔄 Nueva versión disponible, actualizando...');
+    setTimeout(() => {
+      window.location.replace(window.location.pathname + '?_uv=' + Date.now());
+    }, 1200);
+    return true;
+  }
+  return false;
+}
+
+// ── Verificar al abrir la app ──
+(function checkAlInicio(){
+  // Pequeño delay para no bloquear el arranque
+  setTimeout(()=>{
+    _checkVersionServidor(ver => _aplicarActualizacion(ver));
+  }, 3000);
 })();
 
-// ── Auto-actualización: compara versión del servidor vs local ──
-(function autoUpdate(){
-  try{
-    const VER_KEY = 'app_version_local';
-    const verLocal = localStorage.getItem(VER_KEY) || '';
-    // Fetch del propio index.html sin caché para leer su versión
-    fetch(window.location.href + '?_cache=' + Date.now(), {cache: 'no-store'})
-      .then(r => r.text())
-      .then(html => {
-        const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-        if(!m) return;
-        const verServidor = m[1];
-        if(verLocal && verLocal !== verServidor){
-          // Hay versión nueva — limpiar caché y recargar automáticamente
-          console.log('Nueva versión detectada:', verServidor, '→ recargando');
-          if('caches' in window){
-            caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
-          }
-          localStorage.setItem(VER_KEY, verServidor);
-          setTimeout(() => window.location.reload(true), 500);
-        } else {
-          // Guardar versión actual
-          localStorage.setItem(VER_KEY, verServidor);
-        }
-      })
-      .catch(() => {}); // Si no hay internet, no hacer nada
-  }catch(e){}
-  // Revisar de nuevo cada 5 minutos mientras la app está abierta
-  setInterval(function(){
-    try{
-      fetch(window.location.href + '?_cache=' + Date.now(), {cache: 'no-store'})
-        .then(r => r.text())
-        .then(html => {
-          const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-          if(!m) return;
-          const verServidor = m[1];
-          const verLocal = localStorage.getItem('app_version_local') || '';
-          if(verLocal && verLocal !== verServidor){
-            console.log('Versión nueva en segundo plano:', verServidor);
-            if('caches' in window){
-              caches.keys().then(names => { names.forEach(n => caches.delete(n)); });
-            }
-            localStorage.setItem('app_version_local', verServidor);
-            showToast('🔄 Nueva versión disponible, actualizando...');
-            setTimeout(() => window.location.reload(true), 1500);
-          }
-        })
-        .catch(() => {});
-    }catch(e){}
-  }, 5 * 60 * 1000);
-})();
+// ── Verificar al volver a la app (primer plano) ──
+let _primeraVezVisible = true;
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible'){
+    if(_primeraVezVisible){ _primeraVezVisible = false; return; } // ignorar carga inicial
+    setTimeout(()=>{
+      _checkVersionServidor(ver => _aplicarActualizacion(ver));
+    }, 1500);
+  }
+});
+
+// ── Verificar cada 3 minutos ──
+setInterval(function(){
+  _checkVersionServidor(ver => _aplicarActualizacion(ver));
+}, 3 * 60 * 1000);
 
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
