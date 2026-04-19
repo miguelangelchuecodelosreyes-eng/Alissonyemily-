@@ -610,6 +610,7 @@ body {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -713,9 +714,41 @@ body {
   function iniciarFirebase() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
-    dbRef = ref(db, 'usuarios/' + usuarioActual);
-    escucharDatos();
-    window._fbRemoveFn = { remove };
+    const auth = getAuth(app);
+    // Autenticar con Firebase Auth antes de leer/escribir
+    // (las reglas exigen auth != null)
+    const fbEmail = usuarioActual.toLowerCase().replace(/[^a-z0-9_]/g,'_') + '@app.local';
+    const fbPass = (usuarioActual === 'alissonyemily') ? '1234_AE26' : (ADMIN_PASS.length >= 6 ? ADMIN_PASS : ADMIN_PASS + '_AE26');
+    
+    async function autenticarYConectar() {
+      try {
+        await signInWithEmailAndPassword(auth, fbEmail, fbPass);
+        agregarLog('🔓 Auth OK — conectando...', 'ok');
+      } catch(e) {
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+          try {
+            await createUserWithEmailAndPassword(auth, fbEmail, fbPass);
+            agregarLog('🆕 Cuenta creada — conectando...', 'ok');
+          } catch(e2) {
+            // Cuenta existe con otra contraseña — usar anónimo como fallback
+            await signInAnonymously(auth);
+            agregarLog('👤 Sesión anónima activa', 'info');
+          }
+        } else {
+          // Fallback anónimo para cualquier otro error
+          try {
+            await signInAnonymously(auth);
+            agregarLog('👤 Sesión anónima activa', 'info');
+          } catch(e3) {
+            agregarLog('❌ Auth falló: ' + e3.message, 'error');
+          }
+        }
+      }
+      dbRef = ref(db, 'usuarios/' + usuarioActual);
+      escucharDatos();
+      window._fbRemoveFn = { remove };
+    }
+    autenticarYConectar();
   }
 
   // ---- DIAGNÓSTICO ----
