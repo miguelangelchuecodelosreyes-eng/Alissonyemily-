@@ -2645,9 +2645,9 @@ function renderHistorialGastos(){
     let papList = [];
     try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+fecha)||'[]'); }catch(e){}
     if(!gastos.length && !papList.length) return '';
-    if(gastos.length === 0 && total === 0) return ''; // ocultar días sin gastos reales
 
     const total = gastos.reduce((s,g)=>s+g.valor,0);
+    if(gastos.length === 0 && papList.length === 0) return ''; // ocultar días sin gastos reales
     const filas = gastos.map(g => `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f5">
         <div>
