@@ -612,10 +612,40 @@ body {
 })();
 </script>
 
-<script type="module">
-  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+<!-- Firebase SDK compat — funciona en archivos locales (content://, file://) y web -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function() {
+  // ── Alias para compatibilidad con el resto del código ──
+  function initializeApp(cfg) { return firebase.initializeApp(cfg); }
+  function getApps()          { return firebase.apps; }
+  function getApp()           { return firebase.app(); }
+  function getDatabase(app)   { return app ? app.database() : firebase.database(); }
+  function getAuth(app)       { return app ? app.auth()     : firebase.auth(); }
+  function ref(db, path)      { return db.ref(path); }
+  function onValue(r, cb, err){ return r.on('value', snap => cb(snap), err); }
+  function set(r, val)        { return r.set(val); }
+  function get(r)             { return r.once('value'); }
+  function remove(r)          { return r.remove(); }
+  function signInWithEmailAndPassword(auth, email, pass)    { return auth.signInWithEmailAndPassword(email, pass); }
+  function createUserWithEmailAndPassword(auth, email, pass){ return auth.createUserWithEmailAndPassword(email, pass); }
+  function signInAnonymously(auth)                          { return auth.signInAnonymously(); }
+  function onAuthStateChanged(auth, cb)                     { return auth.onAuthStateChanged(cb); }
+
+
+  // ── Detectar si cargamos como archivo local (content:// o file://) ──
+  const esArchivoLocal = location.protocol === 'content:' || location.protocol === 'file:';
+  if (esArchivoLocal) {
+    // Mostrar advertencia visible al usuario
+    const badge = document.getElementById('sync-badge');
+    if (badge) {
+      badge.textContent = '⚠️ Modo archivo local — funciones limitadas';
+      badge.style.background = 'rgba(255,150,0,0.25)';
+    }
+    console.warn('[Backup] Cargado como archivo local — los módulos ES6 pueden no funcionar en todos los navegadores.');
+  }
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -1498,8 +1528,8 @@ body {
     document.getElementById('modal-reporte').style.display = 'flex';
     renderDiaReporte(hoy);
   }
+})();
 </script>
-</body>
 
 <!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
 <div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #1a6eff;max-height:55vh;overflow-y:auto;font-family:monospace;max-width:480px;margin:0 auto">
