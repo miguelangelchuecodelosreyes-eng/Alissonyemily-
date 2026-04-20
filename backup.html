@@ -715,34 +715,17 @@ body {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
     const auth = getAuth(app);
-    const fbEmail = usuarioActual.toLowerCase().replace(/[^a-z0-9_]/g,'_') + '@app.local';
-    // Contraseña interna Firebase: sufijo fijo para cumplir mínimo 6 chars
-    const claveBase = (usuarioActual === 'alissonyemily') ? '1234' : ADMIN_PASS;
-    const fbPass = claveBase + '_AE26';
 
     async function autenticarYConectar() {
       agregarLog('🔐 Autenticando...', 'info');
       try {
-        await signInWithEmailAndPassword(auth, fbEmail, fbPass);
+        await signInAnonymously(auth);
         agregarLog('🔓 Auth OK', 'ok');
-      } catch(e1) {
-        if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential' || e1.code === 'auth/invalid-login-credentials') {
-          try {
-            await createUserWithEmailAndPassword(auth, fbEmail, fbPass);
-            agregarLog('🆕 Cuenta Firebase creada', 'ok');
-          } catch(e2) {
-            try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima activa', 'info'); }
-            catch(e3) { agregarLog('❌ Auth falló: ' + e3.message, 'error'); }
-          }
-        } else if (e1.code === 'auth/wrong-password') {
-          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (pass diferente)', 'info'); }
-          catch(e3) { agregarLog('❌ Auth anónima falló', 'error'); }
-        } else {
-          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (fallback)', 'info'); }
-          catch(e3) { agregarLog('❌ Auth falló: ' + e1.message, 'error'); }
-        }
+      } catch(e) {
+        agregarLog('❌ Auth falló: ' + e.message, 'error');
+        document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
+        return;
       }
-      // Solo conectar DESPUÉS de tener auth
       if (auth.currentUser) {
         agregarLog('✅ Conectando a datos...', 'ok');
         dbRef = ref(db, 'usuarios/' + usuarioActual);
