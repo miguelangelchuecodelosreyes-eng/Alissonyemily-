@@ -712,27 +712,48 @@ body {
   window.logout = function() { cerrarSesion(); };
 
   function iniciarFirebase() {
-    app = initializeApp(firebaseConfig);
+    agregarLog('🌐 Protocolo: ' + window.location.protocol, window.location.protocol === 'file:' ? 'error' : 'ok');
+    if (window.location.protocol === 'file:') {
+      agregarLog('❌ PROBLEMA: Archivo abierto localmente — Firebase no funciona así', 'error');
+      agregarLog('💡 SOLUCIÓN: Sube el archivo a GitHub Pages', 'warn');
+      document.getElementById('sync-badge').textContent = '🔴 Error: archivo local';
+      return;
+    }
+    agregarLog('🔥 Iniciando Firebase SDK...', 'info');
+    try {
+      app = initializeApp(firebaseConfig);
+      agregarLog('✅ Firebase SDK cargado correctamente', 'ok');
+    } catch(e) {
+      agregarLog('❌ Error al iniciar Firebase: ' + e.message, 'error');
+      return;
+    }
     db = getDatabase(app);
     const auth = getAuth(app);
+    agregarLog('🔌 PROBANDO CONEXIÓN A FIREBASE...', 'info');
 
     async function autenticarYConectar() {
-      agregarLog('🔐 Autenticando...', 'info');
+      agregarLog('🔐 Iniciando autenticación anónima...', 'info');
       try {
         await signInAnonymously(auth);
-        agregarLog('🔓 Auth OK', 'ok');
+        agregarLog('✅ Autenticación exitosa', 'ok');
+        agregarLog('👤 Usuario: ' + usuarioActual, 'info');
+        agregarLog('🔄 INICIANDO SINCRONIZACIÓN', 'info');
       } catch(e) {
-        agregarLog('❌ Auth falló: ' + e.message, 'error');
+        agregarLog('❌ ❌ No se pudo autenticar — ' + e.code, 'error');
+        agregarLog('📋 ' + e.message, 'error');
+        if (e.code === 'auth/configuration-not-found') {
+          agregarLog('💡 Activa Anónimo en Firebase Auth > Método de acceso', 'warn');
+        }
         document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
         return;
       }
       if (auth.currentUser) {
-        agregarLog('✅ Conectando a datos...', 'ok');
+        agregarLog('✅ Conectando a base de datos...', 'ok');
         dbRef = ref(db, 'usuarios/' + usuarioActual);
         escucharDatos();
         window._fbRemoveFn = { remove };
       } else {
-        agregarLog('❌ Sin auth — no se puede conectar', 'error');
+        agregarLog('❌ ❌ Sin auth — guardado pospuesto', 'error');
         document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
       }
     }
