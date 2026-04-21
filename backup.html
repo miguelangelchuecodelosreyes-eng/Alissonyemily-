@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Expires" content="0">
 <!-- v3.0 — Rediseño completo -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Respaldo — Alisson & Emily</title>
@@ -438,17 +438,6 @@ body {
 }
 .btn-diag:active { transform: scale(0.97); }
 </style>
-<script>
-  // Limpiar service workers y caché del navegador automáticamente
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
-    });
-  }
-  if ('caches' in window) {
-    caches.keys().then(names => names.forEach(n => caches.delete(n)));
-  }
-</script>
 </head>
 <body>
 
@@ -509,12 +498,17 @@ body {
   <div class="card">
     <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:var(--blue)">🔧 Diagnóstico del Sistema</div>
     <div class="card-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button onclick="window.correrDiagnostico()" class="btn-diag" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:var(--blue);border:2px solid var(--blue)">🔍 Correr diagnóstico</button>
-        <button onclick="document.getElementById('diagnostico-logs').innerHTML=''" class="btn-diag" style="background:#f4f7ff;color:var(--text-muted);border:2px solid var(--border);width:50px;flex:none">🗑</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="window.abrirPanelDiagnostico()" class="btn-diag" style="flex:1;background:#0d1117;color:#00ffff;border:1.5px solid rgba(0,255,255,0.3)">🔧 Abrir panel</button>
+        <button onclick="window.diagnosticoCompleto()" class="btn-diag" style="flex:1;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none">🔍 Diagnóstico completo</button>
       </div>
-      <div id="diagnostico-logs" style="min-height:40px;max-height:220px;overflow-y:auto;scroll-behavior:smooth">
-        <div style="text-align:center;color:#ccc;font-size:12px;font-weight:700;padding:14px">Toca "Correr diagnóstico" para revisar el sistema</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="window.probarConexionFirebase()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#1e88e5,#1565c0);color:white;border:none;font-size:11px">🔌 Conexión</button>
+        <button onclick="window.verificarReglasFirebase()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;font-size:11px">🔥 Reglas</button>
+        <button onclick="window.verEstadoNube()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;font-size:11px">☁️ Nube</button>
+        <button onclick="window.analizarSesion()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;font-size:11px">🔑 Sesión</button>
+        <button onclick="window.medirVelocidadSync()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-size:11px">⚡ Velocidad</button>
+        <button onclick="window.mostrarErroresDetallados()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;font-size:11px">🔍 Errores</button>
       </div>
     </div>
   </div>
@@ -618,10 +612,40 @@ body {
 })();
 </script>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+<!-- Firebase SDK compat — funciona en archivos locales (content://, file://) y web -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function() {
+  // ── Alias para compatibilidad con el resto del código ──
+  function initializeApp(cfg) { return firebase.initializeApp(cfg); }
+  function getApps()          { return firebase.apps; }
+  function getApp()           { return firebase.app(); }
+  function getDatabase(app)   { return app ? app.database() : firebase.database(); }
+  function getAuth(app)       { return app ? app.auth()     : firebase.auth(); }
+  function ref(db, path)      { return db.ref(path); }
+  function onValue(r, cb, err){ return r.on('value', snap => cb(snap), err); }
+  function set(r, val)        { return r.set(val); }
+  function get(r)             { return r.once('value'); }
+  function remove(r)          { return r.remove(); }
+  function signInWithEmailAndPassword(auth, email, pass)    { return auth.signInWithEmailAndPassword(email, pass); }
+  function createUserWithEmailAndPassword(auth, email, pass){ return auth.createUserWithEmailAndPassword(email, pass); }
+  function signInAnonymously(auth)                          { return auth.signInAnonymously(); }
+  function onAuthStateChanged(auth, cb)                     { return auth.onAuthStateChanged(cb); }
+
+
+  // ── Detectar si cargamos como archivo local (content:// o file://) ──
+  const esArchivoLocal = location.protocol === 'content:' || location.protocol === 'file:';
+  if (esArchivoLocal) {
+    // Mostrar advertencia visible al usuario
+    const badge = document.getElementById('sync-badge');
+    if (badge) {
+      badge.textContent = '⚠️ Modo archivo local — funciones limitadas';
+      badge.style.background = 'rgba(255,150,0,0.25)';
+    }
+    console.warn('[Backup] Cargado como archivo local — los módulos ES6 pueden no funcionar en todos los navegadores.');
+  }
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
@@ -723,21 +747,49 @@ body {
   window.logout = function() { cerrarSesion(); };
 
   function iniciarFirebase() {
-    app = initializeApp(firebaseConfig);
+    // Reutilizar app existente para evitar error "duplicate app" en recarga
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     db = getDatabase(app);
     const auth = getAuth(app);
+    const fbEmail = usuarioActual.toLowerCase().replace(/[^a-z0-9_]/g,'_') + '@app.local';
+    // Contraseña interna Firebase consistente (no depende de ADMIN_PASS)
+    const fbPass = 'AE_' + usuarioActual.toLowerCase() + '_2024';
 
     async function autenticarYConectar() {
-      agregarLog('🔐 Autenticando con sesión anónima...', 'info');
-      try {
-        await signInAnonymously(auth);
-        agregarLog('✅ Auth OK — conectando datos...', 'ok');
-      } catch(e) {
-        agregarLog('❌ Auth falló: ' + e.code, 'error');
-        document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
+      agregarLog('🔐 Autenticando...', 'info');
+
+      // Si ya hay un usuario autenticado en Firebase, reusar la sesión
+      if (auth.currentUser) {
+        agregarLog('🔓 Sesión Firebase ya activa', 'ok');
+        dbRef = ref(db, 'usuarios/' + usuarioActual);
+        escucharDatos();
+        window._fbRemoveFn = { remove };
         return;
       }
+
+      try {
+        await signInWithEmailAndPassword(auth, fbEmail, fbPass);
+        agregarLog('🔓 Auth OK', 'ok');
+      } catch(e1) {
+        if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential' || e1.code === 'auth/invalid-login-credentials') {
+          try {
+            await createUserWithEmailAndPassword(auth, fbEmail, fbPass);
+            agregarLog('🆕 Cuenta Firebase creada', 'ok');
+          } catch(e2) {
+            try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima activa', 'info'); }
+            catch(e3) { agregarLog('❌ Auth falló: ' + e3.message, 'error'); }
+          }
+        } else if (e1.code === 'auth/wrong-password') {
+          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (pass diferente)', 'info'); }
+          catch(e3) { agregarLog('❌ Auth anónima falló', 'error'); }
+        } else {
+          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (fallback)', 'info'); }
+          catch(e3) { agregarLog('❌ Auth falló: ' + e1.message, 'error'); }
+        }
+      }
+      // Solo conectar DESPUÉS de tener auth
       if (auth.currentUser) {
+        agregarLog('✅ Conectando a datos...', 'ok');
         dbRef = ref(db, 'usuarios/' + usuarioActual);
         escucharDatos();
         window._fbRemoveFn = { remove };
@@ -746,7 +798,24 @@ body {
         document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
       }
     }
-    autenticarYConectar();
+    // Esperar a que Firebase restaure la sesión persistida antes de autenticar
+    onAuthStateChanged(auth, (user) => {
+      // Exponer variables para el panel de diagnóstico
+      window._diagDb = db;
+      window._diagRef = ref;
+      window._diagGet = get;
+      window._diagSet = set;
+      window._diagAuth = auth;
+      window._diagUsuario = usuarioActual;
+      if (user) {
+        agregarLog('🔓 Sesión Firebase restaurada automáticamente', 'ok');
+        dbRef = ref(db, 'usuarios/' + usuarioActual);
+        escucharDatos();
+        window._fbRemoveFn = { remove };
+      } else {
+        autenticarYConectar();
+      }
+    });
   }
 
   // ---- DIAGNÓSTICO ----
@@ -1424,14 +1493,6 @@ body {
           <span style="color:${resultado >= 0 ? '#00ff88' : '#ff5555'}">${fmt(resultado)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;font-weight:700;opacity:0.7"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
-        ${(() => {
-          const diferencia = resultado - entregado;
-          const cuadra = Math.abs(diferencia) < 1;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:12px 14px;border-radius:var(--radius-sm);background:${cuadra ? 'rgba(0,200,80,0.2)' : 'rgba(255,80,80,0.2)'};border:1px solid ${cuadra ? 'rgba(0,255,100,0.3)' : 'rgba(255,80,80,0.3)'}">
-            <span style="font-size:13px;font-weight:900;color:${cuadra ? '#00ff88' : '#ff5555'}">${cuadra ? '✅ CUADRA PERFECTO' : '❌ DIFERENCIA'}</span>
-            <span style="font-size:16px;font-weight:900;color:${cuadra ? '#00ff88' : '#ff5555'}">${fmt(diferencia)}</span>
-          </div>`;
-        })()}
       </div>
     `;
   }
@@ -1467,6 +1528,409 @@ body {
     document.getElementById('modal-reporte').style.display = 'flex';
     renderDiaReporte(hoy);
   }
+})();
 </script>
+
+<!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #1a6eff;max-height:55vh;overflow-y:auto;font-family:monospace;max-width:480px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;padding:8px 14px;background:#161b22;position:sticky;top:0;flex-wrap:wrap;gap:6px;align-items:center">
+    <span style="color:#1a6eff;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="window.verificarReglasFirebase()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔥 Reglas</button>
+      <button onclick="window.probarConexionFirebase()" style="background:linear-gradient(135deg,#1e88e5,#1565c0);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔌 Conexión</button>
+      <button onclick="window.verEstadoNube()" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">☁️ Nube</button>
+      <button onclick="window.analizarSesion()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🔑 Sesión</button>
+      <button onclick="window.medirVelocidadSync()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">⚡ Velocidad</button>
+      <button onclick="window.mostrarErroresDetallados()" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🔍 Errores</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🗑</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:900;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
+</div>
+
+<script>
+// ===== DIAGNÓSTICO FIREBASE — BACKUP v4 =====
+
+// ── Registro visual ──────────────────────────────────────────
+function addLog(msg) {
+  const log = document.getElementById('diag-log');
+  if (!log) return;
+  const time = new Date().toLocaleTimeString('es-CO');
+  let color = '#e3b341';
+  if (msg.startsWith('✅')) color = '#3fb950';
+  else if (msg.startsWith('❌')) color = '#f85149';
+  else if (msg.startsWith('⚠️')) color = '#f0883e';
+  else if (msg.startsWith('   ')) color = '#8b949e';
+  else if (msg.includes('🌐') || msg.includes('conexión')) color = '#58a6ff';
+  else if (msg.includes('📦') || msg.includes('tamaño')) color = '#a371f7';
+  else if (msg.includes('🔥')) color = '#ff7b72';
+  else if (msg.includes('🔐')) color = '#f97583';
+  else if (msg.includes('═')) { color = '#444c56'; }
+  let displayMsg = msg;
+  if (msg.includes('PERMISSION_DENIED')) displayMsg += ' → 🔐 Revisa reglas Firebase Console';
+  if (msg.includes('NETWORK_ERROR') || msg.includes('net::ERR')) displayMsg += ' → 🌐 Verifica internet';
+  if (msg.includes('quota-exceeded') || msg.includes('QUOTA')) displayMsg += ' → 📦 Datos demasiado grandes';
+  if (msg.includes('TOKEN_EXPIRED') || msg.includes('token-expired')) displayMsg += ' → 🔄 Sal y vuelve a entrar';
+  log.innerHTML = '<div style="color:' + color + ';border-bottom:1px solid #21262d;padding:5px 0;font-size:11px">'
+    + '<span style="color:#555;margin-right:6px">[' + time + ']</span>' + displayMsg + '</div>'
+    + log.innerHTML;
+  if (log.children.length > 200) log.removeChild(log.lastChild);
+}
+
+// ── Abrir panel ──────────────────────────────────────────────
+window.abrirPanelDiagnostico = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  window.verEstadoNube();
+};
+
+// ── 1. PROBAR CONEXIÓN ───────────────────────────────────────
+window.probarConexionFirebase = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔌 PRUEBA DE CONEXIÓN');
+  addLog('═══════════════════════════════════════');
+
+  // Red del dispositivo
+  addLog('🌐 Internet (navigator): ' + (navigator.onLine ? '✅ Conectado' : '❌ Sin conexión'));
+
+  // Tipo de conexión si está disponible
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn) {
+    addLog('📶 Tipo de red: ' + (conn.effectiveType || conn.type || 'desconocido')
+      + (conn.downlink ? ' — ' + conn.downlink + ' Mbps' : ''));
+  }
+
+  const db = window._diagDb, ref = window._diagRef, get = window._diagGet;
+  if (!db) {
+    addLog('❌ Firebase SDK aún no listo — espera 3 seg y reintenta');
+    addLog('   💡 Si persiste: recarga la página');
+    return;
+  }
+  addLog('✅ Firebase SDK cargado en memoria');
+
+  const t0 = Date.now();
+  get(ref(db, '.info/connected')).then(snap => {
+    const ms = Date.now() - t0;
+    if (snap.val()) {
+      addLog('✅ Firebase CONECTADO — latencia: ' + ms + ' ms');
+      if (ms > 3000) addLog('   ⚠️ Latencia alta (' + ms + 'ms) — red lenta o inestable');
+    } else {
+      addLog('⚠️ Firebase en modo OFFLINE — datos en caché local');
+      addLog('   💡 Cierra otras pestañas y recarga');
+    }
+  }).catch(e => {
+    addLog('❌ Error al probar conexión: ' + e.message);
+    addLog('   Código: ' + (e.code || 'sin código'));
+  });
+
+  // Ping a Google para validar internet real
+  fetch('https://www.google.com', { mode: 'no-cors', cache: 'no-store' })
+    .then(() => addLog('✅ Ping a Google exitoso — internet funciona'))
+    .catch(() => addLog('⚠️ No se pudo alcanzar Google — posible problema de red o DNS'));
+
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 2. VERIFICAR REGLAS + AUTH ───────────────────────────────
+window.verificarReglasFirebase = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔥 REGLAS + AUTENTICACIÓN FIREBASE');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, set = window._diagSet, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no inicializado'); return; }
+
+  const usuario = window._diagUsuario || 'sin_usuario';
+  addLog('👤 Usuario activo: ' + usuario);
+
+  // Estado Auth
+  const auth = window._diagAuth;
+  const user = auth && auth.currentUser;
+  if (user) {
+    addLog('✅ Autenticado en Firebase Auth');
+    addLog('   UID: ' + user.uid.slice(0,16) + '…');
+    addLog('   Email: ' + (user.email || '(anónimo)'));
+    addLog('   Tipo: ' + (user.isAnonymous ? '👤 Anónimo' : '📧 Email/pass'));
+    // Verificar si el token está próximo a expirar
+    try {
+      const token = await user.getIdTokenResult();
+      const expMs = new Date(token.expirationTime).getTime() - Date.now();
+      const expMin = Math.round(expMs / 60000);
+      if (expMin < 10) addLog('   ⚠️ Token expira en ' + expMin + ' min — recarga pronto');
+      else addLog('   ✅ Token válido por ' + expMin + ' min más');
+    } catch(e) { addLog('   ⚠️ No se pudo verificar expiración del token'); }
+  } else {
+    addLog('❌ NO autenticado en Firebase Auth');
+    addLog('   💡 Sal y vuelve a entrar para re-autenticar');
+  }
+
+  // Prueba real de escritura → lectura → borrado
+  addLog('📝 Probando escritura/lectura en la nube...');
+  const testRef = ref(db, 'usuarios/' + usuario + '/test_permiso');
+  try {
+    const t0 = Date.now();
+    await set(testRef, { ok: true, ts: Date.now() });
+    addLog('✅ ESCRITURA OK — ' + (Date.now()-t0) + ' ms');
+    const snap = await get(testRef);
+    addLog(snap.exists() ? '✅ LECTURA OK' : '⚠️ Lectura: sin datos');
+    await set(testRef, null);
+    addLog('✅ BORRADO OK');
+    addLog('🎉 Reglas y Auth completamente funcionales');
+  } catch(e) {
+    addLog('❌ ERROR: ' + e.message);
+    if (e.code) addLog('   Código Firebase: ' + e.code);
+    if (e.message.includes('PERMISSION_DENIED')) {
+      addLog('');
+      addLog('🔐 SOLUCIÓN — pega estas reglas en Firebase Console:');
+      addLog('{ "rules": { "usuarios": { "$u": {');
+      addLog('  ".read":  "auth != null",');
+      addLog('  ".write": "auth != null"');
+      addLog('} } } }');
+      addLog('Luego sal y vuelve a entrar en el backup.');
+    } else if (e.message.includes('NETWORK')) {
+      addLog('🌐 Error de red — verifica tu conexión a internet');
+    } else if (e.message.includes('quota')) {
+      addLog('📦 Cuota excedida — demasiados datos o requests');
+    }
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 3. ESTADO DE LA NUBE ────────────────────────────────────
+window.verEstadoNube = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('☁️ ESTADO DE LA NUBE');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no disponible'); return; }
+  const usuario = window._diagUsuario || 'sin_usuario';
+  addLog('📡 Leyendo: usuarios/' + usuario);
+
+  get(ref(db, 'usuarios/' + usuario)).then(snap => {
+    const data = snap.val();
+    if (!data) {
+      addLog('⚠️ SIN DATOS en la nube para "' + usuario + '"');
+      addLog('   Posibles causas:');
+      addLog('   1. La app principal nunca ha sincronizado');
+      addLog('   2. Reglas de Firebase bloquean la lectura');
+      addLog('   3. Usuario incorrecto (¿mayúsculas/tildes?)');
+      addLog('   💡 Abre la app y espera que sincronice');
+      return;
+    }
+
+    // Resumen de datos
+    const clientes = data.clientes || [];
+    const activos  = clientes.filter(c => (c.saldo||0) > 0);
+    const cancelados = clientes.filter(c => c.cancelado === true || (c.saldo||0) === 0);
+    const sinSaldo = clientes.filter(c => (c.saldo||0) < 0);
+    addLog('✅ Datos encontrados en la nube');
+    addLog('   👥 Total clientes: ' + clientes.length);
+    addLog('   ✅ Activos (saldo > 0): ' + activos.length);
+    addLog('   🏁 Cancelados/saldo 0: ' + cancelados.length);
+    if (sinSaldo.length) addLog('   🔴 Saldos negativos: ' + sinSaldo.length + ' — revisar');
+
+    // Fecha del backup
+    if (data.fecha_backup) {
+      const mins = Math.floor((Date.now() - new Date(data.fecha_backup).getTime()) / 60000);
+      const label = mins < 60 ? mins + ' min' : Math.floor(mins/60) + ' h ' + (mins%60) + ' min';
+      addLog('   🕐 Último sync: hace ' + label);
+      if (mins > 120) addLog('   ⚠️ Más de 2h sin sync — abre la app para actualizar');
+      else if (mins > 30) addLog('   ⚠️ Más de 30 min sin sync');
+      else addLog('   ✅ Datos recientes');
+    } else {
+      addLog('   ⚠️ Sin fecha de backup registrada');
+    }
+
+    // Tamaño aproximado de los datos
+    const bytes = JSON.stringify(data).length;
+    const kb = (bytes / 1024).toFixed(1);
+    const mb = (bytes / 1024 / 1024).toFixed(2);
+    addLog('   📦 Tamaño en nube: ' + kb + ' KB (' + mb + ' MB)');
+    if (bytes > 9 * 1024 * 1024)      addLog('   🔴 Datos > 9MB — riesgo de fallo al sincronizar');
+    else if (bytes > 5 * 1024 * 1024) addLog('   ⚠️ Datos > 5MB — considera limpiar historial antiguo');
+    else                               addLog('   ✅ Tamaño dentro del límite seguro');
+
+    // Integridad básica de clientes
+    const sinNombre = clientes.filter(c => !c.nombre || !c.nombre.trim());
+    const sinCuota  = activos.filter(c => !c.cuotaSugerida || c.cuotaSugerida <= 0);
+    if (sinNombre.length) addLog('   ⚠️ ' + sinNombre.length + ' clientes sin nombre');
+    if (sinCuota.length)  addLog('   ⚠️ ' + sinCuota.length + ' activos sin cuota asignada');
+    if (!sinNombre.length && !sinCuota.length) addLog('   ✅ Integridad de clientes OK');
+
+  }).catch(e => {
+    addLog('❌ Error al leer nube: ' + e.message);
+    if (e.message.includes('PERMISSION_DENIED')) addLog('   🔐 Sin permiso — revisa reglas Firebase');
+    else if (e.message.includes('NETWORK'))      addLog('   🌐 Sin internet — verifica conexión');
+  });
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 4. ANÁLISIS DE SESIÓN LOCAL ──────────────────────────────
+window.analizarSesion = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔑 SESIÓN LOCAL');
+  addLog('═══════════════════════════════════════');
+  try {
+    const raw = localStorage.getItem('ae_sesion_backup');
+    if (!raw) {
+      addLog('⚠️ No hay sesión guardada en este dispositivo');
+      addLog('   💡 Inicia sesión normalmente');
+      return;
+    }
+    const s = JSON.parse(raw);
+    addLog('👤 Usuario guardado: ' + (s.usuario || '(vacío)'));
+    if (s.expira) {
+      const msRestantes = s.expira - Date.now();
+      if (msRestantes > 0) {
+        const minRestantes = Math.round(msRestantes / 60000);
+        addLog('✅ Sesión ACTIVA — expira en ' + minRestantes + ' min');
+      } else {
+        addLog('❌ Sesión EXPIRADA hace ' + Math.round(-msRestantes/60000) + ' min');
+        addLog('   💡 Vuelve a iniciar sesión');
+      }
+      addLog('   Expira: ' + new Date(s.expira).toLocaleString('es-CO'));
+    }
+  } catch(e) {
+    addLog('❌ Error leyendo sesión: ' + e.message);
+    addLog('   💡 Limpia el localStorage y vuelve a entrar');
+  }
+  // Verificar Auth de Firebase también
+  const auth = window._diagAuth;
+  if (auth) {
+    const u = auth.currentUser;
+    addLog('');
+    addLog('🔥 Auth Firebase: ' + (u ? '✅ Activo — ' + (u.email || 'anónimo') : '❌ Sin sesión en Firebase'));
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 5. VELOCIDAD DE SYNC ────────────────────────────────────
+window.medirVelocidadSync = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('⚡ VELOCIDAD DE SINCRONIZACIÓN');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, set = window._diagSet, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no disponible'); return; }
+  const usuario = window._diagUsuario || 'sin_usuario';
+  const testRef = ref(db, 'usuarios/' + usuario + '/speed_test');
+
+  // Escritura pequeña
+  try {
+    let t = Date.now();
+    await set(testRef, { x: 1, ts: t });
+    const writeMs = Date.now() - t;
+    addLog('📤 Escritura pequeña: ' + writeMs + ' ms ' + (writeMs < 500 ? '✅' : writeMs < 2000 ? '⚠️ lento' : '❌ muy lento'));
+
+    // Lectura
+    t = Date.now();
+    await get(testRef);
+    const readMs = Date.now() - t;
+    addLog('📥 Lectura pequeña: ' + readMs + ' ms ' + (readMs < 500 ? '✅' : readMs < 2000 ? '⚠️ lento' : '❌ muy lento'));
+
+    // Escritura mediana (simulando ~50 clientes)
+    const cargaPrueba = { clientes: Array.from({length:50}, (_,i) => ({ id:i, nombre:'Test'+i, saldo:1000 })) };
+    t = Date.now();
+    await set(testRef, cargaPrueba);
+    const writeGrandMs = Date.now() - t;
+    addLog('📤 Escritura ~50 registros: ' + writeGrandMs + ' ms ' + (writeGrandMs < 2000 ? '✅' : writeGrandMs < 5000 ? '⚠️' : '❌ muy lento'));
+
+    await set(testRef, null); // limpiar
+    addLog('✅ Prueba de velocidad completada');
+
+    if (writeMs > 2000 || readMs > 2000) {
+      addLog('⚠️ Conexión lenta — la app puede tardar en cargar datos');
+      addLog('   💡 Usa WiFi en lugar de datos móviles si es posible');
+    }
+  } catch(e) {
+    addLog('❌ No se pudo medir velocidad: ' + e.message);
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 6. ERRORES DETALLADOS ────────────────────────────────────
+window.mostrarErroresDetallados = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔍 ANÁLISIS DE ERRORES');
+  addLog('═══════════════════════════════════════');
+
+  // Errores en los logs actuales
+  const logDiv = document.getElementById('diag-log');
+  let errCount = 0, warnCount = 0;
+  if (logDiv) {
+    for (let i = 0; i < logDiv.children.length; i++) {
+      const t = logDiv.children[i].textContent;
+      if (t.includes('❌')) errCount++;
+      else if (t.includes('⚠️')) warnCount++;
+    }
+  }
+  addLog('📋 En logs actuales: ' + errCount + ' errores, ' + warnCount + ' advertencias');
+
+  // Red
+  if (!navigator.onLine) {
+    addLog('❌ SIN INTERNET — causa principal de "Cargando datos..."');
+    addLog('   💡 Activa WiFi o datos móviles y recarga');
+  } else {
+    addLog('✅ Internet disponible según el dispositivo');
+  }
+
+  // Firebase
+  if (!window._diagDb) {
+    addLog('❌ Firebase no se inicializó — posibles causas:');
+    addLog('   • La página cargó sin internet');
+    addLog('   • Error al cargar el SDK de Firebase');
+    addLog('   💡 Recarga la página con buena conexión');
+  } else {
+    addLog('✅ Firebase SDK disponible en memoria');
+  }
+
+  // Auth
+  const auth = window._diagAuth;
+  if (!auth || !auth.currentUser) {
+    addLog('⚠️ Sin sesión activa de Firebase Auth');
+    addLog('   💡 Sal y vuelve a entrar para reautenticar');
+  } else {
+    addLog('✅ Firebase Auth activo');
+  }
+
+  // Hora permitida (6am-11pm)
+  const h = new Date().getHours();
+  if (h < 6 || h >= 23) {
+    addLog('⏰ Fuera del horario permitido (6AM-11PM)');
+    addLog('   La sesión se cierra automáticamente fuera de ese rango');
+  } else {
+    addLog('✅ Dentro del horario permitido');
+  }
+
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 7. DIAGNÓSTICO COMPLETO ──────────────────────────────────
+window.diagnosticoCompleto = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('███████████████████████████████████████');
+  addLog('🔧 DIAGNÓSTICO COMPLETO — ' + new Date().toLocaleString('es-CO'));
+  addLog('███████████████████████████████████████');
+  addLog('🌐 Internet: ' + (navigator.onLine ? '✅ Online' : '❌ Offline'));
+  addLog('👤 Usuario: ' + (window._diagUsuario || 'sin_usuario'));
+  addLog('⏰ Hora: ' + new Date().toLocaleTimeString('es-CO'));
+  const h = new Date().getHours();
+  addLog('   Horario permitido (6-23): ' + (h>=6 && h<23 ? '✅ Sí' : '❌ No — sesión bloqueada'));
+  window.probarConexionFirebase();
+  await new Promise(r => setTimeout(r, 1500));
+  await window.verificarReglasFirebase();
+  window.analizarSesion();
+  window.verEstadoNube();
+  window.mostrarErroresDetallados();
+  addLog('███████████████████████████████████████');
+  addLog('✅ FIN DEL DIAGNÓSTICO');
+  addLog('███████████████████████████████████████');
+};
+</script>
+
 </body>
 </html>
