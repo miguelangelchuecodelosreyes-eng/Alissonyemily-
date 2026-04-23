@@ -2125,40 +2125,43 @@ function recalcularCuentas(){
   const manual = { base, papeleria, neki, gasto, entregado, prestamos: prestamosDelDia };
   lsSet('sup_manual_'+hoy, JSON.stringify(manual));
 
-  // General: cuotas cobradas hoy + pagos dentro de renovaciones hoy + saldoQuedaba de renovaciones hoy
-  let general = 0;
+  // Pleno: pagos de hoy de clientes que NO fueron renovados hoy
+  let pleno = 0;
   clientes.forEach(c=>{
-    (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
-    (c.historialRenovaciones||[]).forEach(r=>{
-      // Pagos de cuotas cobradas antes de renovar (r.pagos con fecha hoy)
-      (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
-      // saldoQuedaba: lo que debían al renovar ese día
-      if((r.fecha||r.fechaCreado||'').substring(0,10)===hoy){
-        general += r.saldoQuedaba || 0;
-      }
-    });
+    const renovadoHoy = (c.historialRenovaciones||[]).length > 0 &&
+      (c.historialRenovaciones[0].fecha||'').substring(0,10) === hoy;
+    if(!renovadoHoy){
+      (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ pleno += p.monto; });
+      (c.historialRenovaciones||[]).forEach(r=>{
+        if((r.fecha||r.fechaCreado||'').substring(0,10) !== hoy){
+          (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ pleno += p.monto; });
+        }
+      });
+    }
   });
+
+  // Cancelados: renovados hoy = prestamoCiclo completo / cancelado completo con saldo=0
+  let cancelados = 0;
+  clientes.forEach(c=>{
+    const hist = c.historialRenovaciones||[];
+    if(hist.length>0 && (hist[0].fecha||'').substring(0,10)===hoy){
+      cancelados += hist[0].prestamoCiclo || hist[0].saldoQuedaba || 0;
+    } else {
+      const ultimoPago = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
+      if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
+        cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+      }
+    }
+  });
+
+  // General = Pleno + Cancelados
+  const general = pleno + cancelados;
 
   // Préstamos: capital entregado a nuevos/renovados hoy
   let prestamos = 0;
   clientes.forEach(c=>{
     if((c.fechaCreado===hoy&&!(c.renovaciones>0))||c.fechaRenovacion===hoy) prestamos+=c.capital||0;
   });
-
-  // Cancelados: saldo cerrado HOY — solo si el último pago fue hoy (no clientes cancelados antes)
-  let cancelados = 0;
-  clientes.forEach(c=>{
-    const ultimoPago = (c.pagos||[]).length > 0 ? (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0] : null;
-    if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
-      cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
-    }
-    const hist = c.historialRenovaciones||[];
-    if(hist.length>0 && hist[0].fecha===hoy){
-      cancelados += hist[0].saldoQuedaba || 0;
-    }
-  });
-
-  const pleno = general - cancelados;
 
   document.getElementById('vista-fecha').textContent   = fechaBonita(hoy);
   document.getElementById('vista-general').textContent = fmt(general);
@@ -3323,17 +3326,27 @@ function confirmarRenovar(){
   const idx=clientes.findIndex(c=>c.id===id);
   if(idx<0)return;
   const c=clientes[idx];
-  const totalCancelado=c.saldo; // saldo que quedaba = lo que se canceló al renovar
-  // Guardar en historial de renovaciones
+  const hoy=getFechaActiva();
+
+  // Separar pagos: los de hoy se borran (se echan para atrás), los anteriores se conservan
+  const pagosAntesDeHoy = (c.pagos||[]).filter(p=>p.fecha!==hoy);
+  const pagosDeHoy      = (c.pagos||[]).filter(p=>p.fecha===hoy);
+  const montoPagadoHoy  = pagosDeHoy.reduce((s,p)=>s+p.monto,0);
+
+  // Saldo real = saldo actual + lo que pagó hoy (se devuelve)
+  const saldoRealAntesDePagarHoy = c.saldo + montoPagadoHoy;
+  const totalCancelado = saldoRealAntesDePagarHoy; // cancelado = lo que debía antes de los pagos de hoy
+
+  // Guardar en historial: pagos sin los de hoy
   const entradaHistorial={
     numRenovacion:(c.renovaciones||0)+1,
-    fecha:getFechaActiva(),
+    fecha:hoy,
     prestamoCiclo:c.prestamo,
     capitalCiclo:c.capital||c.prestamo,
     interesCiclo:c.interes||0,
-    pagos:[...(c.pagos||[])],
+    pagos:pagosAntesDeHoy,
     totalCancelado,
-    saldoQuedaba:c.saldo,
+    saldoQuedaba:saldoRealAntesDePagarHoy,
     nuevoCapital:capital,
     nuevoTotal:p.total,
     // Datos del ciclo anterior para poder deshacer
@@ -3393,6 +3406,8 @@ function confirmarRenovar(){
   document.getElementById('ren-entregado-info').style.display='none';
 
   renderClientes();
+  window._datosHoy = null;
+  if(typeof recalcularCuentas==='function') recalcularCuentas();
   getDatos(); // actualizar resumen del día
   renderGastosHoy(); // actualizar papelería en pantalla Gasto
   cerrarModal('modal-renovar-overlay');
@@ -4909,7 +4924,11 @@ function verAbonosCliente(id){
             <div style="font-size:13px;font-weight:800;color:#333">📅 ${fechaBonita(p.fecha)}</div>
             <div style="font-size:11px;color:#666;font-weight:700">Cuota #${pagos.length-i}</div>
           </div>
-          <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(p.monto)}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(p.monto)}</div>
+            <button onclick="borrarPagoCliente('${id}','${p.fecha}',${p.monto})"
+              style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:10px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
+          </div>
         </div>`).join('') : '<div style="text-align:center;padding:20px;color:#bbb;font-size:14px;font-weight:700">📭 Sin abonos aún</div>'}
     </div>
     <div style="background:#e8fff2;padding:10px 14px;display:flex;justify-content:space-between;border-top:2px solid #66ffaa">
