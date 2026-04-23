@@ -1666,6 +1666,15 @@ body {
       </div>
     </div>
 
+    <!-- NOTA / DESCRIPCIÓN -->
+    <div style="margin-top:4px">
+      <div class="modal-campo">
+        <label class="modal-label">📝 Nota / Descripción (opcional)</label>
+        <textarea class="modal-input" id="mc-nota" placeholder="Ej: vive en casa azul, cobrar antes del mediodía, tiene perro..."
+          rows="2" style="resize:none;font-family:'Nunito',sans-serif;font-size:13px;line-height:1.4;"></textarea>
+      </div>
+    </div>
+
     <!-- CORREGIR SALDO (solo al editar) -->
     <div id="mc-saldo-row" style="display:none;margin-top:4px">
       <div class="modal-campo" style="background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px 14px">
@@ -3062,11 +3071,12 @@ function abrirModalCliente(id){
       const mcInt=document.getElementById('mc-interes');
       if(mcInt) mcInt.value=c.pctInteres!==undefined?c.pctInteres:'';
       document.getElementById('mc-id').value=c.id;
+      const mcNota=document.getElementById('mc-nota'); if(mcNota) mcNota.value=c.nota||'';
       actualizarResumenPrestamo();
     }
   } else {
     // Nuevo cliente: resetear todo y mostrar solo cédula+buscar
-    ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id','mc-papeleria'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
+    ['mc-nombre','mc-cedula','mc-tel','mc-dir','mc-prestamo','mc-cuota','mc-interes','mc-id','mc-papeleria','mc-nota'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});
     document.getElementById('mc-tipo').value='diario';
     document.getElementById('mc-dia-semana').value='';
     toggleDiaSemana('mc-dia-semana-row','diario');
@@ -3144,6 +3154,7 @@ function guardarCliente(){
 
       // Detectar qué cambió
       const cambios = [];
+      const nuevaNota = (document.getElementById('mc-nota')?.value||'').trim();
       if(cAntes.nombre !== nuevoNombre) cambios.push(`👤 Nombre: "${cAntes.nombre}" → "${nuevoNombre}"`);
       if((cAntes.cedula||'') !== nuevaCedula) cambios.push(`🪪 Cédula: "${cAntes.cedula||'—'}" → "${nuevaCedula||'—'}"`);
       if((cAntes.tel||'') !== nuevoTel) cambios.push(`📱 Teléfono: "${cAntes.tel||'—'}" → "${nuevoTel||'—'}"`);
@@ -3151,6 +3162,7 @@ function guardarCliente(){
       if((cAntes.capital||0) !== capital && capital > 0) cambios.push(`💰 Capital: ${fmt(cAntes.capital||0)} → ${fmt(capital)}`);
       if((cAntes.tipo||'') !== nuevoTipo) cambios.push(`📅 Tipo: "${cAntes.tipo||'—'}" → "${nuevoTipo}"`);
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
+      if((cAntes.nota||'') !== nuevaNota) cambios.push(`📝 Nota: "${cAntes.nota||'—'}" → "${nuevaNota||'—'}"`);
       const saldoCorrEl = document.getElementById('mc-saldo-corregir');
       const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
       // Guardar en variable GLOBAL para que aplicarCambios.toString() la encuentre
@@ -3174,6 +3186,7 @@ function guardarCliente(){
         clientes2[idx2].tipo=nuevoTipo;
         clientes2[idx2].diaSemana=document.getElementById('mc-dia-semana').value||'';
         clientes2[idx2].cuotaSugerida=nuevaCuota;
+        clientes2[idx2].nota=(document.getElementById('mc-nota')?.value||'').trim();
         const pagado2=(clientes2[idx2].pagos||[]).reduce((s,x)=>s+x.monto,0);
         if(window._saldoCorregidoTemp !== null && window._saldoCorregidoTemp >= 0){
           clientes2[idx2].saldo = window._saldoCorregidoTemp;
@@ -3243,7 +3256,8 @@ function guardarCliente(){
       diaSemana:document.getElementById('mc-dia-semana').value||'',
       cuotaSugerida:parseFloat(document.getElementById('mc-cuota').value)||0,
       saldo:p.total, pagos:[], fechaCreado:getFechaActiva(), renovaciones:0,
-      papeleriaCreacion:parseFloat(document.getElementById('mc-papeleria')?.value)||0
+      papeleriaCreacion:parseFloat(document.getElementById('mc-papeleria')?.value)||0,
+      nota:(document.getElementById('mc-nota')?.value||'').trim()
     };
     // Guardar papelería del nuevo préstamo en localStorage
     (function(){
@@ -3486,17 +3500,58 @@ function verCancelados(id){
   if(!c)return;
   document.getElementById('cancelados-cliente-nombre').textContent='👤 '+c.nombre;
   const hist=c.historialRenovaciones||[];
-  const totalHistorico=hist.reduce((s,r)=>s+r.totalCancelado,0);
 
   let html='';
 
-  hist.forEach(r=>{
-    html+=`<div style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1.5px solid #e8ccf5;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:13px;font-weight:900;color:#cc00aa">Cancelación #${r.numRenovacion}</div>
-        <div style="font-size:12px;color:#888;font-weight:700;margin-top:3px">${fechaBonita(r.fecha)}</div>
+  hist.forEach((r,ri)=>{
+    const cuotas=r.pagos||[];
+    const totalPagadoCiclo=cuotas.reduce((s,p)=>s+p.monto,0);
+    const capital=r.capitalCiclo||r.capital||0;
+    const interes=r.interesCiclo||r.interes||0;
+    const total=r.prestamoCiclo||r.totalPrestamo||(capital+interes)||0;
+    const cuotaSug=r.cuotaSugerida||0;
+    const idPanel='cancelado-panel-'+id+'-'+ri;
+    html+=`
+    <div style="background:white;border-radius:16px;margin-bottom:10px;border:1.5px solid #e8ccf5;overflow:hidden;">
+      <!-- Cabecera tocable -->
+      <div onclick="(function(){const p=document.getElementById('${idPanel}');if(p){const v=p.style.display==='none'||!p.style.display;p.style.display=v?'block':'none';}})()"
+        style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:linear-gradient(135deg,#fdf4ff,#fce7ff);">
+        <div>
+          <div style="font-size:13px;font-weight:900;color:#cc00aa">📋 Cancelación #${r.numRenovacion||ri+1}</div>
+          <div style="font-size:11px;color:#888;font-weight:700;margin-top:2px">${fechaBonita(r.fecha)} · ${cuotas.length} cuota${cuotas.length!==1?'s':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:900;color:#00cc55">${fmt(r.totalCancelado||totalPagadoCiclo)}</div>
+          <div style="font-size:10px;color:#aaa;font-weight:700">toca para ver ▼</div>
+        </div>
       </div>
-      <div style="font-size:22px;font-weight:900;color:#00cc55">${fmt(r.totalCancelado)}</div>
+      <!-- Panel expandible con cuotas -->
+      <div id="${idPanel}" style="display:none;">
+        <!-- Resumen del ciclo -->
+        ${(capital||total)?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr ${cuotaSug?'1fr':''};gap:6px;padding:10px 12px;background:#fafafa;border-bottom:1px solid #f0e8ff;">
+          ${capital?`<div style="text-align:center"><div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase">Capital</div><div style="font-size:13px;font-weight:900;color:#1a1a2e">${fmt(capital)}</div></div>`:''}
+          ${interes?`<div style="text-align:center"><div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase">Interés</div><div style="font-size:13px;font-weight:900;color:#e07b00">${fmt(interes)}</div></div>`:''}
+          ${total?`<div style="text-align:center"><div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase">Total</div><div style="font-size:13px;font-weight:900;color:#cc00aa">${fmt(total)}</div></div>`:''}
+          ${cuotaSug?`<div style="text-align:center"><div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase">Cuota</div><div style="font-size:13px;font-weight:900;color:#7c3aed">${fmt(cuotaSug)}</div></div>`:''}
+        </div>`:''}
+        <!-- Lista de cuotas -->
+        <div style="padding:8px 12px;">
+          ${cuotas.length?cuotas.map((p,pi)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3e8ff;">
+            <div>
+              <div style="font-size:11px;font-weight:900;color:#555">Cuota ${pi+1}</div>
+              <div style="font-size:10px;color:#aaa;font-weight:700">${fechaBonita(p.fecha)}</div>
+            </div>
+            <div style="font-size:14px;font-weight:900;color:#00cc55">${fmt(p.monto)}</div>
+          </div>`).join('')
+          :'<div style="text-align:center;padding:10px;color:#bbb;font-size:12px;font-weight:700">Sin cuotas registradas</div>'}
+          <!-- Total del ciclo -->
+          ${cuotas.length?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px;margin-top:2px;border-top:2px solid #e8ccf5;">
+            <div style="font-size:12px;font-weight:900;color:#555">💰 Total pagado</div>
+            <div style="font-size:16px;font-weight:900;color:#00cc55">${fmt(totalPagadoCiclo)}</div>
+          </div>`:''}
+        </div>
+      </div>
     </div>`;
   });
 
@@ -4060,6 +4115,7 @@ function renderClientes(){
       <!-- ══ PANEL EXPANDIDO ══ -->
       <div class="cliente-body" id="cbody-${c.id}" style="display:none">
         ${c.dir?`<div class="cliente-dir">📍 ${c.dir}</div>`:''}
+        ${c.nota?`<div style="background:#fefce8;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px;margin:0 0 6px;font-size:12px;font-weight:700;color:#92400e;line-height:1.4;">📝 ${c.nota}</div>`:''}
         <div class="cliente-detalle">
           <div class="cliente-det-item"><div class="cliente-det-label">💰 Capital</div><div class="cliente-det-val">${fmt(c.capital||0)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">📈 Interés ${getPorcentaje()}%</div><div class="cliente-det-val" style="color:#e07b00">${fmt(c.interes||0)}</div></div>
