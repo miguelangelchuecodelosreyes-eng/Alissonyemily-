@@ -2125,27 +2125,40 @@ function recalcularCuentas(){
   const manual = { base, papeleria, neki, gasto, entregado, prestamos: prestamosDelDia };
   lsSet('sup_manual_'+hoy, JSON.stringify(manual));
 
-  // Pleno: pagos de hoy de clientes que NO fueron renovados hoy
-  let pleno = 0;
+  // General: cuotas cobradas hoy (excluyendo pagos de hoy de clientes renovados hoy)
+  // + saldoQuedaba de renovaciones hoy
+  let general = 0;
   clientes.forEach(c=>{
     const renovadoHoy = (c.historialRenovaciones||[]).length > 0 &&
       (c.historialRenovaciones[0].fecha||'').substring(0,10) === hoy;
     if(!renovadoHoy){
-      (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ pleno += p.monto; });
-      (c.historialRenovaciones||[]).forEach(r=>{
-        if((r.fecha||r.fechaCreado||'').substring(0,10) !== hoy){
-          (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ pleno += p.monto; });
-        }
-      });
+      // Cliente normal — sumar pagos de hoy
+      (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
     }
+    // Pagos de ciclos anteriores (renovaciones de días pasados) hechos hoy
+    (c.historialRenovaciones||[]).forEach((r,ri)=>{
+      const fechaR = (r.fecha||'').substring(0,10);
+      if(fechaR !== hoy){
+        (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
+      } else if(ri===0){
+        // Renovación de hoy: sumar saldoQuedaba (ya incluye los $300 completos, sin los $50)
+        general += r.saldoQuedaba || 0;
+      }
+    });
   });
 
-  // Cancelados: renovados hoy = prestamoCiclo completo / cancelado completo con saldo=0
+  // Préstamos: capital entregado a nuevos/renovados hoy
+  let prestamos = 0;
+  clientes.forEach(c=>{
+    if((c.fechaCreado===hoy&&!(c.renovaciones>0))||c.fechaRenovacion===hoy) prestamos+=c.capital||0;
+  });
+
+  // Cancelados: saldoQuedaba de renovados hoy + pagos finales de cancelados completos hoy
   let cancelados = 0;
   clientes.forEach(c=>{
     const hist = c.historialRenovaciones||[];
     if(hist.length>0 && (hist[0].fecha||'').substring(0,10)===hoy){
-      cancelados += hist[0].prestamoCiclo || hist[0].saldoQuedaba || 0;
+      cancelados += hist[0].saldoQuedaba || 0;
     } else {
       const ultimoPago = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
       if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
@@ -2154,14 +2167,7 @@ function recalcularCuentas(){
     }
   });
 
-  // General = Pleno + Cancelados
-  const general = pleno + cancelados;
-
-  // Préstamos: capital entregado a nuevos/renovados hoy
-  let prestamos = 0;
-  clientes.forEach(c=>{
-    if((c.fechaCreado===hoy&&!(c.renovaciones>0))||c.fechaRenovacion===hoy) prestamos+=c.capital||0;
-  });
+  const pleno = general - cancelados;
 
   document.getElementById('vista-fecha').textContent   = fechaBonita(hoy);
   document.getElementById('vista-general').textContent = fmt(general);
