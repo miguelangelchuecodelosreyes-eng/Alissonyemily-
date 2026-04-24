@@ -3640,6 +3640,8 @@ function eliminarCliente(id){
         }
         saveClientes(cls.filter(x=>x.id!==id));
         renderClientes();
+        window._datosHoy = null;
+        recalcularCuentas();
         showToast('✅ Cliente eliminado');
       }
     );
@@ -3711,7 +3713,8 @@ function confirmarEliminarDirecto(id){
       }
       saveClientes(clientes.filter(x=>x.id!==id));
       renderClientes();
-      actualizarCuentas();
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast('✅ Cliente eliminado y guardado en historial');
     }
   );
@@ -3805,8 +3808,12 @@ function confirmarEliminarConCedula(id){
 
 function eliminarSinCedula(id){
   document.getElementById('modal-pedir-cedula')?.remove();
+  const c = getClientes().find(x=>x.id===id);
+  if(c) _limpiarPapeleriaCliente(c);
   saveClientes(getClientes().filter(x=>x.id!==id));
   renderClientes();
+  window._datosHoy = null;
+  recalcularCuentas();
   showToast('🗑️ Cliente eliminado (sin historial)');
 }
 
