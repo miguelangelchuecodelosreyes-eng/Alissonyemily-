@@ -5413,7 +5413,8 @@ function deshacerRenovacion(){
       cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
       saveClientes(cl);
       showToast('↩️ Renovación deshecha, préstamo anterior restaurado');
-      actualizarCuentas();
+      window._datosHoy = null;
+      recalcularCuentas();
       abrirDetalle(clienteDetalleId);
     }
   );
@@ -5506,7 +5507,8 @@ function deshacerRenovacionConConfirm(id){
       cl[i].historialRenovaciones = cl[i].historialRenovaciones.slice(1);
       saveClientes(cl);
       renderPrestamos();
-      actualizarCuentas();
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast('✅ Renovación deshecha — préstamo anterior restaurado');
     }
   );
