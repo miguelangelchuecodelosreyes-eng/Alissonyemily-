@@ -2091,15 +2091,24 @@ function recalcularCuentas(){
   const clientes = getClientes();
 
   const base      = parseFloat(document.getElementById('input-base').value)||0;
-  // Papelería: sumar renovaciones + nuevos del día
+  // Papelería: calcular directo desde clientes activos (no desde localStorage)
+  // así cuando se elimina un cliente la papelería se actualiza automáticamente
   let papeleria = 0;
-  (function(){
-    let papRen = [];
-    let papNuevos = [];
-    try{ papRen    = JSON.parse(lsGet('papeleria_renovaciones_'+hoy)||'[]'); }catch(e){}
-    try{ papNuevos = JSON.parse(lsGet('papeleria_nuevos_'+hoy)||'[]'); }catch(e){}
-    papeleria = [...papRen, ...papNuevos].reduce((s,p)=>s+p.valor,0);
-  })();
+  clientes.forEach(c => {
+    if((c.fechaCreado||'').substring(0,10) === hoy && !(c.renovaciones > 0)){
+      papeleria += c.papeleriaCreacion || 0;
+    }
+    (c.historialRenovaciones||[]).forEach(r => {
+      if((r.fecha||'').substring(0,10) === hoy){
+        papeleria += r.papeleriaRenovacion || 0;
+      }
+    });
+  });
+  // Actualizar visual de papelería
+  const inputPapEl = document.getElementById('input-papeleria');
+  if(inputPapEl) inputPapEl.value = papeleria;
+  const totalEntPap = document.getElementById('entradas-papeleria-total');
+  if(totalEntPap) totalEntPap.textContent = papeleria > 0 ? fmt(papeleria) : '$0';
   const neki      = parseFloat(document.getElementById('input-neki').value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto').value)||0;
   const entregado = parseFloat(document.getElementById('input-entregado').value)||0;
@@ -2217,43 +2226,37 @@ function recalcularCuentas(){
 
   renderNuevosRenovacionesHoy();
 
-  // Papelería de renovaciones + nuevos del día — en bloque inferior
+  // Desglose papelería en bloque inferior — leer desde clientes activos
   (function(){
-    const keyPap = 'papeleria_renovaciones_' + hoy;
-    const keyNuevos = 'papeleria_nuevos_' + hoy;
-    let papRen = [], papNuevos = [];
-    try{ papRen    = JSON.parse(lsGet(keyPap)||'[]'); }catch(e){}
-    try{ papNuevos = JSON.parse(lsGet(keyNuevos)||'[]'); }catch(e){}
-    const papList = [...papRen, ...papNuevos];
-
-    // --- Bloque inferior (resultado del día) ---
     const bloque = document.getElementById('bloque-papeleria-renovaciones');
-    const listaRes  = document.getElementById('papeleria-ren-lista');
-    const totalRes  = document.getElementById('papeleria-ren-total');
-    if(bloque && listaRes && totalRes){
-      if(papList.length === 0){
-        bloque.style.display = 'none';
-      } else {
-        bloque.style.display = 'block';
-        const sum = papList.reduce((s,p)=>s+p.valor,0);
-        totalRes.textContent = fmt(sum);
-        listaRes.innerHTML = papList.map(p=>
-          `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <div style="font-size:13px;font-weight:700;color:#ddd">👤 ${p.cliente}</div>
-            <div style="font-size:14px;font-weight:900;color:${p.valor>0?'#cc00aa':'#888'}">${p.valor>0?fmt(p.valor):'$0'}</div>
-          </div>`
-        ).join('');
+    const listaRes = document.getElementById('papeleria-ren-lista');
+    const totalRes = document.getElementById('papeleria-ren-total');
+    if(!bloque||!listaRes||!totalRes) return;
+    // Construir lista desde clientes
+    const papList = [];
+    clientes.forEach(c => {
+      if((c.fechaCreado||'').substring(0,10) === hoy && !(c.renovaciones > 0) && c.papeleriaCreacion > 0){
+        papList.push({cliente: c.nombre, valor: c.papeleriaCreacion});
       }
+      (c.historialRenovaciones||[]).forEach(r => {
+        if((r.fecha||'').substring(0,10) === hoy && r.papeleriaRenovacion > 0){
+          papList.push({cliente: c.nombre, valor: r.papeleriaRenovacion});
+        }
+      });
+    });
+    if(papList.length === 0){
+      bloque.style.display = 'none';
+    } else {
+      bloque.style.display = 'block';
+      const sum = papList.reduce((s,p)=>s+p.valor,0);
+      totalRes.textContent = fmt(sum);
+      listaRes.innerHTML = papList.map(p=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="font-size:13px;font-weight:700;color:#ddd">👤 ${p.cliente}</div>
+          <div style="font-size:14px;font-weight:900;color:#cc00aa">${fmt(p.valor)}</div>
+        </div>`
+      ).join('');
     }
-
-    // --- Papelería en ENTRADAS (total + desglose clientes) ---
-    const totalEnt = document.getElementById('entradas-papeleria-total');
-    const listaEnt = document.getElementById('entradas-papeleria-lista');
-    const inputPap = document.getElementById('input-papeleria');
-    const sumPapEnt = papList.reduce((s,p)=>s+p.valor,0);
-    if(inputPap) inputPap.value = sumPapEnt;
-    if(totalEnt) totalEnt.textContent = sumPapEnt > 0 ? fmt(sumPapEnt) : '$0';
-    if(listaEnt) listaEnt.innerHTML = '';
   })();
 
   window._datosHoy = {fecha:hoy,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:res};
@@ -2455,9 +2458,9 @@ function eliminarGasto(idx){
       lsSet('sup_manual_'+hoy, JSON.stringify(manual));
       const inputGasto = document.getElementById('input-gasto');
       if(inputGasto){ inputGasto.value = total || ''; }
+      window._datosHoy = null;
       recalcularCuentas();
       renderGastosHoy();
-      recalcularCuentas();
       renderHistorialGastos();
       showToast('🗑️ Gasto eliminado');
     }
@@ -3202,6 +3205,8 @@ function guardarCliente(){
         window._saldoCorregidoTemp = null;
         const cAct = getClientes().find(x=>x.id===editandoId);
         if(cAct && cAct.cedula) archivarClienteEnHistorial(cAct);
+        window._datosHoy = null;
+        recalcularCuentas();
         renderClientes();
         cerrarModal('modal-cliente-overlay');
         showToast('✅ Cliente actualizado');
@@ -3284,6 +3289,8 @@ function guardarCliente(){
   }
   // Cliente nuevo: guardar directo
   saveClientes(clientes);
+  window._datosHoy = null;
+  recalcularCuentas();
   renderClientes();
   cerrarModal('modal-cliente-overlay');
   showToast('✅ Cliente guardado');
@@ -3421,10 +3428,11 @@ function pagarCuota(id){
   clientes[idx].pagos=clientes[idx].pagos||[];
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
   saveClientes(clientes);
-  // Archivar en historial si tiene cédula
   const cActPago = getClientes().find(x=>x.id===id);
   if(cActPago && cActPago.cedula) archivarClienteEnHistorial(cActPago);
   inputEl.value='';
+  window._datosHoy = null;
+  recalcularCuentas();
   renderClientes();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
 }
@@ -3441,6 +3449,8 @@ function pagarCuotaYAvanzar(id){
   clientes[idx].pagos=clientes[idx].pagos||[];
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
   saveClientes(clientes);
+  window._datosHoy = null;
+  recalcularCuentas();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
 
   // Buscar siguiente ANTES de renderizar, usando los datos guardados
@@ -3588,6 +3598,7 @@ function editarMontoRenovacion(clienteId, ri, valorActual){
 function _limpiarPapeleriaCliente(c){
   if(!c) return;
   const nombre = c.nombre || '';
+  const clienteId = c.id || '';
   const fechaCreado = (c.fechaCreado||'').substring(0,10);
   const hoyStr = getFechaActiva();
 
@@ -3597,7 +3608,7 @@ function _limpiarPapeleriaCliente(c){
     try{
       let lista = JSON.parse(lsGet(key)||'[]');
       const antes = lista.length;
-      lista = lista.filter(p => p.cliente !== nombre);
+      lista = lista.filter(p => p.cliente !== nombre && p.id !== clienteId);
       if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
     }catch(e){}
   });
@@ -3612,7 +3623,7 @@ function _limpiarPapeleriaCliente(c){
     try{
       let lista = JSON.parse(lsGet(key)||'[]');
       const antes = lista.length;
-      lista = lista.filter(p => p.cliente !== nombre);
+      lista = lista.filter(p => p.cliente !== nombre && p.id !== clienteId);
       if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
     }catch(e){}
   });
@@ -3803,6 +3814,8 @@ function confirmarEliminarConCedula(id){
   saveClientes(getClientes().filter(x=>x.id!==id));
   document.getElementById('modal-pedir-cedula')?.remove();
   renderClientes();
+  window._datosHoy = null;
+  recalcularCuentas();
   showToast('✅ Guardado en historial con cédula ' + cedula);
 }
 
@@ -3941,6 +3954,8 @@ function ordenarClientes(criterio){
   });
   saveClientes(clientes);
   cerrarModal('modal-ordenar-overlay');
+  window._datosHoy = null;
+  recalcularCuentas();
   renderClientes();
   showToast('✅ Clientes ordenados');
 }
@@ -4790,6 +4805,8 @@ function eliminarCuotaDeDetalle(clienteId, fecha, monto){
       cl2[idx].pagos.splice(pi,1);
       cl2[idx].saldo += monto;
       saveClientes(cl2);
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast(`✅ Cuota de ${fmt(monto)} eliminada`);
       renderDetalles();
     }
@@ -4830,6 +4847,8 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
         // Quitar solo esa renovación del historial
         cl2[idx].historialRenovaciones = cl2[idx].historialRenovaciones.filter((_,i)=>i!==idxRen);
         saveClientes(cl2);
+        window._datosHoy = null;
+        recalcularCuentas();
         showToast('✅ Renovación deshecha — ' + cliente.nombre + ' volvió al préstamo anterior');
         renderDetalles();
         renderClientes();
@@ -4856,6 +4875,8 @@ function eliminarCanceladoDeDetalle(clienteId, esRenovacion){
         cl2[idx].pagos = pagosAntes;
         delete cl2[idx]._snapshotAntesCancelar;
         saveClientes(cl2);
+        window._datosHoy = null;
+        recalcularCuentas();
         showToast('✅ Cancelado deshecho — ' + cliente.nombre + ' volvió con saldo ' + fmt(saldoAntes));
         renderDetalles();
         renderClientes();
@@ -5177,6 +5198,8 @@ function confirmarCorregirSaldo(){
   const saldoAnterior = clientes[idx].saldo;
   clientes[idx].saldo = nuevoSaldo;
   saveClientes(clientes);
+  window._datosHoy = null;
+  recalcularCuentas();
   cerrarCorregirSaldo();
   showToast('✅ Saldo corregido: ' + fmt(saldoAnterior) + ' → ' + fmt(nuevoSaldo));
   const idGuardado = clienteDetalleId;
@@ -5207,11 +5230,12 @@ function abonarDesdeDetalle(){
   clientes[idx].pagos = clientes[idx].pagos || [];
   clientes[idx].pagos.unshift({fecha: fechaHoy(), monto});
   saveClientes(clientes);
-  // Archivar en historial si tiene cédula
   const cActDet = getClientes().find(x=>x.id===clienteDetalleId);
   if(cActDet && cActDet.cedula) archivarClienteEnHistorial(cActDet);
+  window._datosHoy = null;
+  recalcularCuentas();
   showToast(`✅ Abono de ${fmt(monto)} registrado`);
-  abrirDetalle(clienteDetalleId); // refrescar
+  abrirDetalle(clienteDetalleId);
 }
 
 function verAbonosDetalle(){
@@ -5291,6 +5315,8 @@ function guardarEditarCuota(i){
   const diff = nuevoMonto - montoAnterior;
   clientes[idx].saldo = Math.max(0, clientes[idx].saldo - diff);
   saveClientes(clientes);
+  window._datosHoy = null;
+  recalcularCuentas();
   showToast('✅ Cuota corregida');
   abrirDetalle(clienteDetalleId);
   setTimeout(verAbonosDetalle, 100);
@@ -5313,6 +5339,8 @@ function deshacerCuota(i){
       cl[idx].pagos.splice(i,1);
       cl[idx].saldo += monto;
       saveClientes(cl);
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast('↩️ Cuota eliminada, saldo restaurado');
       abrirDetalle(clienteDetalleId);
       setTimeout(verAbonosDetalle, 100);
@@ -5355,6 +5383,8 @@ function borrarUltimaCuota(){
       cl[i].pagos.splice(realIdx,1);
       cl[i].saldo += m;
       saveClientes(cl);
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast(`↩️ Cuota de ${fmt(m)} eliminada, saldo restaurado`);
       abrirDetalle(clienteDetalleId);
     }
@@ -5375,6 +5405,8 @@ function deshacerCancelado(){
       cl[i].saldo = cl[i].prestamo;
       cl[i].pagos = [];
       saveClientes(cl);
+      window._datosHoy = null;
+      recalcularCuentas();
       showToast('↩️ Cancelado deshecho — cliente volvió a la lista');
       cerrarDetalle();
     }
@@ -5398,23 +5430,8 @@ function deshacerRenovacion(){
       const i = cl.findIndex(c=>c.id===clienteDetalleId);
       if(i<0) return;
       const u = cl[i].historialRenovaciones[0];
-      // Limpiar papelería del ciclo actual (renovación) — usa fechaCreado actual y hoy
+      // Limpiar papelería de esta renovación
       _limpiarPapeleriaCliente(cl[i]);
-      // También limpiar papelería del ciclo anterior (por si era cliente nuevo)
-      // u.fechaCreado es la fecha original de creación antes de esta renovación
-      if(u.fechaCreado){
-        const fechaAnterior = (u.fechaCreado||'').substring(0,10);
-        const hoyStr = getFechaActiva();
-        [fechaAnterior, hoyStr].forEach(f => {
-          const key = 'papeleria_nuevos_' + f;
-          try{
-            let lista = JSON.parse(lsGet(key)||'[]');
-            const antes = lista.length;
-            lista = lista.filter(p => p.cliente !== cl[i].nombre);
-            if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
-          }catch(e){}
-        });
-      }
       cl[i].capital = u.capitalCiclo || 0;
       cl[i].interes = u.interesCiclo || 0;
       cl[i].prestamo = u.prestamoCiclo;
@@ -5507,22 +5524,8 @@ function deshacerRenovacionConConfirm(id){
       const i = cl.findIndex(x=>x.id===id);
       if(i<0) return;
       const u = cl[i].historialRenovaciones[0];
-      // Limpiar papelería del ciclo actual (renovación)
+      // Limpiar papelería de esta renovación
       _limpiarPapeleriaCliente(cl[i]);
-      // También limpiar papelería del ciclo anterior (por si era cliente nuevo)
-      if(u.fechaCreado){
-        const fechaAnterior = (u.fechaCreado||'').substring(0,10);
-        const hoyStr = getFechaActiva();
-        [fechaAnterior, hoyStr].forEach(f => {
-          const key = 'papeleria_nuevos_' + f;
-          try{
-            let lista = JSON.parse(lsGet(key)||'[]');
-            const antes = lista.length;
-            lista = lista.filter(p => p.cliente !== cl[i].nombre);
-            if(lista.length !== antes) lsSet(key, JSON.stringify(lista));
-          }catch(e){}
-        });
-      }
       cl[i].capital = u.capitalCiclo || 0;
       cl[i].interes = u.interesCiclo || 0;
       cl[i].prestamo = u.prestamoCiclo;
@@ -6439,6 +6442,8 @@ function reactivarClienteHistorial(cedula){
       };
       clientes.push(clienteReactivado);
       saveClientes(clientes);
+      window._datosHoy = null;
+      recalcularCuentas();
       renderClientes();
       showToast('✅ ' + registro.nombre + ' reactivado con saldo ' + fmt(saldoRestante));
     }
