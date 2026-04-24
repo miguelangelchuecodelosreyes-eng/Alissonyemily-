@@ -2155,14 +2155,24 @@ function recalcularCuentas(){
 
   // Cancelados: saldoQuedaba de renovados hoy + pagos finales de cancelados completos hoy
   let cancelados = 0;
+  const idsRenovadosHoy = new Set();
   clientes.forEach(c=>{
     const hist = c.historialRenovaciones||[];
     if(hist.length>0 && (hist[0].fecha||'').substring(0,10)===hoy){
       cancelados += hist[0].saldoQuedaba || 0;
-    } else {
-      const ultimoPago = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
-      if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy){
-        cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+      idsRenovadosHoy.add(c.id);
+    }
+  });
+  // Cancelados completos (saldo=0, último pago hoy, NO renovados hoy)
+  clientes.forEach(c=>{
+    if(idsRenovadosHoy.has(c.id)) return;
+    const pagosHoy = (c.pagos||[]).filter(p=>p.fecha===hoy);
+    const ultimoPago = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
+    if(c.saldo===0 && ultimoPago && ultimoPago.fecha===hoy && pagosHoy.length>0){
+      // Solo contar si el saldo llegó a 0 exactamente hoy (no clientes con saldo=0 de días anteriores)
+      const totalPagado = (c.pagos||[]).reduce((s,p)=>s+p.monto,0);
+      if(totalPagado >= (c.prestamo||0)){
+        cancelados += pagosHoy.reduce((s,p)=>s+p.monto,0);
       }
     }
   });
@@ -2784,6 +2794,8 @@ function eliminarDia(i){
 function cargarDia(fecha){
   // Setear fecha activa global
   setFechaActiva(fecha);
+  // Limpiar caché para forzar recálculo con la nueva fecha
+  window._datosHoy = null;
   // Actualizar Detalles
   document.getElementById('det-filtro-fecha').value = fecha;
   // Actualizar Préstamos
