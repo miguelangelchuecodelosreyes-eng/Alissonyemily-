@@ -2094,8 +2094,9 @@ function irA(p) {
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
   // ── Ícono flotante pleno: solo visible en Clientes ──
-  // Al volver a Clientes siempre volvemos a fecha de hoy
-  if(p==='clientes') setFechaActiva(fechaHoy());
+  // Solo resetear a hoy si NO estamos editando un día anterior
+  if(p==='clientes' && !window._editandoDiaAnterior) setFechaActiva(fechaHoy());
+  if(p==='clientes') window._editandoDiaAnterior = false; // limpiar bandera al llegar a clientes
   const fab = document.getElementById('pleno-fab');
   if(fab){ fab.style.display = p === 'clientes' ? 'flex' : 'none'; }
   if(p==='clientes') actualizarPlenoFab(0);
@@ -2835,8 +2836,8 @@ function eliminarDia(i){
 function cargarDia(fecha){
   // Setear fecha activa global
   setFechaActiva(fecha);
-  // Limpiar caché para forzar recálculo con la nueva fecha
-  window._datosHoy = null;
+  // Marcar que estamos editando un día anterior para que cobrar use esa fecha
+  window._editandoDiaAnterior = (fecha !== fechaHoy());
   // Actualizar Detalles
   document.getElementById('det-filtro-fecha').value = fecha;
   // Actualizar Préstamos
