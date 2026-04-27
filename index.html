@@ -604,6 +604,58 @@ body {
 @keyframes pinFadeMsg { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .pin-cerrar-btn { margin-top:20px; padding:11px 28px; background:transparent; border:1.5px solid rgba(255,0,255,0.4); color:#ff00ff; border-radius:20px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; letter-spacing:1px; transition:all 0.2s; box-shadow:0 0 12px rgba(255,0,255,0.1); }
 .pin-cerrar-btn:active { background:rgba(255,0,255,0.08); transform:scale(0.96); }
+
+/* ══ ÍCONO FLOTANTE PLENO ══ */
+#pleno-fab {
+  position: fixed;
+  bottom: 88px;
+  right: 14px;
+  z-index: 8000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.pfab-burbuja {
+  background: linear-gradient(135deg,#1a56db,#3b82f6);
+  border-radius: 50px;
+  padding: 9px 14px;
+  box-shadow: 0 6px 20px rgba(26,86,219,0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+  border: 2px solid rgba(255,255,255,0.28);
+  position: relative;
+}
+.pfab-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #00e676;
+  position: absolute; top: -3px; right: -3px;
+  box-shadow: 0 0 6px #00e676;
+  animation: pfab-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pfab-pulse {
+  0%,100%{ transform:scale(1); opacity:1; }
+  50%{ transform:scale(1.45); opacity:0.65; }
+}
+.pfab-label {
+  font-size: 8px; font-weight: 900; color: rgba(255,255,255,0.85);
+  letter-spacing: 1.8px; text-transform: uppercase; line-height: 1; margin-bottom: 2px;
+}
+.pfab-monto {
+  font-size: 17px; font-weight: 900; color: white; line-height: 1.1; white-space: nowrap;
+}
+.pfab-hoy {
+  font-size: 8px; font-weight: 900; color: #1a56db;
+  background: white; border-radius: 6px; padding: 1px 6px;
+  margin-top: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+@keyframes pfab-flash {
+  0%  { box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 0 rgba(0,230,118,0.75); }
+  60% { box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 12px rgba(0,230,118,0); }
+  100%{ box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 0 rgba(0,230,118,0); }
+}
+.pfab-burbuja.flash { animation: pfab-flash 0.55s ease; }
 </style>
 </head>
 <body>
@@ -2164,6 +2216,9 @@ function recalcularCuentas(){
   });
 
   const pleno = general - cancelados;
+
+  // ── Ícono flotante pleno ──
+  actualizarPlenoFab(pleno);
 
   document.getElementById('vista-fecha').textContent   = fechaBonita(hoy);
   document.getElementById('vista-general').textContent = fmt(general);
@@ -7767,6 +7822,10 @@ function iniciarApp(){
   renderClientes();
   cargarDesdeSupervisor();
   actualizarInfoPorcentaje();
+  // ── Mostrar ícono flotante pleno ──
+  const fab = document.getElementById('pleno-fab');
+  if(fab){ fab.style.display = 'flex'; }
+  actualizarPlenoFab(0);
 }
 
 // Recuperar sesión activa al recargar
@@ -8995,7 +9054,30 @@ function confirmarPegarBackup(){
     errEl.style.display = 'block';
   }
 }
+
+// ══ ÍCONO FLOTANTE — PLENO DEL DÍA ══
+function actualizarPlenoFab(pleno){
+  const el = document.getElementById('pfab-monto');
+  const burbuja = document.getElementById('pfab-burbuja');
+  if(!el || !burbuja) return;
+  el.textContent = fmt(pleno);
+  burbuja.classList.remove('flash');
+  void burbuja.offsetWidth;
+  burbuja.classList.add('flash');
+  setTimeout(()=> burbuja.classList.remove('flash'), 600);
+}
 </script>
+
+
+<!-- ══ ÍCONO FLOTANTE PLENO ══ -->
+<div id="pleno-fab">
+  <div class="pfab-burbuja" id="pfab-burbuja">
+    <div class="pfab-dot"></div>
+    <div class="pfab-label">PLENO</div>
+    <div class="pfab-monto" id="pfab-monto">$0</div>
+  </div>
+  <div class="pfab-hoy">HOY</div>
+</div>
 
 </body>
 </html>
