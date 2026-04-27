@@ -2093,6 +2093,12 @@ function irA(p) {
   document.getElementById('pantalla-'+p).classList.add('activa');
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
+  // ── Ícono flotante pleno: solo visible en Clientes ──
+  // Al volver a Clientes siempre volvemos a fecha de hoy
+  if(p==='clientes') setFechaActiva(fechaHoy());
+  const fab = document.getElementById('pleno-fab');
+  if(fab){ fab.style.display = p === 'clientes' ? 'flex' : 'none'; }
+  if(p==='clientes') actualizarPlenoFab(0);
   if(p==='cuentas'){
     cargarDesdeSupervisor();
     renderHistorial();
@@ -2840,6 +2846,8 @@ function cargarDia(fecha){
   irA('detalles');
   // Recargar cuentas en background con la fecha correcta
   setTimeout(cargarDesdeSupervisor, 50);
+  // Actualizar pleno FAB con la fecha seleccionada
+  setTimeout(actualizarPlenoFab, 80);
   showToast('📅 Viendo el ' + fechaBonita(fecha));
 }
 
@@ -7822,7 +7830,7 @@ function iniciarApp(){
   renderClientes();
   cargarDesdeSupervisor();
   actualizarInfoPorcentaje();
-  // ── Mostrar ícono flotante pleno ──
+  // ── Mostrar ícono flotante pleno (empieza en clientes) ──
   const fab = document.getElementById('pleno-fab');
   if(fab){ fab.style.display = 'flex'; }
   actualizarPlenoFab(0);
@@ -9056,15 +9064,63 @@ function confirmarPegarBackup(){
 }
 
 // ══ ÍCONO FLOTANTE — PLENO DEL DÍA ══
-function actualizarPlenoFab(pleno){
+function actualizarPlenoFab(plenoIgnorado){
+  // Usa getFechaActiva() — así muestra el pleno del día que se está editando
+  const hoy = getFechaActiva();
+  const clientes = getClientes();
+
+  let general = 0;
+  clientes.forEach(c=>{
+    (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
+    (c.historialRenovaciones||[]).forEach(r=>{
+      (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
+      if((r.fecha||r.fechaCreado||'').substring(0,10)===hoy){ general += r.saldoQuedaba || 0; }
+    });
+  });
+
+  let cancelados = 0;
+  clientes.forEach(c=>{
+    const esCanceladoHoy = c.saldo===0 && (c.pagos||[]).length>0 &&
+      (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===hoy;
+    if(esCanceladoHoy){
+      cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
+    }
+    (c.historialRenovaciones||[]).forEach(r=>{
+      if(r.fecha===hoy){ cancelados += r.saldoQuedaba||0; }
+    });
+  });
+
+  const pleno = general - cancelados;
+
   const el = document.getElementById('pfab-monto');
   const burbuja = document.getElementById('pfab-burbuja');
+  const etiqueta = document.getElementById('pfab-hoy');
   if(!el || !burbuja) return;
+
   el.textContent = fmt(pleno);
-  burbuja.classList.remove('flash');
-  void burbuja.offsetWidth;
-  burbuja.classList.add('flash');
-  setTimeout(()=> burbuja.classList.remove('flash'), 600);
+
+  // Si es un día anterior mostrar la fecha, si es hoy mostrar "HOY"
+  const esHoy = hoy === fechaHoy();
+  if(etiqueta){
+    if(esHoy){
+      etiqueta.textContent = 'HOY';
+    } else {
+      // Formato corto: "26 Abr"
+      try{
+        const [y,m,d] = hoy.split('-');
+        const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        etiqueta.textContent = Number(d)+' '+meses[Number(m)-1];
+      } catch(e){ etiqueta.textContent = hoy; }
+    }
+  }
+
+  // Flash verde solo si hay algo cobrado
+  if(pleno > 0){
+    burbuja.classList.remove('flash');
+    void burbuja.offsetWidth;
+    burbuja.classList.add('flash');
+    setTimeout(()=> burbuja.classList.remove('flash'), 600);
+  }
 }
 </script>
 
@@ -9076,7 +9132,7 @@ function actualizarPlenoFab(pleno){
     <div class="pfab-label">PLENO</div>
     <div class="pfab-monto" id="pfab-monto">$0</div>
   </div>
-  <div class="pfab-hoy">HOY</div>
+  <div class="pfab-hoy" id="pfab-hoy">HOY</div>
 </div>
 
 </body>
