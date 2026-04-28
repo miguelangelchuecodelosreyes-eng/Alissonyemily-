@@ -2094,12 +2094,30 @@ function irA(p) {
   document.getElementById('tab-'+p).classList.add('activo');
   if(p==='clientes') renderClientes();
   // ── Ícono flotante pleno: solo visible en Clientes ──
-  // Solo resetear a hoy si NO estamos editando un día anterior
   if(p==='clientes' && !window._editandoDiaAnterior) setFechaActiva(fechaHoy());
-  if(p==='clientes') window._editandoDiaAnterior = false; // limpiar bandera al llegar a clientes
   const fab = document.getElementById('pleno-fab');
   if(fab){ fab.style.display = p === 'clientes' ? 'flex' : 'none'; }
-  if(p==='clientes') actualizarPlenoFab(0);
+  // Al ir a Clientes actualizar el FAB con el pleno de la fecha activa
+  if(p==='clientes'){
+    const hoyClientes = getFechaActiva();
+    const clientesAll = getClientes();
+    let gen = 0, canc = 0;
+    clientesAll.forEach(c=>{
+      (c.pagos||[]).filter(p=>p.fecha===hoyClientes).forEach(p=>{ gen += p.monto; });
+      (c.historialRenovaciones||[]).forEach(r=>{
+        (r.pagos||[]).filter(p=>p.fecha===hoyClientes).forEach(p=>{ gen += p.monto; });
+        if((r.fecha||r.fechaCreado||'').substring(0,10)===hoyClientes){ gen += r.saldoQuedaba||0; }
+      });
+    });
+    clientesAll.forEach(c=>{
+      const ult = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:-1)[0];
+      if(c.saldo===0 && ult && ult.fecha===hoyClientes){
+        canc += (c.pagos||[]).filter(p=>p.fecha===hoyClientes).reduce((s,p)=>s+p.monto,0);
+      }
+      (c.historialRenovaciones||[]).forEach(r=>{ if(r.fecha===hoyClientes){ canc += r.saldoQuedaba||0; } });
+    });
+    actualizarPlenoFab(gen - canc);
+  }
   if(p==='cuentas'){
     cargarDesdeSupervisor();
     renderHistorial();
@@ -2224,8 +2242,9 @@ function recalcularCuentas(){
 
   const pleno = general - cancelados;
 
-  // ── Ícono flotante pleno ──
-  actualizarPlenoFab(pleno);
+  // ── Ícono flotante pleno — solo actualizar si está visible ──
+  const fabEl = document.getElementById('pleno-fab');
+  if(fabEl && fabEl.style.display !== 'none') actualizarPlenoFab(pleno);
 
   document.getElementById('vista-fecha').textContent   = fechaBonita(hoy);
   document.getElementById('vista-general').textContent = fmt(general);
@@ -2345,6 +2364,7 @@ function guardarDia(){
       renderResumenSemanal();
       const hoy = fechaHoy();
       setFechaActiva(hoy);
+      window._editandoDiaAnterior = false;
       const presInput = document.getElementById('pres-filtro-fecha');
       if(presInput) presInput.value = hoy;
       const detInput = document.getElementById('det-filtro-fecha');
@@ -2847,8 +2867,6 @@ function cargarDia(fecha){
   irA('detalles');
   // Recargar cuentas en background con la fecha correcta
   setTimeout(cargarDesdeSupervisor, 50);
-  // Actualizar pleno FAB con la fecha seleccionada
-  setTimeout(actualizarPlenoFab, 80);
   showToast('📅 Viendo el ' + fechaBonita(fecha));
 }
 
@@ -3496,6 +3514,9 @@ function pagarCuota(id){
   if(cActPago && cActPago.cedula) archivarClienteEnHistorial(cActPago);
   inputEl.value='';
   window._datosHoy = null;
+  // Cobro guardado con fecha correcta — resetear a hoy
+  window._editandoDiaAnterior = false;
+  setFechaActiva(fechaHoy());
   recalcularCuentas();
   renderClientes();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
@@ -3514,6 +3535,9 @@ function pagarCuotaYAvanzar(id){
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
   saveClientes(clientes);
   window._datosHoy = null;
+  // Cobro guardado con fecha correcta — resetear a hoy
+  window._editandoDiaAnterior = false;
+  setFechaActiva(fechaHoy());
   recalcularCuentas();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
 
@@ -4701,6 +4725,8 @@ function renderDetalles(){
   const filtroFecha = filtroInput.value;
   // Sincronizar fecha activa global para que imprimirListaClientes use la misma fecha
   setFechaActiva(filtroFecha);
+  // Sincronizar bandera de día anterior
+  window._editandoDiaAnterior = (filtroFecha !== fechaHoy());
   const clientes = getClientes();
 
   // Recopilar todas las cuotas
@@ -7834,7 +7860,6 @@ function iniciarApp(){
   // ── Mostrar ícono flotante pleno (empieza en clientes) ──
   const fab = document.getElementById('pleno-fab');
   if(fab){ fab.style.display = 'flex'; }
-  actualizarPlenoFab(0);
 }
 
 // Recuperar sesión activa al recargar
@@ -9065,34 +9090,7 @@ function confirmarPegarBackup(){
 }
 
 // ══ ÍCONO FLOTANTE — PLENO DEL DÍA ══
-function actualizarPlenoFab(plenoIgnorado){
-  // Usa getFechaActiva() — así muestra el pleno del día que se está editando
-  const hoy = getFechaActiva();
-  const clientes = getClientes();
-
-  let general = 0;
-  clientes.forEach(c=>{
-    (c.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
-    (c.historialRenovaciones||[]).forEach(r=>{
-      (r.pagos||[]).filter(p=>p.fecha===hoy).forEach(p=>{ general += p.monto; });
-      if((r.fecha||r.fechaCreado||'').substring(0,10)===hoy){ general += r.saldoQuedaba || 0; }
-    });
-  });
-
-  let cancelados = 0;
-  clientes.forEach(c=>{
-    const esCanceladoHoy = c.saldo===0 && (c.pagos||[]).length>0 &&
-      (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===hoy;
-    if(esCanceladoHoy){
-      cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
-    }
-    (c.historialRenovaciones||[]).forEach(r=>{
-      if(r.fecha===hoy){ cancelados += r.saldoQuedaba||0; }
-    });
-  });
-
-  const pleno = general - cancelados;
-
+function actualizarPlenoFab(pleno){
   const el = document.getElementById('pfab-monto');
   const burbuja = document.getElementById('pfab-burbuja');
   const etiqueta = document.getElementById('pfab-hoy');
@@ -9100,22 +9098,22 @@ function actualizarPlenoFab(plenoIgnorado){
 
   el.textContent = fmt(pleno);
 
-  // Si es un día anterior mostrar la fecha, si es hoy mostrar "HOY"
-  const esHoy = hoy === fechaHoy();
+  // Etiqueta: HOY o fecha corta si es día anterior
+  const fechaActiva = getFechaActiva();
+  const esHoy = fechaActiva === fechaHoy();
   if(etiqueta){
     if(esHoy){
       etiqueta.textContent = 'HOY';
     } else {
-      // Formato corto: "26 Abr"
       try{
-        const [y,m,d] = hoy.split('-');
+        const [y,m,d] = fechaActiva.split('-');
         const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         etiqueta.textContent = Number(d)+' '+meses[Number(m)-1];
-      } catch(e){ etiqueta.textContent = hoy; }
+      } catch(e){ etiqueta.textContent = fechaActiva; }
     }
   }
 
-  // Flash verde solo si hay algo cobrado
+  // Flash verde cuando hay pleno
   if(pleno > 0){
     burbuja.classList.remove('flash');
     void burbuja.offsetWidth;
