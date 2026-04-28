@@ -9,7 +9,7 @@ const CACHE_NAME = 'alisson-emily-' + VERSION;
 // Archivos que se guardan en caché
 const ARCHIVOS = [
   './',
-  './app_v10.html',
+  './index.html',
   './manifest.json'
 ];
 
