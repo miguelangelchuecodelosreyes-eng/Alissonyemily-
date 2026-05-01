@@ -7476,15 +7476,9 @@ function renderResumenSemanal(){
     if(registro){
       if((registro.prestamos||0)>0){ totalPrestado+=registro.prestamos; diasConPrestamo++; }
     }
-    // Papelería de renovaciones de ese día
-    let papList = [];
-    try{ papList = JSON.parse(lsGet('papeleria_renovaciones_'+iso)||'[]'); }catch(e){}
-    const sumPap = papList.reduce((s,p)=>s+p.valor,0);
-    const papManual = registro ? (registro.papeleria||0) : 0;
-    // Usar solo UNA fuente para evitar doble conteo:
-    // si hay papelería de renovaciones en localStorage, esa es la fuente correcta.
-    // Solo usar papManual si no hay datos de renovaciones.
-    const totalDiaPap = sumPap > 0 ? sumPap : papManual;
+    // registro.papeleria ya contiene el total completo del día
+    // (creaciones nuevas + renovaciones), guardado al hacer "Guardar día"
+    const totalDiaPap = registro ? (registro.papeleria||0) : 0;
     if(totalDiaPap > 0){ totalPapeleria += totalDiaPap; diasConPapeleria++; }
   }
 
