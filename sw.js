@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 //  SERVICE WORKER — Alisson & Emily
 //  👉 CADA VEZ QUE SUBAS A GITHUB, CAMBIA ESTE NÚMERO:
-const VERSION = 'v10.1';
+const VERSION = 'v10.2';
 // ══════════════════════════════════════════════
 
 const CACHE_NAME = 'alisson-emily-' + VERSION;
