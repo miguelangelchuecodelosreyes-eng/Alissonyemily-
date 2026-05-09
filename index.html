@@ -5196,7 +5196,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-04-19 v22';
+const APP_VERSION = '2026-05-09 v23';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5266,17 +5266,51 @@ function _aplicarActualizacion(verServidor){
   const VER_KEY = 'app_version_local';
   const verLocal = localStorage.getItem(VER_KEY) || '';
   localStorage.setItem(VER_KEY, verServidor);
-  if(verLocal && verLocal !== verServidor){
-    console.log('Nueva versión:', verServidor, '(tenía:', verLocal, ')');
-    _borrarTodoCacheSW();
-    localStorage.setItem('app_actualizada_flag', verServidor);
-    showToast('🔄 Nueva versión disponible, actualizando...');
-    setTimeout(() => {
-      window.location.replace(window.location.pathname + '?_uv=' + Date.now() + '&r=' + Math.random());
-    }, 1200);
+  // Primera vez: guardar versión sin mostrar nada
+  if(!verLocal){ return false; }
+  if(verLocal !== verServidor){
+    console.log('Nueva versión detectada:', verServidor, '(tenía:', verLocal, ')');
+    _mostrarNotificacionActualizacion(verServidor);
     return true;
   }
   return false;
+}
+
+function _mostrarNotificacionActualizacion(verServidor){
+  if(document.getElementById('notif-nueva-version')) return;
+  if(!document.getElementById('banner-style')){
+    const s = document.createElement('style');
+    s.id = 'banner-style';
+    s.textContent = '@keyframes slideDownBanner{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(s);
+  }
+  const notif = document.createElement('div');
+  notif.id = 'notif-nueva-version';
+  notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border-radius:20px;padding:16px 18px;box-shadow:0 8px 32px rgba(108,92,231,0.55);max-width:340px;width:calc(100% - 32px);box-sizing:border-box;animation:slideDownBanner 0.4s cubic-bezier(.22,1,.36,1)';
+  notif.innerHTML = \`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="font-size:26px">🆕</div>
+      <div>
+        <div style="font-size:14px;font-weight:900;color:white">¡Nueva versión disponible!</div>
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.8)">\${verServidor}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="btn-confirmar-actualizar" onclick="
+        this.disabled=true;
+        this.textContent='⏳ Actualizando...';
+        _borrarTodoCacheSW();
+        localStorage.setItem('app_actualizada_flag', '\${verServidor}');
+        setTimeout(()=>{ window.location.replace(window.location.pathname + '?_uv=' + Date.now()); }, 800);
+      " style="flex:1;background:white;color:#6c5ce7;border:none;border-radius:12px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+        ✅ Actualizar ahora
+      </button>
+      <button onclick="document.getElementById('notif-nueva-version').remove()"
+        style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer">
+        Después
+      </button>
+    </div>\`;
+  document.body.appendChild(notif);
 }
 
 // ── Verificar al abrir la app (rápido) ──
@@ -9165,56 +9199,39 @@ function actualizarPlenoFab(pleno){
   <div class="pfab-hoy" id="pfab-hoy">HOY</div>
 </div>
 
-<!-- ══ BANNER ACTUALIZACIÓN ══ -->
-<div id="update-banner">
-  <span>🚀 ¡Hay una actualización disponible!</span>
-  <button id="btn-actualizar" onclick="aplicarActualizacion()">Actualizar ahora</button>
-</div>
+<!-- sistema de notificación de actualización: ver _mostrarNotificacionActualizacion() -->
 
 <script>
-// ══ SERVICE WORKER — DETECCIÓN DE ACTUALIZACIONES ══
+// ══ SERVICE WORKER — registro y detección via SW ══
 let _swRegistration = null;
 let _swEsperando = null;
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(reg => {
     _swRegistration = reg;
-
-    // Ya hay un SW esperando (tab abierto antes de la actualización)
+    // SW ya instalado esperando (usuario tenía la app abierta)
     if(reg.waiting){
       _swEsperando = reg.waiting;
-      mostrarBannerActualizacion();
+      // Dejar que el sistema de APP_VERSION maneje la notificación
     }
-
-    // SW nuevo encontró actualización
+    // SW nuevo detectado
     reg.addEventListener('updatefound', () => {
       const nuevoSW = reg.installing;
       nuevoSW.addEventListener('statechange', () => {
         if(nuevoSW.state === 'installed' && navigator.serviceWorker.controller){
           _swEsperando = nuevoSW;
-          mostrarBannerActualizacion();
+          // El sistema _checkVersionServidor ya habrá mostrado la notificación
         }
       });
     });
   }).catch(err => console.log('SW no disponible:', err));
 
-  // Cuando el SW nuevo toma control, recargar la página
+  // Cuando el SW toma control después de que el usuario aprueba, recargar
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
+    if(localStorage.getItem('app_actualizada_flag')){
+      window.location.reload();
+    }
   });
-}
-
-function mostrarBannerActualizacion(){
-  const banner = document.getElementById('update-banner');
-  if(banner) banner.classList.add('visible');
-}
-
-function aplicarActualizacion(){
-  if(_swEsperando){
-    _swEsperando.postMessage({ type: 'SKIP_WAITING' });
-  } else {
-    window.location.reload(true);
-  }
 }
 </script>
 
