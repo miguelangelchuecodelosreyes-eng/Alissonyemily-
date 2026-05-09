@@ -1,26 +1,34 @@
 // ══════════════════════════════════════════════
 //  SERVICE WORKER — Alisson & Emily
-//  👉 CADA VEZ QUE SUBAS A GITHUB, CAMBIA ESTE NÚMERO:
-const VERSION = 'v10.2';
+//  ✅ NO toques nada aquí.
+//     Solo cambia APP_VERSION en el HTML y sube los 2 archivos.
 // ══════════════════════════════════════════════
 
-const CACHE_NAME = 'alisson-emily-' + VERSION;
+const CACHE_BASE = 'alisson-emily-';
+let CACHE_NAME = CACHE_BASE + 'init';
 
-// Archivos que se guardan en caché
-const ARCHIVOS = [
-  './',
-  './index.html',
-  './manifest.json'
-];
-
-// ── INSTALAR: guardar archivos en caché ──
+// ── INSTALAR: leer versión del HTML y guardar en caché ──
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ARCHIVOS);
-    })
+    // Detectar la URL real del HTML (funciona con cualquier nombre de archivo)
+    self.registration.scope
+      ? fetch(self.registration.scope + '?_sw=' + Date.now(), { cache: 'no-store' })
+          .then(r => r.text())
+          .then(html => {
+            const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+            const ver = m ? m[1].replace(/[\s']/g, '-') : ('t' + Date.now());
+            CACHE_NAME = CACHE_BASE + ver;
+            return caches.open(CACHE_NAME).then(cache =>
+              cache.add(self.registration.scope)
+            );
+          })
+          .catch(() => {
+            CACHE_NAME = CACHE_BASE + Date.now();
+            return caches.open(CACHE_NAME);
+          })
+      : Promise.resolve()
   );
-  // NO hacer skipWaiting aquí — esperar que el usuario apruebe
+  // NO skipWaiting — esperar que el usuario apruebe en la notificación
 });
 
 // ── ACTIVAR: borrar cachés viejas ──
@@ -29,39 +37,37 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+          .filter(k => k.startsWith(CACHE_BASE) && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// ── FETCH: Network First (siempre intenta red primero) ──
+// ── FETCH: Network First (red primero, caché como respaldo sin internet) ──
 self.addEventListener('fetch', event => {
-  // Solo manejar peticiones GET
   if(event.request.method !== 'GET') return;
+  // No interceptar verificaciones de versión ni del propio SW
+  if(event.request.url.includes('_vc=') || event.request.url.includes('_sw=')) return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then(response => {
-        // Si la red respondió bien, actualizar caché y devolver respuesta
-        if(response && response.status === 200){
+        // Guardar en caché si la red respondió bien
+        if(response && response.status === 200 && CACHE_NAME !== CACHE_BASE + 'init'){
           const copia = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, copia);
-          });
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copia));
         }
         return response;
       })
       .catch(() => {
-        // Sin red — usar caché
+        // Sin internet → usar caché guardada
         return caches.match(event.request);
       })
   );
 });
 
-// ── MENSAJE: cuando el usuario aprueba la actualización ──
+// ── MENSAJE: usuario tocó "Actualizar ahora" ──
 self.addEventListener('message', event => {
   if(event.data && event.data.type === 'SKIP_WAITING'){
     self.skipWaiting();
