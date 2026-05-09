@@ -656,43 +656,7 @@ body {
   100%{ box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 0 rgba(0,230,118,0); }
 }
 .pfab-burbuja.flash { animation: pfab-flash 0.55s ease; }
-/* ══ AVISO ACTUALIZACIÓN ══ */
-#update-banner {
-  display: none;
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 99999;
-  background: linear-gradient(135deg,#1a56db,#7c3aed);
-  color: white;
-  padding: 12px 16px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  animation: slideDown 0.3s ease;
-}
-@keyframes slideDown {
-  from { transform: translateY(-100%); }
-  to   { transform: translateY(0); }
-}
-#update-banner.visible { display: flex; }
-#update-banner span { flex: 1; }
-#btn-actualizar {
-  background: white;
-  color: #1a56db;
-  border: none;
-  border-radius: 20px;
-  padding: 7px 16px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px;
-  font-weight: 900;
-  cursor: pointer;
-  white-space: nowrap;
-}
-#btn-actualizar:active { opacity: 0.8; transform: scale(0.96); }
+/* CSS de notificación de actualización: ver _mostrarNotificacionActualizacion() */
 </style>
 </head>
 <body>
@@ -5211,22 +5175,12 @@ function mostrarVersionApp(){
 // ══════════════════════════════════════════════
 
 function _borrarTodoCacheSW(){
-  // 1) Borrar caches del Service Worker
+  // Borrar solo los caches del SW — NO desregistrar el SW ni tocar localStorage
   try {
     if('caches' in window){
       caches.keys().then(names => names.forEach(n => caches.delete(n)));
     }
   } catch(e){}
-  // 2) Desregistrar el Service Worker
-  try {
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(reg => reg.unregister());
-      });
-    }
-  } catch(e){}
-  // 3) Limpiar IndexedDB y sessionStorage (no localStorage para no perder datos)
-  try { if(window.indexedDB && indexedDB.databases){ indexedDB.databases().then(dbs => dbs.forEach(d => d.name && indexedDB.deleteDatabase(d.name))); } } catch(e){}
   try { sessionStorage.clear(); } catch(e){}
 }
 
@@ -7842,8 +7796,8 @@ function iniciarApp(){
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="font-size:28px">🎉</div>
             <div>
-              <div style="font-size:14px;font-weight:900;color:white">¡App actualizada!</div>
-              <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.85)">Versión ${verNueva} instalada correctamente</div>
+              <div style="font-size:14px;font-weight:900;color:white">✅ ¡App actualizada correctamente!</div>
+              <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.85)">Versión ${verNueva} lista 🎉</div>
             </div>
             <button onclick="document.getElementById('banner-actualizada').remove()"
               style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;color:white;font-size:16px;cursor:pointer;font-weight:900;flex-shrink:0;">✕</button>
@@ -7866,59 +7820,7 @@ function iniciarApp(){
   const vEl = document.getElementById('header-versiculo-text');
   if(vEl) vEl.textContent = getVersiculoDelDia();
   renderHistorial();
-  // ── Corrección papelería — DEBE correr ANTES de renderizar ──
-  // Ayer (2026-04-07): Ricardo tarifa $10 + Osvaldo cierra $35 = $45
-  (function(){
-    const ayer = '2026-04-07';
-    const key = 'papeleria_renovaciones_' + ayer;
-    let papAyer = [];
-    try{ papAyer = JSON.parse(lsGet(key)||'[]'); }catch(e){}
-    const tieneRicardo = papAyer.some(p=>p.cliente==='Ricardo tarifa');
-    const tieneOsvaldo = papAyer.some(p=>p.cliente==='Osvaldo cierra');
-    if(!tieneRicardo) papAyer.push({ cliente: 'Ricardo tarifa', valor: 10, fecha: ayer });
-    if(!tieneOsvaldo) papAyer.push({ cliente: 'Osvaldo cierra', valor: 35, fecha: ayer });
-    lsSet(key, JSON.stringify(papAyer));
-  })();
-  // Hoy (2026-04-08): Lorena $15 + Juan Orozco $25 = $40 — REEMPLAZA todo lo que haya
-  (function(){
-    const hoy = '2026-04-08';
-    const key = 'papeleria_renovaciones_' + hoy;
-    const papHoy = [
-      { cliente: 'Lorena', valor: 15, fecha: hoy },
-      { cliente: 'Juan Orozco', valor: 25, fecha: hoy }
-    ];
-    lsSet(key, JSON.stringify(papHoy));
-  })();
-  // Hoy (2026-04-09): Deduplicar papelería — quedarse con el último valor por cliente
-  (function(){
-    const hoy = '2026-04-09';
-    const key = 'papeleria_renovaciones_' + hoy;
-    let papList = [];
-    try{ papList = JSON.parse(lsGet(key)||'[]'); }catch(e){}
-    if(papList.length === 0) return;
-    const seen = {};
-    for(let i = papList.length - 1; i >= 0; i--){
-      const nombre = papList[i].cliente;
-      if(!seen[nombre]) seen[nombre] = papList[i];
-    }
-    lsSet(key, JSON.stringify(Object.values(seen)));
-  })();
-  // Hoy (2026-04-09): Deduplicar papelería nuevos — quedarse con el último valor por cliente
-  (function(){
-    const hoy = '2026-04-09';
-    const key = 'papeleria_nuevos_' + hoy;
-    let papList = [];
-    try{ papList = JSON.parse(lsGet(key)||'[]'); }catch(e){}
-    if(papList.length === 0) return;
-    const seen = {};
-    for(let i = papList.length - 1; i >= 0; i--){
-      const nombre = papList[i].cliente;
-      if(!seen[nombre]) seen[nombre] = papList[i];
-    }
-    lsSet(key, JSON.stringify(Object.values(seen)));
-  })();
-  // ────────────────────────────────────────────────────────────
-  renderResumenSemanal();
+  // (correcciones históricas de papelería eliminadas)
   renderClientes();
   cargarDesdeSupervisor();
   actualizarInfoPorcentaje();
@@ -9028,25 +8930,31 @@ function abrirPanelDiagnostico() {
 <!-- MODAL PEGAR BACKUP JSON -->
 <div id="modal-pegar-backup" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;overflow-y:auto">
   <div style="background:white;border-radius:24px;padding:24px 20px;width:100%;max-width:400px;margin:auto;margin-top:5vh;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
-    <div style="font-size:18px;font-weight:900;color:#059669;margin-bottom:4px;text-align:center">📋 Pegar copia de seguridad</div>
+    <div style="font-size:18px;font-weight:900;color:#059669;margin-bottom:4px;text-align:center">📋 Restaurar copia de seguridad</div>
     <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:16px;text-align:center;line-height:1.6">
-      Abre tu archivo <b>.json</b> con cualquier app de notas o editor de texto, selecciona <b>todo el contenido</b> y pégalo aquí abajo.
+      Seleccioná el archivo <b>.json</b> directamente desde tu celular.
     </div>
 
-    <!-- Pasos visuales -->
-    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:12px 14px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:900;color:#059669;letter-spacing:1px;margin-bottom:8px">CÓMO HACERLO:</div>
-      <div style="font-size:12px;color:#374151;font-weight:700;line-height:2">
-        1️⃣ Busca el archivo <b>copia-cuentas-....json</b><br>
-        2️⃣ Ábrelo con <b>Mis Archivos → abre con → Notas</b><br>
-        3️⃣ Selecciona todo (mantén presionado → Seleccionar todo)<br>
-        4️⃣ Copia y pega aquí 👇
-      </div>
+    <!-- Botón seleccionar archivo — forma más fácil -->
+    <input type="file" id="backup-file-input" accept=".json" style="display:none"
+      onchange="cargarArchivoBackup(event)">
+    <button onclick="document.getElementById('backup-file-input').click()"
+      style="display:block;width:100%;padding:16px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;text-align:center;box-shadow:0 6px 20px rgba(108,92,231,0.4);margin-bottom:14px">
+      📁 Seleccionar archivo .json
+    </button>
+
+    <div id="backup-file-nombre" style="display:none;font-size:12px;font-weight:800;color:#059669;text-align:center;margin-bottom:10px;padding:8px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac"></div>
+
+    <!-- Divisor -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="flex:1;height:1px;background:#e5e7eb"></div>
+      <div style="font-size:11px;color:#999;font-weight:700">o pegar manualmente</div>
+      <div style="flex:1;height:1px;background:#e5e7eb"></div>
     </div>
 
     <textarea id="backup-json-input"
       placeholder='Pega aquí el contenido del archivo .json...'
-      style="width:100%;height:160px;border:2px solid #86efac;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#fafff9;box-sizing:border-box;line-height:1.5"
+      style="width:100%;height:120px;border:2px solid #86efac;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#fafff9;box-sizing:border-box;line-height:1.5"
       oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#10b981' : '#fca5a5'">
     </textarea>
 
@@ -9060,6 +8968,22 @@ function abrirPanelDiagnostico() {
 </div>
 
 <script>
+function cargarArchivoBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const texto = e.target.result;
+    document.getElementById('backup-json-input').value = texto;
+    document.getElementById('backup-json-input').style.borderColor = texto.trim().startsWith('{') ? '#10b981' : '#fca5a5';
+    const nombreEl = document.getElementById('backup-file-nombre');
+    nombreEl.style.display = 'block';
+    nombreEl.textContent = '✅ Archivo cargado: ' + file.name;
+    document.getElementById('pegar-backup-error').style.display = 'none';
+  };
+  reader.readAsText(file);
+}
+
 function abrirPegarBackup(){
   document.getElementById('backup-json-input').value = '';
   document.getElementById('pegar-backup-error').style.display = 'none';
