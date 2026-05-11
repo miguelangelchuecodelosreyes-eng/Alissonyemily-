@@ -8968,20 +8968,27 @@ function abrirPanelDiagnostico() {
 </div>
 
 <script>
+let _backupArchivoTexto = null;
+
 function cargarArchivoBackup(event){
   const file = event.target.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(e){
-    const texto = e.target.result;
-    document.getElementById('backup-json-input').value = texto;
-    document.getElementById('backup-json-input').style.borderColor = texto.trim().startsWith('{') ? '#10b981' : '#fca5a5';
+    _backupArchivoTexto = e.target.result;
     const nombreEl = document.getElementById('backup-file-nombre');
     nombreEl.style.display = 'block';
     nombreEl.textContent = '✅ Archivo cargado: ' + file.name;
     document.getElementById('pegar-backup-error').style.display = 'none';
+    // Mostrar solo preview en el textarea (no el archivo completo)
+    const preview = _backupArchivoTexto.substring(0, 200) + '...';
+    const ta = document.getElementById('backup-json-input');
+    ta.value = preview;
+    ta.style.borderColor = '#10b981';
+    ta.style.color = '#888';
+    ta.readOnly = true;
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
 }
 
 function abrirPegarBackup(){
@@ -8992,21 +8999,29 @@ function abrirPegarBackup(){
 }
 
 function cerrarPegarBackup(){
+  _backupArchivoTexto = null;
+  const ta = document.getElementById('backup-json-input');
+  if(ta){ ta.value=''; ta.readOnly=false; ta.style.color='#111'; }
+  const fn = document.getElementById('backup-file-nombre');
+  if(fn){ fn.style.display='none'; fn.textContent=''; }
+  const fi = document.getElementById('backup-file-input');
+  if(fi) fi.value='';
   document.getElementById('modal-pegar-backup').style.display = 'none';
 }
 
 function confirmarPegarBackup(){
-  const texto = document.getElementById('backup-json-input').value.trim();
+  // Usar el archivo cargado si existe, si no usar el textarea
+  const texto = (_backupArchivoTexto || document.getElementById('backup-json-input').value).trim();
   const errEl = document.getElementById('pegar-backup-error');
   errEl.style.display = 'none';
 
   if(!texto){
-    errEl.textContent = '⚠️ El campo está vacío. Pega el contenido del archivo .json';
+    errEl.textContent = '⚠️ Seleccioná un archivo o pegá el contenido .json';
     errEl.style.display = 'block';
     return;
   }
   if(!texto.startsWith('{')){
-    errEl.textContent = '❌ Esto no parece un archivo de backup válido. Debe comenzar con {';
+    errEl.textContent = '❌ Archivo no válido. Debe comenzar con {';
     errEl.style.display = 'block';
     return;
   }
