@@ -8970,25 +8970,76 @@ function abrirPanelDiagnostico() {
 <script>
 let _backupArchivoTexto = null;
 
+function _limpiarTextoBackup(t){
+  if(!t) return '';
+  // Quitar BOM (UTF-8/UTF-16) y caracteres invisibles al inicio/fin
+  t = String(t).replace(/^[\uFEFF\u200B\u200C\u200D\u00A0\s]+/, '')
+               .replace(/[\uFEFF\u200B\u200C\u200D\u00A0\s]+$/, '');
+  // Si por alguna razón viene envuelto en comillas (algunos gestores de archivos)
+  if((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))){
+    try { t = JSON.parse(t); } catch(e){ t = t.slice(1,-1); }
+  }
+  return t.trim();
+}
+
+function _parseBackupJSON(texto){
+  texto = _limpiarTextoBackup(texto);
+  // Intento 1: parse directo
+  try { return JSON.parse(texto); } catch(e1){}
+  // Intento 2: extraer desde el primer { hasta el último }
+  const ini = texto.indexOf('{');
+  const fin = texto.lastIndexOf('}');
+  if(ini >= 0 && fin > ini){
+    const recorte = texto.substring(ini, fin + 1);
+    try { return JSON.parse(recorte); } catch(e2){}
+  }
+  // Intento 3: quitar comas finales (trailing commas) que rompen JSON.parse
+  try {
+    const limpio = texto.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(limpio);
+  } catch(e3){}
+  return null;
+}
+
 function cargarArchivoBackup(event){
   const file = event.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    _backupArchivoTexto = e.target.result;
+  const procesar = function(textoCrudo){
+    _backupArchivoTexto = _limpiarTextoBackup(textoCrudo);
     const nombreEl = document.getElementById('backup-file-nombre');
     nombreEl.style.display = 'block';
     nombreEl.textContent = '✅ Archivo cargado: ' + file.name;
     document.getElementById('pegar-backup-error').style.display = 'none';
     // Mostrar solo preview en el textarea (no el archivo completo)
-    const preview = _backupArchivoTexto.substring(0, 200) + '...';
+    const preview = _backupArchivoTexto.substring(0, 200) + (_backupArchivoTexto.length > 200 ? '...' : '');
     const ta = document.getElementById('backup-json-input');
     ta.value = preview;
     ta.style.borderColor = '#10b981';
     ta.style.color = '#888';
     ta.readOnly = true;
   };
-  reader.readAsText(file, 'UTF-8');
+  // Usar file.text() cuando esté disponible (mejor manejo de UTF-8 en Android)
+  if(file.text){
+    file.text().then(procesar).catch(function(){
+      const reader = new FileReader();
+      reader.onload = function(e){ procesar(e.target.result); };
+      reader.onerror = function(){
+        const errEl = document.getElementById('pegar-backup-error');
+        errEl.textContent = '❌ No se pudo leer el archivo. Probá seleccionarlo de nuevo.';
+        errEl.style.display = 'block';
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(e){ procesar(e.target.result); };
+    reader.onerror = function(){
+      const errEl = document.getElementById('pegar-backup-error');
+      errEl.textContent = '❌ No se pudo leer el archivo. Probá seleccionarlo de nuevo.';
+      errEl.style.display = 'block';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
 }
 
 function abrirPegarBackup(){
@@ -9010,24 +9061,35 @@ function cerrarPegarBackup(){
 }
 
 function confirmarPegarBackup(){
-  // Usar el archivo cargado si existe, si no usar el textarea
-  const texto = (_backupArchivoTexto || document.getElementById('backup-json-input').value).trim();
   const errEl = document.getElementById('pegar-backup-error');
   errEl.style.display = 'none';
+
+  // Si hay archivo cargado usamos SIEMPRE el archivo completo (no la preview del textarea)
+  let texto = _backupArchivoTexto;
+  if(!texto){
+    texto = document.getElementById('backup-json-input').value;
+  }
+  texto = _limpiarTextoBackup(texto || '');
 
   if(!texto){
     errEl.textContent = '⚠️ Seleccioná un archivo o pegá el contenido .json';
     errEl.style.display = 'block';
     return;
   }
-  if(!texto.startsWith('{')){
-    errEl.textContent = '❌ Archivo no válido. Debe comenzar con {';
+  if(texto.indexOf('{') === -1){
+    errEl.textContent = '❌ Archivo no válido. No contiene datos JSON.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const datos = _parseBackupJSON(texto);
+  if(!datos){
+    errEl.textContent = '❌ Error al leer el JSON. Probá seleccionar el archivo otra vez con el botón 📁.';
     errEl.style.display = 'block';
     return;
   }
 
   try {
-    const datos = JSON.parse(texto);
     const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
     const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
     if(!tieneAlgo){
