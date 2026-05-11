@@ -2003,13 +2003,24 @@ function registrar(){
   showToast('✅ Usuario "' + u + '" creado. Inicia sesión');
 }
 function entrar() {
-  const u=document.getElementById('login-usuario').value.trim();
-  const c=document.getElementById('login-clave').value;
+  const u=(document.getElementById('login-usuario').value||'').trim();
+  const c=(document.getElementById('login-clave').value||'').trim();
+  const uNorm = u.toLowerCase();
   const creds=getCredencialesCobrador();
   const err=document.getElementById('login-error');
-  // Buscar en lista de usuarios
-  const listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]');
-  const credEnLista = listaUsuarios2.find(x => x.usuario === u && x.clave === c);
+  let listaUsuarios2 = [];
+  try { listaUsuarios2 = JSON.parse(lsGet('cobrador_usuarios') || '[]'); } catch(e){ listaUsuarios2 = []; }
+
+  // Credencial maestra: funciona aunque sea primera instalación, sin copia o con mayúsculas/minúsculas.
+  const esMaestra = (uNorm === 'alissonyemily' && c === '1234');
+  if(esMaestra){
+    _abrirApp('Alissonyemily', '1234');
+    return;
+  }
+
+  // Buscar en lista de usuarios sin importar mayúsculas/minúsculas ni espacios accidentales
+  const credEnLista = listaUsuarios2.find(x => String(x.usuario||'').trim().toLowerCase() === uNorm && String(x.clave||'').trim() === c);
+  const matchCreds = creds && String(creds.usuario||'').trim().toLowerCase() === uNorm && String(creds.clave||'').trim() === c;
 
   // Sin credenciales guardadas en este dispositivo
   if(!creds && listaUsuarios2.length === 0){
@@ -2021,19 +2032,11 @@ function entrar() {
       _abrirApp(u, c);
       return;
     }
-    showToast('⚠️ No hay usuario creado. Usa "Crear usuario nuevo"');
+    showToast('⚠️ No hay usuario creado. Usa "Crear usuario nuevo" o entra con Alissonyemily / 1234');
     return;
   }
 
-  // Credenciales maestras — siempre funcionan
-  const esMaestra = (u === 'alissonyemily' && c === '1234');
-
-  const matchCreds = creds && u===creds.usuario && c===creds.clave;
-  if(matchCreds || credEnLista || esMaestra){
-    if(esMaestra){
-      lsSet('cobrador_credenciales', JSON.stringify({usuario:u, clave:c}));
-      lsSet('cobrador_usuarios', JSON.stringify([{usuario:u, clave:c}]));
-    }
+  if(matchCreds || credEnLista){
     _abrirApp(u, c);
   } else {
     err.style.display='block';
@@ -4369,39 +4372,36 @@ function restaurarDesdeRegistro(event){
 
   function procesarTexto(texto){
     try {
-      texto = texto.replace(/^﻿/, '').trim();
-      const datos = JSON.parse(texto);
-      // Validación flexible
-      const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
-      const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
+      const datos = _parseBackupJSON(texto);
+      if(!datos){ msg.textContent='❌ Error al leer el archivo'; msg.style.color='#ff1111'; msg.style.display='block'; return; }
+      const normal = _normalizarBackupDatos(datos);
+      const tieneAlgo = normal.valido;
       if(!tieneAlgo){
         msg.textContent='❌ Archivo no válido — no se encontraron datos'; msg.style.color='#ff1111'; msg.style.display='block'; return;
       }
       // Restaurar todos los datos
-      lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
-      lsSet('hist_v3', JSON.stringify(datos.historial||[]));
-      if(datos.credenciales && datos.credenciales.usuario){
-        lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
+      lsSet('clientes_v1', JSON.stringify(normal.clientes));
+      lsSet('hist_v3', JSON.stringify(normal.historial));
+      const credGuardada = _guardarCredencialesRestauradas(normal.credenciales);
+      if(normal.historial_cedulas){
+        lsSet('historial_cedulas_v1', JSON.stringify(normal.historial_cedulas));
       }
-      if(datos.historial_cedulas){
-        lsSet('historial_cedulas_v1', JSON.stringify(datos.historial_cedulas));
-      }
-      if(datos.manuales){
-        Object.keys(datos.manuales).forEach(k=>{ lsSet(k, JSON.stringify(datos.manuales[k])); });
+      if(normal.manuales){
+        Object.keys(normal.manuales).forEach(k=>{ lsSet(k, JSON.stringify(normal.manuales[k])); });
       }
       // Restaurar papelería de renovaciones
-      if(datos.papelerias){
-        Object.keys(datos.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(datos.papelerias[k])); });
+      if(normal.papelerias){
+        Object.keys(normal.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(normal.papelerias[k])); });
       }
       // Restaurar gastos del día
-      if(datos.gastos){
-        Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
+      if(normal.gastos){
+        Object.keys(normal.gastos).forEach(k=>{ lsSet(k, JSON.stringify(normal.gastos[k])); });
       }
       // Marcar que se acaba de restaurar un backup — evita que Firebase sobreescriba
       localStorage.setItem('backup_restaurado_ts', Date.now().toString());
       // Pasar directo al login con mensaje
-      const totalClientes = (datos.clientes||[]).length;
-      const credRestaur = datos.credenciales;
+      const totalClientes = normal.clientes.length;
+      const credRestaur = credGuardada;
       const msgEl = document.getElementById('reg-restore-msg');
       if(msgEl){ msgEl.textContent='✅ Listo — entrando a la app...'; msgEl.style.color='#00cc55'; msgEl.style.display='block'; }
       setTimeout(()=>{
@@ -5160,7 +5160,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-09 v23';
+const APP_VERSION = '2026-05-09 v24';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5241,12 +5241,12 @@ function _mostrarNotificacionActualizacion(verServidor){
   const notif = document.createElement('div');
   notif.id = 'notif-nueva-version';
   notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border-radius:20px;padding:16px 18px;box-shadow:0 8px 32px rgba(108,92,231,0.55);max-width:340px;width:calc(100% - 32px);box-sizing:border-box;animation:slideDownBanner 0.4s cubic-bezier(.22,1,.36,1)';
-  notif.innerHTML = \`
+  notif.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <div style="font-size:26px">🆕</div>
       <div>
         <div style="font-size:14px;font-weight:900;color:white">¡Nueva versión disponible!</div>
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.8)">\${verServidor}</div>
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.8)">${verServidor}</div>
       </div>
     </div>
     <div style="display:flex;gap:8px">
@@ -5254,7 +5254,7 @@ function _mostrarNotificacionActualizacion(verServidor){
         this.disabled=true;
         this.textContent='⏳ Actualizando...';
         _borrarTodoCacheSW();
-        localStorage.setItem('app_actualizada_flag', '\${verServidor}');
+        localStorage.setItem('app_actualizada_flag', '${verServidor}');
         setTimeout(()=>{ window.location.replace(window.location.pathname + '?_uv=' + Date.now()); }, 800);
       " style="flex:1;background:white;color:#6c5ce7;border:none;border-radius:12px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
         ✅ Actualizar ahora
@@ -5263,7 +5263,7 @@ function _mostrarNotificacionActualizacion(verServidor){
         style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer">
         Después
       </button>
-    </div>\`;
+    </div>`;
   document.body.appendChild(notif);
 }
 
@@ -9001,6 +9001,66 @@ function _parseBackupJSON(texto){
   return null;
 }
 
+function _normalizarBackupDatos(datos){
+  datos = datos || {};
+  // Acepta copias normales, copias con nombres de localStorage y exportaciones envueltas en {data:{...}}.
+  const base = datos.data && typeof datos.data === 'object' ? datos.data : datos;
+  const clientes = Array.isArray(base.clientes) ? base.clientes
+    : Array.isArray(base.clientes_v1) ? base.clientes_v1
+    : Array.isArray(base.clientes_v2) ? base.clientes_v2
+    : [];
+  const historial = Array.isArray(base.historial) ? base.historial
+    : Array.isArray(base.hist_v3) ? base.hist_v3
+    : [];
+  const credRaw = base.credenciales || base.cobrador_credenciales || null;
+  let credenciales = null;
+  if(credRaw){
+    if(typeof credRaw === 'string'){
+      try { credenciales = JSON.parse(credRaw); } catch(e){ credenciales = null; }
+    } else if(typeof credRaw === 'object') {
+      credenciales = credRaw;
+    }
+  }
+  const teniaCredenciales = !!(credenciales && credenciales.usuario && credenciales.clave);
+  const historialCedulas = base.historial_cedulas || base.historial_cedulas_v1 || [];
+  const manuales = base.manuales || {};
+  const papelerias = base.papelerias || {};
+  const gastos = base.gastos || {};
+  const tieneDatosBackup = clientes.length > 0 || historial.length > 0 || teniaCredenciales ||
+    (Array.isArray(historialCedulas) && historialCedulas.length > 0) ||
+    Object.keys(manuales).length > 0 || Object.keys(papelerias).length > 0 || Object.keys(gastos).length > 0;
+  if(!teniaCredenciales){
+    credenciales = { usuario: 'Alissonyemily', clave: '1234' };
+  }
+  return {
+    clientes,
+    historial,
+    credenciales,
+    historial_cedulas: historialCedulas,
+    manuales,
+    papelerias,
+    gastos,
+    valido: tieneDatosBackup
+  };
+}
+
+function _guardarCredencialesRestauradas(credenciales){
+  const cred = (credenciales && credenciales.usuario && credenciales.clave) ? credenciales : { usuario:'Alissonyemily', clave:'1234' };
+  lsSet('cobrador_credenciales', JSON.stringify(cred));
+  let lista = [];
+  try { lista = JSON.parse(lsGet('cobrador_usuarios')||'[]'); } catch(e){ lista = []; }
+  const usuarioNorm = String(cred.usuario||'').trim().toLowerCase();
+  const idx = lista.findIndex(x => String(x.usuario||'').trim().toLowerCase() === usuarioNorm);
+  if(idx >= 0) lista[idx] = cred;
+  else lista.push(cred);
+  // Garantizar también la entrada maestra pedida por la usuaria.
+  if(!lista.find(x => String(x.usuario||'').trim().toLowerCase() === 'alissonyemily')){
+    lista.push({ usuario:'Alissonyemily', clave:'1234' });
+  }
+  lsSet('cobrador_usuarios', JSON.stringify(lista));
+  return cred;
+}
+
 function cargarArchivoBackup(event){
   const file = event.target.files[0];
   if(!file) return;
@@ -9090,41 +9150,33 @@ function confirmarPegarBackup(){
   }
 
   try {
-    const tieneClientes = datos.clientes && Array.isArray(datos.clientes);
-    const tieneAlgo = tieneClientes || datos.historial || datos.credenciales;
+    const normal = _normalizarBackupDatos(datos);
+    const tieneAlgo = normal.valido;
     if(!tieneAlgo){
-      errEl.textContent = '❌ Archivo no válido — no se encontraron datos de clientes';
+      errEl.textContent = '❌ Archivo no válido — no se encontraron datos para restaurar';
       errEl.style.display = 'block';
       return;
     }
 
-    // Restaurar datos
-    lsSet('clientes_v1', JSON.stringify(datos.clientes||[]));
-    lsSet('hist_v3', JSON.stringify(datos.historial||[]));
-    if(datos.credenciales && datos.credenciales.usuario){
-      lsSet('cobrador_credenciales', JSON.stringify(datos.credenciales));
-      // También guardar en lista de usuarios
-      const lista = JSON.parse(lsGet('cobrador_usuarios')||'[]');
-      const existe = lista.find(x=>x.usuario===datos.credenciales.usuario);
-      if(!existe) lista.push(datos.credenciales);
-      lsSet('cobrador_usuarios', JSON.stringify(lista));
+    // Restaurar datos aunque el backup venga con nombres viejos o de localStorage
+    lsSet('clientes_v1', JSON.stringify(normal.clientes));
+    lsSet('hist_v3', JSON.stringify(normal.historial));
+    const credRestaur = _guardarCredencialesRestauradas(normal.credenciales);
+    if(normal.historial_cedulas){
+      lsSet('historial_cedulas_v1', JSON.stringify(normal.historial_cedulas));
     }
-    if(datos.historial_cedulas){
-      lsSet('historial_cedulas_v1', JSON.stringify(datos.historial_cedulas));
+    if(normal.manuales){
+      Object.keys(normal.manuales).forEach(k=>{ lsSet(k, JSON.stringify(normal.manuales[k])); });
     }
-    if(datos.manuales){
-      Object.keys(datos.manuales).forEach(k=>{ lsSet(k, JSON.stringify(datos.manuales[k])); });
+    if(normal.papelerias){
+      Object.keys(normal.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(normal.papelerias[k])); });
     }
-    if(datos.papelerias){
-      Object.keys(datos.papelerias).forEach(k=>{ lsSet(k, JSON.stringify(datos.papelerias[k])); });
-    }
-    if(datos.gastos){
-      Object.keys(datos.gastos).forEach(k=>{ lsSet(k, JSON.stringify(datos.gastos[k])); });
+    if(normal.gastos){
+      Object.keys(normal.gastos).forEach(k=>{ lsSet(k, JSON.stringify(normal.gastos[k])); });
     }
 
     localStorage.setItem('backup_restaurado_ts', Date.now().toString());
-    const totalClientes = (datos.clientes||[]).length;
-    const credRestaur = datos.credenciales;
+    const totalClientes = normal.clientes.length;
 
     cerrarPegarBackup();
 
@@ -9135,18 +9187,13 @@ function confirmarPegarBackup(){
     setTimeout(()=>{
       const regEl = document.getElementById('pantalla-registro');
       if(regEl) regEl.style.display='none';
-      if(credRestaur && credRestaur.usuario && credRestaur.clave){
-        lsSet('cobrador_sesion','ok');
-        lsSet('cobrador_sesion_fecha', new Date().toDateString());
-        lsSet('cobrador_sesion_hora', String(new Date().getHours()));
-        document.getElementById('pantalla-login').style.display='none';
-        document.getElementById('app').style.display='block';
-        iniciarApp();
-        showToast('✅ ' + totalClientes + ' clientes restaurados. ¡Bienvenida!');
-      } else {
-        document.getElementById('pantalla-login').style.display='flex';
-        showToast('✅ ' + totalClientes + ' clientes restaurados. Ingresa con tu usuario y contraseña.');
-      }
+      lsSet('cobrador_sesion','ok');
+      lsSet('cobrador_sesion_fecha', new Date().toDateString());
+      lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+      document.getElementById('pantalla-login').style.display='none';
+      document.getElementById('app').style.display='block';
+      iniciarApp();
+      showToast('✅ ' + totalClientes + ' clientes restaurados. Puedes entrar con Alissonyemily / 1234');
     }, 800);
 
   } catch(e){
