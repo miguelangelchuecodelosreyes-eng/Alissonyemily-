@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -17,6 +17,10 @@
 <meta name="theme-color" content="#ff00cc">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="description" content="Alisson & Emily — app personal con agenda, tareas y recuerdos.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════
@@ -657,6 +661,124 @@ body {
 }
 .pfab-burbuja.flash { animation: pfab-flash 0.55s ease; }
 /* CSS de notificación de actualización: ver _mostrarNotificacionActualizacion() */
+
+
+/* ══════════════════════════════════════════════════
+   MEJORAS v11 — accesibilidad, motion, refinamiento
+   ══════════════════════════════════════════════════ */
+
+/* Tokens extra: gradientes y sombras más ricas */
+:root{
+  --gradient-primary: linear-gradient(135deg,#a855f7 0%,#ec4899 50%,#f97316 100%);
+  --gradient-soft:    linear-gradient(135deg,#fdf4ff 0%,#fff1f2 50%,#fef3c7 100%);
+  --shadow-soft: 0 2px 6px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+  --shadow-pop:  0 10px 25px -5px rgba(168,85,247,.25), 0 8px 10px -6px rgba(236,72,153,.2);
+  --ring: 0 0 0 3px rgba(168,85,247,.35);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+}
+
+/* Mejor renderizado de texto */
+html{ -webkit-text-size-adjust:100%; text-rendering:optimizeLegibility; }
+body{ font-feature-settings:"kern","liga","calt"; overscroll-behavior-y:contain; }
+
+/* Selección con marca */
+::selection{ background:rgba(236,72,153,.25); color:inherit; }
+
+/* Focus visible accesible para teclado (sin afectar tap móvil) */
+:focus{ outline:none; }
+:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+  border-radius:10px;
+}
+button, .nav-tab, .login-btn, .btn-logout, input, textarea, select{
+  transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out),
+              background-color .18s var(--ease-out), color .18s var(--ease-out),
+              border-color .18s var(--ease-out), opacity .18s var(--ease-out);
+}
+
+/* Microinteracción universal en botones */
+button:not(:disabled):active{ transform:translateY(1px) scale(.985); }
+
+/* Sombras de tarjeta más pulidas y hover suave */
+.seccion{ box-shadow: var(--shadow-soft); transition: box-shadow .25s var(--ease-out), transform .25s var(--ease-out); }
+.seccion:hover{ box-shadow: var(--shadow-pop); }
+
+/* Login: profundidad extra y respeto de safe-area */
+#pantalla-login{ padding-top: max(110px, env(safe-area-inset-top, 0px) + 90px); }
+.login-card{ box-shadow: 0 30px 80px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.35), inset 0 1px 0 rgba(255,255,255,.6); }
+.login-input:hover{ border-color:#d8b4fe; }
+.login-btn:hover{ filter:brightness(1.05) saturate(1.05); }
+
+/* Header: glass más limpio + safe area */
+.header{ padding-top: calc(22px + env(safe-area-inset-top, 0px)); }
+.btn-logout:hover{ background:rgba(255,255,255,.35); }
+
+/* Nav tabs: indicador activo más claro */
+.nav-tab{ position:relative; }
+.nav-tab.activo::after{
+  content:""; position:absolute; left:18%; right:18%; bottom:-1px; height:3px;
+  background:var(--gradient-primary); border-radius:3px 3px 0 0;
+}
+
+/* Inputs globales más cómodos */
+input, textarea, select{
+  font-family:var(--font);
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible{
+  border-color:var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(233,30,138,.15) !important;
+}
+
+/* Imágenes seguras */
+img{ max-width:100%; height:auto; }
+
+/* Skeleton util */
+.skeleton{
+  background:linear-gradient(90deg,#eee 25%,#f5f5f5 37%,#eee 63%);
+  background-size:400% 100%;
+  animation: skel 1.4s ease infinite;
+  border-radius:10px;
+}
+@keyframes skel{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+
+/* Soporte de zoom: respetar preferencia del usuario */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Modo oscuro automático suave (no rompe pantallas con fondos propios) */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f0a1a;
+    --bg-card:#171127;
+    --text:#f1e9ff;
+    --text-muted:#9aa3b2;
+    --border:#2a1f40;
+    --shadow-soft: 0 2px 6px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
+  }
+  body{ background:var(--bg); color:var(--text); }
+  .seccion{ background:var(--bg-card); border-color:var(--border); }
+  .login-card{ background:rgba(23,17,39,.92); color:var(--text); }
+  .login-input{ background:#0f0a1a; color:#f1e9ff; border-color:#3a2a55; }
+  .login-label{ color:#c9b8e8; }
+  input, textarea, select{ color:inherit; }
+}
+
+/* Tap targets mínimos accesibles */
+button, .nav-tab, a{ min-height:40px; }
+
+/* Ocultar visualmente pero accesible para lectores */
+.sr-only{
+  position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
 </style>
 </head>
 <body>
@@ -5160,7 +5282,7 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-09 v24';
+const APP_VERSION = '2026-05-09 v25';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
