@@ -5440,7 +5440,20 @@ function cerrarDetalle(){
 }
 
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-09 v25';
+// Toast post-actualización
+(function(){
+  try {
+    const flag = localStorage.getItem('app_actualizada_flag');
+    if(flag){
+      localStorage.removeItem('app_actualizada_flag');
+      setTimeout(()=>{
+        if(typeof showToast === 'function') showToast('✅ App actualizada a ' + flag);
+      }, 600);
+    }
+  } catch(e){}
+})();
+// ===== ACTUALIZACIÓN DE LA APP =====
+const APP_VERSION = '2026-05-14 v25';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5511,40 +5524,92 @@ function _aplicarActualizacion(verServidor){
 }
 
 function _mostrarNotificacionActualizacion(verServidor){
-  if(document.getElementById('notif-nueva-version')) return;
-  if(!document.getElementById('banner-style')){
+  if(document.getElementById('modal-nueva-version')) return;
+  // Vibrar para llamar la atención
+  try { if(navigator.vibrate) navigator.vibrate([200,100,200,100,300]); } catch(e){}
+  // Sonido beep corto
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880; g.gain.value = 0.08;
+    o.start(); setTimeout(()=>{ o.frequency.value=1320; }, 150);
+    setTimeout(()=>{ o.stop(); ctx.close(); }, 350);
+  } catch(e){}
+
+  if(!document.getElementById('update-modal-style')){
     const s = document.createElement('style');
-    s.id = 'banner-style';
-    s.textContent = '@keyframes slideDownBanner{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    s.id = 'update-modal-style';
+    s.textContent = `
+      @keyframes updOverlayIn { from{opacity:0} to{opacity:1} }
+      @keyframes updCardIn { from{opacity:0;transform:translateY(40px) scale(.85)} to{opacity:1;transform:translateY(0) scale(1)} }
+      @keyframes updIconPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15) rotate(-8deg)} }
+      @keyframes updGlow { 0%,100%{box-shadow:0 0 30px rgba(168,85,247,.6),0 0 60px rgba(255,20,147,.4)} 50%{box-shadow:0 0 50px rgba(255,138,0,.8),0 0 90px rgba(168,85,247,.6)} }
+      @keyframes updShine { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+      #upd-overlay{position:fixed;inset:0;z-index:999999;background:rgba(10,5,30,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;animation:updOverlayIn .35s ease}
+      #upd-card{max-width:380px;width:100%;background:linear-gradient(135deg,#1a0b3d 0%,#2d1b69 50%,#4c1d95 100%);border-radius:28px;padding:28px 24px;text-align:center;color:#fff;animation:updCardIn .5s cubic-bezier(.22,1.2,.36,1),updGlow 2.5s ease infinite;border:2px solid rgba(255,255,255,.15);position:relative;overflow:hidden}
+      #upd-card::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);background-size:200% 100%;animation:updShine 3s linear infinite;pointer-events:none}
+      #upd-icon{font-size:64px;display:inline-block;animation:updIconPulse 1.4s ease infinite;filter:drop-shadow(0 4px 12px rgba(255,138,0,.6))}
+      #upd-title{font-size:22px;font-weight:900;margin:14px 0 6px;letter-spacing:.3px;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+      #upd-sub{font-size:14px;font-weight:700;opacity:.92;line-height:1.45;margin-bottom:6px}
+      #upd-ver{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px 14px;font-size:12px;font-weight:900;margin:8px 0 18px;letter-spacing:.5px}
+      #upd-btn-yes{display:block;width:100%;background:linear-gradient(135deg,#ff8a00,#ff1493,#a855f7);background-size:200% 100%;animation:updShine 2.5s linear infinite;color:#fff;border:none;border-radius:16px;padding:16px;font-family:inherit;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(255,20,147,.45);letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s ease}
+      #upd-btn-yes:active{transform:scale(.96)}
+      #upd-btn-no{display:block;width:100%;background:transparent;color:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.25);border-radius:14px;padding:11px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
+      #upd-progress{display:none;margin-top:14px;height:6px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden}
+      #upd-progress > div{height:100%;width:0%;background:linear-gradient(90deg,#00ffc6,#00b3ff,#a855f7);transition:width .3s ease}
+      @media (prefers-reduced-motion:reduce){
+        #upd-card,#upd-icon,#upd-btn-yes,#upd-card::before{animation:none !important}
+      }
+    `;
     document.head.appendChild(s);
   }
-  const notif = document.createElement('div');
-  notif.id = 'notif-nueva-version';
-  notif.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border-radius:20px;padding:16px 18px;box-shadow:0 8px 32px rgba(108,92,231,0.55);max-width:340px;width:calc(100% - 32px);box-sizing:border-box;animation:slideDownBanner 0.4s cubic-bezier(.22,1,.36,1)';
-  notif.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <div style="font-size:26px">🆕</div>
-      <div>
-        <div style="font-size:14px;font-weight:900;color:white">¡Nueva versión disponible!</div>
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.8)">${verServidor}</div>
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-nueva-version';
+  overlay.innerHTML = `
+    <div id="upd-overlay">
+      <div id="upd-card" role="dialog" aria-modal="true" aria-labelledby="upd-title">
+        <div id="upd-icon">🚀</div>
+        <div id="upd-title">¡Nueva versión disponible!</div>
+        <div id="upd-sub">Hay una actualización lista para instalarse.<br>Tus datos NO se borran.</div>
+        <div id="upd-ver">${verServidor}</div>
+        <button id="upd-btn-yes" type="button">⚡ Actualizar ahora</button>
+        <button id="upd-btn-no" type="button">Recordarme en 10 min</button>
+        <div id="upd-progress"><div></div></div>
       </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button id="btn-confirmar-actualizar" onclick="
-        this.disabled=true;
-        this.textContent='⏳ Actualizando...';
-        _borrarTodoCacheSW();
-        localStorage.setItem('app_actualizada_flag', '${verServidor}');
-        setTimeout(()=>{ window.location.replace(window.location.pathname + '?_uv=' + Date.now()); }, 800);
-      " style="flex:1;background:white;color:#6c5ce7;border:none;border-radius:12px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
-        ✅ Actualizar ahora
-      </button>
-      <button onclick="document.getElementById('notif-nueva-version').remove()"
-        style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer">
-        Después
-      </button>
     </div>`;
-  document.body.appendChild(notif);
+  document.body.appendChild(overlay);
+
+  const yes = document.getElementById('upd-btn-yes');
+  const no  = document.getElementById('upd-btn-no');
+  const prog = document.getElementById('upd-progress');
+  const bar = prog.firstElementChild;
+
+  yes.addEventListener('click', function(){
+    yes.disabled = true; no.disabled = true;
+    yes.textContent = '⏳ Instalando actualización...';
+    yes.style.opacity = '.85';
+    prog.style.display = 'block';
+    let p = 0;
+    const t = setInterval(()=>{ p = Math.min(95, p+9+Math.random()*8); bar.style.width = p+'%'; }, 90);
+    try { _borrarTodoCacheSW(); } catch(e){}
+    try { localStorage.setItem('app_actualizada_flag', verServidor); } catch(e){}
+    setTimeout(()=>{
+      clearInterval(t);
+      bar.style.width = '100%';
+      setTimeout(()=>{
+        const url = window.location.pathname + '?_uv=' + Date.now() + '&r=' + Math.random();
+        window.location.replace(url);
+      }, 250);
+    }, 850);
+  });
+
+  no.addEventListener('click', function(){
+    overlay.remove();
+    // Volver a recordar en 10 minutos
+    setTimeout(()=>{ _checkVersionServidor(v=>_aplicarActualizacion(v)); }, 10*60*1000);
+  });
 }
 
 // ── Verificar al abrir la app (rápido) ──
