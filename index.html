@@ -779,6 +779,164 @@ button, .nav-tab, a{ min-height:40px; }
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
 
+/* ══════════════════════════════════════════════════
+   v3 — COLORES VIVOS + NAV + GRÁFICOS + RESTAURAR
+   ══════════════════════════════════════════════════ */
+:root{
+  --primary:        #ff1493;
+  --primary-dark:   #d6006d;
+  --primary-light:  #ff6ec7;
+  --accent:         #00ffc6;
+  --accent-dark:    #00c896;
+  --neon-blue:      #00b3ff;
+  --neon-purple:    #a855f7;
+  --neon-orange:    #ff8a00;
+  --neon-yellow:    #ffd60a;
+  --neon-red:       #ff2e63;
+  --gradient-primary: linear-gradient(135deg,#a855f7 0%,#ff1493 45%,#ff8a00 100%);
+  --gradient-vivid:   linear-gradient(135deg,#00b3ff 0%,#a855f7 50%,#ff1493 100%);
+  --gradient-money:   linear-gradient(135deg,#00ffc6 0%,#00b3ff 100%);
+  --gradient-fire:    linear-gradient(135deg,#ffd60a 0%,#ff8a00 50%,#ff2e63 100%);
+  --shadow-pop: 0 12px 28px -8px rgba(255,20,147,.45), 0 8px 18px -8px rgba(168,85,247,.4);
+}
+
+/* Header con neón más intenso */
+.header{
+  background: linear-gradient(135deg,#a855f7 0%,#ff1493 40%,#ff8a00 75%,#ffd60a 100%) !important;
+  background-size:300% 300% !important;
+  animation: neonShift 7s ease infinite !important;
+  box-shadow: 0 8px 30px rgba(255,20,147,.35), 0 4px 14px rgba(168,85,247,.25) !important;
+}
+
+/* ══ NAV — pestañas tipo "pill" con colores vivos por estado ══ */
+.nav-tabs{
+  gap:6px !important;
+  padding:14px 12px 0 !important;
+}
+.nav-tab{
+  background: rgba(255,255,255,.18) !important;
+  border:1px solid rgba(255,255,255,.25) !important;
+  color:#fff !important;
+  border-radius:14px 14px 6px 6px !important;
+  font-weight:900 !important;
+  letter-spacing:.2px;
+  text-shadow:0 1px 2px rgba(0,0,0,.25);
+  transition: transform .2s var(--ease-out), background .2s, color .2s, box-shadow .2s !important;
+}
+.nav-tab:hover{ background:rgba(255,255,255,.28) !important; transform:translateY(-1px); }
+.nav-tab.activo{
+  background:#fff !important;
+  color:#d6006d !important;
+  text-shadow:none;
+  box-shadow:
+    0 -2px 0 rgba(255,255,255,.6) inset,
+    0 10px 24px -10px rgba(255,20,147,.55),
+    0 4px 10px -4px rgba(168,85,247,.4) !important;
+  border-color:transparent !important;
+  transform:translateY(-2px);
+}
+.nav-tab.activo::after{
+  content:""; position:absolute; left:14%; right:14%; bottom:-2px; height:4px;
+  background: var(--gradient-vivid) !important;
+  border-radius:4px 4px 0 0;
+  box-shadow:0 0 14px rgba(255,20,147,.7);
+}
+
+/* ══ "GRÁFICOS" — totales y stats con valores vibrantes ══ */
+.total-bloque.azul{ background:linear-gradient(135deg,#fdf4ff,#fce7ff) !important; border-top:3px solid #ff1493 !important; }
+.total-bloque.rojo{ background:linear-gradient(135deg,#fff1f2,#ffe4e6) !important; border-top:3px solid #ff2e63 !important; }
+.total-valor{
+  font-size:28px !important;
+  letter-spacing:-.5px;
+  text-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+.total-valor.azul{
+  background: linear-gradient(135deg,#a855f7,#ff1493 60%,#ff8a00) !important;
+  -webkit-background-clip:text; background-clip:text; color:transparent !important;
+}
+.total-valor.rojo{
+  background: linear-gradient(135deg,#ff2e63,#ff8a00) !important;
+  -webkit-background-clip:text; background-clip:text; color:transparent !important;
+}
+
+/* Stats semanales con color saturado */
+.semana-stat-val.morado  { color:#a855f7 !important; text-shadow:0 0 1px rgba(168,85,247,.25); }
+.semana-stat-val.verde   { color:#00c896 !important; text-shadow:0 0 1px rgba(0,200,150,.25); }
+.semana-stat-val.rojo    { color:#ff2e63 !important; text-shadow:0 0 1px rgba(255,46,99,.25); }
+.semana-stat-val.naranja { color:#ff8a00 !important; text-shadow:0 0 1px rgba(255,138,0,.25); }
+
+/* "Mini-barras" decorativas: cualquier .total-bloque gana una franja superior degradada */
+.total-bloque{ position:relative; }
+.total-bloque::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--gradient-vivid); opacity:.85;
+}
+
+/* Tarjetas de sección con borde sutil iridiscente */
+.seccion{
+  border:1px solid transparent !important;
+  background:
+    linear-gradient(var(--bg-card),var(--bg-card)) padding-box,
+    linear-gradient(135deg, rgba(168,85,247,.35), rgba(255,20,147,.35), rgba(255,138,0,.35)) border-box !important;
+}
+
+/* Botones primarios (.login-btn) más vivos + chispa */
+.login-btn{
+  background: linear-gradient(135deg,#00b3ff 0%,#a855f7 35%,#ff1493 70%,#ff8a00 100%) !important;
+  background-size:250% 250% !important;
+  box-shadow: 0 10px 28px rgba(255,20,147,.45), 0 4px 14px rgba(168,85,247,.35) !important;
+}
+
+/* ══ RESTAURAR COPIA DE SEGURIDAD — destacado ══ */
+button[onclick="abrirPegarBackup()"]{
+  background: linear-gradient(135deg,#00ffc6 0%,#00b3ff 50%,#a855f7 100%) !important;
+  background-size:200% 200% !important;
+  animation: neonShift 5s ease infinite, pulseRestore 2.6s ease-in-out infinite !important;
+  color:#0b1020 !important;
+  border:none !important;
+  box-shadow: 0 10px 28px rgba(0,179,255,.45), 0 4px 12px rgba(0,255,198,.35) !important;
+  font-weight:900 !important;
+  letter-spacing:.3px;
+}
+button[onclick="abrirPegarBackup()"]:hover{ filter:brightness(1.06) saturate(1.1); }
+@keyframes pulseRestore{
+  0%,100%{ box-shadow:0 10px 28px rgba(0,179,255,.45), 0 0 0 0 rgba(0,255,198,.55); }
+  50%    { box-shadow:0 10px 28px rgba(0,179,255,.5),  0 0 0 10px rgba(0,255,198,0); }
+}
+
+/* Mensaje de restauración con feedback visual claro */
+#reg-restore-msg{
+  background: rgba(0,255,198,.08);
+  border:1px solid rgba(0,200,150,.3);
+  border-radius:12px;
+  padding:8px 10px;
+}
+
+/* Botón "Descargar copia de seguridad" — más vivo */
+button[onclick="exportarDatos()"]{
+  background: linear-gradient(135deg,#00ffc6,#00b3ff 60%,#a855f7) !important;
+  background-size:220% 220% !important;
+  animation: neonShift 6s ease infinite !important;
+  color:#0b1020 !important;
+  box-shadow:0 10px 28px rgba(0,179,255,.4) !important;
+}
+
+/* Sync badge legible y vivo */
+#sync-status-badge{ color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,.25); }
+
+/* Barra fija de cuota: acento neón al saldo */
+#cuota-barra-saldo{
+  background:linear-gradient(135deg,#ffd60a,#ff8a00,#ff2e63);
+  -webkit-background-clip:text; background-clip:text; color:transparent !important;
+}
+
+/* Modo oscuro: tabs activas conservan contraste */
+@media (prefers-color-scheme: dark){
+  .nav-tab.activo{ background:#1a1030 !important; color:#ff6ec7 !important; }
+  .total-bloque.azul{ background:linear-gradient(135deg,#1a1030,#2a1240) !important; }
+  .total-bloque.rojo{ background:linear-gradient(135deg,#2a0e1a,#3a0f24) !important; }
+}
+
 </style>
 </head>
 <body>
