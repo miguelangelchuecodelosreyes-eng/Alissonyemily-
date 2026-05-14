@@ -9563,5 +9563,165 @@ if('serviceWorker' in navigator){
 }
 </script>
 
+
+<style>
+/* === MEJORAS v13 — fuente más grande + restauración segura === */
+html { font-size: 17px; } /* base un poco más grande para todo el documento */
+body, input, button, textarea, select { font-size: 1rem; }
+.campo-label, .campo input, .campo input[type=date] { font-size: 16px !important; }
+#modal-pegar-backup textarea,
+#modal-pegar-backup button,
+#modal-pegar-backup div { font-size: 14.5px; }
+#modal-pegar-backup [style*="font-size:18px"] { font-size: 20px !important; }
+#modal-pegar-backup [style*="font-size:15px"] { font-size: 16px !important; }
+#modal-pegar-backup [style*="font-size:14px"] { font-size: 15px !important; }
+#modal-pegar-backup [style*="font-size:13px"] { font-size: 14px !important; }
+#modal-pegar-backup [style*="font-size:12px"] { font-size: 13px !important; }
+#modal-pegar-backup [style*="font-size:11px"] { font-size: 12px !important; }
+
+/* Resumen de validación previo a restaurar */
+#backup-resumen{
+  display:none; margin-top:12px; padding:14px; border-radius:14px;
+  background:linear-gradient(135deg,#ecfeff,#f0fdf4);
+  border:2px solid #34d399; color:#065f46; font-weight:800; font-size:14px; line-height:1.6;
+  box-shadow:0 4px 14px rgba(16,185,129,0.18);
+}
+#backup-resumen .br-row{ display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed rgba(6,95,70,0.18); }
+#backup-resumen .br-row:last-child{ border-bottom:none; }
+#backup-resumen .br-row b{ color:#047857; }
+#backup-resumen .br-warn{ margin-top:8px; color:#b45309; font-size:13px; font-weight:800; }
+.btn-confirm-restore{
+  flex:2; padding:14px; background:linear-gradient(135deg,#16a34a,#15803d);
+  color:white; border:none; border-radius:20px; font-family:'Nunito',sans-serif;
+  font-size:16px; font-weight:900; cursor:pointer;
+  box-shadow:0 6px 18px rgba(22,163,74,0.45);
+  animation: pulseConfirm 1.6s ease-in-out infinite;
+}
+@keyframes pulseConfirm{
+  0%,100%{ transform:scale(1); box-shadow:0 6px 18px rgba(22,163,74,0.45); }
+  50%   { transform:scale(1.03); box-shadow:0 8px 24px rgba(22,163,74,0.6); }
+}
+</style>
+<script>
+/* === Restauración con validación + confirmación de 2 pasos === */
+(function(){
+  if(typeof confirmarPegarBackup !== 'function') return;
+  var _origConfirmar = confirmarPegarBackup;
+  var _validado = null;
+
+  function fmtNum(n){ try{ return Number(n||0).toLocaleString('es-DO'); }catch(e){ return String(n||0); } }
+
+  function inyectarResumenUI(){
+    var modal = document.getElementById('modal-pegar-backup');
+    if(!modal || document.getElementById('backup-resumen')) return;
+    var contenedor = modal.querySelector('#pegar-backup-error');
+    if(!contenedor) return;
+    var div = document.createElement('div');
+    div.id = 'backup-resumen';
+    contenedor.parentNode.insertBefore(div, contenedor.nextSibling);
+  }
+
+  function _validar(){
+    var errEl = document.getElementById('pegar-backup-error');
+    errEl.style.display = 'none';
+    var texto = (typeof _backupArchivoTexto !== 'undefined' && _backupArchivoTexto)
+      ? _backupArchivoTexto
+      : (document.getElementById('backup-json-input').value || '');
+    texto = (typeof _limpiarTextoBackup === 'function') ? _limpiarTextoBackup(texto) : texto.trim();
+    if(!texto){ errEl.textContent='⚠️ Seleccioná un archivo o pegá el contenido .json'; errEl.style.display='block'; return null; }
+    if(texto.indexOf('{') === -1){ errEl.textContent='❌ Archivo no válido. No contiene datos JSON.'; errEl.style.display='block'; return null; }
+    var datos = _parseBackupJSON(texto);
+    if(!datos){ errEl.textContent='❌ Error al leer el JSON. Probá seleccionar el archivo otra vez con el botón 📁.'; errEl.style.display='block'; return null; }
+    var normal = _normalizarBackupDatos(datos);
+    if(!normal.valido){ errEl.textContent='❌ Archivo no válido — no se encontraron datos para restaurar'; errEl.style.display='block'; return null; }
+    return { texto: texto, normal: normal };
+  }
+
+  function _mostrarResumen(normal){
+    inyectarResumenUI();
+    var rs = document.getElementById('backup-resumen');
+    if(!rs) return;
+    var nClientes = (normal.clientes||[]).length;
+    var nHist = (normal.historial||[]).length;
+    var nCedulas = (normal.historial_cedulas||[]).length;
+    var nManuales = Object.keys(normal.manuales||{}).length;
+    var nPapel = Object.keys(normal.papelerias||{}).length;
+    var nGastos = Object.keys(normal.gastos||{}).length;
+    var hayActuales = false;
+    try{
+      var actClientes = JSON.parse(localStorage.getItem('clientes_v1')||'[]');
+      var actHist = JSON.parse(localStorage.getItem('hist_v3')||'[]');
+      hayActuales = (actClientes.length + actHist.length) > 0;
+    }catch(e){}
+    rs.innerHTML =
+      '<div style="font-size:15px;font-weight:900;color:#047857;margin-bottom:8px">✅ Copia válida — revisá antes de restaurar</div>'+
+      '<div class="br-row"><span>👥 Clientes</span><b>'+fmtNum(nClientes)+'</b></div>'+
+      '<div class="br-row"><span>📜 Historial</span><b>'+fmtNum(nHist)+'</b></div>'+
+      '<div class="br-row"><span>🪪 Historial cédulas</span><b>'+fmtNum(nCedulas)+'</b></div>'+
+      '<div class="br-row"><span>📝 Cuentas manuales</span><b>'+fmtNum(nManuales)+'</b></div>'+
+      '<div class="br-row"><span>🧾 Papelerías</span><b>'+fmtNum(nPapel)+'</b></div>'+
+      '<div class="br-row"><span>💸 Gastos</span><b>'+fmtNum(nGastos)+'</b></div>'+
+      (hayActuales ? '<div class="br-warn">⚠️ Esto reemplazará los datos actuales del dispositivo. Asegurate de tener una copia reciente.</div>' : '<div style="margin-top:6px;color:#047857;font-size:13px;font-weight:800">El dispositivo está vacío — la restauración es segura.</div>')+
+      '<div style="margin-top:8px;font-size:12.5px;color:#374151;font-weight:700">Pulsá <b>✅ Confirmar y restaurar</b> para continuar.</div>';
+    rs.style.display = 'block';
+  }
+
+  function _ajustarBoton(modo){
+    var modal = document.getElementById('modal-pegar-backup');
+    if(!modal) return;
+    var btns = modal.querySelectorAll('button');
+    var btn = null;
+    btns.forEach(function(b){ if(/Restaurar|Confirmar/.test(b.textContent||'')) btn = b; });
+    if(!btn) return;
+    if(modo === 'confirmar'){
+      btn.innerHTML = '✅ Confirmar y restaurar';
+      btn.className = 'btn-confirm-restore';
+      btn.removeAttribute('style');
+    } else {
+      btn.innerHTML = '🔍 Validar copia';
+      btn.className = '';
+      btn.setAttribute('style','flex:2;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:20px;font-family:\'Nunito\',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(16,185,129,0.4)');
+    }
+  }
+
+  // Reemplazar la función global
+  window.confirmarPegarBackup = function(){
+    if(!_validado){
+      var r = _validar();
+      if(!r) return;
+      _validado = r;
+      _mostrarResumen(r.normal);
+      _ajustarBoton('confirmar');
+      return;
+    }
+    // Segundo clic — confirmación nativa por seguridad
+    var ok = window.confirm('⚠️ Esta acción REEMPLAZARÁ los datos actuales del dispositivo con la copia de seguridad.\n\n¿Estás segura de continuar?');
+    if(!ok) return;
+    _validado = null;
+    _ajustarBoton('inicio');
+    var rs = document.getElementById('backup-resumen'); if(rs) rs.style.display='none';
+    _origConfirmar();
+  };
+
+  // Reset al cerrar/abrir el modal
+  if(typeof cerrarPegarBackup === 'function'){
+    var _origCerrar = cerrarPegarBackup;
+    window.cerrarPegarBackup = function(){ _validado = null; _ajustarBoton('inicio'); var rs=document.getElementById('backup-resumen'); if(rs) rs.style.display='none'; _origCerrar(); };
+  }
+  if(typeof abrirPegarBackup === 'function'){
+    var _origAbrir = abrirPegarBackup;
+    window.abrirPegarBackup = function(){ _validado = null; _ajustarBoton('inicio'); var rs=document.getElementById('backup-resumen'); if(rs) rs.style.display='none'; _origAbrir(); };
+  }
+
+  // Si el usuario edita/cambia el textarea, invalidar para volver a validar
+  document.addEventListener('input', function(e){
+    if(e.target && e.target.id === 'backup-json-input' && _validado){
+      _validado = null; _ajustarBoton('inicio');
+      var rs = document.getElementById('backup-resumen'); if(rs) rs.style.display='none';
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
