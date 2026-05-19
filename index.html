@@ -940,34 +940,6 @@ button[onclick="exportarDatos()"]{
 </style>
 </head>
 <body>
-<script>
-// Inicialización inmediata — corre antes que todo
-(function(){
-  try {
-    var memS = {};
-    function _lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return memS[k]||null; } }
-    function _lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} memS[k]=v; }
-    // Garantizar credenciales maestras siempre presentes
-    var creds = null;
-    try { creds = JSON.parse(_lsGet('cobrador_credenciales')||'null'); } catch(e){}
-    if(!creds || !creds.usuario){
-      _lsSet('cobrador_credenciales', JSON.stringify({usuario:'Alissonyemily',clave:'1234'}));
-      _lsSet('cobrador_usuarios', JSON.stringify([{usuario:'Alissonyemily',clave:'1234'}]));
-    }
-    // Si hay sesión activa, ocultar login y mostrar app inmediatamente
-    var sesion = _lsGet('cobrador_sesion');
-    if(creds && creds.usuario && sesion === 'ok'){
-      document.addEventListener('DOMContentLoaded', function(){
-        var login = document.getElementById('pantalla-login');
-        var app = document.getElementById('app');
-        if(login) login.style.display = 'none';
-        if(app) app.style.display = 'block';
-      });
-    }
-  } catch(e){}
-})();
-</script>
-
 
 <!-- LOGIN -->
 <div id="pantalla-registro" style="display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;position:relative;overflow:hidden;background:linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 30%,#c0392b 60%,#f39c12 80%,#fff8e1 100%);overflow-y:auto">
@@ -1011,7 +983,7 @@ button[onclick="exportarDatos()"]{
   </div>
 </div>
 
-<div id="pantalla-login" style="display:flex">
+<div id="pantalla-login">
   <div class="login-sky"></div>
   <div class="login-sun"></div>
   <div class="login-cloud" style="width:160px;height:36px;top:18%;animation-duration:28s;animation-delay:-5s;opacity:0.7"></div>
@@ -1047,9 +1019,6 @@ button[onclick="exportarDatos()"]{
     <div style="text-align:center;margin-top:14px">
       <button onclick="abrirRegistroNuevo()" style="background:none;border:none;color:#a855f7;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">➕ Crear usuario nuevo</button>
     </div>
-    <div style="text-align:center;margin-top:6px">
-      <button onclick="recuperarAcceso()" style="background:none;border:none;color:#ec4899;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline">🔑 ¿Olvidaste tu contraseña?</button>
-    </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,#e0b070,transparent);margin:16px 0 12px"></div>
     <button onclick="abrirPegarBackup()" style="display:block;width:100%;padding:13px;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(5,150,105,0.08));color:#059669;border:2px solid rgba(16,185,129,0.4);border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center">
       📋 Restaurar copia de seguridad
@@ -1058,7 +1027,7 @@ button[onclick="exportarDatos()"]{
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none">
+<div id="app">
 
 <!-- BARRA FIJA: aparece cuando se ingresa cuota -->
 <div id="cuota-barra-fija" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;z-index:9999;background:linear-gradient(135deg,#111827,#1f2937);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.5)">
@@ -2100,13 +2069,9 @@ button[onclick="exportarDatos()"]{
       <label class="modal-label">💰 Nuevo valor del préstamo</label>
       <input type="number" class="modal-input" id="ren-prestamo" placeholder="0" oninput="actualizarResumenRenovar()">
     </div>
-    <div class="modal-campo">
-      <label class="modal-label">📊 Interés % (dejar vacío = global, escribe 0 para sin intereses)</label>
-      <input type="number" class="modal-input" id="ren-interes" placeholder="20" min="0" max="100" oninput="actualizarResumenRenovar()">
-    </div>
     <div class="prestamo-resumen" id="renovar-resumen" style="display:none">
       <div class="prestamo-res-row"><span>Préstamo (capital)</span><span id="rr-capital" style="color:#cc00aa">$0</span></div>
-      <div class="prestamo-res-row"><span id="rr-interes-label">Interés 20%</span><span id="rr-interes" style="color:#e07b00">$0</span></div>
+      <div class="prestamo-res-row"><span>Interés 20%</span><span id="rr-interes" style="color:#e07b00">$0</span></div>
       <div class="prestamo-res-divider"></div>
       <div class="prestamo-res-row total"><span style="font-weight:900;color:#111">💵 Total a cobrar</span><span id="rr-total">$0</span></div>
       <div class="prestamo-res-divider"></div>
@@ -2357,45 +2322,11 @@ function entrar() {
     _abrirApp(u, c);
   } else {
     err.style.display='block';
-    // Mostrar usuarios registrados para ayudar a recordar
-    try{
-      const nombres = listaUsuarios2.map(x=>x.usuario).filter(Boolean);
-      if(creds && creds.usuario && !nombres.includes(creds.usuario)) nombres.push(creds.usuario);
-      if(nombres.length){
-        err.innerHTML = '❌ Usuario o contraseña incorrectos<br><span style="font-size:11px;font-weight:600;color:#666">Usuarios en este dispositivo: <b>'+nombres.join(', ')+'</b></span>';
-      } else {
-        err.textContent = '❌ Usuario o contraseña incorrectos';
-      }
-    }catch(e){}
     const ayuda = document.getElementById('login-ayuda');
     if(ayuda) ayuda.style.display='block';
     document.getElementById('login-clave').value='';
     setTimeout(()=>{ err.style.display='none'; }, 5000);
   }
-}
-
-// Recuperación de acceso: restablece credenciales al usuario maestro Alissonyemily / 1234
-function recuperarAcceso(){
-  confirmarAccion(
-    '🔑 Recuperar acceso',
-    'Esto restablecerá tu usuario y contraseña a:\n\n👤 Usuario: Alissonyemily\n🔒 Contraseña: 1234\n\nTus clientes y datos NO se borran. ¿Continuar?',
-    '#ec4899',
-    () => {
-      try{
-        const lista = JSON.parse(lsGet('cobrador_usuarios')||'[]');
-        if(!lista.find(x => String(x.usuario||'').toLowerCase() === 'alissonyemily')){
-          lista.push({usuario:'Alissonyemily', clave:'1234'});
-          lsSet('cobrador_usuarios', JSON.stringify(lista));
-        }
-        lsSet('cobrador_credenciales', JSON.stringify({usuario:'Alissonyemily', clave:'1234'}));
-        document.getElementById('login-usuario').value = 'Alissonyemily';
-        document.getElementById('login-clave').value = '1234';
-        showToast('✅ Acceso restaurado. Toca "Entrar"');
-      }catch(e){
-        showToast('❌ Error al restaurar acceso');
-      }
-    }
-  );
 }
 
 function _abrirApp(u, c){
@@ -3412,13 +3343,7 @@ function actualizarResumenRenovar(){
   const c=getClientes().find(x=>x.id===id);
   const saldoAnt=c?c.saldo:0;
   if(v>0){
-    const renIntEl=document.getElementById('ren-interes');
-    const pctPersonalizado=renIntEl&&renIntEl.value!==''?parseFloat(renIntEl.value):null;
-    const pct=pctPersonalizado!==null?pctPersonalizado:getPorcentaje();
-    const interes=v*(pct/100);
-    const p={capital:v,interes,total:v+interes,pct};
-    const lbl=document.getElementById('rr-interes-label');
-    if(lbl) lbl.textContent='Interés '+pct+'%';
+    const p=calcPrestamo(v);
     document.getElementById('rr-capital').textContent=fmt(p.capital);
     document.getElementById('rr-interes').textContent=fmt(p.interes);
     document.getElementById('rr-total').textContent=fmt(p.total);
@@ -3606,11 +3531,6 @@ function guardarCliente(){
       if((cAntes.tipo||'') !== nuevoTipo) cambios.push(`📅 Tipo: "${cAntes.tipo||'—'}" → "${nuevoTipo}"`);
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
       if((cAntes.nota||'') !== nuevaNota) cambios.push(`📝 Nota: "${cAntes.nota||'—'}" → "${nuevaNota||'—'}"`);
-      // Detectar cambio de % interés (incluye pasar a 0%)
-      const pctAntes = (cAntes.pctInteres!==undefined?cAntes.pctInteres:getPorcentaje());
-      if(pctAntes !== p.pct){
-        cambios.push(`📊 Interés: ${pctAntes}% (${fmt(cAntes.interes||0)}) → ${p.pct}% (${fmt(p.interes)})`);
-      }
       const saldoCorrEl = document.getElementById('mc-saldo-corregir');
       const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
       // Guardar en variable GLOBAL para que aplicarCambios.toString() la encuentre
@@ -3749,8 +3669,6 @@ function abrirRenovar(id){
   if(!c)return;
   document.getElementById('ren-id').value=id;
   document.getElementById('ren-prestamo').value='';
-  const _renInt=document.getElementById('ren-interes');
-  if(_renInt) _renInt.value=(c.pctInteres!==undefined?c.pctInteres:'');
   document.getElementById('ren-cuota').value=c.cuotaSugerida||'';
   document.getElementById('ren-tipo').value=c.tipo||'semanal';
   document.getElementById('ren-dia-semana').value=c.diaSemana||'';
@@ -3773,11 +3691,7 @@ function confirmarRenovar(){
   const id=document.getElementById('ren-id').value;
   const capital=parseFloat(document.getElementById('ren-prestamo').value)||0;
   if(!capital){showToast('⚠️ Ingresa el nuevo valor');return;}
-  const renIntEl=document.getElementById('ren-interes');
-  const pctPers=renIntEl&&renIntEl.value!==''?parseFloat(renIntEl.value):null;
-  const pctR=pctPers!==null?pctPers:getPorcentaje();
-  const interesR=capital*(pctR/100);
-  const p={capital,interes:interesR,total:capital+interesR,pct:pctR};
+  const p=calcPrestamo(capital);
   const clientes=getClientes();
   const idx=clientes.findIndex(c=>c.id===id);
   if(idx<0)return;
@@ -3820,7 +3734,6 @@ function confirmarRenovar(){
   clientes[idx].capital=capital;
   clientes[idx].interes=p.interes;
   clientes[idx].prestamo=p.total;
-  clientes[idx].pctInteres=p.pct;
   clientes[idx].saldo=p.total;
   clientes[idx].tipo=document.getElementById('ren-tipo').value;
   clientes[idx].diaSemana=document.getElementById('ren-dia-semana').value||'';
@@ -3887,8 +3800,9 @@ function pagarCuota(id){
   if(cActPago && cActPago.cedula) archivarClienteEnHistorial(cActPago);
   inputEl.value='';
   window._datosHoy = null;
-  // Solo resetear a hoy si NO estamos editando un día anterior
-  if(!window._editandoDiaAnterior){ setFechaActiva(fechaHoy()); }
+  // Cobro guardado con fecha correcta — resetear a hoy
+  window._editandoDiaAnterior = false;
+  setFechaActiva(fechaHoy());
   recalcularCuentas();
   renderClientes();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
@@ -3907,8 +3821,9 @@ function pagarCuotaYAvanzar(id){
   clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
   saveClientes(clientes);
   window._datosHoy = null;
-  // Solo resetear a hoy si NO estamos editando un día anterior
-  if(!window._editandoDiaAnterior){ setFechaActiva(fechaHoy()); }
+  // Cobro guardado con fecha correcta — resetear a hoy
+  window._editandoDiaAnterior = false;
+  setFechaActiva(fechaHoy());
   recalcularCuentas();
   showToast(`✅ Pago de ${fmt(monto)} registrado`);
 
@@ -4608,7 +4523,7 @@ function renderClientes(){
         ${c.nota?`<div style="background:#fefce8;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px;margin:0 0 6px;font-size:12px;font-weight:700;color:#92400e;line-height:1.4;">📝 ${c.nota}</div>`:''}
         <div class="cliente-detalle">
           <div class="cliente-det-item"><div class="cliente-det-label">💰 Capital</div><div class="cliente-det-val">${fmt(c.capital||0)}</div></div>
-          <div class="cliente-det-item"><div class="cliente-det-label">📈 Interés ${(c.pctInteres!==undefined?c.pctInteres:getPorcentaje())}%</div><div class="cliente-det-val" style="color:#e07b00">${fmt(c.interes||0)}</div></div>
+          <div class="cliente-det-item"><div class="cliente-det-label">📈 Interés ${getPorcentaje()}%</div><div class="cliente-det-val" style="color:#e07b00">${fmt(c.interes||0)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">💵 Total a cobrar</div><div class="cliente-det-val" style="color:#cc00aa">${fmt(c.prestamo)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">✅ Pagado</div><div class="cliente-det-val" style="color:#00cc55">${fmt(pagado)}</div></div>
           <div class="cliente-det-item"><div class="cliente-det-label">🔴 Saldo</div><div class="cliente-det-val" style="color:${debe?'#ff1111':'#00e65c'}">${fmt(c.saldo)}</div></div>
@@ -8377,14 +8292,50 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Pre-llenar contraseña si la tenemos guardada para facilitar el ingreso
     document.getElementById('pantalla-login').style.display='flex';
   } else {
-    // Sin credenciales locales (telefono nuevo o reinstalacion)
-    // Guardar credenciales maestras inmediatamente para que pueda entrar sin esperar Firebase
+    // Sin credenciales locales (reinstalación / dispositivo nuevo)
+    // Intentar auto-login desde Firebase con credenciales conocidas
+    document.getElementById('pantalla-login').style.display='flex';
     const usuarioFijo = 'alissonyemily';
     const claveFija = '1234';
-    lsSet('cobrador_credenciales', JSON.stringify({usuario: usuarioFijo, clave: claveFija}));
-    lsSet('cobrador_usuarios', JSON.stringify([{usuario: usuarioFijo, clave: claveFija}]));
-    document.getElementById('pantalla-login').style.display='flex';
-    document.getElementById('login-usuario').value = usuarioFijo;
+    // Mostrar spinner mientras se intenta
+    const loginBtn = document.querySelector('.login-btn');
+    if(loginBtn) loginBtn.textContent = '⏳ Conectando...';
+    // Esperar a que Firebase esté disponible e intentar cargar datos
+    setTimeout(function intentarAutoLogin(){
+      const fbGet = window._fbGet || window.get;
+      const fbRef = window._fbRef || window.ref;
+      const fbDb  = window._fbDb  || window.db;
+      if(!fbDb || !fbGet || !fbRef){
+        // Firebase aún no cargó, reintentar
+        setTimeout(intentarAutoLogin, 800);
+        return;
+      }
+      const usuarioKey = usuarioFijo.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+      fbGet(fbRef(fbDb, 'usuarios/' + usuarioKey + '/credenciales')).then(snap => {
+        const credFirebase = snap.val();
+        // Verificar credenciales contra Firebase
+        const claveOk = credFirebase ? (credFirebase.clave === claveFija) : true;
+        if(claveOk){
+          // Guardar credenciales localmente y entrar
+          lsSet('cobrador_credenciales', JSON.stringify({usuario: usuarioFijo, clave: claveFija}));
+          lsSet('cobrador_usuarios', JSON.stringify([{usuario: usuarioFijo, clave: claveFija}]));
+          lsSet('cobrador_sesion','ok');
+          lsSet('cobrador_sesion_fecha', new Date().toDateString());
+          lsSet('cobrador_sesion_hora', String(new Date().getHours()));
+          document.getElementById('pantalla-login').style.display='none';
+          document.getElementById('app').style.display='block';
+          iniciarApp();
+        } else {
+          // La contraseña en Firebase es diferente — mostrar login normal
+          if(loginBtn) loginBtn.textContent = '🔓 Entrar';
+          document.getElementById('login-usuario').value = usuarioFijo;
+        }
+      }).catch(()=>{
+        // Sin internet — mostrar login normal con usuario precargado
+        if(loginBtn) loginBtn.textContent = '🔓 Entrar';
+        document.getElementById('login-usuario').value = usuarioFijo;
+      });
+    }, 1200);
   }
 });
 </script>
@@ -9393,7 +9344,7 @@ function abrirPanelDiagnostico() {
 </script>
 
 <!-- MODAL PEGAR BACKUP JSON -->
-<div id="modal-pegar-backup" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;overflow-y:auto">
+<div id="modal-pegar-backup" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;overflow-y:auto">
   <div style="background:white;border-radius:24px;padding:24px 20px;width:100%;max-width:400px;margin:auto;margin-top:5vh;box-shadow:0 30px 80px rgba(0,0,0,0.4)">
     <div style="font-size:18px;font-weight:900;color:#059669;margin-bottom:4px;text-align:center">📋 Restaurar copia de seguridad</div>
     <div style="font-size:12px;color:#666;font-weight:600;margin-bottom:16px;text-align:center;line-height:1.6">
@@ -9568,18 +9519,10 @@ function cargarArchivoBackup(event){
 }
 
 function abrirPegarBackup(){
-  _backupArchivoTexto = null;
-  const ta = document.getElementById('backup-json-input');
-  if(ta){ ta.value=''; ta.readOnly=false; ta.style.color='#111'; ta.style.borderColor='#86efac'; }
-  const fn = document.getElementById('backup-file-nombre');
-  if(fn){ fn.style.display='none'; fn.textContent=''; }
-  const fi = document.getElementById('backup-file-input');
-  if(fi) fi.value='';
-  const errEl = document.getElementById('pegar-backup-error');
-  if(errEl) errEl.style.display = 'none';
-  const modal = document.getElementById('modal-pegar-backup');
-  if(modal){ modal.style.display='block'; modal.style.zIndex='999999'; }
-  setTimeout(()=>{ const t=document.getElementById('backup-json-input'); if(t) t.focus(); }, 300);
+  document.getElementById('backup-json-input').value = '';
+  document.getElementById('pegar-backup-error').style.display = 'none';
+  document.getElementById('modal-pegar-backup').style.display = 'block';
+  setTimeout(()=>{ document.getElementById('backup-json-input').focus(); }, 300);
 }
 
 function cerrarPegarBackup(){
@@ -9913,153 +9856,6 @@ body, input, button, textarea, select { font-size: 1rem; }
       var rs = document.getElementById('backup-resumen'); if(rs) rs.style.display='none';
     }
   });
-})();
-</script>
-
-<!-- ══════════════════════════════════════════════════
-     ✨ MODO VIVO / TECNOLÓGICO v1
-     Aurora animada + halo pulsante + orbe IA flotante
-     ══════════════════════════════════════════════════ -->
-<style>
-/* Capa de aurora detrás de todo */
-.ae-aurora{
-  position:fixed; inset:-20%; z-index:-1; pointer-events:none;
-  background:
-    radial-gradient(40% 35% at 20% 20%, rgba(233,30,138,.22), transparent 60%),
-    radial-gradient(35% 30% at 80% 30%, rgba(0,212,170,.18), transparent 60%),
-    radial-gradient(45% 40% at 60% 85%, rgba(124,58,237,.20), transparent 60%),
-    radial-gradient(30% 25% at 15% 80%, rgba(59,130,246,.16), transparent 60%);
-  filter: blur(40px) saturate(120%);
-  animation: aeAuroraDrift 22s ease-in-out infinite alternate;
-}
-@keyframes aeAuroraDrift{
-  0%   { transform: translate3d(0,0,0) scale(1);   }
-  50%  { transform: translate3d(3%,-2%,0) scale(1.06); }
-  100% { transform: translate3d(-3%,2%,0) scale(1.04); }
-}
-/* Grid tecnológico muy sutil sobre la aurora */
-.ae-grid{
-  position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.06;
-  background-image:
-    linear-gradient(rgba(124,58,237,.7) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124,58,237,.7) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(ellipse at center, #000 40%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 40%, transparent 75%);
-}
-/* Respiración suave de tarjetas con saldo pendiente */
-@keyframes aePulse{
-  0%,100% { box-shadow: 0 0 0 0 rgba(233,30,138,0); }
-  50%     { box-shadow: 0 0 0 6px rgba(233,30,138,.10), 0 8px 28px rgba(233,30,138,.18); }
-}
-.cliente-card[data-debe="1"]{ animation: aePulse 3.6s ease-in-out infinite; }
-
-/* Botones cobrar con leve halo vivo */
-@keyframes aeShine{
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-button[onclick*="cobrar"], button[onclick*="Cobrar"]{
-  position:relative; overflow:hidden;
-}
-button[onclick*="cobrar"]::after, button[onclick*="Cobrar"]::after{
-  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
-  background-size: 200% 100%;
-  animation: aeShine 3.2s linear infinite;
-  mix-blend-mode: overlay; opacity:.6;
-}
-
-/* Orbe IA flotante */
-#ae-orb{
-  position:fixed; right:14px; bottom:90px; z-index:9000;
-  width:54px; height:54px; border-radius:50%; cursor:pointer;
-  background: radial-gradient(circle at 30% 30%, #ff6ec7, #e91e8a 45%, #6d28d9 90%);
-  box-shadow: 0 8px 28px rgba(233,30,138,.45), inset 0 0 18px rgba(255,255,255,.35);
-  display:flex; align-items:center; justify-content:center;
-  color:#fff; font-weight:900; font-family:'Nunito',sans-serif;
-  animation: aeOrbBreath 3.4s ease-in-out infinite;
-  border:2px solid rgba(255,255,255,.6);
-  backdrop-filter: blur(4px);
-}
-#ae-orb::before{
-  content:""; position:absolute; inset:-6px; border-radius:50%;
-  border:1.5px dashed rgba(233,30,138,.55);
-  animation: aeOrbSpin 9s linear infinite;
-}
-#ae-orb span{ font-size:18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
-@keyframes aeOrbBreath{
-  0%,100% { transform: scale(1);   box-shadow: 0 8px 28px rgba(233,30,138,.45), inset 0 0 18px rgba(255,255,255,.35); }
-  50%     { transform: scale(1.07); box-shadow: 0 12px 36px rgba(233,30,138,.65), inset 0 0 22px rgba(255,255,255,.5); }
-}
-@keyframes aeOrbSpin{ to { transform: rotate(360deg); } }
-
-#ae-orb-panel{
-  position:fixed; right:14px; bottom:155px; z-index:9001;
-  width:260px; max-width:78vw; padding:14px 16px;
-  background: rgba(15,23,42,.92); color:#fff; border-radius:18px;
-  border:1px solid rgba(233,30,138,.4);
-  box-shadow: 0 16px 48px rgba(0,0,0,.45);
-  font-family:'Nunito',sans-serif; font-size:13px; line-height:1.45;
-  display:none; backdrop-filter: blur(10px);
-}
-#ae-orb-panel.open{ display:block; animation: aePanelIn .25s ease-out; }
-@keyframes aePanelIn{ from{opacity:0; transform: translateY(8px) scale(.96);} to{opacity:1; transform:none;} }
-#ae-orb-panel .t{ font-weight:900; font-size:14px; color:#ff6ec7; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
-#ae-orb-panel .row{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.08); }
-#ae-orb-panel .row:last-child{ border-bottom:0; }
-#ae-orb-panel .v{ font-weight:900; color:#00d4aa; }
-</style>
-<div class="ae-aurora"></div>
-<div class="ae-grid"></div>
-<div id="ae-orb" title="Resumen instantáneo" onclick="aeToggleOrb()"><span>✦</span></div>
-<div id="ae-orb-panel">
-  <div class="t">✦ Núcleo Alisson & Emily</div>
-  <div id="ae-orb-content">Cargando…</div>
-</div>
-<script>
-(function(){
-  // Marca tarjetas con deuda para que respiren
-  function aeTagCards(){
-    document.querySelectorAll('.cliente-card').forEach(function(card){
-      var saldoEl = card.querySelector('[style*="#ff1111"], [style*="#ff0000"]');
-      // Heurística simple: si hay texto con $ y rojo, marca debe
-      card.setAttribute('data-debe', saldoEl ? '1' : '0');
-    });
-  }
-  var mo = new MutationObserver(function(){ aeTagCards(); });
-  mo.observe(document.body, {childList:true, subtree:true});
-  setTimeout(aeTagCards, 600);
-
-  // Orbe IA: resumen instantáneo
-  window.aeToggleOrb = function(){
-    var p = document.getElementById('ae-orb-panel');
-    if(!p) return;
-    if(p.classList.contains('open')){ p.classList.remove('open'); return; }
-    aeRenderOrb(); p.classList.add('open');
-  };
-  function aeRenderOrb(){
-    try{
-      var cl = (typeof getClientes==='function')? getClientes() : [];
-      var totalCap=0, totalSaldo=0, totalInt=0, activos=0, alDia=0;
-      cl.forEach(function(c){
-        totalCap   += (c.capital||0);
-        totalSaldo += (c.saldo||0);
-        totalInt   += (c.interes||0);
-        if((c.saldo||0)>0) activos++; else alDia++;
-      });
-      var f = (typeof fmt==='function')? fmt : function(n){return '$'+(n||0).toLocaleString('es-CO');};
-      document.getElementById('ae-orb-content').innerHTML =
-        '<div class="row"><span>Clientes activos</span><span class="v">'+activos+'</span></div>'+
-        '<div class="row"><span>Al día</span><span class="v">'+alDia+'</span></div>'+
-        '<div class="row"><span>Capital prestado</span><span class="v">'+f(totalCap)+'</span></div>'+
-        '<div class="row"><span>Intereses</span><span class="v">'+f(totalInt)+'</span></div>'+
-        '<div class="row"><span>Saldo por cobrar</span><span class="v" style="color:#ff6ec7">'+f(totalSaldo)+'</span></div>'+
-        '<div style="margin-top:8px;font-size:11px;opacity:.7;text-align:center">Toca el orbe para cerrar</div>';
-    }catch(e){
-      document.getElementById('ae-orb-content').textContent='Sin datos todavía.';
-    }
-  }
 })();
 </script>
 
