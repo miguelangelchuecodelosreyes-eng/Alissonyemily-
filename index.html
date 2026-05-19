@@ -940,6 +940,34 @@ button[onclick="exportarDatos()"]{
 </style>
 </head>
 <body>
+<script>
+// Inicialización inmediata — corre antes que todo
+(function(){
+  try {
+    var memS = {};
+    function _lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return memS[k]||null; } }
+    function _lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} memS[k]=v; }
+    // Garantizar credenciales maestras siempre presentes
+    var creds = null;
+    try { creds = JSON.parse(_lsGet('cobrador_credenciales')||'null'); } catch(e){}
+    if(!creds || !creds.usuario){
+      _lsSet('cobrador_credenciales', JSON.stringify({usuario:'Alissonyemily',clave:'1234'}));
+      _lsSet('cobrador_usuarios', JSON.stringify([{usuario:'Alissonyemily',clave:'1234'}]));
+    }
+    // Si hay sesión activa, ocultar login y mostrar app inmediatamente
+    var sesion = _lsGet('cobrador_sesion');
+    if(creds && creds.usuario && sesion === 'ok'){
+      document.addEventListener('DOMContentLoaded', function(){
+        var login = document.getElementById('pantalla-login');
+        var app = document.getElementById('app');
+        if(login) login.style.display = 'none';
+        if(app) app.style.display = 'block';
+      });
+    }
+  } catch(e){}
+})();
+</script>
+
 
 <!-- LOGIN -->
 <div id="pantalla-registro" style="display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;position:relative;overflow:hidden;background:linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 30%,#c0392b 60%,#f39c12 80%,#fff8e1 100%);overflow-y:auto">
@@ -983,7 +1011,7 @@ button[onclick="exportarDatos()"]{
   </div>
 </div>
 
-<div id="pantalla-login">
+<div id="pantalla-login" style="display:flex">
   <div class="login-sky"></div>
   <div class="login-sun"></div>
   <div class="login-cloud" style="width:160px;height:36px;top:18%;animation-duration:28s;animation-delay:-5s;opacity:0.7"></div>
@@ -1030,7 +1058,7 @@ button[onclick="exportarDatos()"]{
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:none">
 
 <!-- BARRA FIJA: aparece cuando se ingresa cuota -->
 <div id="cuota-barra-fija" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;z-index:9999;background:linear-gradient(135deg,#111827,#1f2937);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.5)">
@@ -9540,10 +9568,18 @@ function cargarArchivoBackup(event){
 }
 
 function abrirPegarBackup(){
-  document.getElementById('backup-json-input').value = '';
-  document.getElementById('pegar-backup-error').style.display = 'none';
-  document.getElementById('modal-pegar-backup').style.display = 'block';
-  setTimeout(()=>{ document.getElementById('backup-json-input').focus(); }, 300);
+  _backupArchivoTexto = null;
+  const ta = document.getElementById('backup-json-input');
+  if(ta){ ta.value=''; ta.readOnly=false; ta.style.color='#111'; ta.style.borderColor='#86efac'; }
+  const fn = document.getElementById('backup-file-nombre');
+  if(fn){ fn.style.display='none'; fn.textContent=''; }
+  const fi = document.getElementById('backup-file-input');
+  if(fi) fi.value='';
+  const errEl = document.getElementById('pegar-backup-error');
+  if(errEl) errEl.style.display = 'none';
+  const modal = document.getElementById('modal-pegar-backup');
+  if(modal){ modal.style.display='block'; modal.style.zIndex='999999'; }
+  setTimeout(()=>{ const t=document.getElementById('backup-json-input'); if(t) t.focus(); }, 300);
 }
 
 function cerrarPegarBackup(){
