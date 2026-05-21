@@ -609,57 +609,275 @@ body {
 .pin-cerrar-btn { margin-top:20px; padding:11px 28px; background:transparent; border:1.5px solid rgba(255,0,255,0.4); color:#ff00ff; border-radius:20px; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; letter-spacing:1px; transition:all 0.2s; box-shadow:0 0 12px rgba(255,0,255,0.1); }
 .pin-cerrar-btn:active { background:rgba(255,0,255,0.08); transform:scale(0.96); }
 
-/* ══ ÍCONO FLOTANTE PLENO ══ */
+/* ══ ORBE TECNOLÓGICO IA — PLENO ══ */
 #pleno-fab {
   position: fixed;
-  top: 18px;
-  right: 14px;
+  top: 14px;
+  right: 12px;
   z-index: 8000;
   display: none;
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 .pfab-burbuja {
-  background: linear-gradient(135deg,#1a56db,#3b82f6);
-  border-radius: 50px;
-  padding: 9px 14px;
-  box-shadow: 0 6px 20px rgba(26,86,219,0.45);
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 38%),
+    linear-gradient(135deg,#0ea5e9 0%,#6366f1 50%,#a855f7 100%);
+  border-radius: 999px;
+  padding: 10px 16px 10px 18px;
+  box-shadow:
+    0 8px 26px rgba(99,102,241,0.55),
+    0 0 0 1px rgba(255,255,255,0.18) inset,
+    0 0 22px rgba(168,85,247,0.55);
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 70px;
-  border: 2px solid rgba(255,255,255,0.28);
-  position: relative;
+  min-width: 78px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  overflow: visible;
+  animation: pfab-breathe 3.2s ease-in-out infinite;
 }
+/* Anillos pulsantes detrás del orbe */
+.pfab-burbuja::before,
+.pfab-burbuja::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid rgba(168,85,247,0.55);
+  pointer-events: none;
+  animation: pfab-ring 2.4s ease-out infinite;
+}
+.pfab-burbuja::after { animation-delay: 1.2s; border-color: rgba(14,165,233,0.5); }
+@keyframes pfab-ring {
+  0%   { transform: scale(1);    opacity: 0.85; }
+  80%  { transform: scale(1.55); opacity: 0;    }
+  100% { transform: scale(1.55); opacity: 0;    }
+}
+@keyframes pfab-breathe {
+  0%,100% { box-shadow: 0 8px 26px rgba(99,102,241,0.55), 0 0 0 1px rgba(255,255,255,0.18) inset, 0 0 22px rgba(168,85,247,0.55); transform: translateY(0); }
+  50%     { box-shadow: 0 10px 32px rgba(168,85,247,0.7),  0 0 0 1px rgba(255,255,255,0.25) inset, 0 0 32px rgba(14,165,233,0.7); transform: translateY(-1px); }
+}
+/* Brillo barrido tipo holograma */
+.pfab-burbuja > .pfab-shine {
+  position: absolute; inset: 0; border-radius: 999px; overflow: hidden; pointer-events:none;
+}
+.pfab-burbuja > .pfab-shine::before {
+  content:''; position:absolute; top:0; left:-60%; width:60%; height:100%;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  animation: pfab-sweep 3.6s linear infinite;
+}
+@keyframes pfab-sweep { 0%{left:-60%} 100%{left:160%} }
+
 .pfab-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #00e676;
-  position: absolute; top: -3px; right: -3px;
-  box-shadow: 0 0 6px #00e676;
-  animation: pfab-pulse 1.6s ease-in-out infinite;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #6effb0, #00e676);
+  position: absolute; top: -2px; right: -2px;
+  box-shadow: 0 0 10px #00e676, 0 0 18px rgba(0,230,118,0.7);
+  animation: pfab-pulse 1.4s ease-in-out infinite;
+  z-index: 3;
 }
 @keyframes pfab-pulse {
-  0%,100%{ transform:scale(1); opacity:1; }
-  50%{ transform:scale(1.45); opacity:0.65; }
+  0%,100%{ transform:scale(1);    opacity:1;    }
+  50%    { transform:scale(1.55); opacity:0.6;  }
 }
 .pfab-label {
-  font-size: 8px; font-weight: 900; color: rgba(255,255,255,0.85);
-  letter-spacing: 1.8px; text-transform: uppercase; line-height: 1; margin-bottom: 2px;
+  font-size: 8px; font-weight: 900; color: rgba(255,255,255,0.95);
+  letter-spacing: 2.2px; text-transform: uppercase; line-height: 1; margin-bottom: 3px;
+  text-shadow: 0 0 8px rgba(255,255,255,0.35);
+  font-family: 'Orbitron','Nunito',sans-serif;
+  position: relative; z-index: 2;
 }
 .pfab-monto {
   font-size: 17px; font-weight: 900; color: white; line-height: 1.1; white-space: nowrap;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.35);
+  position: relative; z-index: 2;
 }
 .pfab-hoy {
-  font-size: 8px; font-weight: 900; color: #1a56db;
-  background: white; border-radius: 6px; padding: 1px 6px;
-  margin-top: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  font-size: 8px; font-weight: 900; color: #4c1d95;
+  background: linear-gradient(135deg,#fff,#e0e7ff);
+  border-radius: 8px; padding: 2px 8px;
+  margin-top: 5px; box-shadow: 0 2px 8px rgba(76,29,149,0.25);
+  letter-spacing: 1.2px;
 }
 @keyframes pfab-flash {
-  0%  { box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 0 rgba(0,230,118,0.75); }
-  60% { box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 12px rgba(0,230,118,0); }
-  100%{ box-shadow: 0 6px 20px rgba(26,86,219,0.45), 0 0 0 0 rgba(0,230,118,0); }
+  0%  { box-shadow: 0 8px 26px rgba(99,102,241,0.55), 0 0 0 0 rgba(0,230,118,0.85); }
+  60% { box-shadow: 0 8px 26px rgba(99,102,241,0.55), 0 0 0 16px rgba(0,230,118,0); }
+  100%{ box-shadow: 0 8px 26px rgba(99,102,241,0.55), 0 0 0 0 rgba(0,230,118,0); }
 }
-.pfab-burbuja.flash { animation: pfab-flash 0.55s ease; }
+.pfab-burbuja.flash { animation: pfab-flash 0.55s ease, pfab-breathe 3.2s ease-in-out infinite; }
+.pfab-burbuja:active { transform: scale(0.94); }
+
+/* ══ PANEL IA ══ */
+#orb-ia-overlay {
+  position: fixed; inset: 0; z-index: 999998;
+  background: rgba(5,5,20,0.78);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: none; align-items: flex-end; justify-content: center;
+  animation: orbFadeIn .25s ease;
+}
+@keyframes orbFadeIn { from{opacity:0} to{opacity:1} }
+#orb-ia-overlay.show { display: flex; }
+#orb-ia-panel {
+  width: 100%; max-width: 460px;
+  background: linear-gradient(180deg,#0b0f2a 0%,#1a1149 60%,#2d1565 100%);
+  border-top-left-radius: 26px; border-top-right-radius: 26px;
+  border-top: 2px solid rgba(168,85,247,0.5);
+  box-shadow: 0 -10px 40px rgba(168,85,247,0.45);
+  padding: 18px 18px 26px;
+  color: #fff;
+  max-height: 90vh; overflow-y: auto;
+  animation: orbSlideUp .35s cubic-bezier(.22,1.2,.36,1);
+  position: relative;
+}
+@keyframes orbSlideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+#orb-ia-panel .orb-grab {
+  width: 50px; height: 5px; background: rgba(255,255,255,0.25);
+  border-radius: 999px; margin: -4px auto 14px;
+}
+#orb-ia-panel h3 {
+  font-family: 'Orbitron','Nunito',sans-serif;
+  font-size: 16px; letter-spacing: 2px; margin: 0 0 4px;
+  background: linear-gradient(90deg,#a855f7,#06b6d4);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#orb-ia-panel .orb-sub { font-size: 11px; opacity:.7; margin-bottom: 14px; }
+.orb-stats { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.orb-stat {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(168,85,247,0.25);
+  border-radius: 14px; padding: 10px 12px;
+}
+.orb-stat .lbl { font-size: 9px; letter-spacing: 1.5px; opacity:.7; text-transform:uppercase; font-weight:900; }
+.orb-stat .val { font-size: 17px; font-weight: 900; margin-top: 4px;
+  background: linear-gradient(90deg,#06b6d4,#a855f7);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.orb-ai-box {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(6,182,212,0.35);
+  border-radius: 16px; padding: 14px; margin-top: 6px;
+  font-size: 13px; line-height: 1.55; min-height: 70px;
+  white-space: pre-wrap;
+}
+.orb-ai-box .typing { opacity:.7; font-style: italic; }
+.orb-actions { display: flex; gap: 8px; margin-top: 14px; }
+.orb-btn {
+  flex:1; padding: 12px; border-radius: 14px; border: none; cursor: pointer;
+  font-family: inherit; font-weight: 900; font-size: 13px; letter-spacing: .5px;
+  background: linear-gradient(135deg,#06b6d4,#a855f7);
+  color: white; box-shadow: 0 4px 14px rgba(168,85,247,0.45);
+}
+.orb-btn.ghost {
+  background: transparent; color: rgba(255,255,255,0.75);
+  border: 1.5px solid rgba(255,255,255,0.2); box-shadow: none;
+}
+.orb-btn:active { transform: scale(0.96); }
+.orb-close {
+  position:absolute; top: 10px; right: 12px;
+  background: rgba(255,255,255,0.08); border: none; color: #fff;
+  width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer;
+}
+.orb-key-row { display:flex; gap:6px; margin-top:8px; }
+.orb-key-row input {
+  flex:1; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.35); color: #fff; font-family: monospace; font-size: 12px;
+}
+.orb-head { display:flex; align-items:center; gap:10px; margin-bottom: 10px; }
+.orb-head h3 { margin:0; }
+.orb-head .orb-sub { margin:0; }
+.orb-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #a855f7, #06b6d4 70%, #0b0f2a);
+  display:flex; align-items:center; justify-content:center;
+  font-weight: 900; color:#fff; font-family:'Orbitron','Nunito',sans-serif;
+  box-shadow: 0 0 14px rgba(168,85,247,0.6), inset 0 0 8px rgba(255,255,255,0.25);
+  font-size: 16px;
+}
+.orb-btn-mini { padding: 8px 10px !important; font-size: 12px !important; flex: 0 0 auto !important; }
+.orb-chat {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(6,182,212,0.25);
+  border-radius: 16px;
+  padding: 12px;
+  min-height: 180px;
+  max-height: 42vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 6px;
+}
+.orb-msg {
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.orb-msg.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg,#06b6d4,#0ea5e9);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.orb-msg.ai {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(168,85,247,0.3);
+  color: #fff;
+  border-bottom-left-radius: 4px;
+}
+.orb-msg.ai.typing { opacity: .85; font-style: italic; }
+.orb-msg .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #a855f7; margin: 0 2px;
+  animation: orbDot 1.2s ease infinite;
+}
+.orb-msg .dot:nth-child(2){ animation-delay: .15s; }
+.orb-msg .dot:nth-child(3){ animation-delay: .3s; }
+@keyframes orbDot {
+  0%,60%,100%{ transform: translateY(0); opacity:.4; }
+  30%{ transform: translateY(-4px); opacity:1; }
+}
+.orb-quick {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px;
+  scrollbar-width: none;
+}
+.orb-quick::-webkit-scrollbar { display: none; }
+.orb-chip {
+  flex: 0 0 auto;
+  background: rgba(168,85,247,0.18);
+  border: 1px solid rgba(168,85,247,0.4);
+  color: #e9d5ff;
+  padding: 7px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.orb-chip:active { transform: scale(0.95); }
+.orb-input-row {
+  display: flex; gap: 8px; margin-top: 8px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(168,85,247,0.35);
+  border-radius: 999px;
+  padding: 4px 4px 4px 14px;
+}
+.orb-input-row input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-family: inherit; font-size: 14px;
+}
+.orb-send {
+  width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(135deg,#06b6d4,#a855f7);
+  color: white; font-size: 16px; font-weight: 900;
+  box-shadow: 0 3px 10px rgba(168,85,247,0.45);
+}
+.orb-send:active { transform: scale(0.92); }
+.orb-send:disabled { opacity: .5; }
 /* CSS de notificación de actualización: ver _mostrarNotificacionActualizacion() */
 
 
@@ -2382,7 +2600,7 @@ function irA(p) {
   // ── Ícono flotante pleno: solo visible en Clientes ──
   if(p==='clientes' && !window._editandoDiaAnterior) setFechaActiva(fechaHoy());
   const fab = document.getElementById('pleno-fab');
-  if(fab){ fab.style.display = p === 'clientes' ? 'flex' : 'none'; }
+  if(fab){ fab.style.display = 'flex'; }
   // Al ir a Clientes actualizar el FAB con el pleno de la fecha activa
   if(p==='clientes'){
     const hoyClientes = getFechaActiva();
@@ -5455,7 +5673,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-16 v27';
+const APP_VERSION = '2026-05-21 v29';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5495,66 +5713,149 @@ function buscarActualizacionManual(){
   const msg = document.getElementById('buscar-act-msg');
   if(btn){ btn.disabled = true; btn.style.opacity='.7'; btn.textContent = '⏳ Buscando...'; }
   if(msg){ msg.style.display='none'; msg.innerHTML=''; }
-  const url = window.location.pathname + '?_mc=' + Date.now() + '&r=' + Math.random();
-  fetch(url, { cache:'no-store', headers:{'Cache-Control':'no-cache, no-store, must-revalidate','Pragma':'no-cache','Expires':'0'} })
-    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-    .then(html => {
-      const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-      if(!m) throw new Error('No se pudo leer la versión');
-      const verServidor = m[1];
-      if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.textContent='🔍 Buscar actualización'; }
-      if(verServidor !== APP_VERSION){
-        if(msg){
-          msg.style.display='block';
-          msg.style.background='linear-gradient(135deg,#fff4e0,#ffe0f0)';
-          msg.style.color='#c2185b';
-          msg.style.border='2px solid #ff1493';
-          msg.innerHTML = '🚀 ¡Nueva versión disponible!<br><span style="font-size:11px;font-weight:700;opacity:.8">'+verServidor+'</span>';
-        }
-        try { localStorage.setItem('app_version_local', verServidor); } catch(e){}
-        _mostrarNotificacionActualizacion(verServidor);
-      } else {
-        if(msg){
-          msg.style.display='block';
-          msg.style.background='#e8f7ee';
-          msg.style.color='#0a7c3a';
-          msg.style.border='2px solid #2ecc71';
-          msg.innerHTML = '✅ Ya tienes la última versión<br><span style="font-size:11px;font-weight:700;opacity:.8">'+verServidor+'</span>';
-        }
-      }
-    })
-    .catch(err => {
-      if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.textContent='🔍 Buscar actualización'; }
+
+  const aplicar = (verServidor) => {
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.textContent='🔍 Buscar actualización'; }
+    if(!verServidor){
       if(msg){
         msg.style.display='block';
         msg.style.background='#ffeaea';
         msg.style.color='#c0392b';
         msg.style.border='2px solid #e74c3c';
-        msg.innerHTML = '⚠️ No se pudo verificar<br><span style="font-size:11px;font-weight:700;opacity:.8">'+(err.message||'Sin conexión')+'</span>';
+        msg.innerHTML = '⚠️ No se pudo verificar<br><span style="font-size:11px;font-weight:700;opacity:.8">Sin conexión</span>';
       }
-    });
+      return;
+    }
+    if(verServidor !== APP_VERSION){
+      if(msg){
+        msg.style.display='block';
+        msg.style.background='linear-gradient(135deg,#fff4e0,#ffe0f0)';
+        msg.style.color='#c2185b';
+        msg.style.border='2px solid #ff1493';
+        msg.innerHTML = '🚀 ¡Nueva versión disponible!<br><span style="font-size:11px;font-weight:700;opacity:.8">'+verServidor+'</span>';
+      }
+      try { localStorage.setItem('app_version_local', verServidor); } catch(e){}
+      _mostrarNotificacionActualizacion(verServidor);
+    } else {
+      if(msg){
+        msg.style.display='block';
+        msg.style.background='#e8f7ee';
+        msg.style.color='#0a7c3a';
+        msg.style.border='2px solid #2ecc71';
+        msg.innerHTML = '✅ Ya tienes la última versión<br><span style="font-size:11px;font-weight:700;opacity:.8">'+verServidor+'</span>';
+      }
+    }
+  };
+
+  // Intentar Firebase primero (funciona en content://), fetch como fallback
+  try {
+    if (window._fbDb && window._fbRef && window._fbGet) {
+      window._fbGet(window._fbRef(window._fbDb, 'app_meta/version')).then(snap => {
+        const v = snap && snap.exists() ? snap.val() : null;
+        if (v) { aplicar(v); return; }
+        _checkVersionFetch(aplicar);
+      }).catch(()=> _checkVersionFetch(aplicar));
+      return;
+    }
+  } catch(e){}
+  _checkVersionFetch(aplicar);
 }
 
 function _checkVersionServidor(callback){
-  const url = window.location.pathname + '?_vc=' + Date.now() + '&r=' + Math.random();
-  fetch(url, {
-    cache: 'no-store',
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
+  // ── 1) FIREBASE PRIMERO (funciona aunque la app esté abierta como content://) ──
+  try {
+    if (window._fbDb && window._fbRef && window._fbGet) {
+      const r = window._fbRef(window._fbDb, 'app_meta/version');
+      window._fbGet(r).then(snap => {
+        const v = snap && snap.exists() ? snap.val() : null;
+        if (v && typeof v === 'string') {
+          callback(v);
+          return;
+        }
+        _checkVersionFetch(callback);
+      }).catch(()=> _checkVersionFetch(callback));
+      return;
     }
-  })
-  .then(r => {
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    return r.text();
-  })
-  .then(html => {
-    const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-    if(m) callback(m[1]);
-  })
-  .catch(()=>{});
+  } catch(e) {}
+  // ── 2) FALLBACK: fetch del HTML ──
+  _checkVersionFetch(callback);
 }
+
+function _checkVersionFetch(callback){
+  try {
+    const url = window.location.pathname + '?_vc=' + Date.now() + '&r=' + Math.random();
+    fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
+    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(html => {
+      const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+      if(m) callback(m[1]);
+    })
+    .catch(()=>{});
+  } catch(e) {}
+}
+
+// ── PUBLICAR LA VERSIÓN ACTUAL EN FIREBASE (cuando esta es la más reciente) ──
+function _publicarVersionEnFirebase(){
+  try {
+    if (!window._fbDb || !window._fbRef || !window._fbGet || !window._fbSet) return;
+    const r = window._fbRef(window._fbDb, 'app_meta/version');
+    window._fbGet(r).then(snap => {
+      const remoto = snap && snap.exists() ? snap.val() : null;
+      // Si no hay versión remota, o la local es más nueva, publicamos
+      if (!remoto || _versionEsMasNueva(APP_VERSION, remoto)) {
+        window._fbSet(r, APP_VERSION).catch(()=>{});
+        try { window._fbSet(window._fbRef(window._fbDb, 'app_meta/timestamp'), Date.now()); } catch(e){}
+      }
+    }).catch(()=>{});
+  } catch(e) {}
+}
+
+function _versionEsMasNueva(a, b){
+  // Compara strings tipo "2026-05-16 v27" — primero por fecha lex, luego por número de v
+  if (!b) return true;
+  if (a === b) return false;
+  const pa = (a.match(/v(\d+)/) || [])[1];
+  const pb = (b.match(/v(\d+)/) || [])[1];
+  const fa = a.split(' ')[0] || '';
+  const fb = b.split(' ')[0] || '';
+  if (fa !== fb) return fa > fb;
+  return (parseInt(pa||'0',10)) > (parseInt(pb||'0',10));
+}
+
+// ── SUSCRIPCIÓN EN VIVO: cualquier cambio remoto = notificación instantánea ──
+function _suscribirVersionFirebase(){
+  try {
+    if (!window._fbDb || !window._fbRef || !window.onValue) return;
+    const r = window._fbRef(window._fbDb, 'app_meta/version');
+    window.onValue(r, snap => {
+      const v = snap && snap.exists() ? snap.val() : null;
+      if (v && typeof v === 'string') _aplicarActualizacion(v);
+    });
+  } catch(e) {}
+}
+
+// Intentar publicar/suscribir cuando Firebase ya esté listo
+(function _initFbVersion(){
+  let intentos = 0;
+  const t = setInterval(()=>{
+    intentos++;
+    if (window._fbDb && window._fbRef && window._fbGet && window._fbSet) {
+      clearInterval(t);
+      _publicarVersionEnFirebase();
+      _suscribirVersionFirebase();
+    } else if (intentos > 40) {
+      clearInterval(t); // ~20s
+    }
+  }, 500);
+})();
+
 
 function _aplicarActualizacion(verServidor){
   if(!verServidor) return false;
@@ -8247,6 +8548,11 @@ function iniciarApp(){
 
 // Recuperar sesión activa al recargar
 document.addEventListener('DOMContentLoaded',()=>{
+  // Mostrar orbe IA siempre (independiente del login)
+  try {
+    const _f = document.getElementById('pleno-fab');
+    if(_f) _f.style.display = 'flex';
+  } catch(e){}
   // Mostrar bendición en login
   const bendEl = document.getElementById('login-bendicion-text');
   if(bendEl) bendEl.textContent = getBendicionDelDia();
@@ -9618,7 +9924,7 @@ function confirmarPegarBackup(){
   }
 }
 
-// ══ ÍCONO FLOTANTE — PLENO DEL DÍA ══
+// ══ ORBE IA — PLENO DEL DÍA con análisis inteligente ══
 function actualizarPlenoFab(pleno){
   const el = document.getElementById('pfab-monto');
   const burbuja = document.getElementById('pfab-burbuja');
@@ -9627,7 +9933,6 @@ function actualizarPlenoFab(pleno){
 
   el.textContent = fmt(pleno);
 
-  // Etiqueta: HOY o fecha corta si es día anterior
   const fechaActiva = getFechaActiva();
   const esHoy = fechaActiva === fechaHoy();
   if(etiqueta){
@@ -9642,7 +9947,6 @@ function actualizarPlenoFab(pleno){
     }
   }
 
-  // Flash verde cuando hay pleno
   if(pleno > 0){
     burbuja.classList.remove('flash');
     void burbuja.offsetWidth;
@@ -9650,17 +9954,355 @@ function actualizarPlenoFab(pleno){
     setTimeout(()=> burbuja.classList.remove('flash'), 600);
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+//  ORBE IA — Panel con stats en vivo + análisis con Claude API
+// ══════════════════════════════════════════════════════════════
+function _orbeRecolectarStats(){
+  const fechaActiva = (typeof getFechaActiva === 'function') ? getFechaActiva() : '';
+  let clientes = [];
+  try { clientes = (typeof getClientes === 'function') ? getClientes() : []; } catch(e){}
+
+  let totalCartera=0, cuentaActivos=0, cuentaAtrasados=0, cobradoHoy=0, prestadoHoy=0;
+  let gastosHoy=0, papeleriaHoy=0;
+  try {
+    clientes.forEach(c => {
+      if (c && !c.cancelado) {
+        cuentaActivos++;
+        totalCartera += Number(c.saldo)||0;
+        // Atrasado si no tiene pago en la fecha activa y saldo > 0
+        const pagos = c.pagos || [];
+        const hoyPago = pagos.some(p => p.fecha === fechaActiva);
+        if (!hoyPago && (Number(c.saldo)||0) > 0) cuentaAtrasados++;
+      }
+      // Prestado en la fecha activa
+      if (c && c.fechaCreacion === fechaActiva) prestadoHoy += Number(c.prestamo)||0;
+      // Cobros del día
+      (c && c.pagos || []).forEach(p => {
+        if (p && p.fecha === fechaActiva) cobradoHoy += Number(p.monto)||0;
+      });
+    });
+  } catch(e){}
+
+  // Lectura de inputs del día
+  const v = id => { const x = document.getElementById(id); return x ? parseFloat(x.value)||0 : 0; };
+  const base = v('input-base'), neki = v('input-neki');
+  gastosHoy = v('input-gasto');
+  papeleriaHoy = v('input-papeleria');
+  const entregado = v('input-entregado');
+  const pleno = base + cobradoHoy + papeleriaHoy + neki - gastosHoy - prestadoHoy - entregado;
+
+  return {
+    fecha: fechaActiva,
+    pleno, base, neki, entregado,
+    cobradoHoy, prestadoHoy, gastosHoy, papeleriaHoy,
+    totalCartera, cuentaActivos, cuentaAtrasados,
+    pctAtrasados: cuentaActivos ? Math.round(cuentaAtrasados*100/cuentaActivos) : 0
+  };
+}
+
+function abrirOrbeIA(){
+  const overlay = document.getElementById('orb-ia-overlay');
+  if(!overlay) return;
+  overlay.classList.add('show');
+  _orbePintarStats();
+  _orbeRestaurarChat();
+  setTimeout(()=>{ const i=document.getElementById('orb-input'); if(i) i.focus(); }, 250);
+}
+function cerrarOrbeIA(){
+  const overlay = document.getElementById('orb-ia-overlay');
+  if(overlay) overlay.classList.remove('show');
+}
+function _orbePintarStats(){
+  const s = _orbeRecolectarStats();
+  const cont = document.getElementById('orb-stats');
+  if(!cont) return;
+  const f = (typeof fmt==='function') ? fmt : (n => '$'+(n||0).toLocaleString());
+  cont.innerHTML = `
+    <div class="orb-stat"><div class="lbl">Pleno</div><div class="val">${f(s.pleno)}</div></div>
+    <div class="orb-stat"><div class="lbl">Cobrado hoy</div><div class="val">${f(s.cobradoHoy)}</div></div>
+    <div class="orb-stat"><div class="lbl">Cartera</div><div class="val">${f(s.totalCartera)}</div></div>
+    <div class="orb-stat"><div class="lbl">Atrasados</div><div class="val">${s.cuentaAtrasados} (${s.pctAtrasados}%)</div></div>
+  `;
+  // Status de conexión
+  const status = document.getElementById('orb-conn-status');
+  if(status){
+    let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
+    status.textContent = key ? 'Claude conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 para Claude';
+  }
+}
+
+function orbIAConfigKey(){
+  const box = document.getElementById('orb-key-config');
+  const inp = document.getElementById('orb-key-input');
+  if(!box) return;
+  box.style.display = box.style.display === 'none' || !box.style.display ? 'block' : 'none';
+  try { if(inp) inp.value = localStorage.getItem('orb_claude_key') || ''; } catch(e){}
+}
+function orbIAGuardarKey(){
+  const inp = document.getElementById('orb-key-input');
+  if(!inp) return;
+  const k = (inp.value||'').trim();
+  try {
+    if (k) localStorage.setItem('orb_claude_key', k);
+    else   localStorage.removeItem('orb_claude_key');
+  } catch(e){}
+  if(typeof showToast==='function') showToast(k ? '✅ Claude conectado' : '🗑️ Clave borrada');
+  document.getElementById('orb-key-config').style.display = 'none';
+  _orbePintarStats();
+}
+
+// ════════════ CHAT ════════════
+const ORB_CHAT_KEY = 'orb_ia_chat_v1';
+let _orbChatLoading = false;
+
+function _orbeCargarChat(){
+  try { return JSON.parse(localStorage.getItem(ORB_CHAT_KEY)||'[]'); } catch(e){ return []; }
+}
+function _orbeGuardarChat(arr){
+  try { localStorage.setItem(ORB_CHAT_KEY, JSON.stringify(arr.slice(-40))); } catch(e){}
+}
+function _orbeRestaurarChat(){
+  const cont = document.getElementById('orb-chat');
+  if(!cont) return;
+  const msgs = _orbeCargarChat();
+  cont.innerHTML = '';
+  if (msgs.length === 0) {
+    _orbeMostrarMsg('ai', '👋 ¡Hola! Soy tu asistente IA. Puedo analizar tu día, sugerirte clientes para visitar primero, calcular tu pleno y darte consejos para mejorar tus cobros. ¿En qué te ayudo?', false);
+  } else {
+    msgs.forEach(m => _orbeMostrarMsg(m.role==='user'?'user':'ai', m.content, false));
+  }
+  _orbeScrollFinal();
+}
+function _orbeMostrarMsg(tipo, texto, guardar){
+  const cont = document.getElementById('orb-chat');
+  if(!cont) return null;
+  const div = document.createElement('div');
+  div.className = 'orb-msg ' + (tipo==='user'?'user':'ai');
+  div.textContent = texto;
+  cont.appendChild(div);
+  _orbeScrollFinal();
+  if (guardar) {
+    const arr = _orbeCargarChat();
+    arr.push({ role: tipo==='user'?'user':'assistant', content: texto });
+    _orbeGuardarChat(arr);
+  }
+  return div;
+}
+function _orbeScrollFinal(){
+  const cont = document.getElementById('orb-chat');
+  if(cont) setTimeout(()=>{ cont.scrollTop = cont.scrollHeight; }, 30);
+}
+function orbIANuevoChat(){
+  try { localStorage.removeItem(ORB_CHAT_KEY); } catch(e){}
+  _orbeRestaurarChat();
+}
+function orbIAEnviarRapido(t){
+  const inp = document.getElementById('orb-input');
+  if(inp) inp.value = t;
+  orbIAEnviarMensaje();
+}
+async function orbIAEnviarMensaje(){
+  if (_orbChatLoading) return;
+  const inp = document.getElementById('orb-input');
+  if(!inp) return;
+  const texto = (inp.value||'').trim();
+  if(!texto) return;
+  inp.value = '';
+  _orbeMostrarMsg('user', texto, true);
+
+  // Indicador de "escribiendo…"
+  const cont = document.getElementById('orb-chat');
+  const typing = document.createElement('div');
+  typing.className = 'orb-msg ai typing';
+  typing.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  cont.appendChild(typing);
+  _orbeScrollFinal();
+  _orbChatLoading = true;
+
+  let respuesta = '';
+  try {
+    respuesta = await _orbeChatResponder();
+  } catch(e) {
+    respuesta = '⚠️ Error: '+(e.message||e);
+  }
+
+  // Quitar typing
+  if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
+
+  // Mostrar respuesta con efecto máquina de escribir
+  const div = _orbeMostrarMsg('ai', '', true);
+  // Reemplazar último guardado por la versión final cuando termine
+  const arr = _orbeCargarChat();
+  arr[arr.length-1] = { role:'assistant', content: respuesta };
+  _orbeGuardarChat(arr);
+
+  _orbeTypewriter(div, respuesta, ()=>{ _orbChatLoading = false; });
+  _orbeScrollFinal();
+}
+
+async function _orbeChatResponder(){
+  const msgs = _orbeCargarChat(); // ya incluye el último user
+  const stats = _orbeRecolectarStats();
+  const ctx = _orbeContextoTexto(stats);
+
+  let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
+
+  if (!key) {
+    // Modo local: responde con análisis basado en la pregunta + stats
+    const ultimo = (msgs[msgs.length-1]?.content || '').toLowerCase();
+    return _orbeRespuestaLocal(ultimo, stats);
+  }
+
+  // Llamada real a Claude
+  const sistema = `Eres el asistente IA del cobrador en la app "Alisson & Emily". Hablas español, cercano, con emojis moderados. Tus respuestas son CORTAS (máx 5 frases) y accionables. Usa los datos en vivo del usuario:
+
+${ctx}
+
+Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
+
+  const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
+
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-haiku-latest',
+      max_tokens: 600,
+      system: sistema,
+      messages
+    })
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(()=>'');
+    throw new Error('HTTP '+r.status+' '+t.slice(0,140));
+  }
+  const data = await r.json();
+  return (data.content && data.content[0] && data.content[0].text) || '(sin respuesta)';
+}
+
+function _orbeContextoTexto(s){
+  const f = n => '$'+Math.round(n||0).toLocaleString();
+  return `Fecha: ${s.fecha}
+Pleno del día: ${f(s.pleno)}
+Base: ${f(s.base)} | Neki: ${f(s.neki)} | Entregado: ${f(s.entregado)}
+Cobrado hoy: ${f(s.cobradoHoy)} | Prestado hoy: ${f(s.prestadoHoy)}
+Gastos hoy: ${f(s.gastosHoy)} | Papelería hoy: ${f(s.papeleriaHoy)}
+Cartera total: ${f(s.totalCartera)} en ${s.cuentaActivos} clientes activos
+Atrasados hoy: ${s.cuentaAtrasados} (${s.pctAtrasados}%)`;
+}
+
+function _orbeRespuestaLocal(pregunta, s){
+  const f = n => '$'+Math.round(n||0).toLocaleString();
+  const has = (...ks) => ks.some(k => pregunta.includes(k));
+
+  if (has('hola','buenas','saludo','qué tal','que tal')) {
+    return `👋 ¡Hola! Hoy llevas pleno de ${f(s.pleno)}. ¿Quieres que te diga cómo vas o necesitas algo específico?`;
+  }
+  if (has('cómo voy','como voy','cómo va','como va','resumen','día','dia')) {
+    const ev = s.pleno > 0 ? '✅ VAS BIEN' : (s.pleno < 0 ? '⚠️ VAS EN ROJO' : '◾ APENAS EMPIEZAS');
+    return `${ev}\n\n💰 Pleno: ${f(s.pleno)}\n📥 Cobrado: ${f(s.cobradoHoy)}\n📤 Prestado: ${f(s.prestadoHoy)}\n💸 Gastos: ${f(s.gastosHoy)}\n👥 ${s.cuentaAtrasados} de ${s.cuentaActivos} clientes sin pagar hoy (${s.pctAtrasados}%).`;
+  }
+  if (has('visitar','prioridad','primero','ruta')) {
+    if (s.cuentaAtrasados === 0) return `✨ ¡Increíble! Ningún cliente está atrasado hoy. Aprovecha para prospectar nuevos préstamos.`;
+    return `🎯 Tienes ${s.cuentaAtrasados} clientes sin pagar hoy. Te recomiendo priorizarlos por:\n1) Mayor saldo pendiente\n2) Más días sin abonar\n3) Cercanía geográfica\n\nAbre la lista de Clientes y filtra por atrasados.`;
+  }
+  if (has('consejo','tip','mejorar','aumentar','cobros')) {
+    const tips = [];
+    if (s.pctAtrasados > 30) tips.push('🚨 Tu % de atraso es alto. Llama HOY a los más atrasados antes de visitar.');
+    if (s.gastosHoy > s.cobradoHoy*0.3 && s.cobradoHoy>0) tips.push('💸 Tus gastos son altos vs lo cobrado. Revisa qué puedes recortar.');
+    if (s.prestadoHoy > s.cobradoHoy) tips.push('📊 Estás prestando más de lo que cobras — vigila la liquidez.');
+    if (tips.length===0) tips.push('💪 Vas muy bien. Mantén la disciplina de visita diaria.');
+    tips.push('🗓️ Anota cada visita y agenda la próxima al cerrar el cobro.');
+    return tips.join('\n');
+  }
+  if (has('semana')) {
+    return `📅 Esta semana en resumen rápido:\n• Cartera activa: ${f(s.totalCartera)}\n• Clientes activos: ${s.cuentaActivos}\n• Atrasados HOY: ${s.cuentaAtrasados} (${s.pctAtrasados}%)\n\n(Conecta Claude con 🔑 para análisis semanal detallado).`;
+  }
+  if (has('claude','ia','inteligencia','conectar','clave','api')) {
+    return `🔑 Para chat IA real: toca el botón 🔑 arriba y pega tu clave de Anthropic (empieza con sk-ant-…). Se guarda solo en tu celular. Mientras tanto te respondo con análisis local.`;
+  }
+  return `Entiendo tu pregunta. Sin Claude conectado solo te puedo dar análisis basado en tus datos:\n\n💰 Pleno hoy: ${f(s.pleno)}\n👥 ${s.cuentaActivos} clientes activos, ${s.cuentaAtrasados} atrasados\n📦 Cartera: ${f(s.totalCartera)}\n\n🔑 Toca el botón de la llave arriba para conectar Claude y conversar de verdad.`;
+}
+
+function _orbeTypewriter(el, text, done){
+  let i = 0;
+  el.textContent = '';
+  const step = Math.max(1, Math.floor(text.length / 220));
+  const t = setInterval(()=>{
+    i += step;
+    el.textContent = text.slice(0, i);
+    _orbeScrollFinal();
+    if (i >= text.length) { clearInterval(t); if(done) done(); }
+  }, 16);
+}
+
+window.abrirOrbeIA = abrirOrbeIA;
+window.cerrarOrbeIA = cerrarOrbeIA;
+window.orbIAConfigKey = orbIAConfigKey;
+window.orbIAGuardarKey = orbIAGuardarKey;
+window.orbIAEnviarMensaje = orbIAEnviarMensaje;
+window.orbIAEnviarRapido = orbIAEnviarRapido;
+window.orbIANuevoChat = orbIANuevoChat;
 </script>
 
 
-<!-- ══ ÍCONO FLOTANTE PLENO ══ -->
-<div id="pleno-fab">
+<!-- ══ ORBE TECNOLÓGICO IA — PLENO ══ -->
+<div id="pleno-fab" onclick="abrirOrbeIA()">
   <div class="pfab-burbuja" id="pfab-burbuja">
+    <div class="pfab-shine"></div>
     <div class="pfab-dot"></div>
-    <div class="pfab-label">PLENO</div>
+    <div class="pfab-label">◈ IA</div>
     <div class="pfab-monto" id="pfab-monto">$0</div>
   </div>
   <div class="pfab-hoy" id="pfab-hoy">HOY</div>
+</div>
+
+<!-- ══ PANEL IA del Orbe — CHAT ══ -->
+<div id="orb-ia-overlay" onclick="if(event.target.id==='orb-ia-overlay')cerrarOrbeIA()">
+  <div id="orb-ia-panel" role="dialog" aria-modal="true">
+    <button class="orb-close" onclick="cerrarOrbeIA()" aria-label="Cerrar">✕</button>
+    <div class="orb-grab"></div>
+    <div class="orb-head">
+      <div class="orb-avatar">◈</div>
+      <div>
+        <h3>ASISTENTE IA</h3>
+        <div class="orb-sub" id="orb-conn-status">En línea · análisis en vivo</div>
+      </div>
+      <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
+      <button class="orb-btn ghost orb-btn-mini" onclick="orbIANuevoChat()" title="Nuevo chat">🧹</button>
+    </div>
+
+    <div id="orb-key-config" style="display:none">
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Anthropic (sk-ant-…). Se guarda solo en este dispositivo.</div>
+      <div class="orb-key-row">
+        <input type="password" id="orb-key-input" placeholder="sk-ant-..." autocomplete="off">
+        <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
+      </div>
+      <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
+    </div>
+
+    <div class="orb-stats" id="orb-stats"></div>
+
+    <div id="orb-chat" class="orb-chat"></div>
+
+    <div class="orb-quick" id="orb-quick">
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">¿Cómo voy hoy?</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">Prioridad de visita</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">Consejo</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Resume mi semana')">Resumen semana</button>
+    </div>
+
+    <form class="orb-input-row" onsubmit="event.preventDefault(); orbIAEnviarMensaje();">
+      <input type="text" id="orb-input" placeholder="Pregúntale al asistente…" autocomplete="off">
+      <button type="submit" class="orb-send" aria-label="Enviar">➤</button>
+    </form>
+  </div>
 </div>
 
 <!-- sistema de notificación de actualización: ver _mostrarNotificacionActualizacion() -->
