@@ -5830,28 +5830,36 @@ function _versionEsMasNueva(a, b){
 }
 
 // ── SUSCRIPCIÓN EN VIVO: cualquier cambio remoto = notificación instantánea ──
+let _fbVersionSuscrito = false;
 function _suscribirVersionFirebase(){
+  if (_fbVersionSuscrito) return;
   try {
-    if (!window._fbDb || !window._fbRef || !window.onValue) return;
+    // onValue puede estar en window.onValue o importado en el scope de Firebase
+    const _onVal = window.onValue || window._fbOnValue;
+    if (!window._fbDb || !window._fbRef || !_onVal) return;
+    _fbVersionSuscrito = true;
     const r = window._fbRef(window._fbDb, 'app_meta/version');
-    window.onValue(r, snap => {
+    _onVal(r, snap => {
       const v = snap && snap.exists() ? snap.val() : null;
       if (v && typeof v === 'string') _aplicarActualizacion(v);
     });
-  } catch(e) {}
+  } catch(e) { _fbVersionSuscrito = false; }
 }
 
-// Intentar publicar/suscribir cuando Firebase ya esté listo
+// Intentar publicar/suscribir cuando Firebase ya esté listo — reintenta hasta 60s
 (function _initFbVersion(){
   let intentos = 0;
   const t = setInterval(()=>{
     intentos++;
-    if (window._fbDb && window._fbRef && window._fbGet && window._fbSet) {
+    const listo = window._fbDb && window._fbRef && window._fbGet && window._fbSet;
+    if (listo) {
       clearInterval(t);
       _publicarVersionEnFirebase();
       _suscribirVersionFirebase();
-    } else if (intentos > 40) {
-      clearInterval(t); // ~20s
+      // Hacer un check inmediato también para no esperar al onValue
+      _checkVersionServidor(v => _aplicarActualizacion(v));
+    } else if (intentos > 120) { // ~60s máximo
+      clearInterval(t);
     }
   }, 500);
 })();
@@ -10155,11 +10163,18 @@ async function _orbeChatResponder(){
   }
 
   // Llamada real a Claude
-  const sistema = `Eres el asistente IA del cobrador en la app "Alisson & Emily". Hablas español, cercano, con emojis moderados. Tus respuestas son CORTAS (máx 5 frases) y accionables. Usa los datos en vivo del usuario:
+  const sistema = `Eres el asistente IA personal del cobrador en la app "Alisson & Emily". Hablas español, de forma cercana y directa, con emojis moderados. Respondes SIEMPRE basándote en los datos reales que tienes.
 
-${ctx}
+REGLAS:
+- Si preguntan por un cliente específico (por nombre), busca EXACTAMENTE ese nombre en los datos y responde con sus datos reales.
+- Si preguntan pagos de una fecha o semana específica, busca en el historial de pagos de cada cliente.
+- Si preguntan gastos de la semana, usa el historial de gastos.
+- Si preguntan el pleno de un día específico, usa el historial.
+- Respuestas CORTAS (máx 5 líneas), directas y con los números exactos.
+- Si no encuentras el dato específico, dilo claramente.
 
-Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
+DATOS COMPLETOS EN VIVO:
+${ctx}`;
 
   const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
@@ -10188,46 +10203,515 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
 
 function _orbeContextoTexto(s){
   const f = n => '$'+Math.round(n||0).toLocaleString();
-  return `Fecha: ${s.fecha}
-Pleno del día: ${f(s.pleno)}
-Base: ${f(s.base)} | Neki: ${f(s.neki)} | Entregado: ${f(s.entregado)}
-Cobrado hoy: ${f(s.cobradoHoy)} | Prestado hoy: ${f(s.prestadoHoy)}
-Gastos hoy: ${f(s.gastosHoy)} | Papelería hoy: ${f(s.papeleriaHoy)}
+
+  // ── Clientes con TODOS sus pagos ──
+  let clientesTexto = '';
+  try {
+    const clientes = (typeof getClientes==='function') ? getClientes() : [];
+    clientes.forEach(c => {
+      if (!c) return;
+      const estado = c.cancelado ? '[CANCELADO]' : (Number(c.saldo)>0 ? '[ACTIVO]' : '[PAGADO]');
+      const pagosStr = (c.pagos||[]).map(p => `${p.fecha}:${f(p.monto)}`).join(', ');
+      const tel = c.telefono ? ` Tel:${c.telefono}` : '';
+      const dir = c.direccion ? ` Dir:${c.direccion}` : '';
+      const fechaInicio = c.fechaCreacion || c.fechaInicio || '';
+      clientesTexto += `
+- ${c.nombre||'?'} ${estado} Prestamo:${f(c.prestamo||0)} Saldo:${f(c.saldo||0)} Cuota:${f(c.cuotaSugerida||0)}/dia Inicio:${fechaInicio}${tel}${dir}`;
+      if (pagosStr) clientesTexto += ` | Pagos: ${pagosStr}`;
+    });
+  } catch(e){ clientesTexto = ' (error leyendo clientes)'; }
+
+  // ── Historial de gastos por día ──
+  let gastosTexto = '';
+  try {
+    const historial = JSON.parse(localStorage.getItem('historial_v1')||'[]');
+    // Últimos 14 días
+    const recent = historial.slice(-14);
+    recent.forEach(d => {
+      if (!d || !d.fecha) return;
+      const gastos = d.gastos ? ` Gastos:${f(d.gastos)}` : '';
+      const cobrado = d.cobrado !== undefined ? ` Cobrado:${f(d.cobrado)}` : '';
+      const pleno = d.pleno !== undefined ? ` Pleno:${f(d.pleno)}` : '';
+      const papeleria = d.papeleria ? ` Papeleria:${f(d.papeleria)}` : '';
+      gastosTexto += `
+  ${d.fecha}:${cobrado}${gastos}${papeleria}${pleno}`;
+    });
+  } catch(e){ gastosTexto = ' (sin historial)'; }
+
+  // ── Calcular semana actual y semana pasada ──
+  let semanaTexto = '';
+  let cuentasTexto = '';
+  try {
+    const hoy = new Date();
+    const fmt2 = d => d.toISOString().slice(0,10);
+
+    // Semana actual (lunes a hoy)
+    const lunesActual = new Date(hoy);
+    const diaActual = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1;
+    lunesActual.setDate(hoy.getDate() - diaActual);
+    lunesActual.setHours(0,0,0,0);
+    const domActual = new Date(lunesActual);
+    domActual.setDate(lunesActual.getDate() + 6);
+
+    // Semana pasada
+    const lunes = new Date(lunesActual);
+    lunes.setDate(lunesActual.getDate() - 7);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+
+    // hist_v3 = cuentas del día (base, neki, entregado, resultado, etc.)
+    const histCuentas = JSON.parse(localStorage.getItem('hist_v3')||'[]');
+    const historial   = JSON.parse(localStorage.getItem('historial_v1')||'[]');
+
+    // Semana pasada desde hist_v3
+    let semCobrado=0, semGastos=0, semPleno=0, semEntregado=0, diasSem=[];
+    let semEntradas=0, semSalidas=0, semResultado=0, semPrestado=0;
+    histCuentas.forEach(d => {
+      if (!d||!d.fecha) return;
+      if (d.fecha >= fmt2(lunes) && d.fecha <= fmt2(domingo)){
+        semEntradas   += Number(d.totalEntradas||0);
+        semSalidas    += Number(d.totalSalidas||0);
+        semResultado  += Number(d.resultado||0);
+        semEntregado  += Number(d.entregado||0);
+        semPrestado   += Number(d.prestamos||0);
+        diasSem.push(`${d.fecha}(res:${f(d.resultado||0)},ent:${f(d.entregado||0)})`);
+      }
+    });
+    // Complementar con historial_v1 para cobrado/gastos
+    historial.forEach(d => {
+      if (!d||!d.fecha) return;
+      if (d.fecha >= fmt2(lunes) && d.fecha <= fmt2(domingo)){
+        semCobrado += Number(d.cobrado||0);
+        semGastos  += Number(d.gastos||0);
+        semPleno   += Number(d.pleno||0);
+      }
+    });
+    semanaTexto = `Semana pasada (${fmt2(lunes)} al ${fmt2(domingo)}):
+  Entradas:${f(semEntradas)} Salidas:${f(semSalidas)} Resultado:${f(semResultado)} Entregado:${f(semEntregado)} Prestado:${f(semPrestado)}
+  Cobrado:${f(semCobrado)} Gastos:${f(semGastos)} Pleno:${f(semPleno)}
+  Días: ${diasSem.join(' | ')||'ninguno'}`;
+
+    // Semana actual desde hist_v3
+    let actEntradas=0, actSalidas=0, actResultado=0, actEntregado=0;
+    let diasActuales=[];
+    histCuentas.forEach(d => {
+      if (!d||!d.fecha) return;
+      if (d.fecha >= fmt2(lunesActual) && d.fecha <= fmt2(domActual)){
+        actEntradas  += Number(d.totalEntradas||0);
+        actSalidas   += Number(d.totalSalidas||0);
+        actResultado += Number(d.resultado||0);
+        actEntregado += Number(d.entregado||0);
+        diasActuales.push(`${d.fecha}:res ${f(d.resultado||0)} ent ${f(d.entregado||0)}`);
+      }
+    });
+
+    // Próxima entrega: calcular qué día cae el próximo lunes (inicio semana que viene)
+    const proximoLunes = new Date(lunesActual);
+    proximoLunes.setDate(lunesActual.getDate() + 7);
+
+    cuentasTexto = `
+=== CUENTAS (hist_v3) ===
+Semana ACTUAL (${fmt2(lunesActual)} al ${fmt2(domActual)}):
+  Entradas: ${f(actEntradas)} | Salidas: ${f(actSalidas)} | Resultado: ${f(actResultado)} | Entregado: ${f(actEntregado)}
+  Días guardados: ${diasActuales.join(' | ')||'ninguno'}
+Próximo lunes (inicio semana nueva): ${fmt2(proximoLunes)}
+Hoy es: ${['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy.getDay()]} ${fmt2(hoy)}
+Días transcurridos esta semana: ${diaActual + 1} de 7`;
+
+  } catch(e){ cuentasTexto = ' (error leyendo cuentas)'; }
+
+  return `=== DATOS EN VIVO APP ALISSON & EMILY ===
+Fecha activa: ${s.fecha}
+Pleno hoy: ${f(s.pleno)} | Base: ${f(s.base)} | Neki: ${f(s.neki)} | Entregado: ${f(s.entregado)}
+Cobrado hoy: ${f(s.cobradoHoy)} | Prestado hoy: ${f(s.prestadoHoy)} | Gastos hoy: ${f(s.gastosHoy)} | Papeleria hoy: ${f(s.papeleriaHoy)}
 Cartera total: ${f(s.totalCartera)} en ${s.cuentaActivos} clientes activos
-Atrasados hoy: ${s.cuentaAtrasados} (${s.pctAtrasados}%)`;
+Atrasados hoy: ${s.cuentaAtrasados} (${s.pctAtrasados}%)
+${semanaTexto}
+${cuentasTexto}
+
+=== HISTORIAL RECIENTE (últimos 14 días) ===${gastosTexto}
+
+=== CLIENTES COMPLETOS ===${clientesTexto}`;
 }
 
 function _orbeRespuestaLocal(pregunta, s){
   const f = n => '$'+Math.round(n||0).toLocaleString();
   const has = (...ks) => ks.some(k => pregunta.includes(k));
 
+  // Obtener clientes e historial para respuestas específicas
+  let clientes = [];
+  let historial = [];
+  try { clientes = (typeof getClientes==='function') ? getClientes() : []; } catch(e){}
+  try { historial = JSON.parse(localStorage.getItem('historial_v1')||'[]'); } catch(e){}
+
+  // ── Pregunta sobre cliente específico ──
+  const clienteEncontrado = clientes.find(c => {
+    if (!c || !c.nombre) return false;
+    const nom = c.nombre.toLowerCase();
+    return pregunta.includes(nom) || nom.split(' ').some(p => p.length > 3 && pregunta.includes(p));
+  });
+
+  if (clienteEncontrado) {
+    const c = clienteEncontrado;
+    const pagos = c.pagos || [];
+
+    // ¿Pregunta por un día/fecha específica?
+    const diasNombre = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'];
+    const semanaPasada = has('semana pasada','semana anterior','última semana','ultima semana');
+    const diaEncontrado = diasNombre.find(d => pregunta.includes(d));
+
+    if (diaEncontrado || semanaPasada) {
+      // Calcular fechas de la semana pasada
+      const hoy = new Date();
+      const lunesSP = new Date(hoy);
+      lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
+      const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
+      const fmt2 = d => d.toISOString().slice(0,10);
+
+      if (diaEncontrado && semanaPasada) {
+        const numDia = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado']
+                       .indexOf(diaEncontrado) % 7;
+        const fechaDia = new Date(lunesSP);
+        fechaDia.setDate(lunesSP.getDate() + (numDia === 0 ? 6 : numDia - 1));
+        const fechaStr = fmt2(fechaDia);
+        const pagosDia = pagos.filter(p => p.fecha === fechaStr);
+        if (pagosDia.length > 0) {
+          const total = pagosDia.reduce((a,p) => a + (Number(p.monto)||0), 0);
+          return `✅ ${c.nombre} SÍ pagó el ${diaEncontrado} (${fechaStr})\nMonto: ${f(total)}\nSaldo actual: ${f(c.saldo||0)}`;
+        } else {
+          return `❌ ${c.nombre} NO tiene pago registrado el ${diaEncontrado} (${fechaStr})\nSaldo actual: ${f(c.saldo||0)}`;
+        }
+      }
+
+      if (semanaPasada) {
+        const pagosSP = pagos.filter(p => p.fecha >= fmt2(lunesSP) && p.fecha <= fmt2(domSP));
+        if (pagosSP.length > 0) {
+          const totalSP = pagosSP.reduce((a,p) => a + (Number(p.monto)||0), 0);
+          const detalle = pagosSP.map(p => `  ${p.fecha}: ${f(p.monto)}`).join('\n');
+          return `📅 ${c.nombre} — Semana pasada:\n${detalle}\nTotal: ${f(totalSP)}\nSaldo actual: ${f(c.saldo||0)}`;
+        } else {
+          return `❌ ${c.nombre} no tiene pagos registrados la semana pasada.\nSaldo actual: ${f(c.saldo||0)}`;
+        }
+      }
+    }
+
+    // Resumen general del cliente
+    const ultimoPago = pagos.length > 0 ? pagos[pagos.length-1] : null;
+    const totalPagado = pagos.reduce((a,p) => a + (Number(p.monto)||0), 0);
+    return `👤 ${c.nombre}\n💳 Préstamo: ${f(c.prestamo||0)} | Saldo: ${f(c.saldo||0)}\n📅 Inicio: ${c.fechaCreacion||'?'} | Cuota: ${f(c.cuotaSugerida||0)}/día\n💰 Total pagado: ${f(totalPagado)} en ${pagos.length} pagos\n${ultimoPago ? '⏱️ Último pago: '+ultimoPago.fecha+' — '+f(ultimoPago.monto) : '⚠️ Sin pagos registrados'}`;
+  }
+
+  // ── Gastos de la semana pasada ──
+  if (has('gasto','gastos') && has('semana pasada','semana anterior','última semana','ultima semana')) {
+    const hoy = new Date();
+    const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
+    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
+    const fmt2 = d => d.toISOString().slice(0,10);
+    const diasSP = historial.filter(d => d && d.fecha >= fmt2(lunesSP) && d.fecha <= fmt2(domSP));
+    if (diasSP.length > 0) {
+      const totalG = diasSP.reduce((a,d) => a + (Number(d.gastos||0)), 0);
+      const detalle = diasSP.map(d => `  ${d.fecha}: ${f(d.gastos||0)}`).join('\n');
+      return `💸 Gastos semana pasada:\n${detalle}\nTotal: ${f(totalG)}`;
+    }
+    return `📭 No hay gastos registrados para la semana pasada.`;
+  }
+
+  // ── Pleno por día de la semana pasada ──
+  if (has('pleno') && has('semana pasada','semana anterior','última semana','ultima semana')) {
+    const hoy = new Date();
+    const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
+    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
+    const fmt2 = d => d.toISOString().slice(0,10);
+    const diasSP = historial.filter(d => d && d.fecha >= fmt2(lunesSP) && d.fecha <= fmt2(domSP));
+    if (diasSP.length > 0) {
+      const totalP = diasSP.reduce((a,d) => a + (Number(d.pleno||0)), 0);
+      const detalle = diasSP.map(d => `  ${d.fecha}: ${f(d.pleno||0)}`).join('\n');
+      return `📊 Pleno semana pasada por día:\n${detalle}\nTotal semana: ${f(totalP)}`;
+    }
+    return `📭 No hay registros de pleno para la semana pasada.`;
+  }
+
+  // ── Resumen semana pasada general ──
+  if (has('semana pasada','semana anterior','última semana','ultima semana')) {
+    const hoy = new Date();
+    const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
+    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
+    const fmt2 = d => d.toISOString().slice(0,10);
+    const diasSP = historial.filter(d => d && d.fecha >= fmt2(lunesSP) && d.fecha <= fmt2(domSP));
+    if (diasSP.length > 0) {
+      const totC = diasSP.reduce((a,d) => a + Number(d.cobrado||0), 0);
+      const totG = diasSP.reduce((a,d) => a + Number(d.gastos||0), 0);
+      const totP = diasSP.reduce((a,d) => a + Number(d.pleno||0), 0);
+      const detalle = diasSP.map(d => `  ${d.fecha}: cobrado ${f(d.cobrado||0)} gastos ${f(d.gastos||0)} pleno ${f(d.pleno||0)}`).join('\n');
+      return `📅 Semana pasada (${fmt2(lunesSP)} al ${fmt2(domSP)}):\n${detalle}\n\nTotales — Cobrado: ${f(totC)} | Gastos: ${f(totG)} | Pleno: ${f(totP)}`;
+    }
+    return `📭 No hay datos registrados para la semana pasada.`;
+  }
+
+  // ── Preguntas sobre clientes semanales ──
+  const DIAS_NUM = {domingo:0,lunes:1,martes:2,'miércoles':3,miercoles:3,jueves:4,viernes:5,'sábado':6,sabado:6};
+  const DIAS_NOM = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+  // Detectar si pregunta por clientes semanales (qué tocan hoy, atrasados, próximos)
+  const esPreguntaSemanal = has('semanal','semanales','semana','cobro semanal','toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','atrasado','atrasados','pasó','pasaron','vencid','vencieron','próximo','proximo','siguiente');
+
+  if (esPreguntaSemanal && !clienteEncontrado) {
+    const hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
+    const hoyNum  = hoyDate.getDay(); // 0=dom,1=lun,...
+    const hoyNom  = DIAS_NOM[hoyNum];
+    const fmt2    = d => d.toISOString().slice(0,10);
+
+    // Separar clientes semanales activos
+    const semanales = clientes.filter(c => c && !c.cancelado && (c.tipo==='semanal'||!c.tipo) && Number(c.saldo)>0);
+
+    // Función: próxima fecha de cobro de un cliente desde hoy
+    function proximaFechaCobro(c){
+      const diaObj = DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()];
+      if (diaObj === undefined) return null;
+      const d = new Date(hoyDate);
+      let diff = diaObj - hoyNum;
+      if (diff < 0) diff += 7;
+      if (diff === 0) diff = 0; // hoy mismo
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+
+    // Clasificar: tocan hoy / atrasados / próximos
+    const tocanHoy    = semanales.filter(c => (DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]) === hoyNum && !((c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate))));
+    const yaPagaron  = semanales.filter(c => (DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]) === hoyNum && (c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate)));
+
+    // Atrasados: tienen cobros vencidos sin pagar (cuotas esperadas > pagos realizados)
+    function cuotasVencidas(c){
+      const fechaIni = c.fechaRenovacion||c.fechaCreado||c.fechaCreacion||'';
+      if(!fechaIni) return 0;
+      const diaObj = DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()];
+      if(diaObj===undefined) return 0;
+      let count=0;
+      const cur = new Date(fechaIni+'T00:00:00');
+      cur.setDate(cur.getDate()+1);
+      while(cur<=hoyDate){ if(cur.getDay()===diaObj) count++; cur.setDate(cur.getDate()+1); }
+      const pagados = Math.floor((c.pagos||[]).reduce((a,p)=>a+(p.monto||0),0) / (c.cuotaSugerida||1));
+      return Math.max(0, count - pagados);
+    }
+
+    const atrasados = semanales.filter(c => cuotasVencidas(c) > 1); // más de 1 cuota sin pagar
+
+    // Próximos 7 días
+    const proximos7 = [];
+    for(let i=1;i<=7;i++){
+      const d2 = new Date(hoyDate); d2.setDate(hoyDate.getDate()+i);
+      const dNum = d2.getDay();
+      const tocaEseDia = semanales.filter(c => DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()] === dNum);
+      if(tocaEseDia.length>0) proximos7.push({fecha:fmt2(d2), dia:DIAS_NOM[dNum], clientes:tocaEseDia});
+    }
+
+    // ¿Qué pregunta específica es?
+    if (has('toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','cobrar hoy','hoy toca','hoy cobro')) {
+      if(tocanHoy.length===0 && yaPagaron.length===0) return `📅 Hoy es ${hoyNom}. No hay clientes semanales con cobro hoy.`;
+      let resp = `📅 Hoy ${hoyNom} — Clientes semanales:
+`;
+      if(tocanHoy.length>0){
+        resp += `⏳ Por cobrar (${tocanHoy.length}):
+`;
+        resp += tocanHoy.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n');
+      }
+      if(yaPagaron.length>0){
+        resp += `\n✅ Ya pagaron hoy (${yaPagaron.length}):
+`;
+        resp += yaPagaron.map(c=>`  • ${c.nombre}`).join('\n');
+      }
+      return resp;
+    }
+
+    if (has('atrasado','atrasados','pasó','pasaron','vencid','vencieron','no han pagado','sin pagar')) {
+      if(atrasados.length===0) return `✅ ¡Ningún cliente semanal está atrasado! Todos van al día.`;
+      let resp = `🚨 Clientes semanales atrasados (${atrasados.length}):
+`;
+      resp += atrasados.map(c=>{
+        const cv = cuotasVencidas(c);
+        return `  • ${c.nombre} — ${cv} cuota${cv>1?'s':''} sin pagar | Saldo: ${f(c.saldo)} | Cobro: ${c.diaSemana||'?'}`;
+      }).join('\n');
+      return resp;
+    }
+
+    if (has('próximo','proximo','siguiente','esta semana','semana') || (!has('atrasado') && !has('toca hoy'))) {
+      let resp = `📅 Cobros semanales próximos 7 días (hoy: ${hoyNom}):
+`;
+      if(tocanHoy.length>0){
+        resp += `\n🔔 HOY (${hoyNom}):\n`;
+        resp += tocanHoy.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)}`).join('\n');
+      }
+      proximos7.forEach(d2=>{
+        resp += `\n📅 ${d2.dia} ${d2.fecha}:\n`;
+        resp += d2.clientes.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n');
+      });
+      if(tocanHoy.length===0 && proximos7.length===0) resp += 'No hay clientes semanales activos.';
+      return resp;
+    }
+
+    // Resumen general semanales
+    let resp = `📊 Clientes semanales activos: ${semanales.length}\n`;
+    semanales.forEach(c => {
+      const pf = proximaFechaCobro(c);
+      const estaAtras = cuotasVencidas(c) > 0;
+      resp += `  • ${c.nombre} — ${c.diaSemana||'?'} — Cuota: ${f(c.cuotaSugerida||0)} — Saldo: ${f(c.saldo)}${estaAtras?' ⚠️':''}\n`;
+    });
+    return resp;
+  }
+
+  // ── Preguntas sobre Cuentas y semanas ──
+  // Función para leer cuentas del día en tiempo real de la pantalla
+  function _leerCuentasHoy(){
+    const gv = id => {
+      const e = document.getElementById(id);
+      if(!e) return 0;
+      const t = (e.value||e.textContent||'0').replace(/[$,.\s]/g,'');
+      return parseFloat(t)||0;
+    };
+    const base      = gv('input-base');
+    const general   = gv('vista-general');
+    const papeleria = gv('input-papeleria') || gv('entradas-papeleria-total');
+    const prestamos = gv('vista-prestamos');
+    const neki      = gv('input-neki');
+    const gasto     = gv('input-gasto');
+    const entregado = gv('input-entregado');
+    const pleno     = gv('pleno-num');
+    const resultado = gv('resultado-num');
+    const totalEnt  = gv('total-entradas') || (base + general + papeleria);
+    const totalSal  = gv('total-salidas')  || (prestamos + neki + gasto);
+    return { base, general, papeleria, prestamos, neki, gasto, entregado, pleno, resultado, totalEnt, totalSal };
+  }
+
+  if (has('entregar','entrega','debo entregar','cuentas hoy','dame las cuentas','cuanto entrego','resumen cuentas')) {
+    try {
+      const base2      = parseFloat(document.getElementById('input-base')?.value)||0;
+      const papeleria2 = parseFloat(document.getElementById('input-papeleria')?.value)||0;
+      const neki2      = parseFloat(document.getElementById('input-neki')?.value)||0;
+      const gasto2     = parseFloat(document.getElementById('input-gasto')?.value)||0;
+      const entregado2 = parseFloat(document.getElementById('input-entregado')?.value)||0;
+      const vistaGen   = document.getElementById('vista-general');
+      const vistaPres  = document.getElementById('vista-prestamos');
+      const general2   = vistaGen  ? (parseFloat(vistaGen.textContent.replace(/[^0-9]/g,''))||0) : 0;
+      const prestamos2 = vistaPres ? (parseFloat(vistaPres.textContent.replace(/[^0-9]/g,''))||0) : 0;
+      const totalEnt2  = base2 + general2 + papeleria2;
+      const totalSal2  = prestamos2 + neki2 + gasto2;
+      const resultado2 = totalEnt2 - totalSal2;
+      window._orbConvEstado = {
+        paso: neki2===0 ? 'esperar_neki' : 'esperar_efectivo',
+        resultado: resultado2, base: base2, general: general2,
+        papeleria: papeleria2, prestamos: prestamos2,
+        neki: neki2, gasto: gasto2, debeEntregar: resultado2 - neki2
+      };
+      let resp = '💰 RESUMEN DE CUENTAS HOY\n━━━━━━━━━━━━━━━\n';
+      resp += '📥 ENTRADAS\n';
+      resp += '  • Pleno cobrado:  ' + f(general2) + '\n';
+      if(base2>0)      resp += '  • Base:           ' + f(base2) + '\n';
+      if(papeleria2>0) resp += '  • Papelería:      ' + f(papeleria2) + '\n';
+      resp += '  ➕ Total entradas: ' + f(totalEnt2) + '\n';
+      resp += '\n📤 SALIDAS\n';
+      if(prestamos2>0) resp += '  • Préstamos:      ' + f(prestamos2) + '\n';
+      if(gasto2>0)     resp += '  • Gastos:         ' + f(gasto2) + '\n';
+      resp += '  ➖ Total salidas:  ' + f(totalSal2) + '\n';
+      resp += '\n📊 RESULTADO: ' + f(resultado2) + '\n';
+      resp += '━━━━━━━━━━━━━━━\n';
+      if(neki2===0){
+        resp += '\n🏦 ¿Cuánto tienes en Neki? Escríbelo y te calculo lo que debes entregar 💵';
+      } else {
+        const debe2 = resultado2 - neki2;
+        resp += '\n🏦 Neki:           ' + f(neki2) + '\n';
+        resp += '💵 Debes entregar: ' + f(debe2) + '\n';
+        if(entregado2>0){
+          const diff2 = debe2 - entregado2;
+          resp += '✅ Ya entregaste:  ' + f(entregado2) + '\n';
+          if(diff2===0)      resp += '\n✅ ¡CUADRA PERFECTO! Todo bien 🎉';
+          else if(diff2>0)   resp += '\n⚠️ Falta entregar: ' + f(diff2);
+          else               resp += '\n✅ Te sobra: ' + f(Math.abs(diff2));
+        } else {
+          resp += '\n¿Cuánto tienes en efectivo? Escríbelo para ver si cuadra 💰';
+          window._orbConvEstado.paso = 'esperar_efectivo';
+        }
+      }
+      return resp;
+    } catch(e){ return '⚠️ Error: ' + e.message; }
+  }
+
+  if (has('resultado','cuánto tengo','cuanto tengo','esta semana') && !has('pasada','anterior')) {
+    try {
+      const hoy2 = new Date();
+      const diaNum  = hoy2.getDay() === 0 ? 6 : hoy2.getDay() - 1;
+      const lunesActual2 = new Date(hoy2); lunesActual2.setDate(hoy2.getDate() - diaNum);
+      const fmt2 = d => d.toISOString().slice(0,10);
+      const domFmt2 = fmt2(new Date(lunesActual2.getTime() + 6*86400000));
+      const histCuentas2 = JSON.parse(localStorage.getItem('hist_v3')||'[]');
+      let actEntradas2=0,actSalidas2=0,actResultado2=0,actEntregado2=0,dias2=[];
+      histCuentas2.forEach(d => {
+        if(d&&d.fecha>=fmt2(lunesActual2)&&d.fecha<=domFmt2){
+          actEntradas2  += Number(d.totalEntradas||0);
+          actSalidas2   += Number(d.totalSalidas||0);
+          actResultado2 += Number(d.resultado||0);
+          actEntregado2 += Number(d.entregado||0);
+          dias2.push(d.fecha);
+        }
+      });
+      const c2hoy = _leerCuentasHoy();
+      return `📊 Semana ${fmt2(lunesActual2)} al ${domFmt2}:\n💰 Entradas: ${f(actEntradas2)}\n📤 Salidas: ${f(actSalidas2)}\n📊 Resultado acumulado: ${f(actResultado2)}\n🏦 Entregado: ${f(actEntregado2)}\n📅 Días guardados: ${dias2.length}\n\n⚡ Hoy (sin guardar): resultado ${f(c2hoy.resultado)} | pleno ${f(c2hoy.pleno)}`;
+    } catch(e){ return '⚠️ Error leyendo semana.'; }
+  }
+
+
+  // ── Conversación: respuesta numérica para neki/efectivo ──
+  const soloNumero = /^\$?[\d.,]+$/.test(pregunta.trim().replace(/\s/g,''));
+  if (soloNumero && window._orbConvEstado) {
+    const monto = parseFloat(pregunta.replace(/[^0-9.]/g,''))||0;
+    const est = window._orbConvEstado;
+
+    if (est.paso === 'esperar_neki') {
+      const debeEntregar = est.resultado - monto;
+      window._orbConvEstado = { paso: 'esperar_efectivo', debeEntregar, neki: monto, ...est };
+      let resp = `🏦 Neki: ${f(monto)}
+`;
+      resp += `💵 Debes entregar: ${f(debeEntregar)}
+
+`;
+      resp += `¿Cuánto tienes en efectivo? Escríbelo para ver si cuadra 💰`;
+      return resp;
+    }
+
+    if (est.paso === 'esperar_efectivo') {
+      const diff = est.debeEntregar - monto;
+      window._orbConvEstado = null;
+      let resp = `💵 Efectivo que tienes: ${f(monto)}
+`;
+      resp += `📦 Debes entregar:     ${f(est.debeEntregar)}
+`;
+      resp += `━━━━━━━━━━━━━━━━━
+`;
+      if(diff===0)       resp += `✅ ¡CUADRA PERFECTO! Todo está bien 🎉`;
+      else if(diff>0)    resp += `⚠️ Te FALTA: ${f(diff)}
+Busca esa diferencia antes de entregar.`;
+      else               resp += `✅ Te SOBRA: ${f(Math.abs(diff))}
+Puedes guardarlo o reportarlo.`;
+      return resp;
+    }
+  }
+
+  // ── Respuestas generales ──
   if (has('hola','buenas','saludo','qué tal','que tal')) {
-    return `👋 ¡Hola! Hoy llevas pleno de ${f(s.pleno)}. ¿Quieres que te diga cómo vas o necesitas algo específico?`;
+    return `👋 ¡Hola! Soy tu asistente de cobranza. Hoy llevas pleno de ${f(s.pleno)}. Puedo decirte:\n• 💰 Cuentas del día (pleno, base, gastos, cuánto entregar)\n• 👤 Info de cualquier cliente\n• 📅 Clientes semanales que tocan hoy o están atrasados\n• 📊 Plenos y gastos de la semana pasada\n¿Qué necesitas?`;
   }
-  if (has('cómo voy','como voy','cómo va','como va','resumen','día','dia')) {
+  if (has('cómo voy','como voy','resumen','día','dia')) {
     const ev = s.pleno > 0 ? '✅ VAS BIEN' : (s.pleno < 0 ? '⚠️ VAS EN ROJO' : '◾ APENAS EMPIEZAS');
-    return `${ev}\n\n💰 Pleno: ${f(s.pleno)}\n📥 Cobrado: ${f(s.cobradoHoy)}\n📤 Prestado: ${f(s.prestadoHoy)}\n💸 Gastos: ${f(s.gastosHoy)}\n👥 ${s.cuentaAtrasados} de ${s.cuentaActivos} clientes sin pagar hoy (${s.pctAtrasados}%).`;
+    return `${ev}\n💰 Pleno: ${f(s.pleno)}\n📥 Cobrado: ${f(s.cobradoHoy)}\n📤 Prestado: ${f(s.prestadoHoy)}\n💸 Gastos: ${f(s.gastosHoy)}\n👥 ${s.cuentaAtrasados} sin pagar hoy (${s.pctAtrasados}%)`;
   }
-  if (has('visitar','prioridad','primero','ruta')) {
-    if (s.cuentaAtrasados === 0) return `✨ ¡Increíble! Ningún cliente está atrasado hoy. Aprovecha para prospectar nuevos préstamos.`;
-    return `🎯 Tienes ${s.cuentaAtrasados} clientes sin pagar hoy. Te recomiendo priorizarlos por:\n1) Mayor saldo pendiente\n2) Más días sin abonar\n3) Cercanía geográfica\n\nAbre la lista de Clientes y filtra por atrasados.`;
+  if (has('clientes','quiénes','quienes','lista','todos')) {
+    const activos = clientes.filter(c => c && !c.cancelado && Number(c.saldo)>0);
+    if (activos.length === 0) return `✨ No hay clientes con saldo pendiente.`;
+    return `👥 ${activos.length} clientes activos:\n`+activos.slice(0,8).map(c => `  • ${c.nombre}: saldo ${f(c.saldo)}`).join('\n')+(activos.length>8?`\n  ...y ${activos.length-8} más`:'');
   }
-  if (has('consejo','tip','mejorar','aumentar','cobros')) {
-    const tips = [];
-    if (s.pctAtrasados > 30) tips.push('🚨 Tu % de atraso es alto. Llama HOY a los más atrasados antes de visitar.');
-    if (s.gastosHoy > s.cobradoHoy*0.3 && s.cobradoHoy>0) tips.push('💸 Tus gastos son altos vs lo cobrado. Revisa qué puedes recortar.');
-    if (s.prestadoHoy > s.cobradoHoy) tips.push('📊 Estás prestando más de lo que cobras — vigila la liquidez.');
-    if (tips.length===0) tips.push('💪 Vas muy bien. Mantén la disciplina de visita diaria.');
-    tips.push('🗓️ Anota cada visita y agenda la próxima al cerrar el cobro.');
-    return tips.join('\n');
+  if (has('claude','ia','clave','api','conectar')) {
+    return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Anthropic (sk-ant-…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
   }
-  if (has('semana')) {
-    return `📅 Esta semana en resumen rápido:\n• Cartera activa: ${f(s.totalCartera)}\n• Clientes activos: ${s.cuentaActivos}\n• Atrasados HOY: ${s.cuentaAtrasados} (${s.pctAtrasados}%)\n\n(Conecta Claude con 🔑 para análisis semanal detallado).`;
-  }
-  if (has('claude','ia','inteligencia','conectar','clave','api')) {
-    return `🔑 Para chat IA real: toca el botón 🔑 arriba y pega tu clave de Anthropic (empieza con sk-ant-…). Se guarda solo en tu celular. Mientras tanto te respondo con análisis local.`;
-  }
-  return `Entiendo tu pregunta. Sin Claude conectado solo te puedo dar análisis basado en tus datos:\n\n💰 Pleno hoy: ${f(s.pleno)}\n👥 ${s.cuentaActivos} clientes activos, ${s.cuentaAtrasados} atrasados\n📦 Cartera: ${f(s.totalCartera)}\n\n🔑 Toca el botón de la llave arriba para conectar Claude y conversar de verdad.`;
+  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Claude para análisis más profundo.`;
 }
 
 function _orbeTypewriter(el, text, done){
@@ -10242,6 +10726,8 @@ function _orbeTypewriter(el, text, done){
   }, 16);
 }
 
+// Exponer onValue para el sistema de versiones
+if (typeof onValue !== 'undefined') window._fbOnValue = onValue;
 window.abrirOrbeIA = abrirOrbeIA;
 window.cerrarOrbeIA = cerrarOrbeIA;
 window.orbIAConfigKey = orbIAConfigKey;
@@ -10293,6 +10779,14 @@ window.orbIANuevoChat = orbIANuevoChat;
 
     <div class="orb-quick" id="orb-quick">
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">¿Cómo voy hoy?</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">Plenos semana pasada</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">Gastos semana pasada</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de cuentas de hoy')">💰 Cuentas de hoy</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto debo entregar hoy?')">¿Cuánto entrego?</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo van las cuentas esta semana?')">Cuentas esta semana</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">Semanales de hoy</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales están atrasados?')">Atrasados semanales</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes semanales tocan esta semana?')">Cobros esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">Prioridad de visita</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">Consejo</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Resume mi semana')">Resumen semana</button>
