@@ -10704,27 +10704,62 @@ function _orbeRespuestaLocal(pregunta, s){
     } catch(e){ return '⚠️ Error: ' + e.message; }
   }
 
-  if ((has('resultado','esta semana','resumen semana','semana actual','resumen de la semana','gastos esta semana','gastos de la semana','plenos esta semana') || (has('semana') && !has('pasada','anterior','semanal','semanales','toca','atrasado'))) && !has('pasada','anterior')) {
+  if ((has('resumen','esta semana','semana actual','resumen de la semana','resumen semana',
+           'gastos esta semana','gastos de la semana','plenos esta semana','cobros esta semana') ||
+       (has('semana') && !has('pasada','anterior','semanal','semanales','toca','atrasado','entregar','entrega')))
+      && !has('pasada','anterior')) {
     try {
-      const hoy2 = new Date();
-      const diaNum  = hoy2.getDay() === 0 ? 6 : hoy2.getDay() - 1;
-      const lunesActual2 = new Date(hoy2); lunesActual2.setDate(hoy2.getDate() - diaNum);
-      const fmt2 = d => d.toISOString().slice(0,10);
-      const domFmt2 = fmt2(new Date(lunesActual2.getTime() + 6*86400000));
-      const histCuentas2 = JSON.parse(localStorage.getItem('hist_v3')||'[]');
-      let actEntradas2=0,actSalidas2=0,actResultado2=0,actEntregado2=0,dias2=[];
-      histCuentas2.forEach(d => {
-        if(d&&d.fecha>=fmt2(lunesActual2)&&d.fecha<=domFmt2){
-          actEntradas2  += Number(d.totalEntradas||0);
-          actSalidas2   += Number(d.totalSalidas||0);
-          actResultado2 += Number(d.resultado||0);
-          actEntregado2 += Number(d.entregado||0);
-          dias2.push(d.fecha);
+      const hoy2 = new Date(); hoy2.setHours(0,0,0,0);
+      const diaNum2 = hoy2.getDay()===0?6:hoy2.getDay()-1;
+      const lunesA2 = new Date(hoy2); lunesA2.setDate(hoy2.getDate()-diaNum2);
+      const fmt2 = d2=>d2.toISOString().slice(0,10);
+      const DNOMS=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+      let totCob=0,totPleno=0,totGastos=0,totPrest=0,detDias='';
+      const histV3 = JSON.parse(localStorage.getItem('hist_v3')||'[]');
+      const pedirGastos = has('gasto','gastos');
+
+      for(let i=0;i<7;i++){
+        const d2=new Date(lunesA2); d2.setDate(lunesA2.getDate()+i);
+        const f2=fmt2(d2);
+        if(f2>fmt2(hoy2)) break;
+        const {pleno,cobrado}=_orbePlenoRealDia(f2);
+        const gastosDia=_orbeGastosDetalleDia(f2);
+        const totalG=gastosDia.reduce((a,g)=>a+(g.valor||0),0);
+        const histReg=histV3.find(h=>h&&h.fecha===f2);
+        const prest=histReg?Number(histReg.prestamos||0):0;
+        totCob+=cobrado; totPleno+=pleno; totGastos+=totalG; totPrest+=prest;
+        if(cobrado>0||totalG>0||prest>0){
+          if(pedirGastos){
+            // Modo gastos: mostrar detalle de gastos
+            if(totalG>0){
+              detDias+=`\n📅 ${DNOMS[i]} ${f2} — gastos ${f(totalG)}:\n`;
+              gastosDia.forEach(g=>{ detDias+=`  • ${g.tipo}${g.desc?' ('+g.desc+')':''}: ${f(g.valor||0)}\n`; });
+            }
+          } else {
+            // Modo resumen: mostrar pleno por día
+            detDias+=`  ${DNOMS[i]} ${f2}: pleno ${cobrado>0?f(pleno):'—'}`;
+            if(totalG>0) detDias+=` | gastos ${f(totalG)}`;
+            if(prest>0)  detDias+=` | prestado ${f(prest)}`;
+            detDias+='\n';
+          }
         }
-      });
-      const c2hoy = _leerCuentasHoy();
-      return `📊 Semana ${fmt2(lunesActual2)} al ${domFmt2}:\n💰 Entradas: ${f(actEntradas2)}\n📤 Salidas: ${f(actSalidas2)}\n📊 Resultado acumulado: ${f(actResultado2)}\n🏦 Entregado: ${f(actEntregado2)}\n📅 Días guardados: ${dias2.length}\n\n⚡ Hoy (sin guardar): resultado ${f(c2hoy.resultado)} | pleno ${f(c2hoy.pleno)}`;
-    } catch(e){ return '⚠️ Error leyendo semana.'; }
+      }
+
+      if(pedirGastos){
+        if(!totGastos) return `📭 Sin gastos registrados esta semana.`;
+        return `💸 Gastos esta semana:\n${detDias}\n💰 Total gastos: ${f(totGastos)}`;
+      }
+
+      const hoyStr = fmt2(hoy2);
+      const {pleno:plenoHoy,cobrado:cobradoHoy}=_orbePlenoRealDia(hoyStr);
+      let resp = `📅 Esta semana (${fmt2(lunesA2)} al ${fmt2(new Date(lunesA2.getTime()+6*86400000))}):\n`;
+      resp += detDias||'  Sin cobros guardados aún\n';
+      resp += `\n📊 TOTALES\n  💰 Cobrado: ${f(totCob)}\n  📈 Pleno: ${f(totPleno)}`;
+      if(totGastos>0) resp+=`\n  💸 Gastos: ${f(totGastos)}`;
+      if(totPrest>0)  resp+=`\n  🏦 Prestado: ${f(totPrest)}`;
+      if(cobradoHoy>0) resp+=`\n\n⚡ Hoy: cobrado ${f(cobradoHoy)} | pleno ${f(plenoHoy)}`;
+      return resp;
+    } catch(e){ return '⚠️ Error: '+e.message; }
   }
 
 
