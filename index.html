@@ -5673,7 +5673,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-23 v30';
+const APP_VERSION = '2026-05-21 v29';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5866,61 +5866,31 @@ function _suscribirVersionFirebase(){
 
 
 function _aplicarActualizacion(verServidor){
-  if(!verServidor || typeof verServidor !== 'string') return false;
-  verServidor = verServidor.trim();
+  if(!verServidor) return false;
   const VER_KEY = 'app_version_local';
-  localStorage.setItem(VER_KEY, verServidor);
-
-  // ¿Es diferente a la que está corriendo ahora?
+  const verLocal = localStorage.getItem(VER_KEY) || '';
+  // Si el servidor tiene una versión DIFERENTE a la que está corriendo en memoria,
+  // mostramos la notificación (esto cubre el caso de APK con HTML cacheado viejo).
   if(verServidor !== APP_VERSION){
-    console.log('[UPD] Servidor:', verServidor, '| Local:', APP_VERSION);
-    // Guardar que hay una actualización pendiente (persiste entre visitas)
-    try { localStorage.setItem('app_upd_pendiente', verServidor); } catch(e){}
+    console.log('Nueva versión en servidor:', verServidor, '| corriendo:', APP_VERSION);
+    localStorage.setItem(VER_KEY, verServidor);
     _mostrarNotificacionActualizacion(verServidor);
     return true;
   }
-  // Ya estamos al día — limpiar flag de pendiente
-  try { localStorage.removeItem('app_upd_pendiente'); } catch(e){}
+  // Si la versión del servidor coincide con la que corre, guardamos y salimos.
+  localStorage.setItem(VER_KEY, verServidor);
+  if(verLocal && verLocal !== verServidor){
+    _mostrarNotificacionActualizacion(verServidor);
+    return true;
+  }
   return false;
 }
 
-// ── Mostrar badge persistente en header cuando hay update pendiente ──
-function _mostrarBadgeActualizacion(ver){
-  // Evitar duplicados
-  if(document.getElementById('upd-header-badge')) return;
-  const badge = document.createElement('div');
-  badge.id = 'upd-header-badge';
-  badge.title = 'Actualización disponible: ' + ver;
-  badge.style.cssText = `
-    position:fixed;top:12px;right:12px;z-index:99990;
-    background:linear-gradient(135deg,#ff8a00,#ff1493);
-    color:white;font-family:inherit;font-size:12px;font-weight:900;
-    padding:7px 13px;border-radius:20px;cursor:pointer;
-    box-shadow:0 4px 16px rgba(255,20,147,.5);
-    animation:updBadgePulse 1.8s ease infinite;
-    letter-spacing:.3px;border:none;
-  `;
-  badge.innerHTML = '🚀 Actualizar';
-  badge.onclick = () => _mostrarNotificacionActualizacion(ver);
-  // Añadir keyframe si no existe
-  if(!document.getElementById('upd-badge-style')){
-    const s = document.createElement('style');
-    s.id='upd-badge-style';
-    s.textContent='@keyframes updBadgePulse{0%,100%{transform:scale(1);box-shadow:0 4px 16px rgba(255,20,147,.5)}50%{transform:scale(1.07);box-shadow:0 6px 24px rgba(255,20,147,.75)}}';
-    document.head.appendChild(s);
-  }
-  document.body.appendChild(badge);
-}
-
 function _mostrarNotificacionActualizacion(verServidor){
-  // No mostrar dos veces el modal
   if(document.getElementById('modal-nueva-version')) return;
-  // Mostrar el badge persistente también
-  _mostrarBadgeActualizacion(verServidor);
-
   // Vibrar para llamar la atención
   try { if(navigator.vibrate) navigator.vibrate([200,100,200,100,300]); } catch(e){}
-  // Sonido
+  // Sonido beep corto
   try {
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -5968,7 +5938,7 @@ function _mostrarNotificacionActualizacion(verServidor){
         <div id="upd-sub">Hay una actualización lista para instalarse.<br>Tus datos NO se borran.</div>
         <div id="upd-ver">${verServidor}</div>
         <button id="upd-btn-yes" type="button">⚡ Actualizar ahora</button>
-        <button id="upd-btn-no" type="button">Ahora no — avisar más tarde</button>
+        <button id="upd-btn-no" type="button">Recordarme en 10 min</button>
         <div id="upd-progress"><div></div></div>
       </div>
     </div>`;
@@ -5988,9 +5958,6 @@ function _mostrarNotificacionActualizacion(verServidor){
     const t = setInterval(()=>{ p = Math.min(95, p+9+Math.random()*8); bar.style.width = p+'%'; }, 90);
     try { _borrarTodoCacheSW(); } catch(e){}
     try { localStorage.setItem('app_actualizada_flag', verServidor); } catch(e){}
-    try { localStorage.removeItem('app_upd_pendiente'); } catch(e){}
-    // Quitar badge si existe
-    try { document.getElementById('upd-header-badge')?.remove(); } catch(e){}
     setTimeout(()=>{
       clearInterval(t);
       bar.style.width = '100%';
@@ -6003,62 +5970,50 @@ function _mostrarNotificacionActualizacion(verServidor){
 
   no.addEventListener('click', function(){
     overlay.remove();
-    // Badge queda visible — el usuario puede tocar para volver al modal
-    // Recordar en 5 minutos automáticamente
-    setTimeout(()=>{
-      try {
-        const vPend = localStorage.getItem('app_upd_pendiente');
-        if(vPend && vPend !== APP_VERSION) _mostrarNotificacionActualizacion(vPend);
-      } catch(e){}
-    }, 5*60*1000);
+    // Volver a recordar en 10 minutos
+    setTimeout(()=>{ _checkVersionServidor(v=>_aplicarActualizacion(v)); }, 10*60*1000);
   });
 }
 
-// ── Verificar al abrir la app y periódicamente ──
+// ── Verificar al abrir la app (inmediato, varias veces) ──
 (function checkAlInicio(){
-  // Primero: ¿había una actualización pendiente de antes? Mostrar badge de inmediato.
-  try {
-    const vPend = localStorage.getItem('app_upd_pendiente');
-    if(vPend && vPend !== APP_VERSION){
-      setTimeout(()=> _mostrarBadgeActualizacion(vPend), 800);
-    }
-  } catch(e){}
-
   // Check inmediato
   setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 80);
-  // Re-check 3s después por si la red estaba lenta
-  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 3000);
-  // Re-check 10s después
-  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 10000);
+  // Re-check 2s después por si la red estaba lenta
+  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 2000);
+  // Re-check 6s después
+  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 6000);
 })();
 
-// ── Verificar SIEMPRE al volver a la app ──
+// ── Verificar SIEMPRE al volver a la app (sin saltar la primera vez) ──
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'visible'){
-    setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 400);
+    setTimeout(()=>{
+      _checkVersionServidor(ver => _aplicarActualizacion(ver));
+    }, 150);
   }
 });
-// También en focus y pageshow (Android WebView a veces no dispara visibilitychange)
+// También en focus (Android WebView a veces no dispara visibilitychange)
 window.addEventListener('focus', function(){
-  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 400);
+  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 200);
 });
 window.addEventListener('pageshow', function(){
-  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 400);
+  setTimeout(()=>{ _checkVersionServidor(ver => _aplicarActualizacion(ver)); }, 200);
 });
-// Click en cualquier lado dispara check si han pasado >30s
+// Click en cualquier lado dispara check si han pasado >15s
 let _lastVerCheck = Date.now();
 document.addEventListener('click', function(){
-  if(Date.now() - _lastVerCheck > 30000){
+  if(Date.now() - _lastVerCheck > 15000){
     _lastVerCheck = Date.now();
     _checkVersionServidor(ver => _aplicarActualizacion(ver));
   }
 }, true);
 
-// ── Check automático cada 3 minutos ──
-setInterval(()=>{
+// ── Verificar cada 20 segundos ──
+setInterval(function(){
   _lastVerCheck = Date.now();
   _checkVersionServidor(ver => _aplicarActualizacion(ver));
-}, 3 * 60 * 1000);
+}, 20 * 1000);
 
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
@@ -10208,20 +10163,15 @@ async function _orbeChatResponder(){
   }
 
   // Llamada real a Claude
-  const sistema = `Eres el asistente IA personal del cobrador en la app "Alisson & Emily". Hablas español, de forma cercana y NATURAL, como una persona real — usa frases como "claro, ya te lo consigo", "mira, según los datos...", "aquí te va", etc. Emojis moderados.
+  const sistema = `Eres el asistente IA personal del cobrador en la app "Alisson & Emily". Hablas español, de forma cercana y directa, con emojis moderados. Respondes SIEMPRE basándote en los datos reales que tienes.
 
-REGLAS IMPORTANTES:
-- Si preguntan por un cliente específico (por nombre), busca ese nombre en los datos y responde con sus datos reales.
-- Si preguntan "días atrasado" de un cliente, calcula los DÍAS desde su último pago hasta hoy (o desde fechaCreado si no tiene pagos), NO el monto que debe.
+REGLAS:
+- Si preguntan por un cliente específico (por nombre), busca EXACTAMENTE ese nombre en los datos y responde con sus datos reales.
 - Si preguntan pagos de una fecha o semana específica, busca en el historial de pagos de cada cliente.
-- Si preguntan gastos de la semana pasada, usa el historial día por día: "el lunes tuviste $X en gastos, el martes $Y..." y al final el total.
-- Si preguntan el pleno de un día específico, usa el historial hist_v3.
-- "Resumen de la semana" o "plenos de la semana" = listar el pleno/cobrado de cada día de esa semana, no los clientes semanales.
-- "Clientes semanales de hoy" = qué clientes tienen cobro semanal HOY.
-- "Cobros de esta semana" = qué clientes semanales tocan en los días que quedan de esta semana.
-- Si piden teléfono, número o dirección de un cliente, responde natural: "Claro, ya te lo consigo 😊 El número de [nombre] es [tel] y vive en [dir]".
-- Si preguntan cuánto llevan en préstamos hasta hoy: suma todos los capitales de clientes activos. Separa préstamos de papelería. La papelería la cobras completa pero solo la mitad es tuya (la otra mitad la entregas), así que calcula también la parte tuya de papelería.
-- Respuestas directas con números exactos. Si no encuentras el dato, dilo claramente.
+- Si preguntan gastos de la semana, usa el historial de gastos.
+- Si preguntan el pleno de un día específico, usa el historial.
+- Respuestas CORTAS (máx 5 líneas), directas y con los números exactos.
+- Si no encuentras el dato específico, dilo claramente.
 
 DATOS COMPLETOS EN VIVO:
 ${ctx}`;
@@ -10262,21 +10212,11 @@ function _orbeContextoTexto(s){
       if (!c) return;
       const estado = c.cancelado ? '[CANCELADO]' : (Number(c.saldo)>0 ? '[ACTIVO]' : '[PAGADO]');
       const pagosStr = (c.pagos||[]).map(p => `${p.fecha}:${f(p.monto)}`).join(', ');
-      const tel = (c.tel||c.telefono) ? ` Tel:${c.tel||c.telefono}` : ' Tel:—';
-      const dir = (c.dir||c.direccion) ? ` Dir:${c.dir||c.direccion}` : ' Dir:—';
-      const fechaInicio = c.fechaCreacion || c.fechaInicio || c.fechaCreado || '';
-      // Días atrasado: desde último pago o desde fechaInicio
-      let diasAtrasado = 0;
-      try {
-        const hoyD = new Date(); hoyD.setHours(0,0,0,0);
-        const pagosOrd = (c.pagos||[]).slice().sort((a,b)=>a.fecha>b.fecha?1:-1);
-        const ultimoP = pagosOrd.length > 0 ? pagosOrd[pagosOrd.length-1] : null;
-        const refFecha = ultimoP ? ultimoP.fecha : fechaInicio;
-        if (refFecha) { const d2 = new Date(refFecha+'T00:00:00'); diasAtrasado = Math.max(0,Math.round((hoyD-d2)/(1000*60*60*24))); }
-      } catch(e){}
-      const papeleria = c.papeleriaCreacion||0;
+      const tel = c.telefono ? ` Tel:${c.telefono}` : '';
+      const dir = c.direccion ? ` Dir:${c.direccion}` : '';
+      const fechaInicio = c.fechaCreacion || c.fechaInicio || '';
       clientesTexto += `
-- ${c.nombre||'?'} ${estado} Prestamo:${f(c.prestamo||0)} Capital:${f(c.capital||0)} Papeleria:${f(papeleria)} Saldo:${f(c.saldo||0)} Cuota:${f(c.cuotaSugerida||0)}/dia Inicio:${fechaInicio} DiasDesdeUltimoPago:${diasAtrasado}${tel}${dir}`;
+- ${c.nombre||'?'} ${estado} Prestamo:${f(c.prestamo||0)} Saldo:${f(c.saldo||0)} Cuota:${f(c.cuotaSugerida||0)}/dia Inicio:${fechaInicio}${tel}${dir}`;
       if (pagosStr) clientesTexto += ` | Pagos: ${pagosStr}`;
     });
   } catch(e){ clientesTexto = ' (error leyendo clientes)'; }
@@ -10378,16 +10318,6 @@ Próximo lunes (inicio semana nueva): ${fmt2(proximoLunes)}
 Hoy es: ${['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy.getDay()]} ${fmt2(hoy)}
 Días transcurridos esta semana: ${diaActual + 1} de 7`;
 
-    // Total prestamos y papelería hasta hoy
-    let totalPrestamosActivos=0, totalPapeleriaActivos=0;
-    try{
-      const clAll = (typeof getClientes==='function') ? getClientes() : [];
-      clAll.forEach(c=>{ if(!c||c.cancelado) return; totalPrestamosActivos+=(c.capital||0); totalPapeleriaActivos+=(c.papeleriaCreacion||0); });
-    }catch(e){}
-    cuentasTexto += `
-Total préstamos activos (capital): ${f(totalPrestamosActivos)}
-Total papelería activos: ${f(totalPapeleriaActivos)} (mitad tuya: ${f(Math.round(totalPapeleriaActivos/2))})`;
-
   } catch(e){ cuentasTexto = ' (error leyendo cuentas)'; }
 
   return `=== DATOS EN VIVO APP ALISSON & EMILY ===
@@ -10404,6 +10334,39 @@ ${cuentasTexto}
 === CLIENTES COMPLETOS ===${clientesTexto}`;
 }
 
+// ── Helper: calcular pleno real de un día desde pagos de clientes ──
+function _orbePlenoRealDia(fecha){
+  try {
+    const clientes = (typeof getClientes==='function') ? getClientes() : [];
+    let general=0, cancelados=0;
+    clientes.forEach(c=>{
+      (c.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ general+=p.monto||0; });
+      (c.historialRenovaciones||[]).forEach(r=>{
+        (r.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ general+=p.monto||0; });
+        if((r.fecha||r.fechaCreado||'').substring(0,10)===fecha){ general+=r.saldoQuedaba||0; }
+      });
+      // Cancelados
+      const esCanceladoHoy = c.saldo===0 && (c.pagos||[]).length>0 &&
+        (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===fecha;
+      if(esCanceladoHoy){
+        cancelados += (c.pagos||[]).filter(p=>p.fecha===fecha).reduce((s,p)=>s+p.monto,0);
+      }
+      (c.historialRenovaciones||[]).forEach(r=>{
+        if((r.fecha||'').substring(0,10)===fecha){ cancelados+=r.saldoQuedaba||0; }
+      });
+    });
+    return { cobrado: general, pleno: general - cancelados, cancelados };
+  } catch(e){ return { cobrado:0, pleno:0, cancelados:0 }; }
+}
+
+// ── Helper: obtener gastos detallados de un día ──
+function _orbeGastosDetalleDia(fecha){
+  try {
+    const lista = JSON.parse(localStorage.getItem('gastos_dia_'+fecha)||'[]');
+    return lista; // [{tipo, desc, valor, hora}]
+  } catch(e){ return []; }
+}
+
 function _orbeRespuestaLocal(pregunta, s){
   const f = n => '$'+Math.round(n||0).toLocaleString();
   const has = (...ks) => ks.some(k => pregunta.includes(k));
@@ -10411,35 +10374,8 @@ function _orbeRespuestaLocal(pregunta, s){
   // Obtener clientes e historial para respuestas específicas
   let clientes = [];
   let historial = [];
-  let histCuentas = [];
   try { clientes = (typeof getClientes==='function') ? getClientes() : []; } catch(e){}
   try { historial = JSON.parse(localStorage.getItem('historial_v1')||'[]'); } catch(e){}
-  try { histCuentas = JSON.parse(localStorage.getItem('hist_v3')||'[]'); } catch(e){}
-
-  // ── Pedir número, teléfono o dirección de un cliente ──
-  const pideTelDir = has('número','numero','teléfono','telefono','tel','dirección','direccion','dir','donde vive','dónde vive');
-  if (pideTelDir) {
-    const clienteFound = clientes.find(c => {
-      if (!c || !c.nombre) return false;
-      const nom = c.nombre.toLowerCase();
-      return pregunta.includes(nom) || nom.split(' ').some(p => p.length > 3 && pregunta.includes(p));
-    });
-    if (clienteFound) {
-      const tel = clienteFound.tel||clienteFound.telefono||'—';
-      const dir = clienteFound.dir||clienteFound.direccion||'—';
-      return `Claro, ya te lo consigo 😊\n👤 ${clienteFound.nombre}\n📱 Número: ${tel}\n🏠 Dirección: ${dir}`;
-    }
-    return `Dime el nombre del cliente y te consigo sus datos 😊`;
-  }
-
-  // ── Cuánto llevo en préstamos hasta hoy ──
-  if (has('cuánto llevo','cuanto llevo','total prestado','total prestamos','total préstamos','llevamos prestado','he prestado','llevamos en préstamos','llevamos en prestamos')) {
-    const activos = clientes.filter(c => c && !c.cancelado && Number(c.saldo)>0);
-    let totalCapital=0, totalPapeleria=0;
-    activos.forEach(c=>{ totalCapital+=(c.capital||0); totalPapeleria+=(c.papeleriaCreacion||0); });
-    const miPapeleria = Math.round(totalPapeleria/2);
-    return `📊 Hasta hoy llevas:\n💵 En préstamos: ${f(totalCapital)} (capital entregado)\n🧾 En papelería total cobrada: ${f(totalPapeleria)}\n💰 Tu parte de papelería (mitad): ${f(miPapeleria)}\n👥 Clientes activos: ${activos.length}`;
-  }
 
   // ── Pregunta sobre cliente específico ──
   const clienteEncontrado = clientes.find(c => {
@@ -10452,34 +10388,13 @@ function _orbeRespuestaLocal(pregunta, s){
     const c = clienteEncontrado;
     const pagos = c.pagos || [];
 
-    // ¿Pregunta por DÍAS ATRASADO?
-    if (has('días atrasado','dias atrasado','cuántos días','cuantos días','cuantos dias','cuanto lleva atrasado','cuánto lleva atrasado','días sin pagar','dias sin pagar','atraso')) {
-      const hoyD = new Date(); hoyD.setHours(0,0,0,0);
-      const pagosOrd = pagos.slice().sort((a,b)=>a.fecha>b.fecha?1:-1);
-      const ultimoP = pagosOrd.length > 0 ? pagosOrd[pagosOrd.length-1] : null;
-      const refFecha = ultimoP ? ultimoP.fecha : (c.fechaCreacion||c.fechaCreado||c.fechaInicio||'');
-      if (!refFecha) return `⚠️ No tengo fecha de referencia para calcular el atraso de ${c.nombre}.`;
-      const dRef = new Date(refFecha+'T00:00:00');
-      const dias = Math.max(0, Math.round((hoyD-dRef)/(1000*60*60*24)));
-      const tipo = c.tipo==='semanal' ? 'semanal' : 'diario';
-      if (dias === 0) return `✅ ${c.nombre} pagó HOY — no tiene atraso.\nSaldo: ${f(c.saldo||0)}`;
-      if (!ultimoP) return `📅 ${c.nombre} lleva ${dias} día${dias>1?'s':''} sin ningún pago registrado.\nSaldo: ${f(c.saldo||0)}`;
-      return `📅 ${c.nombre} lleva ${dias} día${dias>1?'s':''} desde su último pago.\nÚltimo pago: ${ultimoP.fecha} — ${f(ultimoP.monto)}\nSaldo pendiente: ${f(c.saldo||0)} | Tipo: ${tipo}`;
-    }
-
-    // ¿Pide teléfono o dirección?
-    if (has('número','numero','teléfono','telefono','tel','dirección','direccion','dir','donde vive','dónde vive')) {
-      const tel = c.tel||c.telefono||'—';
-      const dir = c.dir||c.direccion||'—';
-      return `Claro, ya te lo consigo 😊\n👤 ${c.nombre}\n📱 Número: ${tel}\n🏠 Dirección: ${dir}`;
-    }
-
     // ¿Pregunta por un día/fecha específica?
     const diasNombre = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'];
     const semanaPasada = has('semana pasada','semana anterior','última semana','ultima semana');
     const diaEncontrado = diasNombre.find(d => pregunta.includes(d));
 
     if (diaEncontrado || semanaPasada) {
+      // Calcular fechas de la semana pasada
       const hoy = new Date();
       const lunesSP = new Date(hoy);
       lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
@@ -10505,10 +10420,14 @@ function _orbeRespuestaLocal(pregunta, s){
         const pagosSP = pagos.filter(p => p.fecha >= fmt2(lunesSP) && p.fecha <= fmt2(domSP));
         if (pagosSP.length > 0) {
           const totalSP = pagosSP.reduce((a,p) => a + (Number(p.monto)||0), 0);
-          const detalle = pagosSP.map(p => `  ${p.fecha}: ${f(p.monto)}`).join('\n');
-          return `📅 ${c.nombre} — Semana pasada:\n${detalle}\nTotal: ${f(totalSP)}\nSaldo actual: ${f(c.saldo||0)}`;
+          // Agrupar por fecha
+          const porFecha = {};
+          pagosSP.forEach(p=>{ porFecha[p.fecha]=(porFecha[p.fecha]||0)+(p.monto||0); });
+          const detalle = Object.entries(porFecha).sort((a,b)=>a[0]>b[0]?1:-1)
+            .map(([f2,m])=>`  ${f2}: ${f(m)}`).join('\n');
+          return `📅 ${c.nombre} — Semana pasada:\n${detalle}\n💰 Total pagado: ${f(totalSP)}\nSaldo actual: ${f(c.saldo||0)}`;
         } else {
-          return `❌ ${c.nombre} no tiene pagos registrados la semana pasada.\nSaldo actual: ${f(c.saldo||0)}`;
+          return `❌ ${c.nombre} no tiene pagos la semana pasada.\nSaldo actual: ${f(c.saldo||0)}`;
         }
       }
     }
@@ -10516,172 +10435,201 @@ function _orbeRespuestaLocal(pregunta, s){
     // Resumen general del cliente
     const ultimoPago = pagos.length > 0 ? pagos[pagos.length-1] : null;
     const totalPagado = pagos.reduce((a,p) => a + (Number(p.monto)||0), 0);
-    const tel = c.tel||c.telefono||'—';
-    const dir = c.dir||c.direccion||'—';
-    return `👤 ${c.nombre}\n💳 Préstamo: ${f(c.prestamo||0)} | Saldo: ${f(c.saldo||0)}\n📅 Inicio: ${c.fechaCreacion||c.fechaCreado||'?'} | Cuota: ${f(c.cuotaSugerida||0)}/día\n💰 Total pagado: ${f(totalPagado)} en ${pagos.length} pagos\n📱 Tel: ${tel} | 🏠 ${dir}\n${ultimoPago ? '⏱️ Último pago: '+ultimoPago.fecha+' — '+f(ultimoPago.monto) : '⚠️ Sin pagos registrados'}`;
+    return `👤 ${c.nombre}\n💳 Préstamo: ${f(c.prestamo||0)} | Saldo: ${f(c.saldo||0)}\n📅 Inicio: ${c.fechaCreacion||'?'} | Cuota: ${f(c.cuotaSugerida||0)}/día\n💰 Total pagado: ${f(totalPagado)} en ${pagos.length} pagos\n${ultimoPago ? '⏱️ Último pago: '+ultimoPago.fecha+' — '+f(ultimoPago.monto) : '⚠️ Sin pagos registrados'}`;
   }
 
-  // ── Gastos de la semana pasada DÍA POR DÍA ──
+  // ── Gastos de la semana pasada (con detalle por tipo) ──
   if (has('gasto','gastos') && has('semana pasada','semana anterior','última semana','ultima semana')) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
-    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
-    const fmt2 = d => d.toISOString().slice(0,10);
-    const NOMS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    // Buscar en hist_v3 primero, luego en historial_v1
-    const fuente = histCuentas.length > 0 ? histCuentas : historial;
-    let lineas = [];
-    let totalG = 0;
+    const domSP   = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
+    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    let totalG=0, resp='💸 Gastos semana pasada:\n';
+    let hayDatos = false;
     for(let i=0;i<7;i++){
-      const dia = new Date(lunesSP); dia.setDate(lunesSP.getDate()+i);
-      const iso = fmt2(dia);
-      const reg = fuente.find(d => d && d.fecha === iso);
-      const gasto = reg ? Number(reg.gastos||reg.gasto||0) : 0;
-      if (gasto > 0) { lineas.push(`  ${NOMS[dia.getDay()]} ${iso}: ${f(gasto)}`); totalG+=gasto; }
+      const d2=new Date(lunesSP); d2.setDate(lunesSP.getDate()+i);
+      const fecha2=fmt2(d2);
+      const gastosDia = _orbeGastosDetalleDia(fecha2);
+      if(gastosDia.length>0){
+        hayDatos=true;
+        const totalDia=gastosDia.reduce((a,g)=>a+(g.valor||0),0);
+        totalG+=totalDia;
+        resp+=`\n📅 ${fecha2} — ${f(totalDia)}:\n`;
+        gastosDia.forEach(g=>{
+          resp+=`  • ${g.tipo}${g.desc?' ('+g.desc+')':''}: ${f(g.valor||0)}\n`;
+        });
+      }
     }
-    if (lineas.length > 0) {
-      return `💸 Gastos semana pasada:\n${lineas.join('\n')}\n━━━━━━━━━━\n💸 Total gastos: ${f(totalG)}`;
-    }
-    return `📭 No hay gastos registrados para la semana pasada.`;
+    if(!hayDatos) return `📭 No hay gastos registrados la semana pasada.`;
+    resp+=`\n💰 Total gastos: ${f(totalG)}`;
+    return resp;
   }
 
-  // ── Pleno por día de la semana pasada ──
+  // ── Pleno REAL por día de la semana pasada (desde pagos de clientes) ──
   if (has('pleno') && has('semana pasada','semana anterior','última semana','ultima semana')) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
-    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
-    const fmt2 = d => d.toISOString().slice(0,10);
-    const NOMS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    const fuente = histCuentas.length > 0 ? histCuentas : historial;
-    let lineas = []; let totalP = 0;
+    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    const DIAS_NOM2=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+    let totalP=0, resp='📊 Plenos semana pasada:\n', hayDatos=false;
     for(let i=0;i<7;i++){
-      const dia = new Date(lunesSP); dia.setDate(lunesSP.getDate()+i);
-      const iso = fmt2(dia);
-      const reg = fuente.find(d => d && d.fecha === iso);
-      const pleno = reg ? Number(reg.pleno||reg.resultado||0) : 0;
-      lineas.push(`  ${NOMS[dia.getDay()]} ${iso}: ${pleno>0 ? f(pleno) : '—'}`);
-      totalP += pleno;
+      const d2=new Date(lunesSP); d2.setDate(lunesSP.getDate()+i);
+      const fecha2=fmt2(d2);
+      const {pleno, cobrado} = _orbePlenoRealDia(fecha2);
+      if(cobrado>0){ hayDatos=true; totalP+=pleno; }
+      resp+=`  ${DIAS_NOM2[i]} ${fecha2}: ${cobrado>0 ? f(pleno) : '—'}\n`;
     }
-    return `📊 Plenos semana pasada:\n${lineas.join('\n')}\n━━━━━━━━━━\n📊 Total: ${f(totalP)}`;
+    if(!hayDatos) return `📭 No hay plenos registrados la semana pasada.`;
+    resp+=`\n📈 Total semana: ${f(totalP)}`;
+    return resp;
   }
 
-  // ── RESUMEN DE LA SEMANA = plenos por día (NO los semanales) ──
-  if ((has('resumen') && has('semana')) || (has('resumen semana') && !has('pasada','anterior'))) {
-    const hoy = new Date();
-    const diaActual = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1;
-    const lunesActual = new Date(hoy); lunesActual.setDate(hoy.getDate() - diaActual); lunesActual.setHours(0,0,0,0);
-    const fmt2 = d => d.toISOString().slice(0,10);
-    const NOMS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    const fuente = histCuentas.length > 0 ? histCuentas : historial;
-    let lineas = []; let totalSem = 0;
-    for(let i=0;i<=diaActual;i++){
-      const dia = new Date(lunesActual); dia.setDate(lunesActual.getDate()+i);
-      const iso = fmt2(dia);
-      const reg = fuente.find(d => d && d.fecha === iso);
-      const pleno = reg ? Number(reg.pleno||reg.resultado||0) : 0;
-      const esHoy = iso === fmt2(hoy);
-      lineas.push(`  ${NOMS[dia.getDay()]} ${iso}: ${pleno>0?f(pleno):'—'}${esHoy?' (hoy)':''}`);
-      totalSem += pleno;
-    }
-    return `📅 Resumen semana (cobrado/pleno por día):\n${lineas.join('\n')}\n━━━━━━━━━━\n📊 Total semana: ${f(totalSem)}`;
-  }
-
-  // ── Resumen semana pasada general ──
+  // ── Resumen semana pasada general (datos reales) ──
   if (has('semana pasada','semana anterior','última semana','ultima semana')) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
-    const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
-    const fmt2 = d => d.toISOString().slice(0,10);
-    const NOMS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    const fuente = histCuentas.length > 0 ? histCuentas : historial;
-    let lineas=[]; let totC=0,totG=0,totP=0;
+    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    const domSPStr = fmt2(new Date(lunesSP.getTime()+6*86400000));
+    const DIAS_NOM2=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+    let totCobrado=0, totPleno=0, totGastos=0, totPrestamos=0;
+    let detalle='', hayDatos=false;
     for(let i=0;i<7;i++){
-      const dia = new Date(lunesSP); dia.setDate(lunesSP.getDate()+i);
-      const iso = fmt2(dia);
-      const d = fuente.find(x => x && x.fecha===iso);
-      if(d){
-        const cobr = Number(d.cobrado||d.totalEntradas||0);
-        const gast = Number(d.gastos||d.gasto||0);
-        const plen = Number(d.pleno||d.resultado||0);
-        totC+=cobr; totG+=gast; totP+=plen;
-        lineas.push(`  ${NOMS[dia.getDay()]}: cobrado ${f(cobr)} | gastos ${f(gast)} | pleno ${f(plen)}`);
+      const d2=new Date(lunesSP); d2.setDate(lunesSP.getDate()+i);
+      const fecha2=fmt2(d2);
+      const {pleno,cobrado}=_orbePlenoRealDia(fecha2);
+      const gastosDia=_orbeGastosDetalleDia(fecha2);
+      const totalGDia=gastosDia.reduce((a,g)=>a+(g.valor||0),0);
+      const histReg=historial.find(h=>h&&h.fecha===fecha2);
+      const prestDia=histReg?Number(histReg.prestamos||0):0;
+      if(cobrado>0||totalGDia>0){ hayDatos=true; }
+      totCobrado+=cobrado; totPleno+=pleno; totGastos+=totalGDia; totPrestamos+=prestDia;
+      if(cobrado>0||totalGDia>0){
+        detalle+=`  ${DIAS_NOM2[i]}: cobrado ${f(cobrado)} pleno ${f(pleno)}`;
+        if(totalGDia>0) detalle+=` gastos ${f(totalGDia)}`;
+        if(prestDia>0)  detalle+=` prestado ${f(prestDia)}`;
+        detalle+='\n';
       }
     }
-    if (lineas.length > 0) {
-      return `📅 Semana pasada (${fmt2(lunesSP)} al ${fmt2(domSP)}):\n${lineas.join('\n')}\n━━━━━━━━━━\nCobrado: ${f(totC)} | Gastos: ${f(totG)} | Pleno total: ${f(totP)}`;
-    }
-    return `📭 No hay datos registrados para la semana pasada.`;
+    if(!hayDatos) return `📭 No hay datos para la semana pasada.`;
+    let resp=`📅 Semana pasada (${fmt2(lunesSP)} al ${domSPStr}):\n${detalle}`;
+    resp+=`\n📊 TOTALES\n  💰 Cobrado: ${f(totCobrado)}\n  📈 Pleno: ${f(totPleno)}\n  💸 Gastos: ${f(totGastos)}`;
+    if(totPrestamos>0) resp+=`\n  🏦 Prestado: ${f(totPrestamos)}`;
+    return resp;
   }
 
-  // ── Preguntas sobre clientes semanales — tocan HOY ──
+  // ── Preguntas sobre clientes semanales ──
   const DIAS_NUM = {domingo:0,lunes:1,martes:2,'miércoles':3,miercoles:3,jueves:4,viernes:5,'sábado':6,sabado:6};
   const DIAS_NOM = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
-  // "cobro esta semana" = qué semanales tocan los días que QUEDAN de esta semana
-  const esCobroEstaSemana = has('cobro esta semana','cobros esta semana','quiénes tocan esta semana','quienes tocan esta semana','cobrar esta semana','toca esta semana');
-  // "semanal hoy" / "semanales de hoy" = solo los de HOY
-  const esSemanalesHoy = has('toca hoy','tocan hoy','cobrar hoy','hoy toca','hoy cobro','quién toca hoy','quien toca hoy','semanales hoy','semanal hoy');
+  // Detectar si pregunta por clientes semanales (qué tocan hoy, atrasados, próximos)
+  const esPreguntaSemanal = has('semanal','semanales','semana','cobro semanal','toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','atrasado','atrasados','pasó','pasaron','vencid','vencieron','próximo','proximo','siguiente');
 
-  if (esSemanalesHoy || esCobroEstaSemana) {
+  if (esPreguntaSemanal && !clienteEncontrado) {
     const hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
-    const hoyNum  = hoyDate.getDay();
+    const hoyNum  = hoyDate.getDay(); // 0=dom,1=lun,...
     const hoyNom  = DIAS_NOM[hoyNum];
     const fmt2    = d => d.toISOString().slice(0,10);
+
+    // Separar clientes semanales activos
     const semanales = clientes.filter(c => c && !c.cancelado && (c.tipo==='semanal'||!c.tipo) && Number(c.saldo)>0);
 
-    if (esSemanalesHoy) {
-      // Solo los de HOY
-      const tocanHoy = semanales.filter(c => (DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]) === hoyNum);
-      const yaPagaron = tocanHoy.filter(c => (c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate)));
-      const porCobrar = tocanHoy.filter(c => !(c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate)));
-      if(tocanHoy.length===0) return `📅 Hoy es ${hoyNom}. No hay clientes semanales con cobro hoy.`;
-      let resp = `📅 Semanales de hoy (${hoyNom}):\n`;
-      if(porCobrar.length>0){ resp += `⏳ Por cobrar (${porCobrar.length}):\n`; resp += porCobrar.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n'); }
-      if(yaPagaron.length>0){ resp += `\n✅ Ya pagaron (${yaPagaron.length}):\n`; resp += yaPagaron.map(c=>`  • ${c.nombre}`).join('\n'); }
-      return resp;
+    // Función: próxima fecha de cobro de un cliente desde hoy
+    function proximaFechaCobro(c){
+      const diaObj = DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()];
+      if (diaObj === undefined) return null;
+      const d = new Date(hoyDate);
+      let diff = diaObj - hoyNum;
+      if (diff < 0) diff += 7;
+      if (diff === 0) diff = 0; // hoy mismo
+      d.setDate(d.getDate() + diff);
+      return d;
     }
 
-    if (esCobroEstaSemana) {
-      // Días que quedan de esta semana (hoy hasta domingo)
-      const diaActual = hoyNum;
-      let resp = `📅 Cobros semanales esta semana:\n`;
-      let hayAlgo = false;
-      for(let d=diaActual; d<=6; d++){
-        const tocaEseDia = semanales.filter(c => DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()] === d);
-        if(tocaEseDia.length>0){
-          hayAlgo = true;
-          const diaD = new Date(hoyDate); diaD.setDate(hoyDate.getDate()+(d-diaActual));
-          const esHoyStr = d===diaActual?' (HOY)':'';
-          resp += `\n${DIAS_NOM[d]}${esHoyStr}:\n`;
-          resp += tocaEseDia.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n');
-        }
-      }
-      if(!hayAlgo) resp += 'No quedan cobros semanales para esta semana.';
-      return resp;
-    }
-  }
+    // Clasificar: tocan hoy / atrasados / próximos
+    const tocanHoy    = semanales.filter(c => (DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]) === hoyNum && !((c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate))));
+    const yaPagaron  = semanales.filter(c => (DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]) === hoyNum && (c.pagos||[]).some(p=>p.fecha===fmt2(hoyDate)));
 
-  // ── Atrasados semanales ──
-  if (has('atrasado','atrasados') && (has('semanal','semanales') || !has('días','dias','cuántos','cuantos'))) {
-    const hoyDate2 = new Date(); hoyDate2.setHours(0,0,0,0);
-    const fmt2 = d => d.toISOString().slice(0,10);
-    const semanales2 = clientes.filter(c => c && !c.cancelado && (c.tipo==='semanal'||!c.tipo) && Number(c.saldo)>0);
+    // Atrasados: tienen cobros vencidos sin pagar (cuotas esperadas > pagos realizados)
     function cuotasVencidas(c){
-      const fechaIni = c.fechaRenovacion||c.fechaCreado||c.fechaCreacion||''; if(!fechaIni) return 0;
-      const diaObj = DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()]; if(diaObj===undefined) return 0;
-      let count=0; const cur = new Date(fechaIni+'T00:00:00'); cur.setDate(cur.getDate()+1);
-      while(cur<=hoyDate2){ if(cur.getDay()===diaObj) count++; cur.setDate(cur.getDate()+1); }
+      const fechaIni = c.fechaRenovacion||c.fechaCreado||c.fechaCreacion||'';
+      if(!fechaIni) return 0;
+      const diaObj = DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()];
+      if(diaObj===undefined) return 0;
+      let count=0;
+      const cur = new Date(fechaIni+'T00:00:00');
+      cur.setDate(cur.getDate()+1);
+      while(cur<=hoyDate){ if(cur.getDay()===diaObj) count++; cur.setDate(cur.getDate()+1); }
       const pagados = Math.floor((c.pagos||[]).reduce((a,p)=>a+(p.monto||0),0) / (c.cuotaSugerida||1));
       return Math.max(0, count - pagados);
     }
-    const atrasados = semanales2.filter(c => cuotasVencidas(c) > 1);
-    if(atrasados.length===0) return `✅ ¡Ningún cliente semanal está atrasado! Todos van al día.`;
-    let resp = `🚨 Clientes semanales atrasados (${atrasados.length}):\n`;
-    resp += atrasados.map(c=>{ const cv=cuotasVencidas(c); return `  • ${c.nombre} — ${cv} cuota${cv>1?'s':''} sin pagar | Saldo: ${f(c.saldo)} | Cobro: ${c.diaSemana||'?'}`; }).join('\n');
+
+    const atrasados = semanales.filter(c => cuotasVencidas(c) > 1); // más de 1 cuota sin pagar
+
+    // Próximos 7 días
+    const proximos7 = [];
+    for(let i=1;i<=7;i++){
+      const d2 = new Date(hoyDate); d2.setDate(hoyDate.getDate()+i);
+      const dNum = d2.getDay();
+      const tocaEseDia = semanales.filter(c => DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()] === dNum);
+      if(tocaEseDia.length>0) proximos7.push({fecha:fmt2(d2), dia:DIAS_NOM[dNum], clientes:tocaEseDia});
+    }
+
+    // ¿Qué pregunta específica es?
+    if (has('toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','cobrar hoy','hoy toca','hoy cobro')) {
+      if(tocanHoy.length===0 && yaPagaron.length===0) return `📅 Hoy es ${hoyNom}. No hay clientes semanales con cobro hoy.`;
+      let resp = `📅 Hoy ${hoyNom} — Clientes semanales:
+`;
+      if(tocanHoy.length>0){
+        resp += `⏳ Por cobrar (${tocanHoy.length}):
+`;
+        resp += tocanHoy.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n');
+      }
+      if(yaPagaron.length>0){
+        resp += `\n✅ Ya pagaron hoy (${yaPagaron.length}):
+`;
+        resp += yaPagaron.map(c=>`  • ${c.nombre}`).join('\n');
+      }
+      return resp;
+    }
+
+    if (has('atrasado','atrasados','pasó','pasaron','vencid','vencieron','no han pagado','sin pagar')) {
+      if(atrasados.length===0) return `✅ ¡Ningún cliente semanal está atrasado! Todos van al día.`;
+      let resp = `🚨 Clientes semanales atrasados (${atrasados.length}):
+`;
+      resp += atrasados.map(c=>{
+        const cv = cuotasVencidas(c);
+        return `  • ${c.nombre} — ${cv} cuota${cv>1?'s':''} sin pagar | Saldo: ${f(c.saldo)} | Cobro: ${c.diaSemana||'?'}`;
+      }).join('\n');
+      return resp;
+    }
+
+    if (has('próximo','proximo','siguiente','esta semana','semana') || (!has('atrasado') && !has('toca hoy'))) {
+      let resp = `📅 Cobros semanales próximos 7 días (hoy: ${hoyNom}):
+`;
+      if(tocanHoy.length>0){
+        resp += `\n🔔 HOY (${hoyNom}):\n`;
+        resp += tocanHoy.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)}`).join('\n');
+      }
+      proximos7.forEach(d2=>{
+        resp += `\n📅 ${d2.dia} ${d2.fecha}:\n`;
+        resp += d2.clientes.map(c=>`  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`).join('\n');
+      });
+      if(tocanHoy.length===0 && proximos7.length===0) resp += 'No hay clientes semanales activos.';
+      return resp;
+    }
+
+    // Resumen general semanales
+    let resp = `📊 Clientes semanales activos: ${semanales.length}\n`;
+    semanales.forEach(c => {
+      const pf = proximaFechaCobro(c);
+      const estaAtras = cuotasVencidas(c) > 0;
+      resp += `  • ${c.nombre} — ${c.diaSemana||'?'} — Cuota: ${f(c.cuotaSugerida||0)} — Saldo: ${f(c.saldo)}${estaAtras?' ⚠️':''}\n`;
+    });
     return resp;
   }
 
   // ── Preguntas sobre Cuentas y semanas ──
+  // Función para leer cuentas del día en tiempo real de la pantalla
   function _leerCuentasHoy(){
     const gv = id => {
       const e = document.getElementById(id);
@@ -10779,6 +10727,7 @@ function _orbeRespuestaLocal(pregunta, s){
     } catch(e){ return '⚠️ Error leyendo semana.'; }
   }
 
+
   // ── Conversación: respuesta numérica para neki/efectivo ──
   const soloNumero = /^\$?[\d.,]+$/.test(pregunta.trim().replace(/\s/g,''));
   if (soloNumero && window._orbConvEstado) {
@@ -10788,24 +10737,36 @@ function _orbeRespuestaLocal(pregunta, s){
     if (est.paso === 'esperar_neki') {
       const debeEntregar = est.resultado - monto;
       window._orbConvEstado = { paso: 'esperar_efectivo', debeEntregar, neki: monto, ...est };
-      let resp = `🏦 Neki: ${f(monto)}\n💵 Debes entregar: ${f(debeEntregar)}\n\n¿Cuánto tienes en efectivo? Escríbelo para ver si cuadra 💰`;
+      let resp = `🏦 Neki: ${f(monto)}
+`;
+      resp += `💵 Debes entregar: ${f(debeEntregar)}
+
+`;
+      resp += `¿Cuánto tienes en efectivo? Escríbelo para ver si cuadra 💰`;
       return resp;
     }
 
     if (est.paso === 'esperar_efectivo') {
       const diff = est.debeEntregar - monto;
       window._orbConvEstado = null;
-      let resp = `💵 Efectivo que tienes: ${f(monto)}\n📦 Debes entregar:     ${f(est.debeEntregar)}\n━━━━━━━━━━━━━━━━━\n`;
+      let resp = `💵 Efectivo que tienes: ${f(monto)}
+`;
+      resp += `📦 Debes entregar:     ${f(est.debeEntregar)}
+`;
+      resp += `━━━━━━━━━━━━━━━━━
+`;
       if(diff===0)       resp += `✅ ¡CUADRA PERFECTO! Todo está bien 🎉`;
-      else if(diff>0)    resp += `⚠️ Te FALTA: ${f(diff)}\nBusca esa diferencia antes de entregar.`;
-      else               resp += `✅ Te SOBRA: ${f(Math.abs(diff))}\nPuedes guardarlo o reportarlo.`;
+      else if(diff>0)    resp += `⚠️ Te FALTA: ${f(diff)}
+Busca esa diferencia antes de entregar.`;
+      else               resp += `✅ Te SOBRA: ${f(Math.abs(diff))}
+Puedes guardarlo o reportarlo.`;
       return resp;
     }
   }
 
   // ── Respuestas generales ──
   if (has('hola','buenas','saludo','qué tal','que tal')) {
-    return `👋 ¡Hola! Soy tu asistente de cobranza. Hoy llevas pleno de ${f(s.pleno)}. Puedo decirte:\n• 💰 Cuentas del día (pleno, base, gastos, cuánto entregar)\n• 👤 Info de cualquier cliente — tel, dirección, días atrasado\n• 📅 Semanales de hoy o cobros de esta semana\n• 📊 Plenos y gastos de la semana pasada día por día\n• 💵 Cuánto llevas prestado hasta hoy\n¿Qué necesitas?`;
+    return `👋 ¡Hola! Soy tu asistente de cobranza. Hoy llevas pleno de ${f(s.pleno)}. Puedo decirte:\n• 💰 Cuentas del día (pleno, base, gastos, cuánto entregar)\n• 👤 Info de cualquier cliente\n• 📅 Clientes semanales que tocan hoy o están atrasados\n• 📊 Plenos y gastos de la semana pasada\n¿Qué necesitas?`;
   }
   if (has('cómo voy','como voy','resumen','día','dia')) {
     const ev = s.pleno > 0 ? '✅ VAS BIEN' : (s.pleno < 0 ? '⚠️ VAS EN ROJO' : '◾ APENAS EMPIEZAS');
@@ -10819,7 +10780,7 @@ function _orbeRespuestaLocal(pregunta, s){
   if (has('claude','ia','clave','api','conectar')) {
     return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Anthropic (sk-ant-…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
   }
-  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?" / "número de Carlos"\n• Días atrasado: "¿cuántos días atrasada está Marta?"\n• Semanales: "semanales de hoy" / "cobros de esta semana"\n• Plenos: "resumen de la semana" / "plenos semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Préstamos: "¿cuánto llevo prestado hasta hoy?"\n\n🔑 Conecta Claude para análisis más profundo.`;
+  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Claude para análisis más profundo.`;
 }
 
 function _orbeTypewriter(el, text, done){
@@ -10891,13 +10852,13 @@ window.orbIANuevoChat = orbIANuevoChat;
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">Gastos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de cuentas de hoy')">💰 Cuentas de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto debo entregar hoy?')">¿Cuánto entrego?</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de la semana')">Resumen semana</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo van las cuentas esta semana?')">Cuentas esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">Semanales de hoy</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles son los cobros de esta semana?')">Cobros esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales están atrasados?')">Atrasados semanales</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto llevo prestado hasta hoy?')">💵 Total prestado</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes semanales tocan esta semana?')">Cobros esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">Prioridad de visita</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">Consejo</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Resume mi semana')">Resumen semana</button>
     </div>
 
     <form class="orb-input-row" onsubmit="event.preventDefault(); orbIAEnviarMensaje();">
