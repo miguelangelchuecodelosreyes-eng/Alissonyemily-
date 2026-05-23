@@ -10439,7 +10439,7 @@ function _orbeRespuestaLocal(pregunta, s){
   }
 
   // ── Gastos de la semana pasada (con detalle por tipo) ──
-  if (has('gasto','gastos') && has('semana pasada','semana anterior','última semana','ultima semana')) {
+  if (has('gasto','gastos') && (has('semana pasada','semana anterior','última semana','ultima semana') || (has('semana') && has('pasada','anterior','última','ultima')))) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
     const domSP   = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
@@ -10522,7 +10522,7 @@ function _orbeRespuestaLocal(pregunta, s){
   const DIAS_NOM = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
   // Detectar si pregunta por clientes semanales (qué tocan hoy, atrasados, próximos)
-  const esPreguntaSemanal = has('semanal','semanales','semana','cobro semanal','toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','atrasado','atrasados','pasó','pasaron','vencid','vencieron','próximo','proximo','siguiente');
+  const esPreguntaSemanal = has('semanal','semanales','cobro semanal','toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','atrasado','atrasados','pasó','pasaron','vencid','vencieron') && !has('semana pasada','semana anterior','última semana','ultima semana','gastos','plenos','resumen','cuentas','prestamos','prestado');
 
   if (esPreguntaSemanal && !clienteEncontrado) {
     const hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
@@ -10603,7 +10603,7 @@ function _orbeRespuestaLocal(pregunta, s){
       return resp;
     }
 
-    if (has('próximo','proximo','siguiente','esta semana','semana') || (!has('atrasado') && !has('toca hoy'))) {
+    if (has('próximo','proximo','siguiente','próximos','proximos') || (!has('atrasado') && !has('toca hoy'))) {
       let resp = `📅 Cobros semanales próximos 7 días (hoy: ${hoyNom}):
 `;
       if(tocanHoy.length>0){
@@ -10704,7 +10704,7 @@ function _orbeRespuestaLocal(pregunta, s){
     } catch(e){ return '⚠️ Error: ' + e.message; }
   }
 
-  if (has('resultado','cuánto tengo','cuanto tengo','esta semana') && !has('pasada','anterior')) {
+  if ((has('resultado','esta semana','resumen semana','semana actual','resumen de la semana','gastos esta semana','gastos de la semana','plenos esta semana') || (has('semana') && !has('pasada','anterior','semanal','semanales','toca','atrasado'))) && !has('pasada','anterior')) {
     try {
       const hoy2 = new Date();
       const diaNum  = hoy2.getDay() === 0 ? 6 : hoy2.getDay() - 1;
@@ -10855,7 +10855,7 @@ window.orbIANuevoChat = orbIANuevoChat;
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo van las cuentas esta semana?')">Cuentas esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">Semanales de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales están atrasados?')">Atrasados semanales</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes semanales tocan esta semana?')">Cobros esta semana</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan los próximos días?')">Cobros esta semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">Prioridad de visita</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">Consejo</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Resume mi semana')">Resumen semana</button>
