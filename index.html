@@ -5680,7 +5680,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v31';
+const APP_VERSION = '2026-05-21 v32';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10150,7 +10150,7 @@ async function orbIAEnviarMensaje(){
   arr[arr.length-1] = { role:'assistant', content: respuesta };
   _orbeGuardarChat(arr);
 
-  _orbeTypewriter(div, respuesta, ()=>{ _orbChatLoading = false; });
+  _orbeTypewriter(div, respuesta, ()=>{ _jarvisHablar(respuesta); _orbChatLoading = false; });
   _orbeScrollFinal();
 }
 
@@ -11101,50 +11101,7 @@ function _jarvisCallIarStop(){
 }
 
 function _jarvisSaludar(){
-  const s = _orbeRecolectarStats();
-  const f = n => '$'+(n||0).toLocaleString('es-CO');
-  const hora = new Date().getHours();
-  const saludo = hora<12 ? 'Buenos días' : hora<18 ? 'Buenas tardes' : 'Buenas noches';
-  const hoy = new Date();
-  const diasSem = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  const diaNom = diasSem[hoy.getDay()];
-
-  // Detectar clientes semanales que tocan hoy
-  let semanalesHoy = [];
-  try {
-    const clientes = (typeof getClientes==='function') ? getClientes() : [];
-    const DIAS_N = {domingo:0,lunes:1,'martes':2,'miércoles':3,'jueves':4,'viernes':5,'sábado':6};
-    const hoyNum = hoy.getDay();
-    semanalesHoy = clientes.filter(c => c && !c.cancelado && Number(c.saldo)>0 &&
-      (c.tipo==='semanal'||c.diaSemana) && DIAS_N[(c.diaSemana||'').toLowerCase().trim()]===hoyNum);
-  } catch(e){}
-
-  let msg = saludo + ', señora. ';
-
-  if(s.cobradoHoy > 0){
-    msg += 'Lleva ' + f(s.cobradoHoy) + ' cobrados hoy con un pleno de ' + f(s.pleno) + '. ';
-  } else {
-    msg += 'Aún no hay cobros registrados hoy. ';
-  }
-
-  if(semanalesHoy.length > 0){
-    msg += 'Tiene ' + semanalesHoy.length + ' cliente' + (semanalesHoy.length>1?'s':'') +
-           ' semanal' + (semanalesHoy.length>1?'es':'') + ' pendiente' +
-           (semanalesHoy.length>1?'s':'') + ' hoy: ' +
-           semanalesHoy.slice(0,3).map(c=>c.nombre.split(' ')[0]).join(', ') +
-           (semanalesHoy.length>3?' y '+(semanalesHoy.length-3)+' más':'')+'. ';
-  }
-
-  if(s.cuentaAtrasados > 0){
-    const pct = s.pctAtrasados;
-    msg += (pct>50 ? '⚠️ ' : '') + s.cuentaAtrasados + ' clientes sin pagar hoy (' + pct + '%). ';
-    if(pct>60) msg += 'Recomiendo priorizar las visitas. ';
-  } else if(s.cuentaActivos > 0){
-    msg += '✅ Todos los clientes activos al día. ';
-  }
-
-  msg += '¿En qué le puedo asistir?';
-
+  const msg = 'Hola Miguel, ¿cómo estás? ¿En qué te puedo ayudar?';
   const div = _orbeMostrarMsg('ai', '', false);
   if(div){
     _orbeTypewriter(div, msg, ()=>{
