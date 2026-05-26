@@ -5680,7 +5680,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v34';
+const APP_VERSION = '2026-05-21 v29';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -9970,23 +9970,31 @@ function _orbeRecolectarStats(){
 }
 
 function abrirOrbeIA(){
-  const overlay = document.getElementById('orb-ia-overlay');
-  if(!overlay) return;
-  overlay.classList.add('show');
-  _orbePintarStats();
-  _orbeRestaurarChat();
-  setTimeout(()=>{ const i=document.getElementById('orb-input'); if(i) i.focus(); }, 250);
-  const msgs = _orbeCargarChat();
-  if(msgs.length === 0){ setTimeout(()=>{ _jarvisSaludar(); }, 500); }
+  try {
+    const overlay = document.getElementById('orb-ia-overlay');
+    if(!overlay){ console.error('JARVIS: overlay no encontrado'); return; }
+    overlay.classList.add('show');
+    overlay.style.display = 'flex';
+    try { _orbePintarStats(); } catch(e){ console.error('stats:',e); }
+    try { _orbeRestaurarChat(); } catch(e){ console.error('chat:',e); }
+    setTimeout(()=>{
+      try { const i=document.getElementById('orb-input'); if(i) i.focus(); } catch(e){}
+    }, 250);
+    let msgs = [];
+    try { msgs = _orbeCargarChat(); } catch(e){}
+    if(msgs.length === 0){
+      setTimeout(()=>{
+        try { _jarvisSaludar(); } catch(e){ console.error('saludo:',e); }
+      }, 500);
+    }
+  } catch(e){ console.error('abrirOrbeIA error:',e); }
 }
 function cerrarOrbeIA(){
   try { if(window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){}
-  const bar = document.getElementById('jrv-voice-bar');
-  if(bar) bar.classList.remove('active');
-  const overlay = document.getElementById('orb-ia-overlay');
-  if(overlay) overlay.classList.remove('show');
+  try { const bar = document.getElementById('jrv-voice-bar'); if(bar) bar.classList.remove('active'); } catch(e){}
+  try { const overlay = document.getElementById('orb-ia-overlay'); if(overlay){ overlay.classList.remove('show'); overlay.style.display='none'; } } catch(e){}
 }
-function _orbePintarStats(){
+function _orbePintarStats(){ try {
   const s = _orbeRecolectarStats();
   const cont = document.getElementById('orb-stats');
   if(!cont) return;
@@ -10003,7 +10011,7 @@ function _orbePintarStats(){
     let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
     status.textContent = key ? 'Claude conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 para Claude';
   }
-}
+} catch(e){ console.error("stats error:",e); } }
 
 function orbIAConfigKey(){
   const box = document.getElementById('orb-key-config');
@@ -10035,7 +10043,7 @@ function _orbeCargarChat(){
 function _orbeGuardarChat(arr){
   try { localStorage.setItem(ORB_CHAT_KEY, JSON.stringify(arr.slice(-40))); } catch(e){}
 }
-function _orbeRestaurarChat(){
+function _orbeRestaurarChat(){ try {
   const cont = document.getElementById('orb-chat');
   if(!cont) return;
   const msgs = _orbeCargarChat();
@@ -10046,7 +10054,7 @@ function _orbeRestaurarChat(){
     msgs.forEach(m => _orbeMostrarMsg(m.role==='user'?'user':'ai', m.content, false));
   }
   _orbeScrollFinal();
-}
+} catch(e){ console.error("restaurar error:",e); } }
 function _orbeMostrarMsg(tipo, texto, guardar){
   const cont = document.getElementById('orb-chat');
   if(!cont) return null;
