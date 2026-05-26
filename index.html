@@ -5680,7 +5680,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v33';
+const APP_VERSION = '2026-05-21 v34';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8605,50 +8605,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Pre-llenar contraseña si la tenemos guardada para facilitar el ingreso
     document.getElementById('pantalla-login').style.display='flex';
   } else {
-    // Sin credenciales locales (reinstalación / dispositivo nuevo)
-    // Intentar auto-login desde Firebase con credenciales conocidas
+    // Sin credenciales (teléfono nuevo) — guardar credenciales maestras y mostrar login directo
+    lsSet('cobrador_credenciales', JSON.stringify({usuario:'Alissonyemily', clave:'1234'}));
+    lsSet('cobrador_usuarios', JSON.stringify([{usuario:'Alissonyemily', clave:'1234'}]));
     document.getElementById('pantalla-login').style.display='flex';
-    const usuarioFijo = 'alissonyemily';
-    const claveFija = '1234';
-    // Mostrar spinner mientras se intenta
-    const loginBtn = document.querySelector('.login-btn');
-    if(loginBtn) loginBtn.textContent = '⏳ Conectando...';
-    // Esperar a que Firebase esté disponible e intentar cargar datos
-    setTimeout(function intentarAutoLogin(){
-      const fbGet = window._fbGet || window.get;
-      const fbRef = window._fbRef || window.ref;
-      const fbDb  = window._fbDb  || window.db;
-      if(!fbDb || !fbGet || !fbRef){
-        // Firebase aún no cargó, reintentar
-        setTimeout(intentarAutoLogin, 800);
-        return;
-      }
-      const usuarioKey = usuarioFijo.toLowerCase().replace(/[^a-z0-9_]/g,'_');
-      fbGet(fbRef(fbDb, 'usuarios/' + usuarioKey + '/credenciales')).then(snap => {
-        const credFirebase = snap.val();
-        // Verificar credenciales contra Firebase
-        const claveOk = credFirebase ? (credFirebase.clave === claveFija) : true;
-        if(claveOk){
-          // Guardar credenciales localmente y entrar
-          lsSet('cobrador_credenciales', JSON.stringify({usuario: usuarioFijo, clave: claveFija}));
-          lsSet('cobrador_usuarios', JSON.stringify([{usuario: usuarioFijo, clave: claveFija}]));
-          lsSet('cobrador_sesion','ok');
-          lsSet('cobrador_sesion_fecha', new Date().toDateString());
-          lsSet('cobrador_sesion_hora', String(new Date().getHours()));
-          document.getElementById('pantalla-login').style.display='none';
-          document.getElementById('app').style.display='block';
-          iniciarApp();
-        } else {
-          // La contraseña en Firebase es diferente — mostrar login normal
-          if(loginBtn) loginBtn.textContent = '🔓 Entrar';
-          document.getElementById('login-usuario').value = usuarioFijo;
-        }
-      }).catch(()=>{
-        // Sin internet — mostrar login normal con usuario precargado
-        if(loginBtn) loginBtn.textContent = '🔓 Entrar';
-        document.getElementById('login-usuario').value = usuarioFijo;
-      });
-    }, 1200);
+    document.getElementById('login-usuario').value = 'Alissonyemily';
   }
 });
 </script>
@@ -10649,7 +10610,6 @@ function _orbeTypewriter(el, text, done){
 }
 
 window.abrirOrbeIA = abrirOrbeIA;
-window.cerrarOrbeIA = cerrarOrbeIA;
 window.orbIAConfigKey = orbIAConfigKey;
 window.orbIAGuardarKey = orbIAGuardarKey;
 window.orbIAEnviarMensaje = orbIAEnviarMensaje;
@@ -11075,6 +11035,9 @@ function jarvisNuevoChat(){
   if(cont) cont.innerHTML = '';
   setTimeout(()=>{ _jarvisSaludar(); }, 200);
 }
+
+let _jrvVoz = null;
+let _jrvHablando = false;
 
 function _jarvisHablar(texto){
   if(!texto || !window.speechSynthesis) return;
