@@ -5680,7 +5680,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v32';
+const APP_VERSION = '2026-05-21 v33';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10137,7 +10137,23 @@ async function orbIAEnviarMensaje(){
   try {
     respuesta = await _orbeChatResponder();
   } catch(e) {
-    respuesta = '⚠️ Error: '+(e.message||e);
+    // Si falla Claude (clave inválida, sin internet, etc.) caer al modo local
+    const errMsg = (e.message||'').toLowerCase();
+    const esAuthError = errMsg.includes('401') || errMsg.includes('authentication') || errMsg.includes('api-key') || errMsg.includes('invalid');
+    if(esAuthError){
+      // Limpiar clave inválida y usar modo local
+      try { localStorage.removeItem('orb_claude_key'); } catch(ex){}
+      const stats2 = _orbeRecolectarStats();
+      const ultimo2 = (texto||'').toLowerCase();
+      respuesta = _orbeRespuestaLocal(ultimo2, stats2);
+      // Actualizar status
+      const st = document.getElementById('orb-conn-status');
+      if(st) st.textContent = '◈ Clave inválida — modo local activado';
+    } else {
+      respuesta = 'Sin conexión. Respondiendo en modo local.
+
+' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+    }
   }
 
   // Quitar typing
@@ -10150,7 +10166,10 @@ async function orbIAEnviarMensaje(){
   arr[arr.length-1] = { role:'assistant', content: respuesta };
   _orbeGuardarChat(arr);
 
-  _orbeTypewriter(div, respuesta, ()=>{ _jarvisHablar(respuesta); _orbChatLoading = false; });
+  _orbeTypewriter(div, respuesta, ()=>{
+    _orbChatLoading = false;
+    if(typeof _jarvisHablar==='function') _jarvisHablar(respuesta);
+  });
   _orbeScrollFinal();
 }
 
@@ -11059,37 +11078,64 @@ function jarvisNuevoChat(){
 
 function _jarvisHablar(texto){
   if(!texto || !window.speechSynthesis) return;
-  // Limpiar texto de emojis y símbolos para mejor pronunciación
   const limpio = texto
-    .replace(/[📊📅💰💸📈🏦⚡✅⚠️🎯💡👑🔑◈▸]/g,'')
-    .replace(/\*/g,'').replace(/_{1,2}/g,'')
-    .replace(/[─━]/g,'').trim();
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu,'')
+    .replace(/[^\x00-\x7F\u00C0-\u024F\u00A0-\u00FF]/g,' ')
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g,'$1')
+    .replace(/_{1,2}/g,'')
+    .replace(/[-]{3,}/g,'. ')
+    .replace(/\n+/g,'. ')
+    .replace(/\.{2,}/g,'.')
+    .replace(/\s+/g,' ')
+    .trim();
   if(!limpio) return;
   try {
     window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(limpio);
-    utt.lang = 'es-CO';
-    utt.rate = 0.92;
-    utt.pitch = 0.85;
-    utt.volume = 0.9;
-    // Buscar voz masculina en español
+    const MAX = 160;
+    const fragmentos = [];
+    let resto = limpio;
+    while(resto.length > MAX){
+      let corte = resto.lastIndexOf('. ', MAX);
+      if(corte < 50) corte = resto.lastIndexOf(' ', MAX);
+      if(corte < 50) corte = MAX;
+      fragmentos.push(resto.slice(0, corte+1).trim());
+      resto = resto.slice(corte+1).trim();
+    }
+    if(resto) fragmentos.push(resto);
     const voces = window.speechSynthesis.getVoices();
-    const voz = voces.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('male')) ||
-                voces.find(v => v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
-                voces.find(v => v.lang.startsWith('es')) || null;
-    if(voz) utt.voice = voz;
-    utt.onstart = ()=>{
-      _jrvHablando = true;
-      const bar = document.getElementById('jrv-voice-bar');
-      if(bar) bar.classList.add('active');
-    };
-    utt.onend = utt.onerror = ()=>{
-      _jrvHablando = false;
-      const bar = document.getElementById('jrv-voice-bar');
-      if(bar) bar.classList.remove('active');
-    };
-    window.speechSynthesis.speak(utt);
-    _jrvVoz = utt;
+    const voz = voces.find(v=>v.lang==='es-CO') ||
+                voces.find(v=>v.lang==='es-US') ||
+                voces.find(v=>v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
+                voces.find(v=>v.lang.startsWith('es')) || null;
+    let idx2 = 0;
+    function hablarFrag(){
+      if(idx2 >= fragmentos.length) return;
+      const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
+      utt.lang = 'es-CO'; utt.rate = 0.88; utt.pitch = 0.82; utt.volume = 1.0;
+      if(voz) utt.voice = voz;
+      utt.onstart = ()=>{
+        _jrvHablando = true;
+        const bar = document.getElementById('jrv-voice-bar');
+        if(bar) bar.classList.add('active');
+      };
+      utt.onend = ()=>{
+        idx2++;
+        if(idx2 < fragmentos.length){ hablarFrag(); }
+        else {
+          _jrvHablando = false;
+          const bar = document.getElementById('jrv-voice-bar');
+          if(bar) bar.classList.remove('active');
+        }
+      };
+      utt.onerror = ()=>{
+        _jrvHablando = false;
+        const bar = document.getElementById('jrv-voice-bar');
+        if(bar) bar.classList.remove('active');
+      };
+      window.speechSynthesis.speak(utt);
+      _jrvVoz = utt;
+    }
+    hablarFrag();
   } catch(e){}
 }
 
@@ -11101,7 +11147,50 @@ function _jarvisCallIarStop(){
 }
 
 function _jarvisSaludar(){
-  const msg = 'Hola Miguel, ¿cómo estás? ¿En qué te puedo ayudar?';
+  const s = _orbeRecolectarStats();
+  const f = n => '$'+(n||0).toLocaleString('es-CO');
+  const hora = new Date().getHours();
+  const saludo = hora<12 ? 'Buenos días' : hora<18 ? 'Buenas tardes' : 'Buenas noches';
+  const hoy = new Date();
+  const diasSem = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const diaNom = diasSem[hoy.getDay()];
+
+  // Detectar clientes semanales que tocan hoy
+  let semanalesHoy = [];
+  try {
+    const clientes = (typeof getClientes==='function') ? getClientes() : [];
+    const DIAS_N = {domingo:0,lunes:1,'martes':2,'miércoles':3,'jueves':4,'viernes':5,'sábado':6};
+    const hoyNum = hoy.getDay();
+    semanalesHoy = clientes.filter(c => c && !c.cancelado && Number(c.saldo)>0 &&
+      (c.tipo==='semanal'||c.diaSemana) && DIAS_N[(c.diaSemana||'').toLowerCase().trim()]===hoyNum);
+  } catch(e){}
+
+  let msg = saludo + ', Miguel. ';
+
+  if(s.cobradoHoy > 0){
+    msg += 'Lleva ' + f(s.cobradoHoy) + ' cobrados hoy con un pleno de ' + f(s.pleno) + '. ';
+  } else {
+    msg += 'Aún no hay cobros registrados hoy. ';
+  }
+
+  if(semanalesHoy.length > 0){
+    msg += 'Tiene ' + semanalesHoy.length + ' cliente' + (semanalesHoy.length>1?'s':'') +
+           ' semanal' + (semanalesHoy.length>1?'es':'') + ' pendiente' +
+           (semanalesHoy.length>1?'s':'') + ' hoy: ' +
+           semanalesHoy.slice(0,3).map(c=>c.nombre.split(' ')[0]).join(', ') +
+           (semanalesHoy.length>3?' y '+(semanalesHoy.length-3)+' más':'')+'. ';
+  }
+
+  if(s.cuentaAtrasados > 0){
+    const pct = s.pctAtrasados;
+    msg += (pct>50 ? '⚠️ ' : '') + s.cuentaAtrasados + ' clientes sin pagar hoy (' + pct + '%). ';
+    if(pct>60) msg += 'Recomiendo priorizar las visitas. ';
+  } else if(s.cuentaActivos > 0){
+    msg += '✅ Todos los clientes activos al día. ';
+  }
+
+  msg += '¿En qué le puedo asistir?';
+
   const div = _orbeMostrarMsg('ai', '', false);
   if(div){
     _orbeTypewriter(div, msg, ()=>{
