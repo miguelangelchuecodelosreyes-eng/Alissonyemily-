@@ -10119,9 +10119,7 @@ async function orbIAEnviarMensaje(){
       const st = document.getElementById('orb-conn-status');
       if(st) st.textContent = '◈ Clave inválida — modo local activado';
     } else {
-      respuesta = 'Sin conexión. Respondiendo en modo local.
-
-' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      respuesta = 'Sin conexión. Respondiendo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
     }
   }
 
