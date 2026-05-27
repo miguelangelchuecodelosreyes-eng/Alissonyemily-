@@ -2598,8 +2598,17 @@ function cerrarSesion() {
   );
 }
 
+// ===== LUPA FLOTANTE CLIENTES =====
+function enfocarBuscadorCliente(){
+  const input = document.getElementById('buscar-cliente');
+  if(!input) return;
+  try { input.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){ input.scrollIntoView(); }
+  setTimeout(()=>{ input.focus(); try{ input.select(); }catch(e){} }, 350);
+}
+
 // ===== NAV =====
 function irA(p) {
+
   if(p==='ajustes'){ abrirPinAjustes(); return; }
   // Bloquear PIN al salir de ajustes
   if(typeof window.bloquearPinAjustes==='function') window.bloquearPinAjustes();
@@ -2612,6 +2621,10 @@ function irA(p) {
   if(p==='clientes' && !window._editandoDiaAnterior) setFechaActiva(fechaHoy());
   const fab = document.getElementById('pleno-fab');
   if(fab){ fab.style.display = 'flex'; }
+  // ── Lupa flotante: solo visible en Clientes ──
+  const lupa = document.getElementById('lupa-fab');
+  if(lupa){ lupa.style.display = (p==='clientes') ? 'flex' : 'none'; }
+
   // Al ir a Clientes actualizar el FAB con el pleno de la fecha activa
   if(p==='clientes'){
     const hoyClientes = getFechaActiva();
@@ -5680,7 +5693,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v29';
+const APP_VERSION = '2026-05-21 v35';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10557,7 +10570,7 @@ function _orbeRespuestaLocal(pregunta, s){
 
     if (est.paso === 'esperar_neki') {
       const debeEntregar = est.resultado - monto;
-      window._orbConvEstado = { paso: 'esperar_efectivo', debeEntregar, neki: monto, ...est };
+      window._orbConvEstado = { ...est, paso: 'esperar_efectivo', debeEntregar, neki: monto };
       let resp = `🏦 Neki: ${f(monto)}
 `;
       resp += `💵 Debes entregar: ${f(debeEntregar)}
@@ -10635,6 +10648,12 @@ window.orbIANuevoChat = orbIANuevoChat;
   <div class="pfab-hoy" id="pfab-hoy">HOY</div>
 </div>
 
+<!-- ══ LUPA FLOTANTE — BUSCAR CLIENTE ══ -->
+<button id="lupa-fab" onclick="enfocarBuscadorCliente()" aria-label="Buscar cliente" style="display:none;position:fixed;bottom:96px;left:16px;z-index:8000;width:58px;height:58px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);background:radial-gradient(circle at 30% 28%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 38%),linear-gradient(135deg,#ff00cc 0%,#a855f7 60%,#6366f1 100%);box-shadow:0 8px 24px rgba(168,85,247,0.55),0 0 22px rgba(255,0,204,0.45);color:white;font-size:26px;cursor:pointer;align-items:center;justify-content:center;animation:pfab-breathe 3.2s ease-in-out infinite">🔍</button>
+
+
+
+
 <!-- ══ PANEL IA del Orbe — CHAT ══ -->
 <div id="orb-ia-overlay" onclick="if(event.target.id==='orb-ia-overlay')cerrarOrbeIA()">
   <div id="orb-ia-panel" role="dialog" aria-modal="true">
@@ -10664,18 +10683,16 @@ window.orbIANuevoChat = orbIANuevoChat;
     <div id="orb-chat" class="orb-chat"></div>
 
     <div class="orb-quick" id="orb-quick">
-      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">⚡ Estado del día</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de esta semana')">📊 Resumen semana</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">📈 Plenos semana pasada</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">💸 Gastos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto debo entregar hoy?')">🏦 ¿Cuánto entrego?</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">⚡ Estado del día</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de esta semana')">💸 Gastos de la semana</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">💸 Gastos semana pasada</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">📈 Plenos semana pasada</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de esta semana')">📊 Resumen semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">📅 Semanales de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales están atrasados?')">🚨 Atrasados</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">🎯 Prioridad</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">💡 Consejo Jarvis</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">Prioridad de visita</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame un consejo para aumentar mis cobros')">Consejo</button>
-      <button class="orb-chip" onclick="orbIAEnviarRapido('Resume mi semana')">Resumen semana</button>
     </div>
 
     <form class="orb-input-row" onsubmit="event.preventDefault(); orbIAEnviarMensaje();">
@@ -11044,6 +11061,32 @@ function jarvisNuevoChat(){
 
 let _jrvVoz = null;
 let _jrvHablando = false;
+let _jrvVocesCargadas = false;
+
+// Precarga de voces (importante en Android WebView/APK donde getVoices() devuelve [] al inicio)
+function _jarvisPrecargarVoces(){
+  try {
+    if(!window.speechSynthesis) return;
+    const v = window.speechSynthesis.getVoices();
+    if(v && v.length){ _jrvVocesCargadas = true; }
+    if(typeof speechSynthesis.onvoiceschanged !== 'undefined'){
+      speechSynthesis.onvoiceschanged = ()=>{ _jrvVocesCargadas = true; };
+    }
+  } catch(e){}
+}
+_jarvisPrecargarVoces();
+// Desbloquear síntesis con el primer toque (requerido en APK/WebView)
+document.addEventListener('click', function _jrvUnlock(){
+  try {
+    if(window.speechSynthesis && !_jrvVocesCargadas){
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0; u.lang = 'es-CO';
+      window.speechSynthesis.speak(u);
+      _jrvVocesCargadas = true;
+    }
+  } catch(e){}
+  document.removeEventListener('click', _jrvUnlock);
+}, { once:true, capture:true });
 
 function _jarvisHablar(texto){
   if(!texto || !window.speechSynthesis) return;
@@ -11058,54 +11101,73 @@ function _jarvisHablar(texto){
     .replace(/\s+/g,' ')
     .trim();
   if(!limpio) return;
-  try {
-    window.speechSynthesis.cancel();
-    const MAX = 160;
-    const fragmentos = [];
-    let resto = limpio;
-    while(resto.length > MAX){
-      let corte = resto.lastIndexOf('. ', MAX);
-      if(corte < 50) corte = resto.lastIndexOf(' ', MAX);
-      if(corte < 50) corte = MAX;
-      fragmentos.push(resto.slice(0, corte+1).trim());
-      resto = resto.slice(corte+1).trim();
-    }
-    if(resto) fragmentos.push(resto);
-    const voces = window.speechSynthesis.getVoices();
-    const voz = voces.find(v=>v.lang==='es-CO') ||
-                voces.find(v=>v.lang==='es-US') ||
-                voces.find(v=>v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
-                voces.find(v=>v.lang.startsWith('es')) || null;
-    let idx2 = 0;
-    function hablarFrag(){
-      if(idx2 >= fragmentos.length) return;
-      const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
-      utt.lang = 'es-CO'; utt.rate = 0.88; utt.pitch = 0.82; utt.volume = 1.0;
-      if(voz) utt.voice = voz;
-      utt.onstart = ()=>{
-        _jrvHablando = true;
-        const bar = document.getElementById('jrv-voice-bar');
-        if(bar) bar.classList.add('active');
-      };
-      utt.onend = ()=>{
-        idx2++;
-        if(idx2 < fragmentos.length){ hablarFrag(); }
-        else {
+
+  function _ejecutar(){
+    try {
+      window.speechSynthesis.cancel();
+      const MAX = 160;
+      const fragmentos = [];
+      let resto = limpio;
+      while(resto.length > MAX){
+        let corte = resto.lastIndexOf('. ', MAX);
+        if(corte < 50) corte = resto.lastIndexOf(' ', MAX);
+        if(corte < 50) corte = MAX;
+        fragmentos.push(resto.slice(0, corte+1).trim());
+        resto = resto.slice(corte+1).trim();
+      }
+      if(resto) fragmentos.push(resto);
+      const voces = window.speechSynthesis.getVoices() || [];
+      const voz = voces.find(v=>v.lang==='es-CO') ||
+                  voces.find(v=>v.lang==='es-US') ||
+                  voces.find(v=>v.lang && v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
+                  voces.find(v=>v.lang && v.lang.startsWith('es')) || null;
+      let idx2 = 0;
+      function hablarFrag(){
+        if(idx2 >= fragmentos.length) return;
+        const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
+        utt.lang = 'es-CO'; utt.rate = 0.88; utt.pitch = 0.82; utt.volume = 1.0;
+        if(voz) utt.voice = voz;
+        utt.onstart = ()=>{
+          _jrvHablando = true;
+          const bar = document.getElementById('jrv-voice-bar');
+          if(bar) bar.classList.add('active');
+        };
+        utt.onend = ()=>{
+          idx2++;
+          if(idx2 < fragmentos.length){ hablarFrag(); }
+          else {
+            _jrvHablando = false;
+            const bar = document.getElementById('jrv-voice-bar');
+            if(bar) bar.classList.remove('active');
+          }
+        };
+        utt.onerror = ()=>{
           _jrvHablando = false;
           const bar = document.getElementById('jrv-voice-bar');
           if(bar) bar.classList.remove('active');
-        }
-      };
-      utt.onerror = ()=>{
-        _jrvHablando = false;
-        const bar = document.getElementById('jrv-voice-bar');
-        if(bar) bar.classList.remove('active');
-      };
-      window.speechSynthesis.speak(utt);
-      _jrvVoz = utt;
-    }
-    hablarFrag();
-  } catch(e){}
+        };
+        window.speechSynthesis.speak(utt);
+        _jrvVoz = utt;
+      }
+      hablarFrag();
+    } catch(e){}
+  }
+
+  // Si las voces aún no se cargaron (típico en APK al primer uso), esperar
+  const vocesActuales = window.speechSynthesis.getVoices();
+  if(!vocesActuales || vocesActuales.length === 0){
+    let intentos = 0;
+    const timer = setInterval(()=>{
+      intentos++;
+      const v2 = window.speechSynthesis.getVoices();
+      if((v2 && v2.length) || intentos > 20){
+        clearInterval(timer);
+        _ejecutar();
+      }
+    }, 150);
+  } else {
+    _ejecutar();
+  }
 }
 
 function _jarvisCallIarStop(){
