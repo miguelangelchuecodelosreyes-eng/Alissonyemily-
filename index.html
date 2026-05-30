@@ -5560,8 +5560,10 @@ function verAbonosCliente(id){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:17px;font-weight:900;color:#00cc55">+${fmt(p.monto)}</div>
-            <button onclick="borrarPagoCliente('${id}','${p.fecha}',${p.monto})"
-              style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:10px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>
+            ${(p.fecha||'').slice(0,10) === fechaHoy()
+              ? `<button onclick="borrarPagoCliente('${id}','${p.fecha}',${p.monto})" title="Borrar esta cuota" style="background:#ffe8e8;border:1.5px solid #ff8888;color:#ff1111;border-radius:10px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️</button>`
+              : `<button disabled title="Solo puedes borrar cuotas de hoy" style="background:#f0f0f0;border:1.5px solid #ccc;color:#bbb;border-radius:10px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:not-allowed;opacity:0.5">🔒</button>`
+            }
           </div>
         </div>`).join('') : '<div style="text-align:center;padding:20px;color:#bbb;font-size:14px;font-weight:700">📭 Sin abonos aún</div>'}
     </div>
@@ -5588,6 +5590,50 @@ function verAbonosCliente(id){
     }
     setTimeout(()=>document.getElementById(boxId).scrollIntoView({behavior:'smooth',block:'nearest'}),150);
   }
+}
+
+function borrarPagoCliente(id, fecha, monto){
+  // Solo permitir borrar cuotas del día de hoy
+  const hoy = fechaHoy();
+  // La fecha del pago puede ser ISO completo o solo YYYY-MM-DD
+  const fechaPago = (fecha||'').slice(0,10);
+  if(fechaPago !== hoy){
+    showToast('⛔ Solo puedes borrar cuotas del día de hoy');
+    return;
+  }
+
+  const clientes = getClientes();
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+
+  const confirmado = confirm(`¿Borrar cuota de ${fmt(monto)} del ${fechaPago}?\n\nEsta acción no se puede deshacer.`);
+  if(!confirmado) return;
+
+  // Buscar y eliminar el pago que coincida con fecha y monto (solo el primero si hay duplicados)
+  const idx = (c.pagos||[]).findIndex(p => (p.fecha||'').slice(0,10) === fechaPago && p.monto === monto);
+  if(idx === -1){
+    showToast('❌ No se encontró la cuota');
+    return;
+  }
+
+  c.pagos.splice(idx, 1);
+  // Restaurar el saldo
+  c.saldo = (c.saldo||0) + monto;
+  saveClientes(clientes);
+
+  showToast('🗑️ Cuota eliminada');
+
+  // Actualizar pleno y cuentas del día
+  if(typeof recalcularCuentas === 'function') recalcularCuentas();
+
+  // Refrescar el panel de abonos
+  const boxId = 'abonos-inline-'+id;
+  const existing = document.getElementById(boxId);
+  if(existing) existing.remove();
+  verAbonosCliente(id);
+
+  // Refrescar la lista de clientes si es visible
+  if(typeof renderClientes === 'function') renderClientes();
 }
 
 let _detalleDesde = null;
