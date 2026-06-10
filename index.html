@@ -2602,27 +2602,27 @@ function cerrarSesion() {
 function enfocarBuscadorCliente(){
   const existing = document.getElementById('lupa-modal');
   if(existing){ existing.remove(); return; }
-  const clientes = getClientes();
+  const clientes = (typeof getClientes==='function') ? (getClientes()||[]) : [];
   const overlay = document.createElement('div');
   overlay.id = 'lupa-modal';
-  overlay.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(to bottom,rgba(10,2,20,0.55) 0%,rgba(10,2,20,0.97) 18%);display:flex;flex-direction:column;max-height:88vh;border-radius:26px 26px 0 0;box-shadow:0 -8px 40px rgba(168,85,247,0.45);animation:lupaSlideUp 0.22s cubic-bezier(.22,1,.36,1) both;padding:0 0 12px 0;';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(to bottom,rgba(10,2,20,0.85) 0%,rgba(10,2,20,0.98) 100%);display:flex;flex-direction:column;animation:lupaFadeIn 0.18s ease-out both;padding:0;';
   if(!document.getElementById('lupa-anim-style')){
     const st = document.createElement('style');
     st.id = 'lupa-anim-style';
-    st.textContent = '@keyframes lupaSlideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}} #lupa-modal .lupa-item:active{background:rgba(255,255,255,0.08)!important;}';
+    st.textContent = '@keyframes lupaFadeIn{from{opacity:0}to{opacity:1}} #lupa-modal .lupa-item:active{background:rgba(255,255,255,0.12)!important;}';
     document.head.appendChild(st);
   }
   overlay.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 10px">
-      <div style="flex:1;display:flex;align-items:center;background:rgba(255,255,255,0.09);border:1.5px solid rgba(168,85,247,0.5);border-radius:16px;padding:0 14px;gap:8px">
-        <span style="font-size:20px">&#128269;</span>
-        <input id="lupa-input" type="text" placeholder="Nombre o cédula..." autocomplete="off"
-          style="flex:1;background:none;border:none;outline:none;color:white;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;padding:12px 0;">
+    <div style="display:flex;align-items:center;gap:10px;padding:max(16px,env(safe-area-inset-top)) 14px 12px 14px">
+      <div style="flex:1;display:flex;align-items:center;background:rgba(255,255,255,0.12);border:2px solid rgba(168,85,247,0.7);border-radius:18px;padding:0 14px;gap:10px">
+        <span style="font-size:22px">🔍</span>
+        <input id="lupa-input" type="text" inputmode="search" placeholder="Escribe nombre o cédula..." autocomplete="off"
+          style="flex:1;background:none;border:none;outline:none;color:white;font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;padding:14px 0;">
       </div>
       <button onclick="document.getElementById('lupa-modal').remove()"
-        style="background:rgba(255,255,255,0.1);border:none;color:white;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;flex-shrink:0">&#x2715;</button>
+        style="background:rgba(255,255,255,0.15);border:none;color:white;font-size:22px;width:48px;height:48px;border-radius:50%;cursor:pointer;flex-shrink:0;font-weight:900">✕</button>
     </div>
-    <div id="lupa-results" style="overflow-y:auto;padding:0 12px 16px;flex:1;min-height:80px"></div>
+    <div id="lupa-results" style="overflow-y:auto;padding:4px 12px 24px;flex:1;-webkit-overflow-scrolling:touch"></div>
   `;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
@@ -2631,30 +2631,34 @@ function enfocarBuscadorCliente(){
     if(!box) return;
     const txt=(q||'').trim().toLowerCase();
     let lista = txt ? clientes.filter(c=>{
-      return (c.nombre||'').toLowerCase().includes(txt)||(c.cedula||c.id||'').toLowerCase().includes(txt);
+      return (c.nombre||'').toLowerCase().includes(txt)||((c.cedula||c.id||'')+'').toLowerCase().includes(txt);
     }) : clientes;
     if(!lista.length){
-      box.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.35);padding:32px 0;font-family:Nunito,sans-serif;font-size:15px;font-weight:700">Sin resultados &#128584;</div>';
+      box.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.45);padding:40px 0;font-family:Nunito,sans-serif;font-size:15px;font-weight:700">Sin resultados 🙈</div>';
       return;
     }
-    const hoy=fechaHoy();
-    box.innerHTML=lista.slice(0,50).map(c=>{
+    const hoy=(typeof fechaHoy==='function')?fechaHoy():'';
+    box.innerHTML=lista.slice(0,80).map(c=>{
       const pagosHoy=(c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===hoy);
       const cobHoy=pagosHoy.reduce((s,p)=>s+(p.monto||0),0);
-      const badge=cobHoy>0?`<span style="background:#10b981;color:white;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;margin-left:6px">&#10003; ${fmt(cobHoy)}</span>`:'';
-      return `<div class="lupa-item" onclick="lupaIrACliente('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:14px;cursor:pointer;margin-bottom:4px;transition:background .12s">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ff00cc);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128100;</div>
+      const badge=cobHoy>0?`<span style="background:#10b981;color:white;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;margin-left:6px">✓ ${(typeof fmt==='function')?fmt(cobHoy):cobHoy}</span>`:'';
+      const saldoTxt=(typeof fmt==='function')?fmt(c.saldo||0):(c.saldo||0);
+      return `<div class="lupa-item" onclick="lupaIrACliente('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;margin-bottom:6px;background:rgba(255,255,255,0.04);transition:background .12s">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ff00cc);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>
         <div style="flex:1;min-width:0">
           <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre||'Sin nombre'}${badge}</div>
-          <div style="font-family:Nunito,sans-serif;font-size:12px;color:rgba(255,255,255,0.45);font-weight:700">${c.cedula||''} &middot; Saldo: ${fmt(c.saldo||0)}</div>
+          <div style="font-family:Nunito,sans-serif;font-size:12px;color:rgba(255,255,255,0.55);font-weight:700">${c.cedula||''} · Saldo: ${saldoTxt}</div>
         </div>
-        <div style="color:rgba(255,255,255,0.3);font-size:18px">&#8250;</div>
+        <div style="color:rgba(255,255,255,0.4);font-size:20px">›</div>
       </div>`;
     }).join('');
   }
   renderLupaResults('');
   const inp=document.getElementById('lupa-input');
-  if(inp){ inp.addEventListener('input',()=>renderLupaResults(inp.value)); setTimeout(()=>inp.focus(),180); }
+  if(inp){
+    inp.addEventListener('input',()=>renderLupaResults(inp.value));
+    setTimeout(()=>{ try{ inp.focus(); inp.click(); }catch(e){} }, 120);
+  }
 }
 
 function lupaIrACliente(id){
@@ -2667,6 +2671,7 @@ function lupaIrACliente(id){
     if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid #a855f7'; setTimeout(()=>el.style.outline='',1500); }
   },80);
 }
+
 
 // ===== NAV =====
 function irA(p) {
@@ -10757,7 +10762,7 @@ window.orbIANuevoChat = orbIANuevoChat;
 </div>
 
 <!-- ══ LUPA FLOTANTE — BUSCAR CLIENTE ══ -->
-<button id="lupa-fab" onclick="enfocarBuscadorCliente()" aria-label="Buscar cliente" style="display:none;position:fixed;bottom:96px;left:16px;z-index:8000;width:58px;height:58px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);background:radial-gradient(circle at 30% 28%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 38%),linear-gradient(135deg,#ff00cc 0%,#a855f7 60%,#6366f1 100%);box-shadow:0 8px 24px rgba(168,85,247,0.55),0 0 22px rgba(255,0,204,0.45);color:white;font-size:26px;cursor:pointer;align-items:center;justify-content:center;animation:pfab-breathe 3.2s ease-in-out infinite">🔍</button>
+<button id="lupa-fab" onclick="event.preventDefault();event.stopPropagation();enfocarBuscadorCliente();return false;" aria-label="Buscar cliente" style="display:none;position:fixed;bottom:110px;left:16px;z-index:9998;width:74px;height:74px;border-radius:50%;border:3px solid rgba(255,255,255,0.85);background:radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%),linear-gradient(135deg,#ff00cc 0%,#a855f7 55%,#6366f1 100%);box-shadow:0 10px 30px rgba(168,85,247,0.65),0 0 32px rgba(255,0,204,0.65);color:white;font-size:34px;cursor:pointer;align-items:center;justify-content:center;animation:pfab-breathe 3.2s ease-in-out infinite;line-height:1;padding:0;font-weight:900">🔍</button>
 
 
 
@@ -11366,6 +11371,483 @@ function proximaFechaCobro(c){
     }
 
 
+</script>
+
+<!-- ══════════════════════════════════════════════════
+     MEJORAS v32 — DISEÑO + UX (no toca login ni usuarios)
+     ══════════════════════════════════════════════════ -->
+<style id="upgrade-v32-style">
+/* Toasts modernos */
+#toast{
+  position:fixed!important; left:50%!important; transform:translateX(-50%) translateY(20px);
+  bottom:max(110px,env(safe-area-inset-bottom)+90px)!important; top:auto!important;
+  background:linear-gradient(135deg,#1e1b4b,#312e81)!important; color:white!important;
+  padding:14px 22px!important; border-radius:999px!important;
+  box-shadow:0 12px 40px rgba(99,102,241,.45),0 0 0 1px rgba(255,255,255,.12) inset!important;
+  font-family:'Nunito',sans-serif!important; font-weight:800!important; font-size:14px!important;
+  z-index:99998!important; max-width:88vw; text-align:center;
+  transition:opacity .25s ease, transform .25s cubic-bezier(.22,1,.36,1)!important;
+  pointer-events:none;
+}
+#toast[style*="opacity: 1"]{ transform:translateX(-50%) translateY(0)!important; }
+
+/* Tarjeta cliente: jerarquía y chips */
+.cliente-card{ border-radius:18px!important; border:1px solid #ecdcf6!important;
+  background:linear-gradient(180deg,#fff 0%,#fdfaff 100%)!important;
+  box-shadow:0 2px 10px rgba(168,85,247,.06),0 1px 3px rgba(0,0,0,.04)!important;
+  transition:transform .15s ease, box-shadow .15s ease!important;
+  position:relative; overflow:hidden;
+}
+.cliente-card:active{ transform:scale(.992); }
+.cliente-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
+  background:linear-gradient(180deg,#a855f7,#ff00cc); border-radius:4px 0 0 4px; opacity:.85;
+}
+.chip-estado{
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:'Nunito',sans-serif; font-size:10px; font-weight:900;
+  padding:3px 8px; border-radius:999px; margin-left:6px; letter-spacing:.3px; text-transform:uppercase;
+}
+.chip-pagado{ background:#d1fae5; color:#047857; }
+.chip-atraso{ background:#fee2e2; color:#b91c1c; }
+.chip-aldia{ background:#e0e7ff; color:#3730a3; }
+
+/* Resumen del día (chips arriba del listado) */
+#resumen-dia{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  padding:10px 12px 6px; font-family:'Nunito',sans-serif;
+}
+.rd-chip{
+  background:linear-gradient(135deg,#ffffff,#faf5ff);
+  border:1px solid #ecdcf6; border-radius:14px; padding:10px 8px;
+  text-align:center; box-shadow:0 2px 8px rgba(168,85,247,.06);
+}
+.rd-chip .rd-label{ font-size:10px; color:#94a3b8; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+.rd-chip .rd-value{ font-size:15px; font-weight:900; color:#1e293b; margin-top:2px; }
+.rd-chip.cobrado .rd-value{ color:#059669; }
+.rd-chip.pendiente .rd-value{ color:#dc2626; }
+.rd-chip.clientes .rd-value{ color:#7c3aed; }
+
+/* Mini chart 7 días */
+#mini-chart-7d{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:4px; height:46px; padding:4px 12px 8px;
+}
+#mini-chart-7d .bar{
+  flex:1; background:linear-gradient(180deg,#ff00cc,#a855f7);
+  border-radius:4px 4px 2px 2px; min-height:3px; position:relative;
+  transition:opacity .15s ease;
+}
+#mini-chart-7d .bar.today{ background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 0 10px rgba(16,185,129,.6); }
+#mini-chart-7d .bar .day{ position:absolute; bottom:-12px; left:0; right:0; text-align:center;
+  font-size:8px; color:#94a3b8; font-weight:800; }
+
+/* Mini-dock (botón "+" pegado a la lupa) */
+#mini-dock{
+  position:fixed; bottom:110px; left:100px; z-index:9998; display:none;
+  width:54px; height:54px; border-radius:50%;
+  background:radial-gradient(circle at 30% 28%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg,#10b981 0%,#059669 100%);
+  border:3px solid rgba(255,255,255,.85);
+  box-shadow:0 8px 24px rgba(16,185,129,.55),0 0 22px rgba(16,185,129,.45);
+  color:white; font-size:28px; font-weight:900; cursor:pointer;
+  align-items:center; justify-content:center; line-height:1;
+}
+#mini-dock:active{ transform:scale(.92); }
+
+/* Swipe actions */
+.cliente-card{ touch-action:pan-y; }
+.swipe-bg{
+  position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:space-between; padding:0 20px;
+  font-family:'Nunito',sans-serif; font-weight:900; color:white; font-size:14px;
+  pointer-events:none; opacity:0; transition:opacity .15s ease;
+  z-index:0;
+}
+.cliente-card[data-swiping="1"] .swipe-bg{ opacity:1; }
+.cliente-card[data-swiping="1"] > *:not(.swipe-bg){ position:relative; z-index:1; }
+.swipe-bg .sw-left{ background:linear-gradient(90deg,#10b981,#059669); }
+.swipe-bg .sw-right{ background:linear-gradient(270deg,#25d366,#128c7e); }
+
+/* Menú rápido (long-press) */
+#quick-menu{
+  position:fixed; z-index:99999; background:rgba(15,23,42,.97);
+  border-radius:16px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.55);
+  min-width:200px; backdrop-filter:blur(20px); animation:qmIn .15s ease-out;
+}
+@keyframes qmIn{ from{opacity:0; transform:scale(.92)} to{opacity:1; transform:scale(1)} }
+#quick-menu button{
+  display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px;
+  background:transparent; border:none; color:white; font-family:'Nunito',sans-serif;
+  font-size:14px; font-weight:800; border-radius:12px; cursor:pointer; text-align:left;
+}
+#quick-menu button:active{ background:rgba(255,255,255,.1); }
+#quick-menu .qm-danger{ color:#fca5a5; }
+
+/* Resaltado de coincidencias en lupa */
+.lupa-hl{ background:linear-gradient(180deg,transparent 60%,rgba(255,0,204,.55) 60%); border-radius:3px; padding:0 2px; color:white; }
+
+/* Chips de filtro lupa + recientes */
+#lupa-filters{
+  display:flex; gap:6px; padding:0 14px 10px; overflow-x:auto;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+#lupa-filters::-webkit-scrollbar{ display:none; }
+#lupa-filters .f-chip{
+  flex-shrink:0; padding:7px 12px; border-radius:999px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(168,85,247,.4);
+  color:white; font-family:'Nunito',sans-serif; font-size:12px; font-weight:800; cursor:pointer;
+}
+#lupa-filters .f-chip.activo{ background:linear-gradient(135deg,#ff00cc,#a855f7); border-color:transparent; }
+#lupa-recientes{ padding:4px 14px 8px; color:rgba(255,255,255,.55); font-size:11px; font-weight:800;
+  font-family:'Nunito',sans-serif; text-transform:uppercase; letter-spacing:.5px; }
+
+/* Modo oscuro polish */
+@media (prefers-color-scheme: dark){
+  .cliente-card{ background:linear-gradient(180deg,#1e1b2e,#171326)!important; border-color:#3b2a4f!important; }
+  .chip-aldia{ background:#312e81; color:#c7d2fe; }
+  .rd-chip{ background:linear-gradient(135deg,#1e1b2e,#171326); border-color:#3b2a4f; }
+  .rd-chip .rd-label{ color:#a78bfa; }
+  .rd-chip .rd-value{ color:#f5f3ff; }
+}
+
+/* Animación entrada de pantalla */
+.pantalla.activa{ animation: panIn .22s cubic-bezier(.22,1,.36,1) both; }
+@keyframes panIn{ from{ opacity:0; transform:translateY(6px) } to{ opacity:1; transform:translateY(0) } }
+</style>
+
+<!-- Mini dock + botón -->
+<button id="mini-dock" onclick="event.stopPropagation(); UPG.haptic(); if(typeof abrirModalCliente==='function') abrirModalCliente(null);" aria-label="Nuevo cliente">+</button>
+
+<script>
+/* ══ MEJORAS v32 — script aditivo ══ */
+(function(){
+  const UPG = window.UPG = {};
+
+  // ── Haptic ──
+  UPG.haptic = function(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||12); }catch(e){} };
+
+  // ── Mostrar mini-dock junto a la lupa ──
+  function syncDock(){
+    const lupa = document.getElementById('lupa-fab');
+    const dock = document.getElementById('mini-dock');
+    if(!lupa || !dock) return;
+    dock.style.display = (lupa.style.display === 'flex' || lupa.style.display === '') && lupa.offsetParent !== null ? 'flex' : 'none';
+  }
+  setInterval(syncDock, 400);
+
+  // ── Resaltado para lupa ──
+  UPG.hl = function(txt, q){
+    if(!q) return txt;
+    const i = (txt||'').toLowerCase().indexOf(q.toLowerCase());
+    if(i<0) return txt;
+    return txt.substring(0,i)+'<span class="lupa-hl">'+txt.substring(i,i+q.length)+'</span>'+txt.substring(i+q.length);
+  };
+
+  // ── Búsquedas recientes ──
+  function getRecientes(){ try{ return JSON.parse(localStorage.getItem('lupa_recientes')||'[]'); }catch(e){ return []; } }
+  function pushReciente(id, nombre){
+    let r = getRecientes().filter(x=>x.id!==id);
+    r.unshift({id,nombre,t:Date.now()});
+    r = r.slice(0,5);
+    try{ localStorage.setItem('lupa_recientes',JSON.stringify(r)); }catch(e){}
+  }
+  UPG.getRecientes = getRecientes;
+  UPG.pushReciente = pushReciente;
+
+  // ── Mejorar lupa: parchea enfocarBuscadorCliente con filtros + recientes + highlight ──
+  const _origLupa = window.enfocarBuscadorCliente;
+  window.enfocarBuscadorCliente = function(){
+    const existing = document.getElementById('lupa-modal');
+    if(existing){ existing.remove(); return; }
+    UPG.haptic();
+    const clientes = (typeof getClientes==='function') ? (getClientes()||[]) : [];
+    const hoy = (typeof fechaHoy==='function') ? fechaHoy() : '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'lupa-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(to bottom,rgba(10,2,20,0.92) 0%,rgba(10,2,20,0.98) 100%);display:flex;flex-direction:column;animation:lupaFadeIn .18s ease-out both;';
+    if(!document.getElementById('lupa-anim-style')){
+      const st = document.createElement('style'); st.id='lupa-anim-style';
+      st.textContent='@keyframes lupaFadeIn{from{opacity:0}to{opacity:1}} #lupa-modal .lupa-item:active{background:rgba(255,255,255,.12)!important;}';
+      document.head.appendChild(st);
+    }
+
+    let filtroActivo = 'todos';
+    let queryActual = '';
+
+    overlay.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:max(16px,env(safe-area-inset-top)) 14px 12px 14px">
+        <div style="flex:1;display:flex;align-items:center;background:rgba(255,255,255,.12);border:2px solid rgba(168,85,247,.7);border-radius:18px;padding:0 14px;gap:10px">
+          <span style="font-size:22px">🔍</span>
+          <input id="lupa-input" type="text" inputmode="search" placeholder="Escribe nombre o cédula..." autocomplete="off"
+            style="flex:1;background:none;border:none;outline:none;color:white;font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;padding:14px 0;">
+        </div>
+        <button onclick="document.getElementById('lupa-modal').remove()"
+          style="background:rgba(255,255,255,.15);border:none;color:white;font-size:22px;width:48px;height:48px;border-radius:50%;cursor:pointer;flex-shrink:0;font-weight:900">✕</button>
+      </div>
+      <div id="lupa-filters">
+        <div class="f-chip activo" data-f="todos">Todos</div>
+        <div class="f-chip" data-f="hoy">Pagaron hoy</div>
+        <div class="f-chip" data-f="atraso">Atrasados</div>
+        <div class="f-chip" data-f="saldo">Con saldo</div>
+        <div class="f-chip" data-f="semana">Sin pago 7d</div>
+      </div>
+      <div id="lupa-recientes"></div>
+      <div id="lupa-results" style="overflow-y:auto;padding:4px 12px 24px;flex:1;-webkit-overflow-scrolling:touch"></div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+
+    function aplicarFiltro(lista){
+      if(filtroActivo==='todos') return lista;
+      const ahora = Date.now();
+      return lista.filter(c=>{
+        const pagosHoy = (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===hoy);
+        const cobHoy = pagosHoy.reduce((s,p)=>s+(p.monto||0),0);
+        if(filtroActivo==='hoy') return cobHoy>0;
+        if(filtroActivo==='saldo') return (c.saldo||0)>0;
+        if(filtroActivo==='atraso'){
+          // atrasado: tiene saldo y último pago > 2 días
+          if(!(c.saldo>0)) return false;
+          const ult = (c.pagos||[]).map(p=>p.fecha).sort().pop();
+          if(!ult) return true;
+          return (ahora - new Date(ult).getTime()) > 2*86400000;
+        }
+        if(filtroActivo==='semana'){
+          const ult = (c.pagos||[]).map(p=>p.fecha).sort().pop();
+          if(!ult) return true;
+          return (ahora - new Date(ult).getTime()) > 7*86400000;
+        }
+        return true;
+      });
+    }
+
+    function renderRec(){
+      const recBox = document.getElementById('lupa-recientes');
+      if(!recBox) return;
+      const recs = getRecientes();
+      if(!recs.length || queryActual){ recBox.style.display='none'; return; }
+      recBox.style.display='block';
+      recBox.innerHTML = 'Recientes: ' + recs.map(r=>`<span onclick="enfocarBuscadorCliente._pickRec && enfocarBuscadorCliente._pickRec('${r.id}')" style="display:inline-block;background:rgba(168,85,247,.25);color:#f5d0fe;padding:4px 10px;border-radius:999px;margin:4px 4px 0 0;cursor:pointer;font-weight:800;text-transform:none;font-size:12px;letter-spacing:0">${(r.nombre||'').slice(0,18)}</span>`).join('');
+    }
+    enfocarBuscadorCliente._pickRec = function(id){
+      const modal=document.getElementById('lupa-modal'); if(modal) modal.remove();
+      if(typeof lupaIrACliente==='function') lupaIrACliente(id);
+    };
+
+    function render(){
+      const box = document.getElementById('lupa-results'); if(!box) return;
+      const q = queryActual.trim().toLowerCase();
+      let lista = q ? clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||((c.cedula||c.id||'')+'').toLowerCase().includes(q)) : clientes;
+      lista = aplicarFiltro(lista);
+      renderRec();
+      if(!lista.length){
+        box.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.45);padding:40px 0;font-family:Nunito,sans-serif;font-size:15px;font-weight:700">Sin resultados 🙈</div>';
+        return;
+      }
+      box.innerHTML = lista.slice(0,80).map(c=>{
+        const pagosHoy=(c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===hoy);
+        const cobHoy=pagosHoy.reduce((s,p)=>s+(p.monto||0),0);
+        const badge=cobHoy>0?`<span style="background:#10b981;color:white;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;margin-left:6px">✓ ${(typeof fmt==='function')?fmt(cobHoy):cobHoy}</span>`:'';
+        const saldoTxt=(typeof fmt==='function')?fmt(c.saldo||0):(c.saldo||0);
+        const nombreHL = UPG.hl(c.nombre||'Sin nombre', q);
+        const cedulaHL = UPG.hl((c.cedula||'')+'', q);
+        return `<div class="lupa-item" onclick="UPG.pushReciente('${c.id}', ${JSON.stringify(c.nombre||'')}); lupaIrACliente('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;margin-bottom:6px;background:rgba(255,255,255,.04);transition:background .12s">
+          <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ff00cc);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:white;flex-shrink:0">${(c.nombre||'?').trim().charAt(0).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nombreHL}${badge}</div>
+            <div style="font-family:Nunito,sans-serif;font-size:12px;color:rgba(255,255,255,.55);font-weight:700">${cedulaHL} · Saldo: ${saldoTxt}</div>
+          </div>
+          <div style="color:rgba(255,255,255,.4);font-size:20px">›</div>
+        </div>`;
+      }).join('');
+    }
+
+    document.querySelectorAll('#lupa-filters .f-chip').forEach(ch=>{
+      ch.addEventListener('click', ()=>{
+        document.querySelectorAll('#lupa-filters .f-chip').forEach(x=>x.classList.remove('activo'));
+        ch.classList.add('activo');
+        filtroActivo = ch.dataset.f;
+        UPG.haptic(8); render();
+      });
+    });
+    const inp = document.getElementById('lupa-input');
+    if(inp){
+      inp.addEventListener('input', ()=>{ queryActual = inp.value; render(); });
+      setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 120);
+    }
+    render();
+  };
+
+  // ── Resumen del día + mini chart (se inyecta al abrir Clientes) ──
+  function calcResumen(){
+    const clientes = (typeof getClientes==='function') ? (getClientes()||[]) : [];
+    const hoy = (typeof fechaHoy==='function') ? fechaHoy() : '';
+    let cobrado=0, pendiente=0, pagaronHoy=0;
+    clientes.forEach(c=>{
+      const ph = (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===hoy);
+      const total = ph.reduce((s,p)=>s+(p.monto||0),0);
+      if(total>0) pagaronHoy++;
+      cobrado += total;
+      pendiente += (c.saldo||0);
+    });
+    return {cobrado, pendiente, pagaronHoy, totalClientes:clientes.length};
+  }
+  function calc7Dias(){
+    const clientes = (typeof getClientes==='function') ? (getClientes()||[]) : [];
+    const arr = [];
+    for(let i=6;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      let total = 0;
+      clientes.forEach(c=>{
+        (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===k).forEach(p=>{ total += (p.monto||0); });
+      });
+      arr.push({fecha:k, total, label:['D','L','M','M','J','V','S'][d.getDay()]});
+    }
+    return arr;
+  }
+  function renderResumenYChart(){
+    const cont = document.getElementById('pantalla-clientes');
+    if(!cont) return;
+    let header = document.getElementById('upg-header-clientes');
+    if(!header){
+      header = document.createElement('div');
+      header.id = 'upg-header-clientes';
+      header.innerHTML = `
+        <div id="resumen-dia">
+          <div class="rd-chip cobrado"><div class="rd-label">Cobrado</div><div class="rd-value" id="rd-cobrado">$0</div></div>
+          <div class="rd-chip pendiente"><div class="rd-label">Pendiente</div><div class="rd-value" id="rd-pendiente">$0</div></div>
+          <div class="rd-chip clientes"><div class="rd-label">Pagaron</div><div class="rd-value" id="rd-clientes">0</div></div>
+        </div>
+        <div id="mini-chart-7d"></div>
+      `;
+      // Inserta al inicio de la pantalla
+      cont.insertBefore(header, cont.firstChild);
+    }
+    const r = calcResumen();
+    const f = (typeof fmt==='function') ? fmt : (n=>'$'+n);
+    const cobE = document.getElementById('rd-cobrado'); if(cobE) cobE.textContent = f(r.cobrado);
+    const penE = document.getElementById('rd-pendiente'); if(penE) penE.textContent = f(r.pendiente);
+    const cliE = document.getElementById('rd-clientes'); if(cliE) cliE.textContent = r.pagaronHoy+'/'+r.totalClientes;
+
+    const chartBox = document.getElementById('mini-chart-7d');
+    if(chartBox){
+      const datos = calc7Dias();
+      const max = Math.max(1, ...datos.map(d=>d.total));
+      const hoy = (typeof fechaHoy==='function') ? fechaHoy() : '';
+      chartBox.innerHTML = datos.map(d=>{
+        const h = Math.max(3, Math.round((d.total/max)*36));
+        const isToday = d.fecha===hoy;
+        return `<div class="bar ${isToday?'today':''}" style="height:${h}px" title="${d.fecha}: ${f(d.total)}"><div class="day">${d.label}</div></div>`;
+      }).join('');
+    }
+  }
+  UPG.refresh = renderResumenYChart;
+
+  // Hook a renderClientes para refrescar resumen
+  const _origRender = window.renderClientes;
+  if(typeof _origRender === 'function'){
+    window.renderClientes = function(){
+      const r = _origRender.apply(this, arguments);
+      try{ renderResumenYChart(); }catch(e){}
+      return r;
+    };
+  }
+
+  // ── Long-press sobre tarjeta de cliente: menú rápido ──
+  let lpTimer=null, lpFired=false, lpCard=null;
+  function getCardId(card){ return (card.id||'').replace(/^card-/,''); }
+  function openQuickMenu(x,y,id){
+    closeQuickMenu();
+    const cliente = ((typeof getClientes==='function')?getClientes():[]).find(c=>c.id===id);
+    if(!cliente) return;
+    const tel = (cliente.telefono||cliente.celular||'').replace(/[^0-9]/g,'');
+    const menu = document.createElement('div');
+    menu.id = 'quick-menu';
+    menu.innerHTML = `
+      <button onclick="UPG.haptic(); document.getElementById('quick-menu').remove(); if(typeof abrirModalCliente==='function') abrirModalCliente('${id}')">✏️ Editar / Cobrar</button>
+      ${tel?`<button onclick="UPG.haptic(); document.getElementById('quick-menu').remove(); window.open('https://wa.me/${tel}','_blank')">💬 WhatsApp</button>`:''}
+      ${tel?`<button onclick="UPG.haptic(); document.getElementById('quick-menu').remove(); window.location.href='tel:${tel}'">📞 Llamar</button>`:''}
+      <button onclick="UPG.haptic(); document.getElementById('quick-menu').remove(); enfocarBuscadorCliente()">🔍 Buscar otro</button>
+    `;
+    document.body.appendChild(menu);
+    // Posiciona dentro de la pantalla
+    requestAnimationFrame(()=>{
+      const r = menu.getBoundingClientRect();
+      const left = Math.min(window.innerWidth - r.width - 10, Math.max(10, x - r.width/2));
+      const top  = Math.min(window.innerHeight - r.height - 10, Math.max(10, y));
+      menu.style.left = left+'px'; menu.style.top = top+'px';
+    });
+    setTimeout(()=>{
+      document.addEventListener('click', closeQuickMenu, {once:true, capture:true});
+    }, 50);
+  }
+  function closeQuickMenu(){ const m=document.getElementById('quick-menu'); if(m) m.remove(); }
+
+  // Swipe (touch) + long-press en delegación
+  document.addEventListener('touchstart', function(e){
+    const card = e.target.closest('.cliente-card');
+    if(!card) return;
+    const id = getCardId(card);
+    lpCard = card; lpFired=false;
+    const t = e.touches[0];
+    card._startX = t.clientX; card._startY = t.clientY; card._dx=0;
+    lpTimer = setTimeout(()=>{
+      lpFired = true; UPG.haptic(25);
+      openQuickMenu(t.clientX, t.clientY-20, id);
+    }, 520);
+  }, {passive:true});
+
+  document.addEventListener('touchmove', function(e){
+    const card = e.target.closest('.cliente-card');
+    if(!card || card!==lpCard) return;
+    const t = e.touches[0];
+    const dx = t.clientX - card._startX;
+    const dy = t.clientY - card._startY;
+    if(Math.abs(dy) > 14){ clearTimeout(lpTimer); return; }
+    if(Math.abs(dx) > 12){
+      clearTimeout(lpTimer);
+      card._dx = dx;
+      card.style.transform = 'translateX('+Math.max(-140,Math.min(140,dx))+'px)';
+      if(!card.querySelector('.swipe-bg')){
+        const bg = document.createElement('div');
+        bg.className='swipe-bg';
+        bg.innerHTML = '<div class="sw-left" style="display:flex;align-items:center;height:100%;padding:0 20px;border-radius:18px 0 0 18px">💰 Cobrar</div><div class="sw-right" style="display:flex;align-items:center;height:100%;padding:0 20px;border-radius:0 18px 18px 0">💬 WhatsApp</div>';
+        card.appendChild(bg);
+      }
+      card.setAttribute('data-swiping','1');
+    }
+  }, {passive:true});
+
+  document.addEventListener('touchend', function(e){
+    const card = lpCard;
+    clearTimeout(lpTimer);
+    if(!card){ return; }
+    if(lpFired){ lpCard=null; return; }
+    const dx = card._dx||0;
+    card.style.transition = 'transform .2s ease';
+    card.style.transform = '';
+    setTimeout(()=>{ card.style.transition=''; card.removeAttribute('data-swiping'); const bg=card.querySelector('.swipe-bg'); if(bg) bg.remove(); }, 220);
+    const id = getCardId(card);
+    const cliente = ((typeof getClientes==='function')?getClientes():[]).find(c=>c.id===id);
+    if(dx > 80){
+      UPG.haptic(15);
+      if(typeof abrirModalCliente==='function') abrirModalCliente(id);
+    } else if(dx < -80){
+      UPG.haptic(15);
+      const tel = (cliente?.telefono||cliente?.celular||'').replace(/[^0-9]/g,'');
+      if(tel) window.open('https://wa.me/'+tel,'_blank');
+      else if(typeof showToast==='function') showToast('Sin número de teléfono');
+    }
+    lpCard=null;
+  }, {passive:true});
+
+  // Refresca resumen al cargar
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(renderResumenYChart, 600));
+  window.addEventListener('load', ()=>setTimeout(renderResumenYChart, 800));
+})();
 </script>
 
 </body>
