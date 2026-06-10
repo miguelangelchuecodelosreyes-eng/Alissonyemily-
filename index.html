@@ -2600,10 +2600,72 @@ function cerrarSesion() {
 
 // ===== LUPA FLOTANTE CLIENTES =====
 function enfocarBuscadorCliente(){
-  const input = document.getElementById('buscar-cliente');
-  if(!input) return;
-  try { input.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){ input.scrollIntoView(); }
-  setTimeout(()=>{ input.focus(); try{ input.select(); }catch(e){} }, 350);
+  const existing = document.getElementById('lupa-modal');
+  if(existing){ existing.remove(); return; }
+  const clientes = getClientes();
+  const overlay = document.createElement('div');
+  overlay.id = 'lupa-modal';
+  overlay.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(to bottom,rgba(10,2,20,0.55) 0%,rgba(10,2,20,0.97) 18%);display:flex;flex-direction:column;max-height:88vh;border-radius:26px 26px 0 0;box-shadow:0 -8px 40px rgba(168,85,247,0.45);animation:lupaSlideUp 0.22s cubic-bezier(.22,1,.36,1) both;padding:0 0 12px 0;';
+  if(!document.getElementById('lupa-anim-style')){
+    const st = document.createElement('style');
+    st.id = 'lupa-anim-style';
+    st.textContent = '@keyframes lupaSlideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}} #lupa-modal .lupa-item:active{background:rgba(255,255,255,0.08)!important;}';
+    document.head.appendChild(st);
+  }
+  overlay.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 10px">
+      <div style="flex:1;display:flex;align-items:center;background:rgba(255,255,255,0.09);border:1.5px solid rgba(168,85,247,0.5);border-radius:16px;padding:0 14px;gap:8px">
+        <span style="font-size:20px">&#128269;</span>
+        <input id="lupa-input" type="text" placeholder="Nombre o cédula..." autocomplete="off"
+          style="flex:1;background:none;border:none;outline:none;color:white;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;padding:12px 0;">
+      </div>
+      <button onclick="document.getElementById('lupa-modal').remove()"
+        style="background:rgba(255,255,255,0.1);border:none;color:white;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;flex-shrink:0">&#x2715;</button>
+    </div>
+    <div id="lupa-results" style="overflow-y:auto;padding:0 12px 16px;flex:1;min-height:80px"></div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  function renderLupaResults(q){
+    const box = document.getElementById('lupa-results');
+    if(!box) return;
+    const txt=(q||'').trim().toLowerCase();
+    let lista = txt ? clientes.filter(c=>{
+      return (c.nombre||'').toLowerCase().includes(txt)||(c.cedula||c.id||'').toLowerCase().includes(txt);
+    }) : clientes;
+    if(!lista.length){
+      box.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.35);padding:32px 0;font-family:Nunito,sans-serif;font-size:15px;font-weight:700">Sin resultados &#128584;</div>';
+      return;
+    }
+    const hoy=fechaHoy();
+    box.innerHTML=lista.slice(0,50).map(c=>{
+      const pagosHoy=(c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===hoy);
+      const cobHoy=pagosHoy.reduce((s,p)=>s+(p.monto||0),0);
+      const badge=cobHoy>0?`<span style="background:#10b981;color:white;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;margin-left:6px">&#10003; ${fmt(cobHoy)}</span>`:'';
+      return `<div class="lupa-item" onclick="lupaIrACliente('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:14px;cursor:pointer;margin-bottom:4px;transition:background .12s">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ff00cc);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128100;</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre||'Sin nombre'}${badge}</div>
+          <div style="font-family:Nunito,sans-serif;font-size:12px;color:rgba(255,255,255,0.45);font-weight:700">${c.cedula||''} &middot; Saldo: ${fmt(c.saldo||0)}</div>
+        </div>
+        <div style="color:rgba(255,255,255,0.3);font-size:18px">&#8250;</div>
+      </div>`;
+    }).join('');
+  }
+  renderLupaResults('');
+  const inp=document.getElementById('lupa-input');
+  if(inp){ inp.addEventListener('input',()=>renderLupaResults(inp.value)); setTimeout(()=>inp.focus(),180); }
+}
+
+function lupaIrACliente(id){
+  const modal=document.getElementById('lupa-modal');
+  if(modal) modal.remove();
+  const barraArriba=document.getElementById('buscar-cliente');
+  if(barraArriba){ barraArriba.value=''; if(typeof debouncedRenderClientes==='function') debouncedRenderClientes(); }
+  setTimeout(()=>{
+    const el=document.getElementById('card-'+id)||document.querySelector('[data-cliente-id="'+id+'"]');
+    if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid #a855f7'; setTimeout(()=>el.style.outline='',1500); }
+  },80);
 }
 
 // ===== NAV =====
