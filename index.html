@@ -2669,6 +2669,15 @@ function lupaIrACliente(id){
   setTimeout(()=>{
     const el=document.getElementById('card-'+id)||document.querySelector('[data-cliente-id="'+id+'"]');
     if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid #a855f7'; setTimeout(()=>el.style.outline='',1500); }
+    // Abrir el panel del cliente y enfocar el campo de cuota para ingresar el pago
+    setTimeout(()=>{
+      const cbody=document.getElementById('cbody-'+id);
+      if(cbody && (cbody.style.display==='none'||!cbody.style.display) && typeof toggleBody==='function'){
+        toggleBody(id);
+      }
+      const inp=document.getElementById('cuota-input-'+id);
+      if(inp){ inp.focus(); try{ inp.click(); }catch(e){} }
+    },350);
   },80);
 }
 
@@ -11697,14 +11706,19 @@ function proximaFechaCobro(c){
   function calc7Dias(){
     const clientes = (typeof getClientes==='function') ? (getClientes()||[]) : [];
     const arr = [];
-    for(let i=6;i>=0;i--){
-      const d = new Date(); d.setDate(d.getDate()-i);
+    // Calcular el Lunes de la semana actual (Lun=0 ... Dom=6)
+    const hoyD = new Date();
+    const offsetLunes = (hoyD.getDay()+6)%7;
+    const lunes = new Date(hoyD); lunes.setDate(lunes.getDate()-offsetLunes);
+    const labels = ['L','M','M','J','V','S'];
+    for(let i=0;i<6;i++){
+      const d = new Date(lunes); d.setDate(d.getDate()+i);
       const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       let total = 0;
       clientes.forEach(c=>{
         (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===k).forEach(p=>{ total += (p.monto||0); });
       });
-      arr.push({fecha:k, total, label:['D','L','M','M','J','V','S'][d.getDay()]});
+      arr.push({fecha:k, total, label:labels[i]});
     }
     return arr;
   }
@@ -11763,7 +11777,7 @@ function proximaFechaCobro(c){
     closeQuickMenu();
     const cliente = ((typeof getClientes==='function')?getClientes():[]).find(c=>c.id===id);
     if(!cliente) return;
-    const tel = (cliente.telefono||cliente.celular||'').replace(/[^0-9]/g,'');
+    const tel = (cliente.tel||cliente.telefono||cliente.celular||'').replace(/[^0-9]/g,'');
     const menu = document.createElement('div');
     menu.id = 'quick-menu';
     menu.innerHTML = `
@@ -11837,7 +11851,7 @@ function proximaFechaCobro(c){
       if(typeof abrirModalCliente==='function') abrirModalCliente(id);
     } else if(dx < -80){
       UPG.haptic(15);
-      const tel = (cliente?.telefono||cliente?.celular||'').replace(/[^0-9]/g,'');
+      const tel = (cliente?.tel||cliente?.telefono||cliente?.celular||'').replace(/[^0-9]/g,'');
       if(tel) window.open('https://wa.me/'+tel,'_blank');
       else if(typeof showToast==='function') showToast('Sin número de teléfono');
     }
