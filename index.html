@@ -11440,7 +11440,7 @@ function proximaFechaCobro(c){
 /* Mini chart 7 días */
 #mini-chart-7d{
   display:flex; align-items:flex-end; justify-content:space-between;
-  gap:4px; height:46px; padding:4px 12px 8px;
+  gap:4px; height:64px; padding:20px 12px 8px;
 }
 #mini-chart-7d .bar{
   flex:1; background:linear-gradient(180deg,#ff00cc,#a855f7);
@@ -11450,6 +11450,9 @@ function proximaFechaCobro(c){
 #mini-chart-7d .bar.today{ background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 0 10px rgba(16,185,129,.6); }
 #mini-chart-7d .bar .day{ position:absolute; bottom:-12px; left:0; right:0; text-align:center;
   font-size:8px; color:#94a3b8; font-weight:800; }
+#mini-chart-7d .bar .val{ position:absolute; top:-17px; left:-6px; right:-6px; text-align:center;
+  font-size:10px; color:#7c3aed; font-weight:900; white-space:nowrap; overflow:hidden; }
+#mini-chart-7d .bar.today .val{ color:#059669; }
 
 /* Mini-dock (botón "+" pegado a la lupa) */
 #mini-dock{
@@ -11754,7 +11757,8 @@ function proximaFechaCobro(c){
       chartBox.innerHTML = datos.map(d=>{
         const h = Math.max(3, Math.round((d.total/max)*36));
         const isToday = d.fecha===hoy;
-        return `<div class="bar ${isToday?'today':''}" style="height:${h}px" title="${d.fecha}: ${f(d.total)}"><div class="day">${d.label}</div></div>`;
+        const valTxt = d.total>0 ? f(d.total) : '';
+        return `<div class="bar ${isToday?'today':''}" style="height:${h}px" title="${d.fecha}: ${f(d.total)}"><div class="val">${valTxt}</div><div class="day">${d.label}</div></div>`;
       }).join('');
     }
   }
