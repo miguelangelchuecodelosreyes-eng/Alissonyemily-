@@ -10771,7 +10771,7 @@ window.orbIANuevoChat = orbIANuevoChat;
 </div>
 
 <!-- ══ LUPA FLOTANTE — BUSCAR CLIENTE ══ -->
-<button id="lupa-fab" onclick="event.preventDefault();event.stopPropagation();enfocarBuscadorCliente();return false;" aria-label="Buscar cliente" style="display:none;position:fixed;bottom:110px;left:16px;z-index:9998;width:74px;height:74px;border-radius:50%;border:3px solid rgba(255,255,255,0.85);background:radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%),linear-gradient(135deg,#ff00cc 0%,#a855f7 55%,#6366f1 100%);box-shadow:0 10px 30px rgba(168,85,247,0.65),0 0 32px rgba(255,0,204,0.65);color:white;font-size:34px;cursor:pointer;align-items:center;justify-content:center;animation:pfab-breathe 3.2s ease-in-out infinite;line-height:1;padding:0;font-weight:900">🔍</button>
+<button id="lupa-fab" onclick="event.preventDefault();event.stopPropagation();enfocarBuscadorCliente();return false;" aria-label="Buscar cliente" style="display:none;position:fixed;bottom:110px;left:16px;z-index:9998;width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,0.85);background:radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%),linear-gradient(135deg,#ff00cc 0%,#a855f7 55%,#6366f1 100%);box-shadow:0 6px 18px rgba(168,85,247,0.55),0 0 18px rgba(255,0,204,0.45);color:white;font-size:22px;cursor:pointer;align-items:center;justify-content:center;animation:pfab-breathe 3.2s ease-in-out infinite;line-height:1;padding:0;font-weight:900">🔍</button>
 
 
 
@@ -11544,7 +11544,7 @@ function proximaFechaCobro(c){
     const lupa = document.getElementById('lupa-fab');
     const dock = document.getElementById('mini-dock');
     if(!lupa || !dock) return;
-    dock.style.display = (lupa.style.display === 'flex' || lupa.style.display === '') && lupa.offsetParent !== null ? 'flex' : 'none';
+    dock.style.display = (lupa.style.display === 'flex') ? 'flex' : 'none';
   }
   setInterval(syncDock, 400);
 
@@ -11865,6 +11865,18 @@ function proximaFechaCobro(c){
   // Refresca resumen al cargar
   document.addEventListener('DOMContentLoaded', ()=>setTimeout(renderResumenYChart, 600));
   window.addEventListener('load', ()=>setTimeout(renderResumenYChart, 800));
+
+  // ── Asegura que la lupa siempre esté visible cuando corresponde ──
+  function syncLupa(){
+    const lupa = document.getElementById('lupa-fab');
+    if(!lupa) return;
+    const pantClientes = document.getElementById('pantalla-clientes');
+    const visible = pantClientes && pantClientes.classList.contains('activa');
+    lupa.style.display = visible ? 'flex' : 'none';
+  }
+  setInterval(syncLupa, 500);
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(syncLupa, 800));
+  window.addEventListener('load', ()=>setTimeout(syncLupa, 1000));
 })();
 </script>
 
