@@ -11455,17 +11455,7 @@ function proximaFechaCobro(c){
 #mini-chart-7d .bar.today .val{ color:#059669; }
 
 /* Mini-dock (botón "+" pegado a la lupa) */
-#mini-dock{
-  position:fixed; bottom:110px; left:100px; z-index:9998; display:none;
-  width:54px; height:54px; border-radius:50%;
-  background:radial-gradient(circle at 30% 28%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 42%),
-    linear-gradient(135deg,#10b981 0%,#059669 100%);
-  border:3px solid rgba(255,255,255,.85);
-  box-shadow:0 8px 24px rgba(16,185,129,.55),0 0 22px rgba(16,185,129,.45);
-  color:white; font-size:28px; font-weight:900; cursor:pointer;
-  align-items:center; justify-content:center; line-height:1;
-}
-#mini-dock:active{ transform:scale(.92); }
+#mini-dock{ display:none !important; }
 
 /* Swipe actions */
 .cliente-card{ touch-action:pan-y; }
