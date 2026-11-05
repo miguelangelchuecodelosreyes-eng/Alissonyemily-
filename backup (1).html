@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v3.0 — Rediseño completo -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Respaldo — Alisson & Emily</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #1a6eff;
+  --blue-dark: #0040cc;
+  --green: #00cc55;
+  --green-dark: #008833;
+  --red: #ff1a1a;
+  --red-dark: #cc0000;
+  --orange: #e67e22;
+  --orange-dark: #cc5500;
+  --dark: #1a1a2e;
+  --darker: #0d0d1a;
+  --bg: #f0f4ff;
+  --card-bg: #ffffff;
+  --text: #111;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border: #e0e8ff;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  --radius: 16px;
+  --radius-sm: 12px;
+  --transition: 0.3s cubic-bezier(.4,0,.2,1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+  overflow-x: hidden;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ===== LOGIN ===== */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 110px 24px 30px;
+  position: relative;
+  overflow: hidden;
+}
+.login-sky {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg,#0d1b4b 0%,#1a3a6b 15%,#c0392b 35%,#e67e22 50%,#f39c12 62%,#f9ca74 72%,#fdeaa8 82%,#fff8e1 100%);
+  animation: loginSunrise 6s ease-out forwards;
+}
+@keyframes loginSunrise { 0%{filter:brightness(0.2)} 30%{filter:brightness(0.6)} 100%{filter:brightness(1)} }
+
+.login-sun {
+  position: fixed; bottom: 28%; left: 50%; transform: translateX(-50%);
+  width: 90px; height: 90px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle,#fff7c0 0%,#ffd700 40%,#ffaa00 70%,transparent 100%);
+  box-shadow: 0 0 80px 40px rgba(255,200,0,0.3),0 0 160px 80px rgba(255,160,0,0.1);
+  animation: loginSunRise 6s ease-out forwards;
+}
+@keyframes loginSunRise { 0%{bottom:0%;opacity:0} 40%{opacity:0.7} 100%{bottom:28%;opacity:1} }
+
+.login-stars {
+  position: fixed; inset: 0; z-index: 0;
+  animation: starsOut 4s ease forwards;
+}
+@keyframes starsOut { 0%{opacity:1} 100%{opacity:0} }
+.star {
+  position: absolute; width: 3px; height: 3px; background: white; border-radius: 50%;
+  animation: twinkle 2s ease-in-out infinite alternate;
+}
+@keyframes twinkle { from{opacity:0.3;transform:scale(0.8)} to{opacity:1;transform:scale(1.2)} }
+
+.login-mountains { position: fixed; bottom: 0; left: 0; width: 100%; height: 35%; z-index: 2; pointer-events: none; }
+
+.login-bendicion {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; justify-content: center; padding: 14px 16px 0;
+}
+.login-bendicion-box {
+  background: rgba(0,0,0,0.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius);
+  padding: 12px 18px; max-width: 340px; text-align: center;
+  animation: fadeDown 1.2s ease 0.6s both;
+}
+@keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+.login-bendicion-text { font-style: italic; font-size: 11.5px; color: rgba(255,255,255,0.92); line-height: 1.6; }
+
+.login-logo {
+  font-size: 64px; margin-bottom: 6px; position: relative; z-index: 6;
+  animation: floatLogo 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+@keyframes floatLogo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+.login-title {
+  font-size: 28px; font-weight: 900; color: white; letter-spacing: -0.5px;
+  text-align: center; position: relative; z-index: 6;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+  animation: fadeDown 1s ease 0.3s both;
+}
+.login-sub {
+  font-size: 11px; color: rgba(255,255,255,0.7); margin-bottom: 22px; margin-top: 6px;
+  text-align: center; position: relative; z-index: 6; letter-spacing: 3px;
+  animation: fadeDown 1s ease 0.5s both;
+}
+.login-card {
+  background: rgba(255,255,255,0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px; padding: 28px 24px; width: 100%; max-width: 340px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5);
+  position: relative; z-index: 6;
+  animation: cardUp 1s cubic-bezier(.22,1,.36,1) 0.4s both;
+}
+@keyframes cardUp { from{opacity:0;transform:translateY(50px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+.login-divider { height: 1px; background: linear-gradient(90deg,transparent,#e0b070,transparent); margin: 0 0 18px; }
+.login-label { font-size: 10px; font-weight: 900; color: #8d6e63; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+.login-input {
+  width: 100%; border: 2px solid #e8d5c0; border-radius: var(--radius-sm);
+  padding: 14px 16px; font-family: 'Nunito', sans-serif;
+  font-size: 16px; font-weight: 700; outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  margin-bottom: 14px; text-align: center; background: #fffbf7; color: #5d4037;
+}
+.login-input:focus { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(230,126,34,0.12); }
+.login-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg,#ff6600,#cc2200);
+  color: white; border: none; border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(204,34,0,0.4);
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative; overflow: hidden;
+}
+.login-btn:active { transform: scale(0.97); box-shadow: 0 4px 12px rgba(204,34,0,0.4); }
+.login-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: btnShine 3s ease infinite;
+}
+@keyframes btnShine { 0%{transform:translateX(-100%)} 30%{transform:translateX(100%)} 100%{transform:translateX(100%)} }
+
+.login-error {
+  color: var(--red); font-size: 13px; font-weight: 700; text-align: center;
+  margin-top: 12px; display: none;
+  animation: shake 0.4s ease;
+}
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+/* ===== APP ===== */
+#app-screen { display: none; animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.header {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  padding: 20px 20px 18px;
+  color: white;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 4px 20px rgba(26,110,255,0.3);
+}
+.header h1 { font-size: 18px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+.header-sub { font-size: 11px; opacity: 0.7; margin-top: 3px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; }
+.btn-logout {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+  color: white; border-radius: 10px; padding: 7px 14px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: background var(--transition);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.btn-logout:active { background: rgba(255,255,255,0.25); }
+.sync-badge {
+  font-size: 11px; background: rgba(255,255,255,0.12);
+  border-radius: 20px; padding: 5px 12px; margin-top: 10px; display: inline-block;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background var(--transition);
+}
+
+/* ===== CARDS ===== */
+.card {
+  margin: 14px 14px 0;
+  background: var(--card-bg);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0,0,0,0.04);
+  animation: slideUp 0.4s ease both;
+}
+.card:nth-child(2) { animation-delay: 0.05s; }
+.card:nth-child(3) { animation-delay: 0.1s; }
+.card:nth-child(4) { animation-delay: 0.15s; }
+.card:nth-child(5) { animation-delay: 0.2s; }
+@keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+.card-header {
+  padding: 13px 18px;
+  font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+  color: white;
+  display: flex; align-items: center; gap: 8px;
+}
+.bg-blue { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+.bg-green { background: linear-gradient(135deg, var(--green), var(--green-dark)); }
+.bg-red { background: linear-gradient(135deg, var(--red), var(--red-dark)); }
+.bg-dark { background: linear-gradient(135deg, var(--dark), var(--darker)); }
+.card-body { padding: 16px; }
+
+/* ===== STATS ===== */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-box {
+  background: linear-gradient(135deg, #f0f4ff, #e8eeff);
+  border-radius: var(--radius-sm); padding: 16px 12px; text-align: center;
+  border: 1px solid var(--border);
+  transition: transform var(--transition);
+}
+.stat-box:active { transform: scale(0.97); }
+.stat-num { font-size: 28px; font-weight: 900; color: var(--blue); }
+.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 3px; }
+.stat-box.red .stat-num { color: var(--red); }
+.stat-box.green .stat-num { color: #00aa44; }
+.stat-box.orange .stat-num { color: var(--orange); }
+
+/* ===== BUTTONS ===== */
+.btn-action {
+  width: 100%; padding: 15px; border: none; border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; margin-bottom: 10px; display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative; overflow: hidden;
+}
+.btn-action:active { transform: scale(0.97); }
+.btn-download { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; box-shadow: 0 6px 20px rgba(0,180,80,0.3); }
+.btn-sync { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); color: white; box-shadow: 0 6px 20px rgba(26,110,255,0.3); }
+.btn-restore { background: linear-gradient(135deg, #ff6600, #cc2200); color: white; box-shadow: 0 6px 20px rgba(200,50,0,0.3); }
+
+/* ===== RESTORE ===== */
+.restore-drop {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 24px;
+  text-align: center; cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  background: #f8faff;
+}
+.restore-drop:hover, .restore-drop:active { border-color: var(--blue); background: #f0f4ff; }
+.restore-drop p { font-size: 13px; color: var(--text-muted); font-weight: 700; margin-top: 10px; }
+#restore-msg { font-size: 13px; font-weight: 800; text-align: center; margin-top: 12px; display: none; }
+
+/* ===== SYNC/DATA ===== */
+.last-sync { font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0 0; font-weight: 700; }
+.no-data { font-size: 13px; color: #ccc; text-align: center; padding: 24px; font-weight: 700; }
+
+/* ===== CLIENTES ===== */
+.cliente-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid #f5f5f5;
+  transition: background var(--transition);
+}
+.cliente-row:last-child { border-bottom: none; }
+.cliente-nombre { font-size: 14px; font-weight: 800; color: #222; }
+.cliente-detalle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.cliente-saldo { font-size: 16px; font-weight: 900; color: var(--red); }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--dark); color: white; padding: 14px 24px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 800; z-index: 9999;
+  transition: transform 0.4s cubic-bezier(.22,1,.36,1);
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ===== LOADING ===== */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 30px; gap: 10px; color: var(--text-muted); font-weight: 700; font-size: 14px;
+}
+.spinner {
+  width: 22px; height: 22px; border: 3px solid var(--border);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== DIAGNOSTICO ===== */
+.diag-log {
+  display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f5f5f5;
+  animation: fadeIn 0.3s ease;
+}
+.diag-time { font-size: 10px; color: #bbb; font-weight: 700; white-space: nowrap; margin-top: 2px; }
+.diag-msg { font-size: 12px; font-weight: 800; line-height: 1.5; }
+.diag-ok { color: var(--green); }
+.diag-warn { color: var(--orange); }
+.diag-error { color: var(--red); }
+.diag-info { color: var(--blue); }
+
+/* ===== SEMANA BOTONES ===== */
+.week-nav-btn {
+  width: 32px; height: 32px; border: none; border-radius: 10px;
+  background: #e8eeff; color: var(--blue); font-size: 18px; font-weight: 900;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform var(--transition), background var(--transition);
+}
+.week-nav-btn:active { transform: scale(0.9); }
+.week-nav-btn:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
+
+/* ===== DIA ROW ===== */
+.dia-row {
+  cursor: pointer; border-radius: var(--radius-sm); margin-bottom: 6px;
+  overflow: hidden; border: 2px solid var(--border);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.dia-row:active { transform: scale(0.99); }
+.dia-row.hoy { border-color: var(--green); }
+.dia-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 14px; background: #f8faff;
+}
+.dia-row.hoy .dia-header { background: #f0fff5; }
+.dia-detalle {
+  display: none; background: white; padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== PRESTAMO CARD ===== */
+.prestamo-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
+  border: 2px solid var(--border); background: #f8faff;
+  transition: transform var(--transition);
+}
+.prestamo-item.nuevo { background: #fffbf0; border-color: #f9a825; }
+.prestamo-badge {
+  font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px;
+  display: inline-block;
+}
+.prestamo-badge.nuevo { background: #f9a825; color: white; }
+.prestamo-badge.renov { background: #c0d0ff; color: var(--blue-dark); }
+
+/* ===== MODAL ===== */
+#modal-reporte {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-inner {
+  background: var(--bg); border-radius: 28px 28px 0 0; width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto; padding: 0 0 40px;
+  animation: modalUp 0.4s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+}
+@keyframes modalUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-header {
+  background: linear-gradient(135deg, var(--dark), #16213e);
+  color: white; padding: 18px 20px; border-radius: 28px 28px 0 0;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; z-index: 1;
+}
+.modal-close {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+  color: white; border-radius: 10px; padding: 7px 16px;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: background var(--transition);
+}
+.modal-close:active { background: rgba(255,255,255,0.25); }
+
+/* ===== ADMIN CARDS ===== */
+.admin-stat {
+  border-radius: var(--radius-sm); padding: 14px; color: white; text-align: center;
+}
+.admin-cobrador-card {
+  background: white; border-radius: var(--radius); padding: 14px;
+  margin-bottom: 10px; box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: box-shadow var(--transition);
+}
+.admin-cobrador-card:active { box-shadow: var(--shadow-md); }
+
+/* ===== SEARCH INPUT ===== */
+.search-input {
+  flex: 1; border: 2px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 14px; font-family: 'Nunito', sans-serif;
+  font-size: 14px; font-weight: 700; outline: none; color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  background: white;
+}
+.search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,110,255,0.1); }
+
+.btn-toggle-list {
+  width: 100%; padding: 12px; background: #f0f4ff;
+  border: 2px solid var(--border); border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  color: var(--blue); cursor: pointer; margin-bottom: 12px;
+  transition: background var(--transition);
+}
+.btn-toggle-list:active { background: #e4ecff; }
+
+/* ===== ADMIN BUTTONS ===== */
+.btn-admin {
+  padding: 10px; border: none; border-radius: 10px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 900;
+  cursor: pointer; color: white;
+  transition: transform var(--transition);
+}
+.btn-admin:active { transform: scale(0.95); }
+.btn-admin.green { background: linear-gradient(135deg, var(--green), var(--green-dark)); }
+.btn-admin.blue { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+.btn-admin.red { background: linear-gradient(135deg, var(--red), var(--red-dark)); }
+.btn-admin.purple { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+
+.btn-diag {
+  flex: 1; padding: 12px; border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900;
+  cursor: pointer; transition: transform var(--transition);
+}
+.btn-diag:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-sky"></div>
+  <div class="login-sun"></div>
+  <div class="login-stars" id="login-stars"></div>
+  <svg class="login-mountains" viewBox="0 0 400 120" preserveAspectRatio="none">
+    <polygon points="0,120 50,55 100,85 140,30 200,65 250,20 310,55 360,35 400,50 400,120" fill="rgba(26,42,26,0.8)"/>
+    <polygon points="0,120 30,70 80,95 130,50 190,80 240,45 300,65 350,50 400,60 400,120" fill="rgba(13,26,13,0.6)"/>
+    <polygon points="0,120 60,90 120,100 180,75 240,90 300,80 360,95 400,85 400,120" fill="rgba(10,20,10,0.4)"/>
+  </svg>
+  <div class="login-bendicion">
+    <div class="login-bendicion-box">
+      <div class="login-bendicion-text">✝️ "Todo lo puedo en Cristo que me fortalece." — Filipenses 4:13</div>
+    </div>
+  </div>
+  <div class="login-logo">💾</div>
+  <div class="login-title">Alisson & Emily</div>
+  <div class="login-sub">WEB DE RESPALDO</div>
+  <div class="login-card">
+    <div class="login-divider"></div>
+    <label class="login-label">Usuario</label>
+    <input type="text" id="login-user" class="login-input" placeholder="usuario" maxlength="30" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    <label class="login-label">Contraseña</label>
+    <input type="password" id="login-pass" class="login-input" placeholder="••••" maxlength="20" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">🔐 Ingresar</button>
+    <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>💾 Web de Respaldo</h1>
+        <div class="header-sub">Alisson & Emily</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+    <div class="sync-badge" id="sync-badge">⏳ Conectando...</div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="card">
+    <div class="card-header bg-blue">📊 Resumen de Datos</div>
+    <div class="card-body">
+      <div id="stats-area">
+        <div class="loading"><div class="spinner"></div>Cargando datos...</div>
+      </div>
+      <div class="last-sync" id="last-sync-text"></div>
+    </div>
+  </div>
+
+  <!-- DIAGNÓSTICO -->
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(135deg,#0d1117,#1a2a3a);color:var(--blue)">🔧 Diagnóstico del Sistema</div>
+    <div class="card-body">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="window.abrirPanelDiagnostico()" class="btn-diag" style="flex:1;background:#0d1117;color:#00ffff;border:1.5px solid rgba(0,255,255,0.3)">🔧 Abrir panel</button>
+        <button onclick="window.diagnosticoCompleto()" class="btn-diag" style="flex:1;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none">🔍 Diagnóstico completo</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="window.probarConexionFirebase()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#1e88e5,#1565c0);color:white;border:none;font-size:11px">🔌 Conexión</button>
+        <button onclick="window.verificarReglasFirebase()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;font-size:11px">🔥 Reglas</button>
+        <button onclick="window.verEstadoNube()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;font-size:11px">☁️ Nube</button>
+        <button onclick="window.analizarSesion()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;font-size:11px">🔑 Sesión</button>
+        <button onclick="window.medirVelocidadSync()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-size:11px">⚡ Velocidad</button>
+        <button onclick="window.mostrarErroresDetallados()" class="btn-diag" style="flex:1;min-width:80px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;font-size:11px">🔍 Errores</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCARGAR -->
+  <div class="card">
+    <div class="card-header bg-green">⬇️ Descargar Copia</div>
+    <div class="card-body">
+      <button class="btn-action btn-download" onclick="descargarBackup()">📥 Descargar JSON de Respaldo</button>
+    </div>
+  </div>
+
+  <!-- RESTAURAR -->
+  <div class="card" id="card-restaurar">
+    <div class="card-header bg-red">📤 Restaurar a la App</div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:600;line-height:1.6">
+        Pega el contenido de tu archivo JSON de respaldo. Se subirá a Firebase y la app lo recibirá automáticamente.
+      </p>
+
+      <!-- Pasos -->
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:900;color:#059669;letter-spacing:1px;margin-bottom:6px">CÓMO HACERLO:</div>
+        <div style="font-size:12px;color:#374151;font-weight:700;line-height:2">
+          1️⃣ Busca el archivo <b>.json</b> en "Mis Archivos"<br>
+          2️⃣ Ábrelo con <b>Notas</b> o cualquier editor de texto<br>
+          3️⃣ Selecciona todo → Copia<br>
+          4️⃣ Pégalo aquí abajo y toca Restaurar 👇
+        </div>
+      </div>
+
+      <textarea id="restore-json-input"
+        placeholder='Pega aquí el contenido del archivo .json...'
+        style="width:100%;height:150px;border:2px solid #e0e8ff;border-radius:12px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#f8faff;box-sizing:border-box;line-height:1.5;margin-bottom:10px"
+        oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#00cc55' : '#ff9999'">
+      </textarea>
+
+      <button onclick="window.restaurarBackupPegado()" class="btn-action btn-restore" style="margin-bottom:10px">
+        ✅ Restaurar en Firebase
+      </button>
+
+      <!-- También mantener opción de archivo para quien lo abra en navegador -->
+      <div style="text-align:center;margin-bottom:6px">
+        <span style="font-size:11px;color:#bbb;font-weight:700">— o desde archivo (solo navegador) —</span>
+      </div>
+      <div class="restore-drop" onclick="document.getElementById('file-restore').click()">
+        <div style="font-size:32px">📂</div>
+        <p>Toca para seleccionar archivo .json</p>
+      </div>
+      <input type="file" id="file-restore" accept=".json" style="display:none" onchange="restaurarBackup(event)">
+
+      <div id="restore-msg" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="card">
+    <div class="card-header bg-dark">👥 Clientes</div>
+    <div class="card-body" id="clientes-area">
+      <div class="loading"><div class="spinner"></div>Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="card" id="card-admin" style="display:none">
+    <div class="card-header" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white">🛡️ Panel Administrador</div>
+    <div class="card-body">
+      <div id="admin-resumen-general" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+      <button onclick="window.crearCobrador()" class="btn-admin purple" style="width:100%;padding:13px;font-size:14px;margin-bottom:14px">➕ Crear cobrador nuevo</button>
+      <div id="admin-cobradores-lista"><div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;font-weight:700">Cargando cobradores...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div id="modal-reporte">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <span id="modal-titulo" style="font-size:15px;font-weight:900">📊 Reporte</span>
+      <button onclick="window.cerrarModal()" class="modal-close">✕ Cerrar</button>
+    </div>
+    <div id="modal-contenido"></div>
+  </div>
+</div>
+
+<script>
+// Generate stars for login
+(function(){
+  const container = document.getElementById('login-stars');
+  for(let i=0;i<40;i++){
+    const star = document.createElement('div');
+    star.className='star';
+    star.style.left=Math.random()*100+'%';
+    star.style.top=Math.random()*60+'%';
+    star.style.animationDelay=Math.random()*3+'s';
+    star.style.width=star.style.height=(1+Math.random()*2)+'px';
+    container.appendChild(star);
+  }
+})();
+</script>
+
+<!-- Firebase SDK compat — funciona en archivos locales (content://, file://) y web -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function() {
+  // ── Alias para compatibilidad con el resto del código ──
+  function initializeApp(cfg) { return firebase.initializeApp(cfg); }
+  function getApps()          { return firebase.apps; }
+  function getApp()           { return firebase.app(); }
+  function getDatabase(app)   { return app ? app.database() : firebase.database(); }
+  function getAuth(app)       { return app ? app.auth()     : firebase.auth(); }
+  function ref(db, path)      { return db.ref(path); }
+  function onValue(r, cb, err){ return r.on('value', snap => cb(snap), err); }
+  function set(r, val)        { return r.set(val); }
+  function get(r)             { return r.once('value'); }
+  function remove(r)          { return r.remove(); }
+  function signInWithEmailAndPassword(auth, email, pass)    { return auth.signInWithEmailAndPassword(email, pass); }
+  function createUserWithEmailAndPassword(auth, email, pass){ return auth.createUserWithEmailAndPassword(email, pass); }
+  function signInAnonymously(auth)                          { return auth.signInAnonymously(); }
+  function onAuthStateChanged(auth, cb)                     { return auth.onAuthStateChanged(cb); }
+
+
+  // ── Detectar si cargamos como archivo local (content:// o file://) ──
+  const esArchivoLocal = location.protocol === 'content:' || location.protocol === 'file:';
+  if (esArchivoLocal) {
+    // Mostrar advertencia visible al usuario
+    const badge = document.getElementById('sync-badge');
+    if (badge) {
+      badge.textContent = '⚠️ Modo archivo local — funciones limitadas';
+      badge.style.background = 'rgba(255,150,0,0.25)';
+    }
+    console.warn('[Backup] Cargado como archivo local — los módulos ES6 pueden no funcionar en todos los navegadores.');
+  }
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHfNyFJFKdiIxJfm8hIRwbe7yCmx6hbJw",
+    authDomain: "alissonyemily-7014a.firebaseapp.com",
+    databaseURL: "https://alissonyemily-7014a-default-rtdb.firebaseio.com",
+    projectId: "alissonyemily-7014a",
+    storageBucket: "alissonyemily-7014a.firebasestorage.app",
+    messagingSenderId: "315293119877",
+    appId: "1:315293119877:web:6b3489b1ca9324ad13c0ec"
+  };
+
+  const ADMIN_USER = "alissonyemily";
+  const ADMIN_PASS = "1234";
+  let usuarioActual = null;
+  let esAdmin = false;
+  let backupData = null;
+  let dbRef = null;
+  let app, db;
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function horaPermitida() {
+    const h = new Date().getHours();
+    return h >= 6 && h < 23;
+  }
+
+  function sesionValida() {
+    const guardado = localStorage.getItem('ae_sesion_backup');
+    if (!guardado) return false;
+    try {
+      const { expira, usuario } = JSON.parse(guardado);
+      if (Date.now() < expira && usuario) { usuarioActual = usuario; return true; }
+      return false;
+    } catch(e) { return false; }
+  }
+
+  function guardarSesion(usuario) {
+    const ahora = new Date();
+    const expira = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 0, 0).getTime();
+    localStorage.setItem('ae_sesion_backup', JSON.stringify({ expira, usuario }));
+  }
+
+  function abrirApp(usuario) {
+    usuarioActual = usuario;
+    esAdmin = (usuario === ADMIN_USER);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    iniciarFirebase();
+    setInterval(() => { if (!horaPermitida()) cerrarSesion(); }, 60000);
+  }
+
+  function cerrarSesion() {
+    localStorage.removeItem('ae_sesion_backup');
+    usuarioActual = null;
+    esAdmin = false;
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-pass').value = '';
+  }
+
+  (function() {
+    if (!horaPermitida()) return;
+    if (sesionValida()) abrirApp(usuarioActual);
+  })();
+
+  window.doLogin = async function() {
+    const user = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    if (!horaPermitida()) {
+      errEl.textContent = '⏰ App disponible de 6 AM a 11 PM';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (user === ADMIN_USER) {
+      if (pass === ADMIN_PASS) { guardarSesion(user); abrirApp(user); }
+      else { errEl.textContent = '❌ Contraseña incorrecta'; errEl.style.display = 'block'; }
+      return;
+    }
+    try {
+      const tmpApp = initializeApp(firebaseConfig, 'chk_' + Date.now());
+      const tmpDb = getDatabase(tmpApp);
+      const snap = await get(ref(tmpDb, 'usuarios/' + user + '/credenciales'));
+      const creds = snap.val();
+      if (creds && creds.clave === pass) { guardarSesion(user); abrirApp(user); }
+      else { errEl.textContent = '❌ Usuario o contraseña incorrectos'; errEl.style.display = 'block'; }
+    } catch(e) {
+      errEl.textContent = '❌ Error de conexión';
+      errEl.style.display = 'block';
+    }
+  };
+
+  window.logout = function() { cerrarSesion(); };
+
+  function iniciarFirebase() {
+    // Reutilizar app existente para evitar error "duplicate app" en recarga
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    const auth = getAuth(app);
+    const fbEmail = usuarioActual.toLowerCase().replace(/[^a-z0-9_]/g,'_') + '@app.local';
+    // Contraseña interna Firebase consistente (no depende de ADMIN_PASS)
+    const fbPass = 'AE_' + usuarioActual.toLowerCase() + '_2024';
+
+    async function autenticarYConectar() {
+      agregarLog('🔐 Autenticando...', 'info');
+
+      // Si ya hay un usuario autenticado en Firebase, reusar la sesión
+      if (auth.currentUser) {
+        agregarLog('🔓 Sesión Firebase ya activa', 'ok');
+        dbRef = ref(db, 'usuarios/' + usuarioActual);
+        escucharDatos();
+        window._fbRemoveFn = { remove };
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, fbEmail, fbPass);
+        agregarLog('🔓 Auth OK', 'ok');
+      } catch(e1) {
+        if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential' || e1.code === 'auth/invalid-login-credentials') {
+          try {
+            await createUserWithEmailAndPassword(auth, fbEmail, fbPass);
+            agregarLog('🆕 Cuenta Firebase creada', 'ok');
+          } catch(e2) {
+            try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima activa', 'info'); }
+            catch(e3) { agregarLog('❌ Auth falló: ' + e3.message, 'error'); }
+          }
+        } else if (e1.code === 'auth/wrong-password') {
+          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (pass diferente)', 'info'); }
+          catch(e3) { agregarLog('❌ Auth anónima falló', 'error'); }
+        } else {
+          try { await signInAnonymously(auth); agregarLog('👤 Sesión anónima (fallback)', 'info'); }
+          catch(e3) { agregarLog('❌ Auth falló: ' + e1.message, 'error'); }
+        }
+      }
+      // Solo conectar DESPUÉS de tener auth
+      if (auth.currentUser) {
+        agregarLog('✅ Conectando a datos...', 'ok');
+        dbRef = ref(db, 'usuarios/' + usuarioActual);
+        escucharDatos();
+        window._fbRemoveFn = { remove };
+      } else {
+        agregarLog('❌ Sin auth — no se puede conectar', 'error');
+        document.getElementById('sync-badge').textContent = '🔴 Sin autenticación';
+      }
+    }
+    // Esperar a que Firebase restaure la sesión persistida antes de autenticar
+    onAuthStateChanged(auth, (user) => {
+      // Exponer variables para el panel de diagnóstico
+      window._diagDb = db;
+      window._diagRef = ref;
+      window._diagGet = get;
+      window._diagSet = set;
+      window._diagAuth = auth;
+      window._diagUsuario = usuarioActual;
+      if (user) {
+        agregarLog('🔓 Sesión Firebase restaurada automáticamente', 'ok');
+        dbRef = ref(db, 'usuarios/' + usuarioActual);
+        escucharDatos();
+        window._fbRemoveFn = { remove };
+      } else {
+        autenticarYConectar();
+      }
+    });
+  }
+
+  // ---- DIAGNÓSTICO ----
+  const _diagLogs = [];
+  function agregarLog(msg, tipo) {
+    const hora = new Date().toLocaleTimeString('es-CO');
+    _diagLogs.unshift({ msg, tipo, hora });
+    if (_diagLogs.length > 30) _diagLogs.pop();
+    renderDiagnostico();
+  }
+  function renderDiagnostico() {
+    const el = document.getElementById('diagnostico-logs');
+    if (!el) return;
+    el.innerHTML = _diagLogs.map(l =>
+      '<div class="diag-log"><span class="diag-time">' + l.hora + '</span><span class="diag-msg diag-' + l.tipo + '">' + l.msg + '</span></div>'
+    ).join('');
+  }
+
+  window.correrDiagnostico = function() {
+    agregarLog('🔍 Corriendo diagnóstico...', 'info');
+    if (!backupData) { agregarLog('🔴 Sin datos — posible problema de conexión', 'error'); return; }
+    agregarLog('🟢 Firebase conectado y con datos', 'ok');
+    if (backupData.fecha_backup) {
+      const mins = Math.floor((Date.now() - new Date(backupData.fecha_backup).getTime()) / 60000);
+      if (mins > 60) agregarLog('⚠️ Último sync hace ' + mins + ' min — abre la app para sincronizar', 'warn');
+      else agregarLog('✅ Datos frescos — último sync hace ' + mins + ' min', 'ok');
+    } else {
+      agregarLog('⚠️ Sin fecha de backup registrada', 'warn');
+    }
+    const clientes = backupData.clientes || [];
+    agregarLog('📋 Total clientes en Firebase: ' + clientes.length, 'info');
+    const activos = clientes.filter(c => (c.saldo || 0) > 0);
+    agregarLog('✅ Clientes activos (con saldo): ' + activos.length, 'info');
+    const sinCuota = clientes.filter(c => !c.cuotaSugerida || c.cuotaSugerida <= 0);
+    if (sinCuota.length > 0) agregarLog('⚠️ ' + sinCuota.length + ' clientes sin cuota asignada', 'warn');
+    else agregarLog('✅ Todos los clientes tienen cuota asignada', 'ok');
+    const negativos = clientes.filter(c => (c.saldo || 0) < 0);
+    if (negativos.length > 0) agregarLog('🔴 Saldos negativos: ' + negativos.map(c=>c.nombre).join(', '), 'error');
+    else agregarLog('✅ Sin saldos negativos', 'ok');
+    agregarLog('✅ Diagnóstico completado', 'ok');
+  };
+
+  window.toggleDetalleDia = function(idx) {
+    const el = document.getElementById('detalle-dia-' + idx);
+    if (el) {
+      const isOpen = el.style.display !== 'none';
+      el.style.display = isOpen ? 'none' : 'block';
+    }
+  };
+
+  function escucharDatos() {
+    document.getElementById('sync-badge').textContent = '⏳ Conectando...';
+    const connRef = ref(db, '.info/connected');
+    onValue(connRef, snap => {
+      if (snap.val()) {
+        agregarLog('🟢 Conexión Firebase activa', 'ok');
+      } else {
+        agregarLog('🔴 Sin conexión a Firebase', 'error');
+        document.getElementById('sync-badge').textContent = '🔴 Sin conexión';
+      }
+    });
+
+    setInterval(() => {
+      get(ref(db, 'usuarios/' + usuarioActual)).then(snap => {
+        const data = snap.val();
+        if (data) {
+          backupData = data;
+          mostrarResumen(data);
+          mostrarClientes(data.clientes || []);
+          const ahora = new Date().toLocaleTimeString('es-CO');
+          document.getElementById('sync-badge').textContent = '🟢 Actualizado ' + ahora;
+          agregarLog('🔄 Auto-actualización — ' + (data.clientes||[]).length + ' clientes', 'ok');
+        }
+      }).catch(() => {});
+    }, 2 * 60 * 1000);
+
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if(data) {
+        backupData = data;
+        document.getElementById('sync-badge').textContent = '🟢 Conectado en tiempo real';
+        mostrarResumen(data);
+        mostrarClientes(data.clientes || []);
+        cargarPanelAdmin();
+        const fecha = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '-';
+        document.getElementById('last-sync-text').textContent = '🕐 Último backup: ' + fecha;
+        const mins = data.fecha_backup ? Math.floor((Date.now() - new Date(data.fecha_backup).getTime()) / 60000) : null;
+        const nClientes = (data.clientes || []).length;
+        agregarLog('📥 Datos recibidos — ' + nClientes + ' clientes' + (mins !== null ? ', sync hace ' + mins + ' min' : ''), 'ok');
+        if (mins !== null && mins > 30) {
+          agregarLog('⚠️ Datos desactualizados (' + mins + ' min) — abre la app para sincronizar', 'warn');
+        }
+      } else {
+        document.getElementById('sync-badge').textContent = '⚠️ Sin datos aún';
+        agregarLog('⚠️ Firebase conectado pero sin datos — abre la app', 'warn');
+        document.getElementById('stats-area').innerHTML = '<div class="no-data">⚠️ La app aún no ha enviado datos.<br>Abre la app y espera unos segundos.</div>';
+        document.getElementById('clientes-area').innerHTML = '<div class="no-data">Sin clientes</div>';
+      }
+    }, (error) => {
+      document.getElementById('sync-badge').textContent = '🔴 Error de conexión';
+      agregarLog('🔴 Error Firebase: ' + error.message, 'error');
+    });
+  }
+
+  let todosClientes = [];
+  let semanaOffset = 0;
+  let _dataGlobal = null;
+
+  window.cambiarSemana = function(delta) {
+    semanaOffset += delta;
+    if (semanaOffset > 0) semanaOffset = 0;
+    mostrarResumen(_dataGlobal);
+  };
+
+  function mostrarResumen(data) {
+    _dataGlobal = data;
+    const clientes = data.clientes || [];
+    const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
+    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
+    const lunesHoy = new Date(ahora);
+    lunesHoy.setDate(ahora.getDate() - diaSemana);
+    const lunesDate = new Date(lunesHoy);
+    lunesDate.setDate(lunesHoy.getDate() + (semanaOffset * 7));
+    const sabadoDate = new Date(lunesDate);
+    sabadoDate.setDate(lunesDate.getDate() + 5);
+    const fmtFecha = d => d.getDate() + '/' + (d.getMonth()+1);
+    const esSemanActual = semanaOffset === 0;
+    const tituloSemana = esSemanActual
+      ? '📅 Esta semana (' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate) + ')'
+      : '📅 Semana ' + fmtFecha(lunesDate) + ' - ' + fmtFecha(sabadoDate);
+
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dias = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(lunesDate);
+      d.setDate(lunesDate.getDate() + i);
+      const fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      dias.push({ nombre: nombresDia[i], fecha, total: 0, esHoy: fecha === hoy, pagos: [] });
+    }
+
+    for (const c of clientes) {
+      const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+      const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
+      for (const p of (c.pagos || [])) {
+        if (!p.fecha) continue;
+        const dia = dias.find(d => d.fecha === p.fecha);
+        if (!dia) continue;
+        if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
+        dia.total += parseFloat(p.monto || 0);
+        dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+      }
+      for (const r of (c.historialRenovaciones || [])) {
+        for (const p of (r.pagos || [])) {
+          if (!p.fecha) continue;
+          const dia = dias.find(d => d.fecha === p.fecha);
+          if (!dia) continue;
+          if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
+          dia.total += parseFloat(p.monto || 0);
+          dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+        }
+      }
+    }
+
+    const clientesActivos = clientes.filter(c => (c.saldo || 0) > 0);
+
+    const filasHtml = dias.map((d, idx) => `
+      <div class="dia-row ${d.esHoy ? 'hoy' : ''}" onclick="window.toggleDetalleDia(${idx})">
+        <div class="dia-header">
+          <div style="font-size:13px;font-weight:800;color:${d.esHoy ? '#008833' : 'var(--text-secondary)'}">
+            ${d.esHoy ? '👉' : '📅'} ${d.nombre}
+            ${d.pagos.length > 0 ? '<span style="font-size:10px;color:var(--text-muted);margin-left:5px">('+d.pagos.length+' pagos)</span>' : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:18px;font-weight:900;color:${d.total > 0 ? (d.esHoy ? '#00aa44' : 'var(--blue)') : '#ddd'}">${d.total > 0 ? fmt(d.total) : '-'}</div>
+            ${d.pagos.length > 0 ? '<span style="font-size:11px;color:#bbb;transition:transform 0.2s">▼</span>' : ''}
+          </div>
+        </div>
+        <div id="detalle-dia-${idx}" class="dia-detalle">
+          ${d.pagos.length === 0 ? '<div style="font-size:12px;color:#ccc;text-align:center;padding:8px">Sin pagos</div>' :
+            d.pagos.map(p => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-weight:700;color:#333">👤 '+p.nombre+'</span><span style="font-weight:900;color:var(--blue)">'+fmt(p.monto)+'</span></div>').join('')
+          }
+          <div style="display:flex;justify-content:space-between;padding:8px 0 3px;font-size:13px;font-weight:900;border-top:2px solid #f0f0f0;margin-top:4px">
+            <span style="color:#555">TOTAL</span>
+            <span style="color:${d.esHoy ? '#00aa44' : 'var(--blue)'}">${fmt(d.total)}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Préstamos de la semana
+    const fechaLunes = lunesDate.getFullYear() + '-' + String(lunesDate.getMonth()+1).padStart(2,'0') + '-' + String(lunesDate.getDate()).padStart(2,'0');
+    const fechaSabado = sabadoDate.getFullYear() + '-' + String(sabadoDate.getMonth()+1).padStart(2,'0') + '-' + String(sabadoDate.getDate()).padStart(2,'0');
+    const prestamosDelaSemana = [];
+
+    for (const c of clientes) {
+      if (!c.nombre) continue;
+      const renovSemana = [];
+      for (const r of (c.historialRenovaciones || [])) {
+        const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        if (fr >= fechaLunes && fr <= fechaSabado) {
+          renovSemana.push({ nombre: c.nombre, monto: r.nuevoCapital || r.capitalCiclo || 0, fecha: fr, tipo: 'renovacion' });
+        }
+      }
+      if (renovSemana.length > 0) {
+        prestamosDelaSemana.push(...renovSemana);
+      } else {
+        const fr2 = (c.fechaRenovacion || '').substring(0, 10);
+        if (fr2 >= fechaLunes && fr2 <= fechaSabado) {
+          prestamosDelaSemana.push({ nombre: c.nombre, monto: c.capital || c.prestamo || 0, fecha: fr2, tipo: 'renovacion' });
+        } else {
+          const fc = (c.fechaCreado || '').substring(0, 10);
+          if (fc >= fechaLunes && fc <= fechaSabado) {
+            prestamosDelaSemana.push({ nombre: c.nombre, monto: c.capital || c.prestamo || 0, fecha: fc, tipo: 'nuevo' });
+          }
+        }
+      }
+    }
+    prestamosDelaSemana.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const totalPrestadoSemana = prestamosDelaSemana.reduce((s, p) => s + (p.monto || 0), 0);
+
+    const prestamosHtml = prestamosDelaSemana.length === 0
+      ? '<div style="font-size:12px;color:#bbb;text-align:center;padding:12px">Sin préstamos esta semana</div>'
+      : prestamosDelaSemana.map(p => {
+          const esNuevo = p.tipo === 'nuevo';
+          const fechaLabel = p.fecha ? new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-CO') : '';
+          return `<div class="prestamo-item ${esNuevo ? 'nuevo' : ''}">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:800;color:#222">👤 ${p.nombre}</span>
+                <span class="prestamo-badge ${esNuevo ? 'nuevo' : 'renov'}">${esNuevo ? '✨ NUEVO' : '🔄 RENOV.'}</span>
+              </div>
+              ${fechaLabel ? '<div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-top:3px">📅 '+fechaLabel+'</div>' : ''}
+            </div>
+            <div style="font-size:16px;font-weight:900;color:${esNuevo ? '#cc8800' : 'var(--blue)'}">${fmt(p.monto)}</div>
+          </div>`;
+        }).join('') +
+        (prestamosDelaSemana.length > 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:10px 10px 2px;font-size:13px;font-weight:900;border-top:2px solid var(--border);margin-top:4px">
+            <span style="color:#555">TOTAL PRESTADO</span>
+            <span style="color:var(--red-dark)">${fmt(totalPrestadoSemana)}</span>
+          </div>` : '');
+
+    document.getElementById('stats-area').innerHTML = `
+      <div class="stats-grid" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="stat-num">${clientes.length}</div>
+          <div class="stat-label">Total Clientes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${clientesActivos.length}</div>
+          <div class="stat-label">Activos</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase">💰 Plenos de la Semana</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="window.cambiarSemana(-1)" class="week-nav-btn">‹</button>
+          <button onclick="window.cambiarSemana(1)" ${esSemanActual ? 'disabled' : ''} class="week-nav-btn">›</button>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center">${tituloSemana}</div>
+      ${filasHtml}
+      <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin:16px 0 10px">💸 Préstamos de la Semana (${prestamosDelaSemana.length})</div>
+      <div style="background:white;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)">
+        ${prestamosHtml}
+      </div>
+    `;
+  }
+
+  function mostrarClientes(clientes) {
+    listaVisible = false;
+    todosClientes = clientes.filter(c => !c.cancelado && !c.renovado);
+    document.getElementById('clientes-area').innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" id="buscador-cliente" placeholder="🔍 Buscar por nombre..." class="search-input" oninput="window.filtrarClientes()">
+      </div>
+      <button id="btn-mostrar-todos" onclick="window.mostrarTodos()" class="btn-toggle-list">
+        👥 Mostrar todos los clientes (${todosClientes.length})
+      </button>
+      <div id="lista-clientes"><div class="no-data">🔍 Busca un cliente por nombre</div></div>
+    `;
+  }
+
+  window.filtrarClientes = function() {
+    const q = document.getElementById('buscador-cliente').value.toLowerCase().trim();
+    if(!q) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">🔍 Busca un cliente por nombre</div>'; return; }
+    const resultado = todosClientes.filter(c => (c.nombre||'').toLowerCase().includes(q));
+    renderClientes(resultado);
+  };
+
+  let listaVisible = false;
+  window.mostrarTodos = function() {
+    if(listaVisible) {
+      listaVisible = false;
+      document.getElementById('lista-clientes').innerHTML = '<div class="no-data">🔍 Busca un cliente por nombre</div>';
+      document.getElementById('btn-mostrar-todos').textContent = '👥 Mostrar todos los clientes (' + todosClientes.length + ')';
+    } else {
+      listaVisible = true;
+      document.getElementById('buscador-cliente').value = '';
+      renderClientes(todosClientes);
+      document.getElementById('btn-mostrar-todos').textContent = '🙈 Ocultar lista';
+    }
+  };
+
+  function renderClientes(lista) {
+    const fmt = n => '$' + parseFloat(n || 0).toLocaleString('es-CO');
+    if(!lista.length) { document.getElementById('lista-clientes').innerHTML = '<div class="no-data">Sin resultados</div>'; return; }
+    document.getElementById('lista-clientes').innerHTML = lista.map(c => `
+      <div class="cliente-row">
+        <div>
+          <div class="cliente-nombre">👤 ${c.nombre || 'Sin nombre'}</div>
+          <div class="cliente-detalle">Cuota: ${fmt(c.cuota)} · ${c.frecuencia || 'diario'}</div>
+        </div>
+        <div class="cliente-saldo">${fmt(c.saldo)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---- DESCARGAR ----
+  window.descargarBackup = function() {
+    if(!backupData) { toast('⚠️ No hay datos para descargar'); return; }
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
+    a.href = url; a.download = `backup_${usuarioActual}_${fecha}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('✅ Backup descargado correctamente');
+  };
+
+  // ---- RESTAURAR ----
+  window.restaurarBackup = function(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const msg = document.getElementById('restore-msg');
+    msg.style.display = 'none';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const texto = e.target.result.replace(/^\uFEFF/, '').trim();
+        const datos = JSON.parse(texto);
+        if(!datos.clientes) {
+          msg.textContent = '❌ Archivo no válido'; msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+        }
+        datos.fecha_backup = new Date().toISOString();
+        set(ref(db, 'usuarios/' + usuarioActual), datos)
+          .then(() => {
+            msg.textContent = '✅ Restaurado correctamente en Firebase.';
+            msg.style.color = '#00aa44'; msg.style.display = 'block';
+            toast('✅ Datos restaurados en Firebase');
+          })
+          .catch(err => {
+            msg.textContent = '❌ Error al subir: ' + err.message;
+            msg.style.color = 'var(--red)'; msg.style.display = 'block';
+          });
+      } catch(err) {
+        msg.textContent = '❌ Error al leer el archivo';
+        msg.style.color = 'var(--red)'; msg.style.display = 'block';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // ---- RESTAURAR DESDE TEXTO PEGADO ----
+  window.restaurarBackupPegado = function() {
+    const texto = (document.getElementById('restore-json-input').value || '').trim();
+    const msg = document.getElementById('restore-msg');
+    msg.style.display = 'none';
+
+    if (!texto) {
+      msg.textContent = '⚠️ El campo está vacío. Pega el contenido del archivo .json';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+    }
+    if (!texto.startsWith('{')) {
+      msg.textContent = '❌ Esto no parece un archivo válido. Debe comenzar con {';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+    }
+    try {
+      const datos = JSON.parse(texto.replace(/^\uFEFF/, ''));
+      if (!datos.clientes) {
+        msg.textContent = '❌ Archivo no válido — no se encontraron clientes';
+        msg.style.color = 'var(--red)'; msg.style.display = 'block'; return;
+      }
+      msg.textContent = '⏳ Subiendo a Firebase...';
+      msg.style.color = 'var(--blue)'; msg.style.display = 'block';
+      datos.fecha_backup = new Date().toISOString();
+      set(ref(db, 'usuarios/' + usuarioActual), datos)
+        .then(() => {
+          msg.textContent = '✅ ¡Restaurado! ' + datos.clientes.length + ' clientes subidos a Firebase. La app los recibirá automáticamente.';
+          msg.style.color = '#00aa44'; msg.style.display = 'block';
+          document.getElementById('restore-json-input').value = '';
+          toast('✅ ' + datos.clientes.length + ' clientes restaurados en Firebase');
+        })
+        .catch(err => {
+          msg.textContent = '❌ Error al subir: ' + err.message;
+          msg.style.color = 'var(--red)'; msg.style.display = 'block';
+        });
+    } catch(err) {
+      msg.textContent = '❌ Error al leer el JSON. Asegúrate de copiar TODO el contenido del archivo.';
+      msg.style.color = 'var(--red)'; msg.style.display = 'block';
+    }
+  };
+
+  // ===== PANEL ADMIN =====
+  window.cerrarModal = function() {
+    document.getElementById('modal-reporte').style.display = 'none';
+  };
+
+  function cargarPanelAdmin() {
+    const cardAdmin = document.getElementById('card-admin');
+    const lista = document.getElementById('admin-cobradores-lista');
+    const resumen = document.getElementById('admin-resumen-general');
+    if (!cardAdmin) return;
+    cardAdmin.style.display = 'block';
+
+    get(ref(db, 'usuarios')).then(snap => {
+      const usuarios = snap.val() || {};
+      if (backupData && backupData.clientes) {
+        const nombrePropio = ((backupData.credenciales || {}).usuario || 'alissonyemily').toLowerCase();
+        if (!usuarios[nombrePropio]) usuarios[nombrePropio] = backupData;
+      }
+      const keys = Object.keys(usuarios);
+      if (!keys.length) {
+        lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-weight:700">No hay cobradores</div>';
+        return;
+      }
+      const _hd = new Date();
+      const hoy = _hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
+      const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+      let totalCartera = 0, totalHoy = 0, totalVencidos = 0;
+      keys.forEach(u => {
+        const d = usuarios[u];
+        const activos = (d.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        totalCartera += activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        totalVencidos += activos.filter(c => (c.diasVencido || 0) > 0).length;
+        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) totalHoy += (p.monto || 0); }));
+      });
+
+      resumen.innerHTML = `
+        <div class="admin-stat" style="background:linear-gradient(135deg,var(--blue),var(--blue-dark))">
+          <div style="font-size:22px;font-weight:900">${keys.length}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">COBRADORES</div>
+        </div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,#00aa55,#007733)">
+          <div style="font-size:14px;font-weight:900">${fmt(totalCartera)}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">CARTERA TOTAL</div>
+        </div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,#ff9900,#cc6600)">
+          <div style="font-size:14px;font-weight:900">${fmt(totalHoy)}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">COBRADO HOY</div>
+        </div>
+        <div class="admin-stat" style="background:linear-gradient(135deg,var(--red-dark),#991100)">
+          <div style="font-size:22px;font-weight:900">${totalVencidos}</div>
+          <div style="font-size:10px;opacity:0.85;font-weight:700;letter-spacing:1px">VENCIDOS</div>
+        </div>
+      `;
+
+      lista.innerHTML = '<div style="font-size:12px;font-weight:900;color:#444;margin-bottom:12px;letter-spacing:1px">POR COBRADOR</div>';
+
+      keys.forEach(usuario => {
+        const data = usuarios[usuario];
+        const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
+        const cartera = activos.reduce((s, c) => s + (c.saldo || 0), 0);
+        const vencidos = activos.filter(c => (c.diasVencido || 0) > 0).length;
+        let cobradoHoy = 0;
+        activos.forEach(c => (c.pagos || []).forEach(p => { if (p.fecha && p.fecha.startsWith(hoy)) cobradoHoy += (p.monto || 0); }));
+        const fechaBackup = data.fecha_backup ? new Date(data.fecha_backup).toLocaleString('es-CO') : '—';
+
+        const card = document.createElement('div');
+        card.className = 'admin-cobrador-card';
+        card.innerHTML = `
+          <div onclick="window.abrirReporteAdmin('${usuario}')" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;cursor:pointer;padding:4px 0">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:var(--blue);text-decoration:underline">👤 ${usuario}</div>
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;margin-top:3px">Backup: ${fechaBackup}</div>
+            </div>
+            <div style="background:${vencidos > 0 ? '#fff0ee' : '#eefff5'};color:${vencidos > 0 ? 'var(--red-dark)' : '#007733'};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:900">
+              ${vencidos > 0 ? '⚠️ ' + vencidos + ' venc.' : '✅ Al día'}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#f0f4ff;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:18px;font-weight:900;color:var(--blue)">${activos.length}</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Clientes</div>
+            </div>
+            <div style="background:#f0fff7;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:11px;font-weight:900;color:#00aa55">${fmt(cartera)}</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Cartera</div>
+            </div>
+            <div style="background:#fffbf0;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:11px;font-weight:900;color:#cc6600">${fmt(cobradoHoy)}</div>
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:700">Hoy</div>
+            </div>
+          </div>
+          ${activos.length === 0 ? '<button onclick="event.stopPropagation();window.eliminarCobrador(\'' + usuario + '\')" class="btn-admin red" style="width:100%;margin-top:10px;padding:11px;font-size:13px">🗑️ Eliminar cobrador vacío</button>' : ''}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <button onclick="event.stopPropagation();window.descargarBackupCobrador('${usuario}')" class="btn-admin green">⬇️ Descargar JSON</button>
+            <button onclick="event.stopPropagation();window.editarCredenciales('${usuario}')" class="btn-admin blue">🔑 Cambiar clave</button>
+          </div>
+        `;
+        lista.appendChild(card);
+      });
+
+      window._usuariosMap = usuarios;
+      window.abrirReporteAdmin = function(usuario) {
+        const data = window._usuariosMap[usuario];
+        if (data) abrirReporte(usuario, data);
+      };
+    }).catch(err => {
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-weight:700">❌ Error: ' + err.message + '</div>';
+    });
+  }
+
+  window.descargarBackupCobrador = function(usuario) {
+    get(ref(db, 'usuarios/' + usuario)).then(snap => {
+      const data = snap.val();
+      if (!data) { toast('⚠️ Sin datos para ' + usuario); return; }
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
+      a.href = url; a.download = 'backup_' + usuario + '_' + fecha + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✅ JSON de ' + usuario + ' descargado');
+    }).catch(() => toast('❌ Error al descargar'));
+  };
+
+  window.editarCredenciales = function(usuario) {
+    const nuevoUsuario = prompt('Nuevo usuario para "' + usuario + '":\n(deja igual si no quieres cambiarlo)', usuario);
+    if (nuevoUsuario === null) return;
+    const nuevaClave = prompt('Nueva contraseña para "' + (nuevoUsuario||usuario) + '":\n(mínimo 4 caracteres)');
+    if (nuevaClave === null) return;
+    const usuFinal = (nuevoUsuario||usuario).trim().toLowerCase();
+    if (!usuFinal) { toast('⚠️ Usuario no puede estar vacío'); return; }
+    if (nuevaClave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
+    const guardarCreds = (ruta) => {
+      set(ref(db, ruta + '/credenciales'), { usuario: usuFinal, clave: nuevaClave })
+        .then(() => { toast('✅ Credenciales actualizadas para ' + usuFinal); cargarPanelAdmin(); })
+        .catch(e => toast('❌ Error: ' + e.message));
+    };
+    if (usuFinal !== usuario) {
+      get(ref(db, 'usuarios/' + usuario)).then(snap => {
+        const data = snap.val() || {};
+        set(ref(db, 'usuarios/' + usuFinal), data).then(() => {
+          remove(ref(db, 'usuarios/' + usuario)).then(() => guardarCreds('usuarios/' + usuFinal));
+        });
+      }).catch(e => toast('❌ Error: ' + e.message));
+    } else {
+      guardarCreds('usuarios/' + usuario);
+    }
+  };
+
+  window.crearCobrador = function() {
+    const usuario = prompt('Usuario del cobrador nuevo:\n(mínimo 3 letras, sin espacios)');
+    if (!usuario) return;
+    const u = usuario.trim().toLowerCase().replace(/\s+/g, '');
+    if (u.length < 3) { toast('⚠️ Usuario muy corto, mínimo 3 letras'); return; }
+    if (u === ADMIN_USER) { toast('⚠️ Ese nombre está reservado'); return; }
+    const clave = prompt('Contraseña para "' + u + '":\n(mínimo 4 caracteres)');
+    if (!clave) return;
+    if (clave.length < 4) { toast('⚠️ Clave muy corta, mínimo 4 caracteres'); return; }
+    get(ref(db, 'usuarios/' + u)).then(snap => {
+      if (snap.exists()) { toast('⚠️ El usuario "' + u + '" ya existe'); return; }
+      set(ref(db, 'usuarios/' + u + '/credenciales'), { usuario: u, clave: clave })
+        .then(() => { toast('✅ Cobrador "' + u + '" creado'); cargarPanelAdmin(); })
+        .catch(e => toast('❌ Error: ' + e.message));
+    }).catch(e => toast('❌ Error: ' + e.message));
+  };
+
+  window.eliminarCobrador = function(usuario) {
+    if (!confirm('¿Eliminar "' + usuario + '"? No tiene clientes activos.')) return;
+    const fn = window._fbRemoveFn;
+    if (fn) fn.remove(ref(db, 'usuarios/' + usuario))
+      .then(() => { toast('✅ Eliminado'); cargarPanelAdmin(); })
+      .catch(e => toast('❌ ' + e.message));
+  };
+
+  // ===== MODAL REPORTE =====
+  let _modalData = null, _modalActivos = [], _modalDias = [], _modalFmt = null, _modalClientes = [], _modalUsuario = '';
+
+  window.renderDiaReporte = function(fechaDia) {
+    const fmt = _modalFmt;
+    const data = _modalData;
+    const dias = _modalDias;
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
+    const manuales = data.manuales || {};
+    const manualDia = manuales['sup_manual_' + fechaDia] || {};
+    const cuentas = (fechaDia === hoy && data.cuentas_dia && data.cuentas_dia.fecha === hoy) ? data.cuentas_dia : null;
+
+    let cobradoDia = 0, montoCanceladosDia = 0;
+    _modalClientes.forEach(c => {
+      const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
+      const esCanceladoEseDia = (c.cancelado === true || c.saldo === 0) && ultimoPago && ultimoPago.fecha === fechaDia;
+      (c.pagos || []).forEach(p => { if (p.fecha !== fechaDia) return; cobradoDia += parseFloat(p.monto || 0); });
+      if (esCanceladoEseDia) { montoCanceladosDia += (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0); }
+      (c.historialRenovaciones || []).forEach(r => {
+        (r.pagos || []).forEach(p => { if (p.fecha === fechaDia) cobradoDia += parseFloat(p.monto || 0); });
+        const fechaRenov = (r.fecha || r.fechaCreado || "").substring(0, 10);
+        if (fechaRenov === fechaDia && r.saldoQuedaba) cobradoDia += parseFloat(r.saldoQuedaba || 0);
+      });
+    });
+
+    const eBase = parseFloat(manualDia.base || (cuentas ? (cuentas.entradas||{}).base : 0) || 0);
+    const ePapeleria = parseFloat(manualDia.papeleria || (cuentas ? (cuentas.entradas||{}).papeleria : 0) || 0);
+    const eGeneral = cobradoDia;
+
+    let prestamosAutoDia = 0;
+    for (const c of _modalClientes) {
+      if (!c.nombre) continue;
+      let tieneRenovHoy = false;
+      for (const r of (c.historialRenovaciones || [])) {
+        const fr = (r.fecha || r.fechaCreado || '').substring(0, 10);
+        if (fr === fechaDia) { prestamosAutoDia += r.nuevoCapital || r.capitalCiclo || 0; tieneRenovHoy = true; }
+      }
+      if (!tieneRenovHoy) {
+        const fr2 = (c.fechaRenovacion || '').substring(0, 10);
+        if (fr2 === fechaDia) { prestamosAutoDia += c.capital || c.prestamo || 0; }
+        else {
+          const fc = (c.fechaCreado || '').substring(0, 10);
+          if (fc === fechaDia && !(c.renovaciones > 0)) prestamosAutoDia += c.capital || c.prestamo || 0;
+        }
+      }
+    }
+
+    const sPrestamos = (manualDia.prestamos != null && manualDia.prestamos !== '') ? parseFloat(manualDia.prestamos) : (prestamosAutoDia > 0 ? prestamosAutoDia : parseFloat((cuentas ? (cuentas.salidas||{}).prestamos : 0) || 0));
+    const sNeki = parseFloat(manualDia.neki || (cuentas ? (cuentas.salidas||{}).neki : 0) || 0);
+    const sGasto = parseFloat(manualDia.gasto || (cuentas ? (cuentas.salidas||{}).gasto : 0) || 0);
+    const entregado = parseFloat(manualDia.entregado || (cuentas ? cuentas.entregado_oficina : 0) || 0);
+    const totalEntradas = eBase + eGeneral + ePapeleria;
+    const totalSalidas = sPrestamos + sNeki + sGasto;
+    const resultado = totalEntradas - totalSalidas;
+
+    document.getElementById('modal-contenido').innerHTML = `
+      <div style="margin:12px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${dias.map(d => `
+          <div onclick="window.renderDiaReporte('${d.f}')" style="cursor:pointer;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:800;
+            background:${d.f===fechaDia ? (d.f===hoy?'var(--green)':'var(--blue)') : (d.f===hoy?'#e8fff0':'#f0f4ff')};
+            color:${d.f===fechaDia ? 'white' : (d.f===hoy?'#008833':'#444')};
+            border:2px solid ${d.f===fechaDia ? 'transparent' : (d.f===hoy?'var(--green)':'var(--border)')};
+            transition:all 0.2s ease">
+            ${d.n.substring(0,3)}<br>
+            <span style="font-size:13px;font-weight:900;color:${d.f===fechaDia?'white':(d.t>0?'var(--blue)':'#ccc')}">${d.t>0?fmt(d.t):'-'}</span>
+          </div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px 0">
+        <div style="background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <div style="background:linear-gradient(135deg,var(--blue),var(--blue-dark));padding:11px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">📅 ENTRADAS</div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span>💵 Base</span><span>${fmt(eBase)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;background:#f0fff7;font-size:13px;font-weight:800"><span style="color:#00aa44">📦 General</span><span style="color:#00aa44">${fmt(eGeneral)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;font-weight:700"><span>📋 Papelería</span><span>${fmt(ePapeleria)}</span></div>
+          ${montoCanceladosDia > 0 ? `<div style="font-size:10px;font-weight:800;color:var(--text-muted);padding:4px 14px 6px;background:#fafafa">🎯 Pleno: ${fmt(eGeneral - montoCanceladosDia)} · ❌ Cancel.: ${fmt(montoCanceladosDia)}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:#e8f0ff;font-size:14px;font-weight:900"><span style="color:var(--blue-dark)">TOTAL</span><span style="color:var(--blue-dark)">${fmt(totalEntradas)}</span></div>
+        </div>
+        <div style="background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <div style="background:linear-gradient(135deg,var(--red),var(--red-dark));padding:11px 14px;font-size:11px;font-weight:900;color:white;letter-spacing:1px">💸 SALIDAS</div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span style="color:var(--red-dark)">💰 Préstamos</span><span>${fmt(sPrestamos)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:700"><span>🟡 Neki</span><span>${fmt(sNeki)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;font-weight:700"><span>🔧 Gasto</span><span>${fmt(sGasto)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:11px 14px;background:#fff0ee;font-size:14px;font-weight:900"><span style="color:var(--red-dark)">TOTAL</span><span style="color:var(--red-dark)">${fmt(totalSalidas)}</span></div>
+        </div>
+      </div>
+      <div style="margin:14px 14px 16px;background:var(--dark);border-radius:var(--radius);padding:18px;color:white">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;opacity:0.6;margin-bottom:10px">🏦 RESULTADO DEL DÍA</div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.08)"><span>Total entradas</span><span>${fmt(totalEntradas)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700"><span>Total salidas</span><span>${fmt(totalSalidas)}</span></div>
+        <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:14px 16px;margin-top:12px;font-size:18px;font-weight:900">
+          <span style="font-size:14px;opacity:0.8">RESULTADO</span>
+          <span style="color:${resultado >= 0 ? '#00ff88' : '#ff5555'}">${fmt(resultado)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;font-weight:700;opacity:0.7"><span>🏛️ Entregado a oficina</span><span>${fmt(entregado)}</span></div>
+      </div>
+    `;
+  }
+
+  function abrirReporte(usuario, data) {
+    const fmt = v => '$' + Math.round(v).toLocaleString('es-CO');
+    const activos = (data.clientes || []).filter(c => c.activo !== false && (c.saldo || 0) > 0);
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
+    const diaSemana = ahora.getDay() === 0 ? 6 : ahora.getDay() - 1;
+    const lunesDate = new Date(ahora);
+    lunesDate.setDate(ahora.getDate() - diaSemana);
+    const nombresDia = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dias = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(lunesDate);
+      d.setDate(lunesDate.getDate() + i);
+      const f = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      dias.push({ n: nombresDia[i], f, t: 0 });
+    }
+    activos.forEach(c => {
+      (c.pagos || []).forEach(p => { const d = dias.find(x => x.f === p.fecha); if (d) d.t += parseFloat(p.monto || 0); });
+      (c.historialRenovaciones || []).forEach(r => {
+        (r.pagos || []).forEach(p => { const d = dias.find(x => x.f === p.fecha); if (d) d.t += parseFloat(p.monto || 0); });
+      });
+    });
+
+    _modalData = data; _modalActivos = activos; _modalDias = dias; _modalFmt = fmt;
+    _modalClientes = data.clientes || []; _modalUsuario = usuario;
+
+    document.getElementById('modal-titulo').textContent = '📊 ' + usuario;
+    document.getElementById('modal-contenido').innerHTML = '';
+    document.getElementById('modal-reporte').style.display = 'flex';
+    renderDiaReporte(hoy);
+  }
+})();
+</script>
+
+<!-- ===== PANEL DIAGNÓSTICO FIREBASE ===== -->
+<div id="panel-diagnostico" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d1117;border-top:3px solid #1a6eff;max-height:55vh;overflow-y:auto;font-family:monospace;max-width:480px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;padding:8px 14px;background:#161b22;position:sticky;top:0;flex-wrap:wrap;gap:6px;align-items:center">
+    <span style="color:#1a6eff;font-weight:900;font-size:13px">🔧 DIAGNÓSTICO FIREBASE</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="window.verificarReglasFirebase()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔥 Reglas</button>
+      <button onclick="window.probarConexionFirebase()" style="background:linear-gradient(135deg,#1e88e5,#1565c0);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">🔌 Conexión</button>
+      <button onclick="window.verEstadoNube()" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">☁️ Nube</button>
+      <button onclick="window.analizarSesion()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🔑 Sesión</button>
+      <button onclick="window.medirVelocidadSync()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">⚡ Velocidad</button>
+      <button onclick="window.mostrarErroresDetallados()" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🔍 Errores</button>
+      <button onclick="document.getElementById('diag-log').innerHTML=''" style="background:#333;color:#aaa;border:none;border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer">🗑</button>
+      <button onclick="document.getElementById('panel-diagnostico').style.display='none'" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:14px;padding:5px 10px;font-size:11px;font-weight:900;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div id="diag-log" style="padding:10px 14px;font-size:11px;color:#c9d1d9;line-height:1.8"></div>
+</div>
+
+<script>
+// ===== DIAGNÓSTICO FIREBASE — BACKUP v4 =====
+
+// ── Registro visual ──────────────────────────────────────────
+function addLog(msg) {
+  const log = document.getElementById('diag-log');
+  if (!log) return;
+  const time = new Date().toLocaleTimeString('es-CO');
+  let color = '#e3b341';
+  if (msg.startsWith('✅')) color = '#3fb950';
+  else if (msg.startsWith('❌')) color = '#f85149';
+  else if (msg.startsWith('⚠️')) color = '#f0883e';
+  else if (msg.startsWith('   ')) color = '#8b949e';
+  else if (msg.includes('🌐') || msg.includes('conexión')) color = '#58a6ff';
+  else if (msg.includes('📦') || msg.includes('tamaño')) color = '#a371f7';
+  else if (msg.includes('🔥')) color = '#ff7b72';
+  else if (msg.includes('🔐')) color = '#f97583';
+  else if (msg.includes('═')) { color = '#444c56'; }
+  let displayMsg = msg;
+  if (msg.includes('PERMISSION_DENIED')) displayMsg += ' → 🔐 Revisa reglas Firebase Console';
+  if (msg.includes('NETWORK_ERROR') || msg.includes('net::ERR')) displayMsg += ' → 🌐 Verifica internet';
+  if (msg.includes('quota-exceeded') || msg.includes('QUOTA')) displayMsg += ' → 📦 Datos demasiado grandes';
+  if (msg.includes('TOKEN_EXPIRED') || msg.includes('token-expired')) displayMsg += ' → 🔄 Sal y vuelve a entrar';
+  log.innerHTML = '<div style="color:' + color + ';border-bottom:1px solid #21262d;padding:5px 0;font-size:11px">'
+    + '<span style="color:#555;margin-right:6px">[' + time + ']</span>' + displayMsg + '</div>'
+    + log.innerHTML;
+  if (log.children.length > 200) log.removeChild(log.lastChild);
+}
+
+// ── Abrir panel ──────────────────────────────────────────────
+window.abrirPanelDiagnostico = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  window.verEstadoNube();
+};
+
+// ── 1. PROBAR CONEXIÓN ───────────────────────────────────────
+window.probarConexionFirebase = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔌 PRUEBA DE CONEXIÓN');
+  addLog('═══════════════════════════════════════');
+
+  // Red del dispositivo
+  addLog('🌐 Internet (navigator): ' + (navigator.onLine ? '✅ Conectado' : '❌ Sin conexión'));
+
+  // Tipo de conexión si está disponible
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn) {
+    addLog('📶 Tipo de red: ' + (conn.effectiveType || conn.type || 'desconocido')
+      + (conn.downlink ? ' — ' + conn.downlink + ' Mbps' : ''));
+  }
+
+  const db = window._diagDb, ref = window._diagRef, get = window._diagGet;
+  if (!db) {
+    addLog('❌ Firebase SDK aún no listo — espera 3 seg y reintenta');
+    addLog('   💡 Si persiste: recarga la página');
+    return;
+  }
+  addLog('✅ Firebase SDK cargado en memoria');
+
+  const t0 = Date.now();
+  get(ref(db, '.info/connected')).then(snap => {
+    const ms = Date.now() - t0;
+    if (snap.val()) {
+      addLog('✅ Firebase CONECTADO — latencia: ' + ms + ' ms');
+      if (ms > 3000) addLog('   ⚠️ Latencia alta (' + ms + 'ms) — red lenta o inestable');
+    } else {
+      addLog('⚠️ Firebase en modo OFFLINE — datos en caché local');
+      addLog('   💡 Cierra otras pestañas y recarga');
+    }
+  }).catch(e => {
+    addLog('❌ Error al probar conexión: ' + e.message);
+    addLog('   Código: ' + (e.code || 'sin código'));
+  });
+
+  // Ping a Google para validar internet real
+  fetch('https://www.google.com', { mode: 'no-cors', cache: 'no-store' })
+    .then(() => addLog('✅ Ping a Google exitoso — internet funciona'))
+    .catch(() => addLog('⚠️ No se pudo alcanzar Google — posible problema de red o DNS'));
+
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 2. VERIFICAR REGLAS + AUTH ───────────────────────────────
+window.verificarReglasFirebase = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔥 REGLAS + AUTENTICACIÓN FIREBASE');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, set = window._diagSet, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no inicializado'); return; }
+
+  const usuario = window._diagUsuario || 'sin_usuario';
+  addLog('👤 Usuario activo: ' + usuario);
+
+  // Estado Auth
+  const auth = window._diagAuth;
+  const user = auth && auth.currentUser;
+  if (user) {
+    addLog('✅ Autenticado en Firebase Auth');
+    addLog('   UID: ' + user.uid.slice(0,16) + '…');
+    addLog('   Email: ' + (user.email || '(anónimo)'));
+    addLog('   Tipo: ' + (user.isAnonymous ? '👤 Anónimo' : '📧 Email/pass'));
+    // Verificar si el token está próximo a expirar
+    try {
+      const token = await user.getIdTokenResult();
+      const expMs = new Date(token.expirationTime).getTime() - Date.now();
+      const expMin = Math.round(expMs / 60000);
+      if (expMin < 10) addLog('   ⚠️ Token expira en ' + expMin + ' min — recarga pronto');
+      else addLog('   ✅ Token válido por ' + expMin + ' min más');
+    } catch(e) { addLog('   ⚠️ No se pudo verificar expiración del token'); }
+  } else {
+    addLog('❌ NO autenticado en Firebase Auth');
+    addLog('   💡 Sal y vuelve a entrar para re-autenticar');
+  }
+
+  // Prueba real de escritura → lectura → borrado
+  addLog('📝 Probando escritura/lectura en la nube...');
+  const testRef = ref(db, 'usuarios/' + usuario + '/test_permiso');
+  try {
+    const t0 = Date.now();
+    await set(testRef, { ok: true, ts: Date.now() });
+    addLog('✅ ESCRITURA OK — ' + (Date.now()-t0) + ' ms');
+    const snap = await get(testRef);
+    addLog(snap.exists() ? '✅ LECTURA OK' : '⚠️ Lectura: sin datos');
+    await set(testRef, null);
+    addLog('✅ BORRADO OK');
+    addLog('🎉 Reglas y Auth completamente funcionales');
+  } catch(e) {
+    addLog('❌ ERROR: ' + e.message);
+    if (e.code) addLog('   Código Firebase: ' + e.code);
+    if (e.message.includes('PERMISSION_DENIED')) {
+      addLog('');
+      addLog('🔐 SOLUCIÓN — pega estas reglas en Firebase Console:');
+      addLog('{ "rules": { "usuarios": { "$u": {');
+      addLog('  ".read":  "auth != null",');
+      addLog('  ".write": "auth != null"');
+      addLog('} } } }');
+      addLog('Luego sal y vuelve a entrar en el backup.');
+    } else if (e.message.includes('NETWORK')) {
+      addLog('🌐 Error de red — verifica tu conexión a internet');
+    } else if (e.message.includes('quota')) {
+      addLog('📦 Cuota excedida — demasiados datos o requests');
+    }
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 3. ESTADO DE LA NUBE ────────────────────────────────────
+window.verEstadoNube = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('☁️ ESTADO DE LA NUBE');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no disponible'); return; }
+  const usuario = window._diagUsuario || 'sin_usuario';
+  addLog('📡 Leyendo: usuarios/' + usuario);
+
+  get(ref(db, 'usuarios/' + usuario)).then(snap => {
+    const data = snap.val();
+    if (!data) {
+      addLog('⚠️ SIN DATOS en la nube para "' + usuario + '"');
+      addLog('   Posibles causas:');
+      addLog('   1. La app principal nunca ha sincronizado');
+      addLog('   2. Reglas de Firebase bloquean la lectura');
+      addLog('   3. Usuario incorrecto (¿mayúsculas/tildes?)');
+      addLog('   💡 Abre la app y espera que sincronice');
+      return;
+    }
+
+    // Resumen de datos
+    const clientes = data.clientes || [];
+    const activos  = clientes.filter(c => (c.saldo||0) > 0);
+    const cancelados = clientes.filter(c => c.cancelado === true || (c.saldo||0) === 0);
+    const sinSaldo = clientes.filter(c => (c.saldo||0) < 0);
+    addLog('✅ Datos encontrados en la nube');
+    addLog('   👥 Total clientes: ' + clientes.length);
+    addLog('   ✅ Activos (saldo > 0): ' + activos.length);
+    addLog('   🏁 Cancelados/saldo 0: ' + cancelados.length);
+    if (sinSaldo.length) addLog('   🔴 Saldos negativos: ' + sinSaldo.length + ' — revisar');
+
+    // Fecha del backup
+    if (data.fecha_backup) {
+      const mins = Math.floor((Date.now() - new Date(data.fecha_backup).getTime()) / 60000);
+      const label = mins < 60 ? mins + ' min' : Math.floor(mins/60) + ' h ' + (mins%60) + ' min';
+      addLog('   🕐 Último sync: hace ' + label);
+      if (mins > 120) addLog('   ⚠️ Más de 2h sin sync — abre la app para actualizar');
+      else if (mins > 30) addLog('   ⚠️ Más de 30 min sin sync');
+      else addLog('   ✅ Datos recientes');
+    } else {
+      addLog('   ⚠️ Sin fecha de backup registrada');
+    }
+
+    // Tamaño aproximado de los datos
+    const bytes = JSON.stringify(data).length;
+    const kb = (bytes / 1024).toFixed(1);
+    const mb = (bytes / 1024 / 1024).toFixed(2);
+    addLog('   📦 Tamaño en nube: ' + kb + ' KB (' + mb + ' MB)');
+    if (bytes > 9 * 1024 * 1024)      addLog('   🔴 Datos > 9MB — riesgo de fallo al sincronizar');
+    else if (bytes > 5 * 1024 * 1024) addLog('   ⚠️ Datos > 5MB — considera limpiar historial antiguo');
+    else                               addLog('   ✅ Tamaño dentro del límite seguro');
+
+    // Integridad básica de clientes
+    const sinNombre = clientes.filter(c => !c.nombre || !c.nombre.trim());
+    const sinCuota  = activos.filter(c => !c.cuotaSugerida || c.cuotaSugerida <= 0);
+    if (sinNombre.length) addLog('   ⚠️ ' + sinNombre.length + ' clientes sin nombre');
+    if (sinCuota.length)  addLog('   ⚠️ ' + sinCuota.length + ' activos sin cuota asignada');
+    if (!sinNombre.length && !sinCuota.length) addLog('   ✅ Integridad de clientes OK');
+
+  }).catch(e => {
+    addLog('❌ Error al leer nube: ' + e.message);
+    if (e.message.includes('PERMISSION_DENIED')) addLog('   🔐 Sin permiso — revisa reglas Firebase');
+    else if (e.message.includes('NETWORK'))      addLog('   🌐 Sin internet — verifica conexión');
+  });
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 4. ANÁLISIS DE SESIÓN LOCAL ──────────────────────────────
+window.analizarSesion = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔑 SESIÓN LOCAL');
+  addLog('═══════════════════════════════════════');
+  try {
+    const raw = localStorage.getItem('ae_sesion_backup');
+    if (!raw) {
+      addLog('⚠️ No hay sesión guardada en este dispositivo');
+      addLog('   💡 Inicia sesión normalmente');
+      return;
+    }
+    const s = JSON.parse(raw);
+    addLog('👤 Usuario guardado: ' + (s.usuario || '(vacío)'));
+    if (s.expira) {
+      const msRestantes = s.expira - Date.now();
+      if (msRestantes > 0) {
+        const minRestantes = Math.round(msRestantes / 60000);
+        addLog('✅ Sesión ACTIVA — expira en ' + minRestantes + ' min');
+      } else {
+        addLog('❌ Sesión EXPIRADA hace ' + Math.round(-msRestantes/60000) + ' min');
+        addLog('   💡 Vuelve a iniciar sesión');
+      }
+      addLog('   Expira: ' + new Date(s.expira).toLocaleString('es-CO'));
+    }
+  } catch(e) {
+    addLog('❌ Error leyendo sesión: ' + e.message);
+    addLog('   💡 Limpia el localStorage y vuelve a entrar');
+  }
+  // Verificar Auth de Firebase también
+  const auth = window._diagAuth;
+  if (auth) {
+    const u = auth.currentUser;
+    addLog('');
+    addLog('🔥 Auth Firebase: ' + (u ? '✅ Activo — ' + (u.email || 'anónimo') : '❌ Sin sesión en Firebase'));
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 5. VELOCIDAD DE SYNC ────────────────────────────────────
+window.medirVelocidadSync = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('⚡ VELOCIDAD DE SINCRONIZACIÓN');
+  addLog('═══════════════════════════════════════');
+  const db = window._diagDb, ref = window._diagRef, set = window._diagSet, get = window._diagGet;
+  if (!db) { addLog('❌ Firebase no disponible'); return; }
+  const usuario = window._diagUsuario || 'sin_usuario';
+  const testRef = ref(db, 'usuarios/' + usuario + '/speed_test');
+
+  // Escritura pequeña
+  try {
+    let t = Date.now();
+    await set(testRef, { x: 1, ts: t });
+    const writeMs = Date.now() - t;
+    addLog('📤 Escritura pequeña: ' + writeMs + ' ms ' + (writeMs < 500 ? '✅' : writeMs < 2000 ? '⚠️ lento' : '❌ muy lento'));
+
+    // Lectura
+    t = Date.now();
+    await get(testRef);
+    const readMs = Date.now() - t;
+    addLog('📥 Lectura pequeña: ' + readMs + ' ms ' + (readMs < 500 ? '✅' : readMs < 2000 ? '⚠️ lento' : '❌ muy lento'));
+
+    // Escritura mediana (simulando ~50 clientes)
+    const cargaPrueba = { clientes: Array.from({length:50}, (_,i) => ({ id:i, nombre:'Test'+i, saldo:1000 })) };
+    t = Date.now();
+    await set(testRef, cargaPrueba);
+    const writeGrandMs = Date.now() - t;
+    addLog('📤 Escritura ~50 registros: ' + writeGrandMs + ' ms ' + (writeGrandMs < 2000 ? '✅' : writeGrandMs < 5000 ? '⚠️' : '❌ muy lento'));
+
+    await set(testRef, null); // limpiar
+    addLog('✅ Prueba de velocidad completada');
+
+    if (writeMs > 2000 || readMs > 2000) {
+      addLog('⚠️ Conexión lenta — la app puede tardar en cargar datos');
+      addLog('   💡 Usa WiFi en lugar de datos móviles si es posible');
+    }
+  } catch(e) {
+    addLog('❌ No se pudo medir velocidad: ' + e.message);
+  }
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 6. ERRORES DETALLADOS ────────────────────────────────────
+window.mostrarErroresDetallados = function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('═══════════════════════════════════════');
+  addLog('🔍 ANÁLISIS DE ERRORES');
+  addLog('═══════════════════════════════════════');
+
+  // Errores en los logs actuales
+  const logDiv = document.getElementById('diag-log');
+  let errCount = 0, warnCount = 0;
+  if (logDiv) {
+    for (let i = 0; i < logDiv.children.length; i++) {
+      const t = logDiv.children[i].textContent;
+      if (t.includes('❌')) errCount++;
+      else if (t.includes('⚠️')) warnCount++;
+    }
+  }
+  addLog('📋 En logs actuales: ' + errCount + ' errores, ' + warnCount + ' advertencias');
+
+  // Red
+  if (!navigator.onLine) {
+    addLog('❌ SIN INTERNET — causa principal de "Cargando datos..."');
+    addLog('   💡 Activa WiFi o datos móviles y recarga');
+  } else {
+    addLog('✅ Internet disponible según el dispositivo');
+  }
+
+  // Firebase
+  if (!window._diagDb) {
+    addLog('❌ Firebase no se inicializó — posibles causas:');
+    addLog('   • La página cargó sin internet');
+    addLog('   • Error al cargar el SDK de Firebase');
+    addLog('   💡 Recarga la página con buena conexión');
+  } else {
+    addLog('✅ Firebase SDK disponible en memoria');
+  }
+
+  // Auth
+  const auth = window._diagAuth;
+  if (!auth || !auth.currentUser) {
+    addLog('⚠️ Sin sesión activa de Firebase Auth');
+    addLog('   💡 Sal y vuelve a entrar para reautenticar');
+  } else {
+    addLog('✅ Firebase Auth activo');
+  }
+
+  // Hora permitida (6am-11pm)
+  const h = new Date().getHours();
+  if (h < 6 || h >= 23) {
+    addLog('⏰ Fuera del horario permitido (6AM-11PM)');
+    addLog('   La sesión se cierra automáticamente fuera de ese rango');
+  } else {
+    addLog('✅ Dentro del horario permitido');
+  }
+
+  addLog('═══════════════════════════════════════');
+};
+
+// ── 7. DIAGNÓSTICO COMPLETO ──────────────────────────────────
+window.diagnosticoCompleto = async function() {
+  document.getElementById('panel-diagnostico').style.display = 'block';
+  addLog('███████████████████████████████████████');
+  addLog('🔧 DIAGNÓSTICO COMPLETO — ' + new Date().toLocaleString('es-CO'));
+  addLog('███████████████████████████████████████');
+  addLog('🌐 Internet: ' + (navigator.onLine ? '✅ Online' : '❌ Offline'));
+  addLog('👤 Usuario: ' + (window._diagUsuario || 'sin_usuario'));
+  addLog('⏰ Hora: ' + new Date().toLocaleTimeString('es-CO'));
+  const h = new Date().getHours();
+  addLog('   Horario permitido (6-23): ' + (h>=6 && h<23 ? '✅ Sí' : '❌ No — sesión bloqueada'));
+  window.probarConexionFirebase();
+  await new Promise(r => setTimeout(r, 1500));
+  await window.verificarReglasFirebase();
+  window.analizarSesion();
+  window.verEstadoNube();
+  window.mostrarErroresDetallados();
+  addLog('███████████████████████████████████████');
+  addLog('✅ FIN DEL DIAGNÓSTICO');
+  addLog('███████████████████████████████████████');
+};
+</script>
+
+</body>
+</html>
