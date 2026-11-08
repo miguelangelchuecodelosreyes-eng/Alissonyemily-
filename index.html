@@ -1206,13 +1206,13 @@ button[onclick="exportarDatos()"]{
       <div style="height:1px;background:linear-gradient(90deg,transparent,#e0b070,transparent);margin-bottom:16px"></div>
       <label class="login-label">👤 Elige tu usuario</label>
       <input type="text" class="login-input" id="reg-usuario" placeholder="Ej: miguel123" maxlength="20"
-        onkeydown="if(event.key==='Enter')document.getElementById('reg-clave').focus()">
+        onkeydown="if(event.key==='Enter')document.getElementById('reg-clave').focus()" autocomplete="off">
       <label class="login-label">🔒 Elige tu contraseña</label>
       <input type="password" class="login-input" id="reg-clave" placeholder="••••" maxlength="20"
-        onkeydown="if(event.key==='Enter')document.getElementById('reg-clave2').focus()">
+        onkeydown="if(event.key==='Enter')document.getElementById('reg-clave2').focus()" autocomplete="new-password">
       <label class="login-label">🔒 Confirma tu contraseña</label>
       <input type="password" class="login-input" id="reg-clave2" placeholder="••••" maxlength="20"
-        onkeydown="if(event.key==='Enter')registrar()">
+        onkeydown="if(event.key==='Enter')registrar()" autocomplete="new-password">
       <button class="login-btn" onclick="registrar()" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 6px 20px rgba(168,85,247,0.4)">✅ Crear acceso nuevo</button>
       <div id="reg-error" style="color:#ff3d3d;font-size:13px;font-weight:700;text-align:center;margin-top:10px;display:none"></div>
     </div>
@@ -1245,7 +1245,7 @@ button[onclick="exportarDatos()"]{
     <input type="text" class="login-input" id="login-usuario" placeholder="Usuario" autocomplete="username"
       onkeydown="if(event.key==='Enter')document.getElementById('login-clave').focus()">
     <label class="login-label">🔒 Contraseña</label>
-    <input type="password" class="login-input" id="login-clave" placeholder="••••" maxlength="20"
+    <input type="password" class="login-input" id="login-clave" autocomplete="current-password" placeholder="••••" maxlength="20"
       onkeydown="if(event.key==='Enter')entrar()">
     <button class="login-btn" onclick="entrar()">🔓 Entrar</button>
     <div class="login-error" id="login-error">❌ Usuario o contraseña incorrectos</div>
@@ -1313,7 +1313,7 @@ button[onclick="exportarDatos()"]{
     </div>
   </div>
   <div style="padding:10px 14px 0">
-    <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'">
+    <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="off">
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
@@ -1361,7 +1361,7 @@ button[onclick="exportarDatos()"]{
         <span style="font-size:12px;font-weight:700;color:#555">💵 Base</span>
         <input type="number" id="input-base" placeholder="0" inputmode="numeric"
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
-          oninput="recalcularCuentas()">
+          oninput="recalcularCuentas()" autocomplete="off">
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;background:#e0fff0">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -1399,13 +1399,13 @@ button[onclick="exportarDatos()"]{
         <span style="font-size:12px;font-weight:700;color:#555">💳 Neki</span>
         <input type="number" id="input-neki" placeholder="0" inputmode="numeric"
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
-          oninput="recalcularCuentas()">
+          oninput="recalcularCuentas()" autocomplete="off">
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:#555">💸 Gasto</span>
         <input type="number" id="input-gasto" placeholder="0" inputmode="numeric" readonly
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#ff4444;text-align:right;background:transparent;cursor:default"
-          oninput="recalcularCuentas()">
+          oninput="recalcularCuentas()" autocomplete="off">
       </div>
 
       <div style="padding:5px 8px;background:#ffe8e8;display:flex;justify-content:space-between;align-items:center">
@@ -1436,7 +1436,7 @@ button[onclick="exportarDatos()"]{
         <div class="entregado-label">🏦 Entregado a oficina</div>
         <input type="number" id="input-entregado" placeholder="0"
           style="background:transparent;border:none;border-bottom:2px solid rgba(255,255,255,0.3);color:white;font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;text-align:right;width:140px;outline:none;padding:4px 0"
-          oninput="recalcularCuentas()" inputmode="numeric">
+          oninput="recalcularCuentas()" inputmode="numeric" autocomplete="off">
       </div>
       <div class="descuadre-caja neutro" id="caja-descuadre">
         <div class="descuadre-label neutro" id="descuadre-label">DESCUADRE</div>
@@ -1580,7 +1580,7 @@ button[onclick="exportarDatos()"]{
             Otros
           </button>
           <input type="text" id="input-gasto-otros-texto" placeholder="Escribe el tipo de gasto..."
-            style="display:none;width:100%;grid-column:1/-1;border:2px solid #e8ccf5;border-radius:14px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;box-sizing:border-box" oninput="actualizarTipoOtros()">
+            style="display:none;width:100%;grid-column:1/-1;border:2px solid #e8ccf5;border-radius:14px;padding:13px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;outline:none;box-sizing:border-box" oninput="actualizarTipoOtros()" autocomplete="off">
         </div>
         <div id="gasto-tipo-seleccionado" style="margin-top:10px;display:none;background:#fff3e0;border:2px solid #ff9800;border-radius:12px;padding:10px 14px;align-items:center;gap:8px">
           <span style="font-size:13px;font-weight:700;color:#888">✅ Tipo:</span>
@@ -1595,7 +1595,7 @@ button[onclick="exportarDatos()"]{
           <span style="font-size:20px;font-weight:900;color:#cc4400">$</span>
           <input type="number" id="input-gasto-valor" placeholder="0" inputmode="numeric"
             style="flex:1;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#cc4400;background:transparent;padding:8px 0;text-align:right;min-width:0"
-            oninput="actualizarGastoPreview()">
+            oninput="actualizarGastoPreview()" autocomplete="off">
         </div>
       </div>
 
@@ -1604,7 +1604,7 @@ button[onclick="exportarDatos()"]{
         <div style="font-size:11px;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">Descripción <span style="font-weight:600;color:#bbb;text-transform:none;letter-spacing:0">(opcional)</span></div>
         <input type="text" id="input-gasto-desc" placeholder="Ej: almuerzo con cliente, cambio de aceite 20W50..." maxlength="80"
           style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#333;background:#fafafa;outline:none;box-sizing:border-box"
-          onfocus="this.style.borderColor='#ff4444'" onblur="this.style.borderColor='#e8ccf5'">
+          onfocus="this.style.borderColor='#ff4444'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="off">
       </div>
 
       <!-- Botón registrar -->
@@ -1700,7 +1700,7 @@ button[onclick="exportarDatos()"]{
   <div style="margin:14px 14px 0;display:flex;gap:8px;align-items:center">
     <div style="flex:1;background:white;border-radius:14px;padding:10px 14px;border:1px solid #e8ccf5;display:flex;align-items:center;gap:8px">
       <span style="font-size:12px;font-weight:800;color:#888">📅 FECHA</span>
-      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles()">
+      <input type="date" id="det-filtro-fecha" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#cc00aa;flex:1" oninput="renderDetalles()" autocomplete="off">
     </div>
     <button onclick="document.getElementById('det-filtro-fecha').value=fechaHoy();renderDetalles()" style="background:linear-gradient(135deg,#a855f7,#ec4899);border:none;color:white;border-radius:16px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(168,85,247,0.35)">Hoy</button>
     <button onclick="imprimirReporteDia()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:white;border-radius:16px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(245,158,11,0.35)">🖨️</button>
@@ -1790,7 +1790,7 @@ button[onclick="exportarDatos()"]{
         oninput="renderPrestamos()"
         style="width:100%;padding:12px 14px;border:2px solid #e8ccf5;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#111;background:white;outline:none;box-sizing:border-box"
         onfocus="this.style.borderColor='#ff00cc'"
-        onblur="this.style.borderColor='#e8ccf5'">
+        onblur="this.style.borderColor='#e8ccf5'" autocomplete="off">
     </div>
     <div id="lista-historico-prestamos"></div>
   </div>
@@ -1810,7 +1810,7 @@ button[onclick="exportarDatos()"]{
       <div style="display:flex;flex-direction:column;gap:10px;align-items:stretch">
         <input type="tel" id="input-nuevo-pin" placeholder="0000" maxlength="4" inputmode="numeric"
           style="width:100%;border:2px solid #00ffff66;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;outline:none;background:#0a0a1e;color:#00ffff;text-align:center;letter-spacing:12px"
-          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" autocomplete="off">
         <button onclick="if(setPinAjustes(document.getElementById('input-nuevo-pin').value)) document.getElementById('input-nuevo-pin').value='';"
           style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#00ffff,#a855f7);color:#050510;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:1px;box-shadow:0 5px 16px rgba(0,255,255,0.25)">
           💾 GUARDAR PIN
@@ -1902,15 +1902,15 @@ button[onclick="exportarDatos()"]{
       <label class="login-label">👤 Usuario actual</label>
       <input type="text" id="cfg-usuario" placeholder="Nuevo usuario" maxlength="20"
         style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="off">
       <label class="login-label">🔒 Nueva contraseña</label>
       <input type="password" id="cfg-clave" placeholder="••••" maxlength="20"
         style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:12px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="new-password">
       <label class="login-label">🔒 Confirmar contraseña</label>
       <input type="password" id="cfg-clave2" placeholder="••••" maxlength="20"
         style="width:100%;border:2px solid #e8ccf5;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none;color:#111;margin-bottom:14px;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'">
+        onfocus="this.style.borderColor='#8b00ff'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="new-password">
       <div id="cfg-creds-error" style="color:#ff1111;font-size:13px;font-weight:700;text-align:center;margin-bottom:10px;display:none"></div>
       <button onclick="cambiarCredenciales()" style="width:100%;padding:14px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(139,92,246,0.35)">🔐 Guardar cambios</button>
     </div>
@@ -1925,7 +1925,7 @@ button[onclick="exportarDatos()"]{
         <div style="flex:1;position:relative">
           <input type="number" id="input-porcentaje" min="1" max="100" step="0.5"
             style="width:100%;border:2px solid #ffaa00;border-radius:14px;padding:14px 44px 14px 16px;font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;outline:none;color:#ff6600;text-align:center;background:#fff3e0"
-            oninput="previsualizarPorcentaje()">
+            oninput="previsualizarPorcentaje()" autocomplete="off">
           <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:900;color:#ff6600">%</span>
         </div>
       </div>
@@ -2067,7 +2067,7 @@ button[onclick="exportarDatos()"]{
     <div style="display:flex;gap:10px;align-items:center">
       <input type="number" id="det-abonar-input" placeholder="Ingrese el valor"
         style="flex:1;min-width:0;border:2px solid #e8ccf5;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;outline:none"
-        oninput="actualizarNuevoSaldo()">
+        oninput="actualizarNuevoSaldo()" autocomplete="off">
       <button onclick="abonarDesdeDetalle()" style="flex-shrink:0;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:16px;padding:13px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.35)">💰 PAGAR</button>
     </div>
     <div style="margin-top:8px;font-size:14px;font-weight:800;color:#333">NUEVO SALDO: <span id="det-nuevo-saldo" style="color:#ff1111">$0</span></div>
@@ -2136,7 +2136,7 @@ button[onclick="exportarDatos()"]{
       <div style="display:flex;gap:8px">
         <input type="text" class="modal-input" id="mc-cedula" placeholder="Cédula del cliente" inputmode="numeric"
           style="flex:1;min-width:0"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();buscarClientePorCedula();}">
+          onkeydown="if(event.key==='Enter'){event.preventDefault();buscarClientePorCedula();}" autocomplete="off">
         <button id="mc-btn-buscar" onclick="buscarClientePorCedula()" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:white;border:none;border-radius:16px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,0.35)">
           🔍 Buscar
         </button>
@@ -2150,22 +2150,22 @@ button[onclick="exportarDatos()"]{
     <div id="mc-campos-cliente" style="display:none">
       <div class="modal-campo">
         <label class="modal-label">👤 Nombre completo</label>
-        <input type="text" class="modal-input" id="mc-nombre" placeholder="Nombre del cliente">
+        <input type="text" class="modal-input" id="mc-nombre" placeholder="Nombre del cliente" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" oninput="(function(e){var a=e.selectionStart,b=e.selectionEnd;e.value=e.value.toUpperCase();try{e.setSelectionRange(a,b)}catch(x){}})(this)">
       </div>
       <div class="modal-campo">
         <label class="modal-label">📱 Teléfono</label>
-        <input type="tel" class="modal-input" id="mc-tel" placeholder="Número de teléfono">
+        <input type="tel" class="modal-input" id="mc-tel" placeholder="Número de teléfono" autocomplete="off">
       </div>
     <div class="modal-campo">
       <label class="modal-label">📍 Dirección</label>
-      <input type="text" class="modal-input" id="mc-dir" placeholder="Dirección">
+      <input type="text" class="modal-input" id="mc-dir" placeholder="Dirección" autocomplete="off">
     </div>
     <!-- NOTA / DESCRIPCIÓN -->
     <div style="margin-top:4px">
       <div class="modal-campo">
         <label class="modal-label">📝 Nota / Descripción (opcional)</label>
         <textarea class="modal-input" id="mc-nota" placeholder="Ej: vive en casa azul, cobrar antes del mediodía, tiene perro..."
-          rows="2" style="resize:none;font-family:'Nunito',sans-serif;font-size:13px;line-height:1.4;"></textarea>
+          rows="2" style="resize:none;font-family:'Nunito',sans-serif;font-size:13px;line-height:1.4;" autocomplete="off"></textarea>
       </div>
     </div>
     <!-- FOTOS (opcional) -->
@@ -2192,11 +2192,11 @@ button[onclick="exportarDatos()"]{
     </div>
     <div class="modal-campo">
       <label class="modal-label">💰 Valor del préstamo</label>
-      <input type="number" class="modal-input" id="mc-prestamo" placeholder="0" oninput="actualizarResumenPrestamo()">
+      <input type="number" class="modal-input" id="mc-prestamo" placeholder="0" oninput="actualizarResumenPrestamo()" autocomplete="off">
     </div>
     <div class="modal-campo" id="campo-interes-personalizado">
       <label class="modal-label">📊 Interés % (dejar vacío = usar el global)</label>
-      <input type="number" class="modal-input" id="mc-interes" placeholder="Ej: 20" min="0" max="100" oninput="actualizarResumenPrestamo()">
+      <input type="number" class="modal-input" id="mc-interes" placeholder="Ej: 20" min="0" max="100" oninput="actualizarResumenPrestamo()" autocomplete="off">
     </div>
 
     <!-- RESUMEN CON 20% -->
@@ -2238,7 +2238,7 @@ button[onclick="exportarDatos()"]{
     </div>
     <div class="modal-campo">
       <label class="modal-label">💳 Cuota sugerida (opcional)</label>
-      <input type="number" class="modal-input" id="mc-cuota" placeholder="0" oninput="actualizarDiasPrestamo()">
+      <input type="number" class="modal-input" id="mc-cuota" placeholder="0" oninput="actualizarDiasPrestamo()" autocomplete="off">
       <div id="mc-cuota-preview" style="display:none;margin-top:6px;background:linear-gradient(135deg,#f3e8ff,#ede9fe);border-radius:10px;padding:8px 14px;border:2px solid #d8b4fe;text-align:center"><span id="mc-cuota-preview-texto" style="font-size:20px;font-weight:900;color:#7c3aed"></span></div>
     </div>
     <!-- Días del préstamo calculados -->
@@ -2252,7 +2252,7 @@ button[onclick="exportarDatos()"]{
     <div id="mc-papeleria-row" style="margin-top:4px">
       <div class="modal-campo">
         <label class="modal-label">📄 Papelería cobrada al cliente (opcional)</label>
-        <input type="number" class="modal-input" id="mc-papeleria" placeholder="0" oninput="actualizarResumenPrestamo()">
+        <input type="number" class="modal-input" id="mc-papeleria" placeholder="0" oninput="actualizarResumenPrestamo()" autocomplete="off">
       </div>
       <div id="mc-papeleria-preview" style="display:none;background:#e8f4ff;border:1.5px solid #93c5fd;border-radius:10px;padding:6px 12px;margin-top:4px;text-align:center">
         <div style="font-size:9px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px">💵 Le quedó al cliente</div>
@@ -2266,7 +2266,7 @@ button[onclick="exportarDatos()"]{
       <div class="modal-campo" style="background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px 14px">
         <label class="modal-label" style="color:#e65100">✏️ Corregir saldo (opcional)</label>
         <input type="number" class="modal-input" id="mc-saldo-corregir" placeholder="Dejar vacío = no cambiar" min="0"
-          style="border-color:#ff9800;color:#e65100;font-weight:900">
+          style="border-color:#ff9800;color:#e65100;font-weight:900" autocomplete="off">
         <div style="font-size:11px;color:#888;font-weight:600;margin-top:4px">Solo corrige el saldo visible. No toca el historial de pagos.</div>
       </div>
     </div>
@@ -2319,7 +2319,7 @@ button[onclick="exportarDatos()"]{
     <div class="renovar-info" id="renovar-info"></div>
     <div class="modal-campo">
       <label class="modal-label">💰 Nuevo valor del préstamo</label>
-      <input type="number" class="modal-input" id="ren-prestamo" placeholder="0" oninput="actualizarResumenRenovar()">
+      <input type="number" class="modal-input" id="ren-prestamo" placeholder="0" oninput="actualizarResumenRenovar()" autocomplete="off">
     </div>
     <div class="prestamo-resumen" id="renovar-resumen" style="display:none">
       <div class="prestamo-res-row"><span>Préstamo (capital)</span><span id="rr-capital" style="color:#cc00aa">$0</span></div>
@@ -2337,15 +2337,15 @@ button[onclick="exportarDatos()"]{
     </div>
     <div class="modal-campo" style="margin-top:14px">
       <label class="modal-label">📋 Papelería (descuento al cliente)</label>
-      <input type="number" class="modal-input" id="ren-papeleria" placeholder="0" oninput="actualizarResumenRenovar()">
+      <input type="number" class="modal-input" id="ren-papeleria" placeholder="0" oninput="actualizarResumenRenovar()" autocomplete="off">
     </div>
     <div class="modal-campo">
       <label class="modal-label">💵 Cuota cobrada hoy (descuento)</label>
-      <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()">
+      <input type="number" class="modal-input" id="ren-cuota-hoy" placeholder="0" oninput="actualizarResumenRenovar()" autocomplete="off">
     </div>
     <div class="modal-campo">
       <label class="modal-label">💸 Entregado al cliente (opcional)</label>
-      <input type="number" class="modal-input" id="ren-entregado" placeholder="Dejar en blanco si entregó todo" oninput="actualizarResumenRenovar()">
+      <input type="number" class="modal-input" id="ren-entregado" placeholder="Dejar en blanco si entregó todo" oninput="actualizarResumenRenovar()" autocomplete="off">
       <div id="ren-entregado-info" style="display:none;margin-top:8px;background:#fff3e0;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;color:#c05e00;text-align:center"></div>
     </div>
     <div class="modal-campo">
@@ -2370,7 +2370,7 @@ button[onclick="exportarDatos()"]{
     </div>
     <div class="modal-campo">
       <label class="modal-label">💳 Nueva cuota sugerida (opcional)</label>
-      <input type="number" class="modal-input" id="ren-cuota" placeholder="0" oninput="actualizarResumenRenovar()">
+      <input type="number" class="modal-input" id="ren-cuota" placeholder="0" oninput="actualizarResumenRenovar()" autocomplete="off">
     </div>
     <input type="hidden" id="ren-id">
     <div class="modal-btns">
@@ -2398,15 +2398,15 @@ button[onclick="exportarDatos()"]{
     <div class="modal-titulo">🔑 Cambiar clave</div>
     <div class="modal-campo">
       <label class="modal-label">Clave actual</label>
-      <input type="password" class="modal-input" id="clave-actual" placeholder="••••">
+      <input type="password" class="modal-input" id="clave-actual" placeholder="••••" autocomplete="new-password">
     </div>
     <div class="modal-campo">
       <label class="modal-label">Nueva clave</label>
-      <input type="password" class="modal-input" id="clave-nueva" placeholder="••••">
+      <input type="password" class="modal-input" id="clave-nueva" placeholder="••••" autocomplete="new-password">
     </div>
     <div class="modal-campo">
       <label class="modal-label">Repetir nueva clave</label>
-      <input type="password" class="modal-input" id="clave-confirmar" placeholder="••••">
+      <input type="password" class="modal-input" id="clave-confirmar" placeholder="••••" autocomplete="new-password">
     </div>
     <div class="login-error" id="clave-error" style="display:none;margin-bottom:8px">—</div>
     <div class="modal-btns">
@@ -3571,7 +3571,8 @@ function renderSemana(){
 
 // ===== CLIENTES =====
 function getClientes(){return JSON.parse(lsGet('clientes_v1')||'[]');}
-function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); if(typeof window.syncFirebase==='function') window.syncFirebase(false);}
+function _syncPronto(){clearTimeout(window._syncT);window._syncT=setTimeout(function(){window._syncT=null;if(typeof window.syncFirebase==='function')window.syncFirebase(false);},1500);}
+function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); _syncPronto();}
 window.saveClientes = saveClientes;
 
 // Cálculo préstamo con porcentaje configurable
@@ -3838,7 +3839,7 @@ function abrirModalCliente(id){
 }
 
 function guardarCliente(){
-  const nombre=document.getElementById('mc-nombre').value.trim();
+  const nombre=document.getElementById('mc-nombre').value.trim().toUpperCase();
   if(!nombre){showToast('⚠️ El nombre es obligatorio');return;}
   const capital=parseFloat(document.getElementById('mc-prestamo').value)||0;
   const mcInteresEl=document.getElementById('mc-interes');
@@ -4492,7 +4493,7 @@ function pedirCedulaYEliminar(id){
       <input type="text" id="input-cedula-eliminar" inputmode="numeric"
         placeholder="Número de cédula"
         style="width:100%;box-sizing:border-box;border:2px solid #e8ccf5;border-radius:12px;padding:14px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;margin-bottom:16px"
-        oninput="this.style.borderColor=this.value.trim().length>3?'#00cc55':'#e8ccf5'">
+        oninput="this.style.borderColor=this.value.trim().length autocomplete="off">3?'#00cc55':'#e8ccf5'">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button onclick="document.getElementById('modal-pedir-cedula').remove()"
           style="padding:14px;background:rgba(168,85,247,0.07);color:#94a3b8;border:2px solid rgba(168,85,247,0.25);border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
@@ -6183,7 +6184,7 @@ document.addEventListener('click', function(){
 setInterval(function(){
   _lastVerCheck = Date.now();
   _checkVersionServidor(ver => _aplicarActualizacion(ver));
-}, 20 * 1000);
+}, 60 * 1000);
 
 function abrirCorregirSaldo(){
   const c = getClientes().find(x=>x.id===clienteDetalleId);
@@ -6278,11 +6279,11 @@ function verAbonosDetalle(){
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <div style="flex:1">
               <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Monto</div>
-              <input type="number" id="edit-monto-${i}" value="${p.monto}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;outline:none">
+              <input type="number" id="edit-monto-${i}" value="${p.monto}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;outline:none" autocomplete="off">
             </div>
             <div style="flex:1">
               <div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:4px">Fecha</div>
-              <input type="date" id="edit-fecha-${i}" value="${p.fecha}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;color:#cc00aa">
+              <input type="date" id="edit-fecha-${i}" value="${p.fecha}" style="width:100%;border:2px solid #e8ccf5;border-radius:10px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;color:#cc00aa" autocomplete="off">
             </div>
           </div>
           <div style="display:flex;gap:8px">
@@ -7280,30 +7281,30 @@ function abrirCrearHistorialManual(cedula){
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">👤 Nombre</label>
           <input id="hm-nombre" type="text" placeholder="Nombre completo"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none" autocomplete="off">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📱 Teléfono</label>
           <input id="hm-tel" type="tel" placeholder="Teléfono (opcional)"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none" autocomplete="off">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📅 Fecha préstamo</label>
           <input id="hm-fecha" type="date" value="${fechaHoy()}"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none" autocomplete="off">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
             <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💰 Capital</label>
             <input id="hm-capital" type="number" placeholder="0"
               style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
-              oninput="calcularTotalManual()">
+              oninput="calcularTotalManual()" autocomplete="off">
           </div>
           <div>
             <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">📊 Interés %</label>
             <input id="hm-interes" type="number" placeholder="20" value="20"
               style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none"
-              oninput="calcularTotalManual()">
+              oninput="calcularTotalManual()" autocomplete="off">
           </div>
         </div>
         <div style="background:#f0f9ff;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:800;color:#1d4ed8" id="hm-total-preview">
@@ -7312,7 +7313,7 @@ function abrirCrearHistorialManual(cedula){
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">💳 Cuota</label>
           <input id="hm-cuota" type="number" placeholder="0"
-            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none">
+            style="width:100%;box-sizing:border-box;margin-top:4px;border:2px solid #e8ccf5;border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none" autocomplete="off">
         </div>
         <div>
           <label style="font-size:12px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px">✅ ¿Canceló?</label>
@@ -8573,7 +8574,7 @@ function abrirModalNuevoOHistorial() {
         <input type="text" id="input-cedula-nuevo" inputmode="numeric" placeholder="Número de cédula"
           style="flex:1;border:2px solid #e8ccf5;border-radius:12px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;outline:none;letter-spacing:1px"
           onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();procesarCedulaNuevo();}">
+          onkeydown="if(event.key==='Enter'){event.preventDefault();procesarCedulaNuevo();}" autocomplete="off">
         <button onclick="procesarCedulaNuevo()"
           style="flex-shrink:0;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;border:none;border-radius:16px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(168,85,247,0.35)">
           🔍 Buscar
@@ -9652,7 +9653,7 @@ function abrirPanelDiagnostico() {
     </div>
     <div style="font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nuevo saldo correcto</div>
     <input type="number" id="modal-cs-input" placeholder="Ej: 150000" min="0"
-      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px;box-sizing:border-box">
+      style="width:100%;border:2px solid #ff9800;border-radius:12px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;outline:none;text-align:right;color:#e65100;margin-bottom:6px;box-sizing:border-box" autocomplete="off">
     <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:16px">⚠️ Solo corrige el saldo visible. No modifica el historial de pagos.</div>
     <div style="display:flex;gap:10px">
       <button onclick="cerrarCorregirSaldo()" style="flex:1;padding:14px;background:rgba(168,85,247,0.07);color:#888;border:2px solid rgba(168,85,247,0.3);border-radius:20px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s">Cancelar</button>
@@ -9816,7 +9817,7 @@ function abrirPanelDiagnostico() {
     <textarea id="backup-json-input"
       placeholder='Pega aquí el contenido del archivo .json...'
       style="width:100%;height:120px;border:2px solid #86efac;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:#111;outline:none;resize:none;background:#fafff9;box-sizing:border-box;line-height:1.5"
-      oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#10b981' : '#fca5a5'">
+      oninput="this.style.borderColor=this.value.trim().startsWith('{') ? '#10b981' : '#fca5a5'" autocomplete="off">
     </textarea>
 
     <div id="pegar-backup-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;text-align:center;margin-top:8px;padding:8px;background:#fef2f2;border-radius:10px"></div>
@@ -11572,7 +11573,7 @@ function proximaFechaCobro(c){
     if(!lupa || !dock) return;
     dock.style.display = (lupa.style.display === 'flex') ? 'flex' : 'none';
   }
-  setInterval(syncDock, 400);
+  setInterval(syncDock, 3000);
 
   // ── Resaltado para lupa ──
   UPG.hl = function(txt, q){
@@ -11900,7 +11901,7 @@ function proximaFechaCobro(c){
     const visible = pantClientes && pantClientes.classList.contains('activa');
     lupa.style.display = visible ? 'flex' : 'none';
   }
-  setInterval(syncLupa, 500);
+  setInterval(syncLupa, 2000);
   document.addEventListener('DOMContentLoaded', ()=>setTimeout(syncLupa, 800));
   window.addEventListener('load', ()=>setTimeout(syncLupa, 1000));
 })();
@@ -12058,6 +12059,46 @@ async function verFotosCliente(id){
     </div></div>`;
   document.body.appendChild(ov);
 }
+</script>
+
+<script>
+/* Evita que Chrome ofrezca usuario/contraseña guardados en campos que no son de login */
+(function(){
+  function fix(el){
+    if(!el||el.nodeType!==1) return;
+    var list=el.matches&&el.matches('input,textarea')?[el]:[];
+    if(el.querySelectorAll) list=list.concat([].slice.call(el.querySelectorAll('input,textarea')));
+    list.forEach(function(i){
+      if(i.hasAttribute('autocomplete')) return;
+      var t=(i.type||'').toLowerCase();
+      if(i.id==='login-usuario'||i.id==='login-clave') return;
+      if(['hidden','file','checkbox','radio','button','submit','range','color'].indexOf(t)>=0) return;
+      i.setAttribute('autocomplete',t==='password'?'new-password':'off');
+    });
+  }
+  fix(document.body);
+  new MutationObserver(function(ms){ ms.forEach(function(m){ [].slice.call(m.addedNodes).forEach(fix); }); })
+    .observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<style>
+/* ⚡ Rendimiento: animaciones de fondo y desenfoques que gastan batería y hacen lenta la app */
+.header,.login-btn,.titulo-azul,
+button[onclick="abrirPegarBackup()"],button[onclick="exportarDatos()"]{animation:none !important}
+.nav-tab,.btn-logout,.modal-overlay,.login-card,.login-bendicion-box{
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+.modal-overlay{background:rgba(0,0,0,0.68) !important}
+.cliente-card{contain:layout paint}
+</style>
+<script>
+/* ⚡ Si se cierra la app con un guardado pendiente, enviarlo a la nube de inmediato */
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'&&window._syncT){
+    clearTimeout(window._syncT);window._syncT=null;
+    if(typeof window.syncFirebase==='function')window.syncFirebase(false);
+  }
+});
 </script>
 </body>
 </html>
