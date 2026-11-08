@@ -7,6 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
+<meta name="app-version" content="2026-11-08 v36">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5852,7 +5853,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-05-21 v35';
+const APP_VERSION = '2026-11-08 v36';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -5867,12 +5868,9 @@ function mostrarVersionApp(){
 // ══════════════════════════════════════════════
 
 function _borrarTodoCacheSW(){
-  // Borrar solo los caches del SW — NO desregistrar el SW ni tocar localStorage
-  try {
-    if('caches' in window){
-      caches.keys().then(names => names.forEach(n => caches.delete(n)));
-    }
-  } catch(e){}
+  // Borra cachés y desregistra el service worker (el SW se vuelve a registrar al recargar). NO toca localStorage.
+  try { if('caches' in window){ caches.keys().then(names => names.forEach(n => caches.delete(n))); } } catch(e){}
+  try { if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())); } } catch(e){}
   try { sessionStorage.clear(); } catch(e){}
 }
 
@@ -5901,11 +5899,11 @@ function buscarActualizacionManual(){
         msg.style.background='#ffeaea';
         msg.style.color='#c0392b';
         msg.style.border='2px solid #e74c3c';
-        msg.innerHTML = '⚠️ No se pudo verificar<br><span style="font-size:11px;font-weight:700;opacity:.8">Sin conexión</span>';
+        msg.innerHTML = '⚠️ No se pudo verificar<br><span style="font-size:11px;font-weight:700;opacity:.8">Revisa tu internet e intenta de nuevo</span>';
       }
       return;
     }
-    if(verServidor !== APP_VERSION){
+    if(_versionEsMasNueva(verServidor, APP_VERSION)){
       if(msg){
         msg.style.display='block';
         msg.style.background='linear-gradient(135deg,#fff4e0,#ffe0f0)';
@@ -5926,59 +5924,61 @@ function buscarActualizacionManual(){
     }
   };
 
-  // Intentar Firebase primero (funciona en content://), fetch como fallback
+  _checkVersionServidor(aplicar);
+}
+
+// Dirección real donde GitHub publica la app (no depende de dónde esté abierta la APK)
+const URL_PUBLICA_APP = 'https://miguelangelchuecodelosreyes-eng.github.io/Alissonyemily-/index.html';
+
+// Lee solo el inicio del archivo publicado (unos pocos KB) y saca la versión
+async function _leerVersionRemota(){
+  const ctl = new AbortController();
+  const t = setTimeout(()=>ctl.abort(), 12000);
+  try {
+    const r = await fetch(URL_PUBLICA_APP + '?_vc=' + Date.now() + '&r=' + Math.random(), {
+      cache: 'no-store', signal: ctl.signal
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const re = /name="app-version"\s+content="([^"]+)"/;
+    if(r.body && r.body.getReader){
+      const reader = r.body.getReader(); const dec = new TextDecoder(); let txt = '';
+      while(txt.length < 20000){
+        const x = await reader.read();
+        if(x.done) break;
+        txt += dec.decode(x.value, {stream:true});
+        const m = txt.match(re);
+        if(m){ ctl.abort(); return m[1]; }
+      }
+      const m2 = txt.match(re); return m2 ? m2[1] : null;
+    }
+    const m3 = (await r.text()).match(re);
+    return m3 ? m3[1] : null;
+  } finally { clearTimeout(t); }
+}
+
+function _checkVersionServidor(callback){
+  // 1) LO PUBLICADO EN GITHUB (fuente de verdad)
+  _leerVersionRemota().then(v => {
+    if(v){ callback(v); return; }
+    _checkVersionFirebase(callback);
+  }).catch(() => _checkVersionFirebase(callback));
+}
+
+function _checkVersionFirebase(callback){
+  // 2) Respaldo: versión publicada en Firebase
   try {
     if (window._fbDb && window._fbRef && window._fbGet) {
       window._fbGet(window._fbRef(window._fbDb, 'app_meta/version')).then(snap => {
         const v = snap && snap.exists() ? snap.val() : null;
-        if (v) { aplicar(v); return; }
-        _checkVersionFetch(aplicar);
-      }).catch(()=> _checkVersionFetch(aplicar));
-      return;
-    }
-  } catch(e){}
-  _checkVersionFetch(aplicar);
-}
-
-function _checkVersionServidor(callback){
-  // ── 1) FIREBASE PRIMERO (funciona aunque la app esté abierta como content://) ──
-  try {
-    if (window._fbDb && window._fbRef && window._fbGet) {
-      const r = window._fbRef(window._fbDb, 'app_meta/version');
-      window._fbGet(r).then(snap => {
-        const v = snap && snap.exists() ? snap.val() : null;
-        if (v && typeof v === 'string') {
-          callback(v);
-          return;
-        }
-        _checkVersionFetch(callback);
-      }).catch(()=> _checkVersionFetch(callback));
+        callback(v && typeof v === 'string' ? v : null);
+      }).catch(() => callback(null));
       return;
     }
   } catch(e) {}
-  // ── 2) FALLBACK: fetch del HTML ──
-  _checkVersionFetch(callback);
+  callback(null);
 }
 
-function _checkVersionFetch(callback){
-  try {
-    const url = window.location.pathname + '?_vc=' + Date.now() + '&r=' + Math.random();
-    fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(html => {
-      const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-      if(m) callback(m[1]);
-    })
-    .catch(()=>{});
-  } catch(e) {}
-}
+function _checkVersionFetch(callback){ _checkVersionServidor(callback); }
 
 // ── PUBLICAR LA VERSIÓN ACTUAL EN FIREBASE (cuando esta es la más reciente) ──
 function _publicarVersionEnFirebase(){
@@ -6038,19 +6038,8 @@ function _suscribirVersionFirebase(){
 
 function _aplicarActualizacion(verServidor){
   if(!verServidor) return false;
-  const VER_KEY = 'app_version_local';
-  const verLocal = localStorage.getItem(VER_KEY) || '';
-  // Si el servidor tiene una versión DIFERENTE a la que está corriendo en memoria,
-  // mostramos la notificación (esto cubre el caso de APK con HTML cacheado viejo).
-  if(verServidor !== APP_VERSION){
-    console.log('Nueva versión en servidor:', verServidor, '| corriendo:', APP_VERSION);
-    localStorage.setItem(VER_KEY, verServidor);
-    _mostrarNotificacionActualizacion(verServidor);
-    return true;
-  }
-  // Si la versión del servidor coincide con la que corre, guardamos y salimos.
-  localStorage.setItem(VER_KEY, verServidor);
-  if(verLocal && verLocal !== verServidor){
+  if(_versionEsMasNueva(verServidor, APP_VERSION)){
+    try { localStorage.setItem('app_version_local', verServidor); } catch(e){}
     _mostrarNotificacionActualizacion(verServidor);
     return true;
   }
