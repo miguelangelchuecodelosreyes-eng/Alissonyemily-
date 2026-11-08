@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-08 v38">
+<meta name="app-version" content="2026-11-08 v40">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -613,8 +613,9 @@ body {
 /* ══ ORBE TECNOLÓGICO IA — PLENO ══ */
 #pleno-fab {
   position: fixed;
-  top: 150px;
-  right: 12px;
+  top: calc(28vh + 10px);
+  left: 10px;
+  right: auto;
   z-index: 8000;
   display: none;
   flex-direction: column;
@@ -5853,7 +5854,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-08 v38';
+const APP_VERSION = '2026-11-08 v40';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10061,6 +10062,7 @@ function actualizarPlenoFab(pleno){
   if(!el || !burbuja) return;
 
   el.textContent = fmt(pleno);
+  (function(){var n=el.textContent.length;el.style.fontSize=(n<=3?13:n<=5?11:n<=6?9.5:8)+'px';})();
 
   const fechaActiva = getFechaActiva();
   const esHoy = fechaActiva === fechaHoy();
@@ -11680,7 +11682,7 @@ function proximaFechaCobro(c){
         const saldoTxt=(typeof fmt==='function')?fmt(c.saldo||0):(c.saldo||0);
         const nombreHL = UPG.hl(c.nombre||'Sin nombre', q);
         const cedulaHL = UPG.hl((c.cedula||'')+'', q);
-        return `<div class="lupa-item" onclick="UPG.pushReciente('${c.id}', ${JSON.stringify(c.nombre||'')}); lupaResumenCliente('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;margin-bottom:6px;background:rgba(255,255,255,.04);transition:background .12s">
+        return `<div class="lupa-item" onclick="lupaClickItem('${c.id}')" style="display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;margin-bottom:6px;background:rgba(255,255,255,.04);transition:background .12s">
           <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ff00cc);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:white;flex-shrink:0">${(c.nombre||'?').trim().charAt(0).toUpperCase()}</div>
           <div style="flex:1;min-width:0">
             <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nombreHL}${badge}</div>
@@ -12088,6 +12090,10 @@ document.addEventListener('visibilitychange',function(){
 
 <script>
 /* ══════════ RESUMEN DE CLIENTE (desde la lupa) ══════════ */
+function lupaClickItem(id){
+  try{ var c=(getClientes()||[]).find(function(x){return x.id===id;}); if(window.UPG&&UPG.pushReciente) UPG.pushReciente(id,(c&&c.nombre)||''); }catch(e){}
+  lupaResumenCliente(id);
+}
 function lupaResumenCliente(id){
   var c=(getClientes()||[]).find(function(x){return x.id===id;});
   if(!c) return;
@@ -12138,5 +12144,51 @@ function lupaResumenCliente(id){
   document.body.appendChild(ov);
 }
 </script>
+
+<style>
+/* ◈ ORBE IA — estilo tecnológico (48px, igual que la lupa) */
+.pfab-burbuja{
+  width:48px;height:48px;min-width:0 !important;padding:0 !important;justify-content:center;box-sizing:border-box;
+  border:1px solid rgba(34,211,238,.55) !important;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(34,211,238,.38) 0%, rgba(34,211,238,0) 46%),
+    linear-gradient(150deg,#06122b 0%,#0a1f4d 58%,#14083f 100%) !important;
+  box-shadow:0 0 9px rgba(34,211,238,.6),0 0 20px rgba(59,130,246,.38),inset 0 0 10px rgba(34,211,238,.28) !important;
+  animation:none !important;
+}
+/* anillo exterior de luz giratorio */
+.pfab-burbuja::before{
+  content:'';position:absolute;inset:-4px;border-radius:50%;border:none !important;
+  background:conic-gradient(from 0deg,#22d3ee 0%,#3b82f6 28%,#a855f7 50%,rgba(34,211,238,0) 72%,#22d3ee 100%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));
+          mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));
+  opacity:1 !important;animation:pfab-spin 3.2s linear infinite !important;pointer-events:none;
+}
+/* anillo interior punteado, gira al revés */
+.pfab-burbuja::after{
+  content:'';position:absolute;inset:4px;border-radius:50%;
+  border:1px dashed rgba(103,232,249,.75) !important;background:none !important;
+  opacity:1 !important;animation:pfab-spin 7s linear infinite reverse !important;pointer-events:none;
+}
+@keyframes pfab-spin{to{transform:rotate(360deg)}}
+/* barrido de escáner */
+.pfab-burbuja>.pfab-shine::before{background:linear-gradient(110deg,transparent 0%,rgba(34,211,238,.38) 50%,transparent 100%) !important}
+.pfab-label{
+  font-family:ui-monospace,'Courier New',monospace !important;font-size:6px !important;letter-spacing:1.4px !important;
+  margin-bottom:1px !important;color:#67e8f9 !important;text-shadow:0 0 6px rgba(34,211,238,.9) !important}
+.pfab-monto{
+  font-family:ui-monospace,'Courier New',monospace !important;font-size:11px;font-weight:900;max-width:42px;text-align:center;
+  color:#ecfeff !important;text-shadow:0 0 6px rgba(34,211,238,.95),0 0 12px rgba(59,130,246,.7) !important}
+.pfab-hoy{
+  font-family:ui-monospace,'Courier New',monospace !important;font-size:7px !important;padding:1px 6px !important;margin-top:5px !important;
+  letter-spacing:1px !important;color:#67e8f9 !important;background:rgba(2,6,23,.92) !important;
+  border:1px solid rgba(34,211,238,.6);box-shadow:0 0 8px rgba(34,211,238,.45) !important}
+.pfab-dot{width:7px !important;height:7px !important;top:-5px !important;right:-5px !important}
+.pfab-burbuja.flash{animation:pfab-flash2 .6s ease !important}
+@keyframes pfab-flash2{
+  0%{box-shadow:0 0 9px rgba(34,211,238,.6),0 0 0 0 rgba(0,230,118,.9)}
+  60%{box-shadow:0 0 22px rgba(0,230,118,.9),0 0 0 14px rgba(0,230,118,0)}
+  100%{box-shadow:0 0 9px rgba(34,211,238,.6),0 0 0 0 rgba(0,230,118,0)}}
+</style>
 </body>
 </html>
