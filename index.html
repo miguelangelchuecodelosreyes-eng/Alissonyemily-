@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-08 v40">
+<meta name="app-version" content="2026-11-10 v43">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1317,6 +1317,14 @@ button[onclick="exportarDatos()"]{
   <div style="padding:10px 14px 0">
     <input type="text" id="buscar-cliente" oninput="debouncedRenderClientes()" placeholder="🔍 Buscar por nombre o cédula..." style="width:100%;border:2px solid #e8ccf5;border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;color:#111;" onfocus="this.style.borderColor='#ff00cc'" onblur="this.style.borderColor='#e8ccf5'" autocomplete="off">
   </div>
+  <!-- Filtros: Todos / Diarios / Semanales / Hoy -->
+  <div id="filtro-tipo-bar" style="padding:10px 14px 0;display:flex;gap:6px">
+    <button class="ftipo-chip activo" data-f="todos" onclick="setFiltroTipo('todos')">📋 Todos<b id="ft-todos">0</b></button>
+    <button class="ftipo-chip" data-f="diario" onclick="setFiltroTipo('diario')">☀️ Diarios<b id="ft-diario">0</b></button>
+    <button class="ftipo-chip" data-f="semanal" onclick="setFiltroTipo('semanal')">📅 Semanales<b id="ft-semanal">0</b></button>
+    <button class="ftipo-chip" data-f="hoy" onclick="setFiltroTipo('hoy')">🔔 Hoy<b id="ft-hoy">0</b></button>
+    <button class="ftipo-chip" data-f="volado" onclick="setFiltroTipo('volado')">🏃 Voladas<b id="ft-volado">0</b></button>
+  </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1344,6 +1352,7 @@ button[onclick="exportarDatos()"]{
     </button>
   </div>
 
+  <div id="panel-semanas" style="display:none;margin:10px 14px 0"></div>
   <div id="clientes-lista"></div>
 </div>
 
@@ -2237,6 +2246,7 @@ button[onclick="exportarDatos()"]{
         <option value="sabado">Sábado</option>
         <option value="domingo">Domingo</option>
       </select>
+      <div id="mc-dia-hint" style="display:none;margin-top:6px;padding:8px 10px;border-radius:10px;background:#f0fdf4;border:1.5px solid #86efac;color:#166534;font-size:12px;font-weight:800;cursor:pointer"></div>
     </div>
     <div class="modal-campo">
       <label class="modal-label">💳 Cuota sugerida (opcional)</label>
@@ -2740,7 +2750,7 @@ function irA(p) {
     });
     clientesAll.forEach(c=>{
       const ult = (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:-1)[0];
-      if(c.saldo===0 && ult && ult.fecha===hoyClientes){
+      if(c.saldo===0&&!c.volado&& ult && ult.fecha===hoyClientes){
         canc += (c.pagos||[]).filter(p=>p.fecha===hoyClientes).reduce((s,p)=>s+p.monto,0);
       }
       (c.historialRenovaciones||[]).forEach(r=>{ if(r.fecha===hoyClientes){ canc += r.saldoQuedaba||0; } });
@@ -2859,7 +2869,7 @@ function recalcularCuentas(){
   // Cancelados: misma lógica que renderDetalles
   let cancelados = 0;
   clientes.forEach(c=>{
-    const esCanceladoHoy = c.saldo===0 && (c.pagos||[]).length>0 &&
+    const esCanceladoHoy = c.saldo===0&&!c.volado&& (c.pagos||[]).length>0 &&
       (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===hoy;
     if(esCanceladoHoy){
       cancelados += (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
@@ -3837,6 +3847,7 @@ function abrirModalCliente(id){
   document.getElementById('btn-pos-despues').style.background='#f8eeff';
   document.getElementById('btn-pos-despues').style.color='#ff00cc';
   prepararFotosModal(id||null);
+  try{ actualizarHintDia(id||null); }catch(e){}
   document.getElementById('modal-cliente-overlay').classList.add('visible');
 }
 
@@ -4709,17 +4720,22 @@ function renderClientes(){
   const busq=(document.getElementById('buscar-cliente')||{}).value||'';
   const busqLow=busq.toLowerCase().trim();
   // Solo mostrar clientes con saldo > 0 (los cancelados van a Detalles)
-  const clientes=todosClientes.filter(c=>c.saldo>0).filter(c=>{
+  const clientesBase=todosClientes.filter(c=>c.saldo>0).filter(c=>{
     if(!busqLow) return true;
     return (c.nombre||"").toLowerCase().includes(busqLow)||(c.cedula||"").includes(busqLow);
   });
+  const _okTipo=(typeof filtroTipoOK==='function')?filtroTipoOK:function(){return true;};
+  const clientes=clientesBase.filter(_okTipo);
+  if(window._filtroTipo==='semanal' && typeof _ordDiaCliente==='function'){
+    clientes.sort((a,b)=>(_ordDiaCliente(a)-_ordDiaCliente(b))||String(a.nombre||'').localeCompare(String(b.nombre||'')));
+  }
 
   // Actualizar contador y clientes que pagaron hoy
   const hoyCheck = getFechaActiva();
   const countEl=document.getElementById('clientes-count');
-  if(countEl) countEl.textContent=clientes.length;
+  if(countEl) countEl.textContent=clientesBase.length;
 
-  const pagaronHoy = clientes.filter(c=>(c.pagos||[]).some(p=>p.fecha===hoyCheck)).length;
+  const pagaronHoy = clientesBase.filter(c=>(c.pagos||[]).some(p=>p.fecha===hoyCheck)).length;
   const pagaronEl=document.getElementById('clientes-pagaron-hoy');
   if(pagaronEl) pagaronEl.textContent=pagaronHoy;
   const labelPagaron=document.getElementById('label-pagaron-hoy');
@@ -4731,9 +4747,13 @@ function renderClientes(){
   const pctLbl=document.getElementById('resumen-porcentaje-label');
   if(pctLbl) pctLbl.textContent=`📈 ${getPorcentaje()}%`;
 
+  try{ if(typeof actualizarChipsTipo==='function') actualizarChipsTipo(); if(typeof renderPanelSemanas==='function') renderPanelSemanas(); }catch(e){}
+  if(window._filtroTipo==='volado' && typeof renderVoladas==='function'){ renderVoladas(busqLow); return; }
   const el=document.getElementById('clientes-lista');
   if(!clientes.length){
-    el.innerHTML='<div class="empty-clientes">👥 No hay clientes activos<br><span style="font-size:12px;opacity:0.6;">Los cancelados aparecen en 📋 Detalles</span></div>';
+    const _f=window._filtroTipo||'todos';
+    const _msg=_f==='hoy'?'🔔 No hay semanales para este día':_f==='semanal'?'📅 No hay clientes semanales':_f==='diario'?'☀️ No hay clientes diarios':'👥 No hay clientes activos';
+    el.innerHTML='<div class="empty-clientes">'+_msg+'<br><span style="font-size:12px;opacity:0.6;">Los cancelados aparecen en 📋 Detalles</span></div>';
     return;
   }
   const _scrollY = window.scrollY;
@@ -4900,6 +4920,11 @@ function renderClientes(){
         <!-- ══ FOTOS ══ -->
         <button onclick="abrirFotosCliente('${c.id}')" style="width:100%;padding:7px;margin-bottom:5px;background:linear-gradient(135deg,#faf5ff,#f3e8ff);color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
           <span style="font-size:12px">📷</span> ${(c.tieneFotoCliente||c.tieneFotoCasa)?'Ver fotos del cliente':'Agregar fotos'}
+        </button>
+
+        <!-- ══ VOLADO ══ -->
+        <button onclick="marcarVolado('${c.id}')" style="width:100%;padding:7px;margin-bottom:5px;background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#c2410c;border:1.5px solid #fdba74;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span style="font-size:12px">🏃</span> Marcar como volado (se fue sin pagar)
         </button>
 
         <!-- ══ HISTORIAL ══ -->
@@ -5238,7 +5263,7 @@ function sincronizarDesdeclientes(){
       detalleCuotas.push(`${c.nombre}: ${fmt(sumPagosDia)}`);
     }
     // Cancelados: saldo=0 y último pago fue hoy
-    if(c.saldo === 0 && c.pagos && c.pagos.length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === hoy){
+    if(c.saldo === 0&&!c.volado&& c.pagos && c.pagos.length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === hoy){
       totalCancelados++;
       detalleCancelados.push(c.nombre);
     }
@@ -5371,7 +5396,7 @@ function renderDetalles(){
 
   clientes.forEach(c => {
     // Detectar si este cliente fue cancelado completo en la fecha filtro
-    const esCanceladoHoy = c.saldo === 0 && (c.pagos||[]).length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === filtroFecha;
+    const esCanceladoHoy = c.saldo === 0&&!c.volado&& (c.pagos||[]).length > 0 && (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha === filtroFecha;
     // Detectar si este cliente fue renovado en la fecha filtro
     const esRenovadoHoy = (c.historialRenovaciones||[]).some(r => r.fecha === filtroFecha);
     // Solo excluir pagos de cancelados (saldo=0). Los renovados SÍ pueden tener cuota cobrada al renovar en c.pagos
@@ -5455,7 +5480,7 @@ function renderDetalles(){
           if((r.fecha||r.fechaCreado||'').substring(0,10)===fecha){ totalDiaReal += r.saldoQuedaba||0; }
         });
         const pl = c.pagos||[];
-        if(c.saldo===0 && pl.length>0 && pl[0].fecha===fecha) canceladosDia += pl.filter(p=>p.fecha===fecha).reduce((s,p)=>s+p.monto,0);
+        if(c.saldo===0&&!c.volado&& pl.length>0 && pl[0].fecha===fecha) canceladosDia += pl.filter(p=>p.fecha===fecha).reduce((s,p)=>s+p.monto,0);
         const hr = c.historialRenovaciones||[];
         if(hr.length>0 && hr[0].fecha===fecha) canceladosDia += hr[0].saldoQuedaba||0;
       });
@@ -5854,7 +5879,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-08 v40';
+const APP_VERSION = '2026-11-10 v43';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10421,7 +10446,20 @@ function _orbeRespuestaLocal(pregunta, s){
 
     const ultimoPago = pagos.length > 0 ? pagos[pagos.length-1] : null;
     const totalPagado = pagos.reduce((a,p) => a + (Number(p.monto)||0), 0);
-    return `👤 ${c.nombre}\n💳 Préstamo: ${f(c.prestamo||0)} | Saldo: ${f(c.saldo||0)}\n📅 Inicio: ${c.fechaCreacion||'?'} | Cuota: ${f(c.cuotaSugerida||0)}/día\n💰 Total pagado: ${f(totalPagado)} en ${pagos.length} pagos\n${ultimoPago ? '⏱️ Último pago: '+ultimoPago.fecha+' — '+f(ultimoPago.monto) : '⚠️ Sin pagos registrados'}`;
+    const _D=['dom','lun','mar','mié','jue','vie','sáb'], _M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const fechaL = (x)=>{ const q=String(x||'').slice(0,10).split('-'); if(q.length!==3) return x||'?'; const d=new Date(+q[0],+q[1]-1,+q[2]); return isNaN(d)?x:(_D[d.getDay()]+' '+q[2]+' '+_M[d.getMonth()]+' '+q[0]); };
+    const esSem = (c.tipo==='semanal'||!c.tipo);
+    const cuotaTxt = esSem
+      ? `${f(c.cuotaSugerida||0)} por semana${c.diaSemana?' (cobra los '+c.diaSemana+')':''}`
+      : `${f(c.cuotaSugerida||0)} por día`;
+    // Pregunta solo por dirección / teléfono
+    if (has('dirección','direccion','donde vive','dónde vive','ubicación','ubicacion','donde queda','dónde queda')) {
+      return `📍 ${c.nombre}\nDirección: ${c.dir||'No registrada'}${c.tel?'\n📱 Teléfono: '+c.tel:''}${c.nota?'\n📝 Nota: '+c.nota:''}`;
+    }
+    if (has('teléfono','telefono','celular','número de','numero de') && !has('cédula','cedula')) {
+      return `📱 ${c.nombre}\nTeléfono: ${c.tel||'No registrado'}`;
+    }
+    return `👤 ${c.nombre}\n📍 Dirección: ${c.dir||'No registrada'}\n📱 Teléfono: ${c.tel||'No registrado'}\n📅 Ingresó: ${fechaL(c.fechaCreado)}${c.fechaRenovacion?' | Renovó: '+fechaL(c.fechaRenovacion):''}\n💳 Préstamo: ${f(c.prestamo||0)} | Saldo: ${f(c.saldo||0)}\n💵 Cuota: ${cuotaTxt}\n💰 Total pagado: ${f(totalPagado)} en ${pagos.length} pagos\n${ultimoPago ? '⏱️ Último pago: '+fechaL(ultimoPago.fecha)+' — '+f(ultimoPago.monto) : '⚠️ Sin pagos registrados'}`;
   }
 
   if (has('gasto','gastos') && (has('semana pasada','semana anterior','última semana','ultima semana') || (has('semana') && has('pasada','anterior','última','ultima')))) {
@@ -10548,6 +10586,43 @@ function _orbeRespuestaLocal(pregunta, s){
       const dNum = d2.getDay();
       const tocaEseDia = semanales.filter(c => DIAS_NUM[(c.diaSemana||'lunes').toLowerCase().trim()] === dNum);
       if(tocaEseDia.length>0) proximos7.push({fecha:fmt2(d2), dia:DIAS_NOM[dNum], clientes:tocaEseDia});
+    }
+
+    // ── Semanales de UN día: "semanales de hoy", "semanales del lunes", "... del sábado" ──
+    {
+      const sinAc = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const qn = sinAc(pregunta);
+      const NUM = {domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+      let diaPedido = null;
+      const mDia = qn.match(/\b(domingo|lunes|martes|miercoles|jueves|viernes|sabado)s?\b/);
+      if (mDia) diaPedido = NUM[mDia[1]];
+      else if (/\bhoy\b/.test(qn)) diaPedido = hoyNum;
+      else if (/\bmanana\b/.test(qn)) diaPedido = (hoyNum+1)%7;
+      if (diaPedido !== null && !/atrasad|vencid|pasaron|sin pagar|no han pagado/.test(qn)) {
+        const loc = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        // la fecha de ese día dentro de la semana actual (lunes a domingo)
+        const lunes = new Date(hoyDate); lunes.setDate(hoyDate.getDate() - ((hoyNum+6)%7));
+        const fd = new Date(lunes); fd.setDate(lunes.getDate() + ((diaPedido+6)%7));
+        const fStr = loc(fd);
+        const esHoyD = (diaPedido === hoyNum);
+        const nomD = DIAS_NOM[diaPedido];
+        const titulo = esHoyD ? `hoy ${nomD}` : (/\bmanana\b/.test(qn) && !mDia ? `mañana ${nomD}` : `del ${nomD}`);
+        const delDia = semanales.filter(c => NUM[sinAc((c.diaSemana||'lunes').toLowerCase().trim())] === diaPedido);
+        if (delDia.length === 0) return `📅 No hay clientes semanales con cobro el ${nomD}.`;
+        const yaPago = c => (c.pagos||[]).some(p => String(p.fecha||'').slice(0,10) === fStr);
+        const fila = c => `  • ${c.nombre}: ${f(c.cuotaSugerida||0)} (saldo ${f(c.saldo)})`;
+        let resp = `📅 Semanales ${titulo} — ${fStr} (${delDia.length} cliente${delDia.length>1?'s':''})`;
+        if (fd <= hoyDate) {
+          const pend = delDia.filter(c => !yaPago(c)), pag = delDia.filter(yaPago);
+          if (pend.length) resp += `\n⏳ Por cobrar (${pend.length}):\n` + pend.map(fila).join('\n');
+          if (pag.length)  resp += `\n✅ Ya pagaron (${pag.length}):\n` + pag.map(c => `  • ${c.nombre}: ${f((c.pagos||[]).filter(p=>String(p.fecha||'').slice(0,10)===fStr).reduce((a,p)=>a+(p.monto||0),0))}`).join('\n');
+          resp += `\n💰 Falta por cobrar: ${f(pend.reduce((a,c)=>a+(c.cuotaSugerida||0),0))}`;
+        } else {
+          resp += `\n` + delDia.map(fila).join('\n');
+          resp += `\n💰 Total esperado: ${f(delDia.reduce((a,c)=>a+(c.cuotaSugerida||0),0))}`;
+        }
+        return resp;
+      }
     }
 
     if (has('toca hoy','quién toca','quien toca','quiénes tocan','quienes tocan','cobrar hoy','hoy toca','hoy cobro')) {
@@ -11060,7 +11135,7 @@ function _orbePlenoRealDia(fecha){
         (r.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ general+=p.monto||0; });
         if((r.fecha||r.fechaCreado||'').substring(0,10)===fecha){ general+=r.saldoQuedaba||0; }
       });
-      const esCanceladoHoy = c.saldo===0 && (c.pagos||[]).length>0 &&
+      const esCanceladoHoy = c.saldo===0&&!c.volado&& (c.pagos||[]).length>0 &&
         (c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===fecha;
       if(esCanceladoHoy){
         cancelados += (c.pagos||[]).filter(p=>p.fecha===fecha).reduce((s,p)=>s+p.monto,0);
@@ -11090,11 +11165,11 @@ function _orbeContextoTexto(s){
       if (!c) return;
       const estado = c.cancelado ? '[CANCELADO]' : (Number(c.saldo)>0 ? '[ACTIVO]' : '[PAGADO]');
       const pagosStr = (c.pagos||[]).map(p => `${p.fecha}:${f(p.monto)}`).join(', ');
-      const tel = c.telefono ? ` Tel:${c.telefono}` : '';
-      const dir = c.direccion ? ` Dir:${c.direccion}` : '';
-      const fechaInicio = c.fechaCreacion || c.fechaInicio || '';
+      const tel = (c.tel||c.telefono) ? ` Tel:${c.tel||c.telefono}` : '';
+      const dir = (c.dir||c.direccion) ? ` Dir:${c.dir||c.direccion}` : '';
+      const fechaInicio = c.fechaCreado || c.fechaInicio || c.fechaCreacion || '';
       clientesTexto += `
-- ${c.nombre||'?'} ${estado} Prestamo:${f(c.prestamo||0)} Saldo:${f(c.saldo||0)} Cuota:${f(c.cuotaSugerida||0)}/dia Inicio:${fechaInicio}${tel}${dir}`;
+- ${c.nombre||'?'} ${estado} Prestamo:${f(c.prestamo||0)} Saldo:${f(c.saldo||0)} Cuota:${f(c.cuotaSugerida||0)}/${(c.tipo==='diario')?'dia':'semana'}${c.diaSemana&&c.tipo!=='diario'?' (cobra '+c.diaSemana+')':''} Ingreso:${fechaInicio}${c.fechaRenovacion?' Renovo:'+c.fechaRenovacion:''}${tel}${dir}`;
       if (pagosStr) clientesTexto += ` | Pagos: ${pagosStr}`;
     });
   } catch(e){ clientesTexto = ' (error leyendo clientes)'; }
@@ -12190,5 +12265,127 @@ function lupaResumenCliente(id){
   60%{box-shadow:0 0 22px rgba(0,230,118,.9),0 0 0 14px rgba(0,230,118,0)}
   100%{box-shadow:0 0 9px rgba(34,211,238,.6),0 0 0 0 rgba(0,230,118,0)}}
 </style>
+
+<style>
+.ftipo-chip{flex:1;min-width:0;padding:7px 4px;border-radius:14px;border:2px solid #e8ccf5;background:white;display:flex;flex-direction:column;align-items:center;gap:0;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900;color:#7c3aed;cursor:pointer;line-height:1.25}
+.ftipo-chip b{font-size:19px;font-weight:900;color:#1a1a2e}
+.ftipo-chip.activo{background:linear-gradient(135deg,#a855f7,#ec4899);border-color:transparent;color:white;box-shadow:0 4px 12px rgba(168,85,247,.35)}
+.ftipo-chip.activo b{color:white}
+.sem-dia{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:12px;margin-bottom:6px;background:#faf5ff;border:1.5px solid #ead7fb;cursor:pointer}
+.sem-dia.sel{border-color:#a855f7;background:#f3e8ff}
+.sem-dia .nom{min-width:84px;font-size:12px;font-weight:900;color:#4c1d95}
+.sem-dia .cnt{font-size:11px;font-weight:900;color:#7c3aed}
+.sem-dia .lst{font-size:11px;font-weight:700;color:#475569;line-height:1.35}
+.sem-bar{height:5px;border-radius:5px;background:#e9d5ff;margin-top:4px;overflow:hidden}
+.sem-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#a855f7,#ec4899)}
+</style>
+<script>
+/* ══════════ FILTROS POR TIPO + REPARTO DE SEMANALES POR DÍA ══════════ */
+window._filtroTipo='todos'; window._filtroDia='';
+var _DIAS_ORD=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+var _DIAS_LBL={lunes:'Lunes',martes:'Martes',miercoles:'Miércoles',jueves:'Jueves',viernes:'Viernes',sabado:'Sábado',domingo:'Domingo'};
+var _DIAS_BAL=['lunes','martes','miercoles','jueves','viernes','sabado'];
+function _sinAc(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();}
+function _diaDeCliente(c){var d=_sinAc(c.diaSemana);return _DIAS_ORD.indexOf(d)>=0?d:'';}
+function _ordDiaCliente(c){var d=_diaDeCliente(c);return d?_DIAS_ORD.indexOf(d):99;}
+function _diaDeFecha(f){var q=String(f||'').slice(0,10).split('-');var d=new Date(+q[0],+q[1]-1,+q[2]);if(isNaN(d))d=new Date();return ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'][d.getDay()];}
+function _esSem(c){return c.tipo!=='diario';}
+function _nomCorto(n){var p=String(n||'').trim().split(/\s+/);var t=p.slice(0,2).join(' ').toLowerCase();return t.replace(/(^|\s)\S/g,function(m){return m.toUpperCase();});}
+function _activosSaldo(){return (getClientes()||[]).filter(function(c){return c&&!c.cancelado&&c.saldo>0;});}
+
+function filtroTipoOK(c){
+  var f=window._filtroTipo;
+  if(f==='diario') return !_esSem(c);
+  if(f==='semanal'){ if(!_esSem(c)) return false; if(!window._filtroDia) return true; return window._filtroDia==='sindia' ? _diaDeCliente(c)==='' : _diaDeCliente(c)===window._filtroDia; }
+  if(f==='hoy') return _esSem(c) && _diaDeCliente(c)===_diaDeFecha(getFechaActiva());
+  return true;
+}
+function setFiltroTipo(f){ window._filtroTipo=f; if(f!=='semanal') window._filtroDia=''; renderClientes(); }
+function setFiltroDia(d){ window._filtroDia=(window._filtroDia===d?'':d); renderClientes(); }
+
+function actualizarChipsTipo(){
+  var a=_activosSaldo(), hoy=_diaDeFecha(getFechaActiva());
+  var n={todos:a.length,diario:a.filter(function(c){return !_esSem(c);}).length,semanal:a.filter(_esSem).length,
+         hoy:a.filter(function(c){return _esSem(c)&&_diaDeCliente(c)===hoy;}).length,
+         volado:(getClientes()||[]).filter(function(c){return c&&c.volado;}).length};
+  Object.keys(n).forEach(function(k){var e=document.getElementById('ft-'+k);if(e)e.textContent=n[k];});
+  document.querySelectorAll('.ftipo-chip').forEach(function(b){b.classList.toggle('activo',b.dataset.f===window._filtroTipo);});
+}
+
+function _repartoSemanal(){
+  var r={}; _DIAS_ORD.concat(['']).forEach(function(d){r[d]={n:0,monto:0,lista:[]};});
+  _activosSaldo().filter(_esSem).forEach(function(c){var d=_diaDeCliente(c);r[d].n++;r[d].monto+=(c.cuotaSugerida||0);r[d].lista.push(c);});
+  return r;
+}
+function _diaMasLibre(r){
+  var best=null; _DIAS_BAL.forEach(function(d){ if(best===null||r[d].n<r[best].n||(r[d].n===r[best].n&&r[d].monto<r[best].monto)) best=d; });
+  return best;
+}
+
+function renderPanelSemanas(){
+  var box=document.getElementById('panel-semanas'); if(!box) return;
+  if(window._filtroTipo!=='semanal'){ box.style.display='none'; return; }
+  var r=_repartoSemanal(), total=0; _DIAS_ORD.concat(['']).forEach(function(d){total+=r[d].n;});
+  var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
+  var fila=function(d){
+    var x=r[d], key=d||'sindia', lbl=d?_DIAS_LBL[d]:'Sin día';
+    var sel=window._filtroDia===key;
+    var txt=x.n+' '+(x.n===1?'semanal':'semanales');
+    var h='<div class="sem-dia'+(sel?' sel':'')+'" onclick="setFiltroDia(\''+key+'\')" style="flex-direction:column;gap:6px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;width:100%"><div class="nom" style="font-size:14px">'+lbl+'</div>'
+      +'<div style="font-size:14px;font-weight:900;color:'+(x.n?'#7c3aed':'#94a3b8')+'">'+txt+' <span style="font-size:11px;color:#94a3b8">'+(sel?'▲':'▼')+'</span></div></div>';
+    if(sel){
+      h+= x.n? '<div style="width:100%;border-top:1px dashed #d8b4fe;padding-top:6px">'+x.lista.map(function(c){
+            return '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#334155;padding:3px 0"><span>'+_nomCorto(c.nombre)+'</span><span style="color:#7c3aed">'+m(c.cuotaSugerida||0)+' · debe '+m(c.saldo||0)+'</span></div>';
+          }).join('')+'</div>'
+        : '<div style="width:100%;font-size:12px;font-weight:800;color:#94a3b8">No hay semanales este día</div>';
+    }
+    return h+'</div>';
+  };
+  box.innerHTML='<div style="background:white;border:1.5px solid #e8ccf5;border-radius:16px;padding:12px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:900;color:#4c1d95;letter-spacing:.5px">📅 SEMANALES POR DÍA</div><div style="font-size:11px;font-weight:900;color:#7c3aed">Total '+total+'</div></div>'
+    +_DIAS_BAL.map(fila).join('')+(r.domingo.n?fila('domingo'):'')+(r[''].n?fila(''):'')
+    +'<div style="font-size:10px;color:#94a3b8;font-weight:700;margin-top:4px">Toca un día para ver cuáles son. Toca de nuevo para ver todas.</div></div>';
+  box.style.display='block';
+}
+function actualizarHintDia(id){ var h=document.getElementById('mc-dia-hint'); if(h) h.style.display='none'; }
+
+/* ══════════ VOLADAS: se fueron sin pagar (quedan registradas, se pueden devolver) ══════════ */
+function marcarVolado(id){
+  var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
+  var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
+  if(!confirm('¿Marcar a '+c.nombre+' como VOLADO?\n\nPerdiste: '+m(c.saldo||0)+'\nSale de tus clientes activos pero queda guardado en 🏃 Voladas y lo puedes devolver cuando quieras.')) return;
+  c.saldoPerdido=c.saldo||0; c.saldo=0; c.volado=true; c.fechaVolado=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
+  saveClientes(cs); renderClientes();
+  try{ if(typeof toast==='function') toast('🏃 '+c.nombre+' marcado como volado'); }catch(e){}
+}
+function restaurarVolado(id){
+  var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
+  if(!confirm('¿Devolver a '+c.nombre+' a clientes activos?\nVolverá a deber '+((typeof fmt==='function')?fmt(c.saldoPerdido||0):c.saldoPerdido))) return;
+  c.saldo=c.saldoPerdido||0; c.volado=false; delete c.fechaVolado; delete c.saldoPerdido;
+  saveClientes(cs); window._filtroTipo='todos'; renderClientes();
+}
+function renderVoladas(busq){
+  var el=document.getElementById('clientes-lista'); if(!el) return;
+  var box=document.getElementById('panel-semanas'); if(box) box.style.display='none';
+  var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
+  var l=(getClientes()||[]).filter(function(c){return c&&c.volado&&(!busq||(c.nombre||'').toLowerCase().indexOf(busq)>=0||(c.cedula||'').indexOf(busq)>=0);});
+  var perdido=l.reduce(function(a,c){return a+(c.saldoPerdido||0);},0);
+  if(!l.length){ el.innerHTML='<div style="text-align:center;padding:30px 16px;color:#94a3b8;font-weight:800;font-size:13px">🏃 No tienes clientes voladas.<br>Para marcar una, abre el cliente y toca "Marcar como volado".</div>'; return; }
+  el.innerHTML='<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:900;color:#c2410c">🏃 '+l.length+' volada'+(l.length===1?'':'s')+' · Total perdido: '+m(perdido)+'</div>'
+  +l.map(function(c){
+    var pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
+    var f=(c.fechaVolado||'').split('-').reverse().join('/');
+    return '<div style="background:white;border:1.5px solid #fed7aa;border-radius:16px;padding:12px;margin-bottom:10px">'
+     +'<div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:15px;font-weight:900;color:#1a1a2e">'+(c.nombre||'')+'</div><div style="font-size:11px;font-weight:900;color:#c2410c;white-space:nowrap">🏃 '+f+'</div></div>'
+     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-top:4px;line-height:1.5">'
+     +(c.cedula?'🪪 '+c.cedula+'<br>':'')+(c.tel?'📞 '+c.tel+'<br>':'')+(c.dir?'📍 '+c.dir+'<br>':'')
+     +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))+'</div>'
+     +'<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div>'
+     +'<div style="flex:1;background:#f0fdf4;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#16a34a">Alcanzó a pagar<br><span style="font-size:15px">'+m(pag)+'</span></div></div>'
+     +'<button onclick="restaurarVolado(\''+c.id+'\')" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:12px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">↩️ Devolver a clientes activos</button></div>';
+  }).join('');
+}
+</script>
 </body>
 </html>
