@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-10 v43">
+<meta name="app-version" content="2026-11-10 v44">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2304,7 +2304,10 @@ button[onclick="exportarDatos()"]{
           </button>
         </div>
         <!-- Lista de clientes para referencia -->
-        <div id="lista-posicion-clientes" style="display:none;max-height:220px;overflow-y:auto;border-radius:10px;border:1.5px solid #e8ccf5;background:white">
+        <div id="lista-posicion-clientes" style="display:none;max-height:260px;overflow-y:auto;border-radius:10px;border:1.5px solid #e8ccf5;background:white">
+          <div style="position:sticky;top:0;background:white;padding:8px;border-bottom:1.5px solid #e8ccf5;z-index:2">
+            <input type="text" id="buscar-posicion" oninput="pintarListaPosicion()" placeholder="🔍 Buscar cliente por nombre..." autocomplete="off" style="width:100%;box-sizing:border-box;border:2px solid #e8ccf5;border-radius:12px;padding:10px 12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;outline:none">
+          </div>
           <div id="lista-posicion-items"></div>
         </div>
         <!-- Resultado seleccionado -->
@@ -3890,6 +3893,11 @@ function guardarCliente(){
       { const _ft=window._fotosTemp||{};
         if(_ft.cliente!==undefined) cambios.push(_ft.cliente===null?'📷 Foto del cliente: quitada':'📷 Foto del cliente: nueva');
         if(_ft.casa!==undefined) cambios.push(_ft.casa===null?'🏠 Foto de la casa: quitada':'🏠 Foto de la casa: nueva'); }
+      if(posicionTipo && !posicionRefId){ showToast('⚠️ Elige el cliente de referencia en "¿Dónde va en la lista?"'); return; }
+      if(posicionTipo && posicionRefId){
+        const _rf=clientes.find(x=>x.id===posicionRefId);
+        cambios.push(`📋 Posición: ${posicionTipo==='antes'?'ANTES':'DESPUÉS'} de ${_rf?_rf.nombre:'—'}`);
+      }
       const saldoCorrEl = document.getElementById('mc-saldo-corregir');
       const saldoCorrVal = saldoCorrEl && saldoCorrEl.value !== '' ? parseFloat(saldoCorrEl.value) : null;
       // Guardar en variable GLOBAL para que aplicarCambios.toString() la encuentre
@@ -4632,29 +4640,37 @@ function seleccionarPosicion(tipo){
   document.getElementById('mc-posicion-ref-id').value = '';
   document.getElementById('posicion-seleccionada-info').style.display = 'none';
 
-  // Filtrar el cliente que se está editando de la lista
-  const lista = clientes.filter(c => c.id !== editId);
+  window._posTipo = tipo;
+  const bp=document.getElementById('buscar-posicion'); if(bp) bp.value='';
+  pintarListaPosicion();
+  document.getElementById('lista-posicion-clientes').style.display = 'block';
+}
 
+function pintarListaPosicion(){
+  const tipo = window._posTipo || 'despues';
+  const editId = document.getElementById('mc-id').value;
+  const q = ((document.getElementById('buscar-posicion')||{}).value||'').toLowerCase().trim();
+  const todos = getClientes().filter(c => c.saldo > 0 && c.id !== editId);
   const contenedor = document.getElementById('lista-posicion-items');
+  const lista = todos.map((c,i)=>({c:c,n:i+1})).filter(x=>!q || (x.c.nombre||'').toLowerCase().includes(q));
   if(!lista.length){
-    contenedor.innerHTML = '<div style="padding:14px;text-align:center;color:#bbb;font-size:13px;font-weight:700">No hay otros clientes</div>';
-  } else {
-    contenedor.innerHTML = lista.map((c, i) => `
-      <div onclick="elegirClienteReferencia('${c.id}','${c.nombre}','${tipo}')"
-        style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0${i===lista.length-1?';border-bottom:none':''}; cursor:pointer; active-background:#f8eeff">
-        <div style="min-width:24px;height:24px;background:#e8ccf5;color:#555;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
+    contenedor.innerHTML = '<div style="padding:14px;text-align:center;color:#bbb;font-size:13px;font-weight:700">'+(q?'No encontré ese cliente':'No hay otros clientes')+'</div>';
+    return;
+  }
+  contenedor.innerHTML = lista.map((x, k) => { const c=x.c; return `
+      <div onclick="elegirClienteReferencia('${c.id}',null,'${tipo}')"
+        style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer">
+        <div style="min-width:24px;height:24px;background:#e8ccf5;color:#555;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${x.n}</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:800;color:#111">${c.nombre}</div>
           <div style="font-size:11px;color:#666;font-weight:700">${c.tipo==='diario'?'☀️ Diario':'📅 Semanal'} · Saldo: <span style="color:#ff1111">${fmt(c.saldo)}</span></div>
         </div>
         <span style="font-size:18px;color:#cc00aa">›</span>
-      </div>`).join('');
-  }
-
-  document.getElementById('lista-posicion-clientes').style.display = 'block';
+      </div>`; }).join('');
 }
 
 function elegirClienteReferencia(refId, refNombre, tipo){
+  if(!refNombre){ const _c=getClientes().find(x=>x.id===refId); refNombre=_c?_c.nombre:''; }
   document.getElementById('mc-posicion-ref-id').value = refId;
   document.getElementById('mc-posicion-tipo').value = tipo;
   const texto = tipo === 'antes'
@@ -5879,7 +5895,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-10 v43';
+const APP_VERSION = '2026-11-10 v44';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12357,7 +12373,22 @@ function marcarVolado(id){
   if(!confirm('¿Marcar a '+c.nombre+' como VOLADO?\n\nPerdiste: '+m(c.saldo||0)+'\nSale de tus clientes activos pero queda guardado en 🏃 Voladas y lo puedes devolver cuando quieras.')) return;
   c.saldoPerdido=c.saldo||0; c.saldo=0; c.volado=true; c.fechaVolado=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
   saveClientes(cs); renderClientes();
-  try{ if(typeof toast==='function') toast('🏃 '+c.nombre+' marcado como volado'); }catch(e){}
+  try{ showToast('🏃 '+c.nombre+' marcado como volado'); }catch(e){}
+}
+function registrarCuotaVolada(id){
+  var inp=document.getElementById('vcuota-'+id); var monto=parseFloat(inp&&inp.value)||0;
+  if(monto<=0){ showToast('⚠️ Ingresa un valor mayor a 0'); return; }
+  var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
+  var debia=c.saldoPerdido||0;
+  c.pagos=c.pagos||[]; c.pagos.unshift({fecha:getFechaActiva(),monto:monto});
+  c.saldoPerdido=Math.max(0,debia-monto);
+  var salda=c.saldoPerdido<=0;
+  if(salda){ c.volado=false; delete c.fechaVolado; delete c.saldoPerdido; c.saldo=0; }
+  saveClientes(cs);
+  try{ if(c.cedula) archivarClienteEnHistorial(c); }catch(e){}
+  window._datosHoy=null; try{ recalcularCuentas(); }catch(e){}
+  renderClientes();
+  showToast(salda?'✅ '+c.nombre+' pagó todo. Quedó cancelado':'✅ Cuota de '+fmt(monto)+' registrada a '+c.nombre);
 }
 function restaurarVolado(id){
   var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
@@ -12383,6 +12414,7 @@ function renderVoladas(busq){
      +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))+'</div>'
      +'<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div>'
      +'<div style="flex:1;background:#f0fdf4;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#16a34a">Alcanzó a pagar<br><span style="font-size:15px">'+m(pag)+'</span></div></div>'
+     +'<div style="display:flex;gap:8px;margin-top:8px"><input type="number" id="vcuota-'+c.id+'" inputmode="numeric" placeholder="Cuota que pagó" autocomplete="off" style="flex:1;min-width:0;border:2px solid #fed7aa;border-radius:12px;padding:10px 12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;outline:none"><button onclick="registrarCuotaVolada(\''+c.id+'\')" style="padding:10px 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">💵 Cuota</button></div>'
      +'<button onclick="restaurarVolado(\''+c.id+'\')" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:12px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">↩️ Devolver a clientes activos</button></div>';
   }).join('');
 }
