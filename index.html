@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-11 v52">
+<meta name="app-version" content="2026-11-11 v53">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1384,7 +1384,7 @@ button[onclick="exportarDatos()"]{
       </div>
       <div style="border-bottom:1px solid #f0f0f0">
         <div style="padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería</span>
+          <span style="font-size:12px;font-weight:700;color:#cc00aa">📋 Papelería <small style="font-size:9px;color:#94a3b8;font-weight:700">(no suma)</small></span>
           <span style="font-size:14px;font-weight:800;color:#cc00aa" id="entradas-papeleria-total">$0</span>
         </div>
         <div id="entradas-papeleria-lista" style="display:none"></div>
@@ -2903,7 +2903,7 @@ function recalcularCuentas(){
   document.getElementById('vista-prestamos').textContent = fmt(prestamos);
   document.getElementById('vista-cancelados').textContent = cancelados>0 ? fmt(cancelados) : '—';
 
-  const ent = base + general + papeleria;
+  const ent = base + general; /* la papelería se muestra pero NO se suma */
   const sal = prestamos + neki + gasto;
   const res = ent - sal;
 
@@ -3476,7 +3476,7 @@ function getDatos(){
   const neki      = parseFloat(document.getElementById('input-neki')?.value)||0;
   const gasto     = parseFloat(document.getElementById('input-gasto')?.value)||0;
   const entregado = parseFloat(document.getElementById('input-entregado')?.value)||0;
-  return {fecha:hoy,base,general:0,papeleria,prestamos:0,neki,gasto,entregado,cancelados:0,totalEntradas:base+papeleria,totalSalidas:neki+gasto,resultado:base+papeleria-neki-gasto};
+  return {fecha:hoy,base,general:0,papeleria,prestamos:0,neki,gasto,entregado,cancelados:0,totalEntradas:base,totalSalidas:neki+gasto,resultado:base-neki-gasto};
 }
 
 function generarTexto(h){
@@ -5912,7 +5912,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-11 v52';
+const APP_VERSION = '2026-11-11 v53';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10171,7 +10171,7 @@ function _orbeRecolectarStats(){
   gastosHoy = v('input-gasto');
   papeleriaHoy = v('input-papeleria');
   const entregado = v('input-entregado');
-  const pleno = base + cobradoHoy + papeleriaHoy + neki - gastosHoy - prestadoHoy - entregado;
+  const pleno = base + cobradoHoy + neki - gastosHoy - prestadoHoy - entregado;
 
   return {
     fecha: fechaActiva,
@@ -10743,7 +10743,7 @@ function _orbeRespuestaLocal(pregunta, s){
       const vistaPres  = document.getElementById('vista-prestamos');
       const general2   = vistaGen  ? (parseFloat(vistaGen.textContent.replace(/[^0-9]/g,''))||0) : 0;
       const prestamos2 = vistaPres ? (parseFloat(vistaPres.textContent.replace(/[^0-9]/g,''))||0) : 0;
-      const totalEnt2  = base2 + general2 + papeleria2;
+      const totalEnt2  = base2 + general2;
       const totalSal2  = prestamos2 + neki2 + gasto2;
       const resultado2 = totalEnt2 - totalSal2;
       window._orbConvEstado = {
