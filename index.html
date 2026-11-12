@@ -2488,8 +2488,8 @@ function getFechaActiva(){ return window._fechaActiva || fechaHoy(); }
 function setFechaActiva(f){ window._fechaActiva = f; }
 
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return window._memStorage[k]||null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} window._memStorage[k]=v; }
-function lsRemove(k){ try{ localStorage.removeItem(k); }catch(e){} delete window._memStorage[k]; }
+function lsSet(k,v){ if(k==='clientes_v1'){window._cliRawMem=v;window._cliCacheRaw=null;} try{ localStorage.setItem(k,v); }catch(e){} window._memStorage[k]=v; }
+function lsRemove(k){ if(k==='clientes_v1'){window._cliRawMem=null;window._cliCacheRaw=null;} try{ localStorage.removeItem(k); }catch(e){} delete window._memStorage[k]; }
 
 // ===== LOGIN =====
 function getCredencialesCobrador(){ 
@@ -3650,7 +3650,8 @@ function renderSemana(){
 }
 
 // ===== CLIENTES =====
-function getClientes(){return JSON.parse(lsGet('clientes_v1')||'[]');}
+window._cliCacheRaw=null;window._cliCacheObj=null;
+function getClientes(){var raw=(window._cliRawMem!=null)?window._cliRawMem:(lsGet('clientes_v1')||'[]');window._cliRawMem=raw;if(raw===window._cliCacheRaw&&window._cliCacheObj)return window._cliCacheObj;window._cliCacheObj=JSON.parse(raw);window._cliCacheRaw=raw;return window._cliCacheObj;}
 function _syncPronto(){clearTimeout(window._syncT);window._syncT=setTimeout(function(){window._syncT=null;if(typeof window.syncFirebase==='function')window.syncFirebase(false);},1500);}
 function saveClientes(c){lsSet('clientes_v1',JSON.stringify(c)); _syncPronto();}
 window.saveClientes = saveClientes;
@@ -4795,7 +4796,7 @@ function avanzarSiguienteCliente(idActual){
 }
 
 var _rcTimer=null;
-function debouncedRenderClientes(){clearTimeout(_rcTimer);_rcTimer=setTimeout(renderClientes,120);}
+function debouncedRenderClientes(){clearTimeout(_rcTimer);_rcTimer=setTimeout(function(){requestAnimationFrame(renderClientes);},200);}
 function renderClientes(){
   const todosClientes=getClientes();
   const busq=(document.getElementById('buscar-cliente')||{}).value||'';
@@ -4936,9 +4937,9 @@ function renderClientes(){
         </div>
         <!-- Círculo CUOTA HOY -->
         <div style="display:flex;flex-direction:column;align-items:center;min-width:58px;">
-          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${pagadoHoy>0?'#FFD700':'#d1d5db'};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pagadoHoy>0?'#fffbe6':'#f9fafb'};">
-            <span style="font-size:8px;color:${pagadoHoy>0?'#b8860b':'#9ca3af'};font-weight:700;line-height:1;">HOY</span>
-            <span style="font-size:12px;font-weight:900;color:${pagadoHoy>0?'#b8860b':'#9ca3af'};line-height:1.1;">${pagadoHoy>0?fmt(pagadoHoy):'—'}</span>
+          <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${pagadoHoy>0?'#ff5e00':'#d1d5db'};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pagadoHoy>0?'#ffe4d1':'#f9fafb'};">
+            <span style="font-size:8px;color:${pagadoHoy>0?'#e04800':'#9ca3af'};font-weight:700;line-height:1;">HOY</span>
+            <span style="font-size:12px;font-weight:900;color:${pagadoHoy>0?'#e04800':'#9ca3af'};line-height:1.1;">${pagadoHoy>0?fmt(pagadoHoy):'—'}</span>
           </div>
         </div>
       </div>
@@ -4950,7 +4951,7 @@ function renderClientes(){
           autocomplete="off"
           placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
           style="width:110px;flex:none;border:2px solid #e5e7eb;border-radius:10px;padding:8px 8px;font-size:16px;font-weight:800;font-family:'Nunito',sans-serif;text-align:center;outline:none;color:#1a1a2e;"
-          oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const hoyEl=document.getElementById('hoy-circulo-${c.id}');if(hoyEl){hoyEl.style.borderColor=v>0?'#FFD700':'#d1d5db';hoyEl.querySelector('.hoy-val').textContent=v>0?fmt(v):'—';hoyEl.querySelector('.hoy-val').style.color=v>0?'#b8860b':'#9ca3af';hoyEl.querySelector('.hoy-lbl').style.color=v>0?'#b8860b':'#9ca3af';}const saldoEl=document.getElementById('saldo-display-${c.id}');if(saldoEl){saldoEl.textContent=v>0?(n===0?'✅ $0':'$'+n.toLocaleString('es-CO')):'${fmt(c.saldo)}';saldoEl.style.color=v>0?(n===0?'#10b981':'#f59e0b'):'#ef4444';}})(this);"
+          oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const hoyEl=document.getElementById('hoy-circulo-${c.id}');if(hoyEl){hoyEl.style.borderColor=v>0?'#ff5e00':'#d1d5db';hoyEl.querySelector('.hoy-val').textContent=v>0?fmt(v):'—';hoyEl.querySelector('.hoy-val').style.color=v>0?'#e04800':'#9ca3af';hoyEl.querySelector('.hoy-lbl').style.color=v>0?'#e04800':'#9ca3af';}const saldoEl=document.getElementById('saldo-display-${c.id}');if(saldoEl){saldoEl.textContent=v>0?(n===0?'✅ $0':'$'+n.toLocaleString('es-CO')):'${fmt(c.saldo)}';saldoEl.style.color=v>0?(n===0?'#10b981':'#f59e0b'):'#ef4444';}})(this);"
           onfocus="this.style.borderColor='#f59e0b';"
           onblur="this.style.borderColor='#e5e7eb';"
           onkeydown="if(event.key==='Enter'){event.preventDefault();pagarCuotaYAvanzar('${c.id}');}">
@@ -9689,7 +9690,7 @@ function abrirPanelDiagnostico() {
             const data = snap.val();
             if (data && data.clientes && data.clientes.length > 0) {
               // Restaurar todo desde Firebase al localStorage
-              localStorage.setItem('clientes_v1', JSON.stringify(data.clientes));
+              lsSet('clientes_v1', JSON.stringify(data.clientes));
               if (data.historial) localStorage.setItem('hist_v3', JSON.stringify(data.historial));
               if (data.porcentaje_interes) localStorage.setItem('porcentaje_interes', data.porcentaje_interes);
               if (data.manuales) {
@@ -12558,7 +12559,7 @@ function renderVoladas(busq){
 .cc-sal b{display:block;font-size:17px;font-weight:900;color:#ef4444;line-height:1.1}
 .cc-sal span{font-size:10px;font-weight:800;color:#94a3b8}
 .cc-pay{flex-shrink:0;border:none;border-radius:12px;padding:9px 11px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:white;background:linear-gradient(135deg,#00c853,#00e676);box-shadow:0 2px 8px rgba(0,200,83,.3);cursor:pointer}
-.cc-ok{flex-shrink:0;font-size:12px;font-weight:900;color:#b8860b;background:#fffbe6;border:2px solid #FFD700;border-radius:12px;padding:6px 8px}
+.cc-ok{flex-shrink:0;font-size:12px;font-weight:900;color:#e04800;background:#ffe4d1;border:2px solid #ff5e00;border-radius:12px;padding:6px 8px}
 .cc-close{text-align:center;padding:6px;font-size:12px;font-weight:900;color:#7c3aed;background:#f5f3ff;cursor:pointer;border-bottom:1.5px solid #e9d5ff}
 </style>
 <script>
@@ -12639,7 +12640,7 @@ function decorarDelgada(lista,cards){
       +'<div class="cc2-nom">'+(c.nombre||'')+'<small>'+(c.cedula?'<span style="white-space:nowrap">🪪 '+c.cedula+'</span> ':'')+(c.tel?'<span style="white-space:nowrap">📱 '+c.tel+'</span>':'')+'</small></div>'
       +'<div class="cc2-ic" onclick="event.stopPropagation()"><button onclick="verAbonosCliente(\''+id+'\')" style="background:#7c3aed">📋</button><button onclick="abrirRenovar(\''+id+'\')" style="background:#f97316">🔄</button><button onclick="compartirClienteWA(\''+id+'\')" style="background:#22c55e">💬</button></div></div>'
       +'<div class="cc2-info" onclick="toggleBody(\''+id+'\')">'+tipo+' · '+atrTxt+(up?' · <span style="color:#065f46">Últ '+fmt(up.monto)+'</span>':'')+'</div>'
-      +'<div class="cc2-num2" onclick="toggleBody(\''+id+'\')"><span>SALDO <b style="color:'+(c.saldo>0?'#ef4444':'#10b981')+'">'+(c.saldo>0?fmt(c.saldo):'✅ $0')+'</b></span><span>Cuota <b style="color:#7c3aed">'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—')+'</b></span><span>Hoy <b style="color:'+(pagoHoy>0?'#b8860b':'#9ca3af')+'">'+(pagoHoy>0?fmt(pagoHoy):'—')+'</b></span></div>';
+      +'<div class="cc2-num2" onclick="toggleBody(\''+id+'\')"><span>SALDO <b style="color:'+(c.saldo>0?'#ef4444':'#10b981')+'">'+(c.saldo>0?fmt(c.saldo):'✅ $0')+'</b></span><span>Cuota <b style="color:#7c3aed">'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'—')+'</b></span><span>Hoy <b style="color:'+(pagoHoy>0?'#e04800':'#9ca3af')+'">'+(pagoHoy>0?fmt(pagoHoy):'—')+'</b></span></div>';
     card.insertBefore(d,card.firstChild);
   });
 }
