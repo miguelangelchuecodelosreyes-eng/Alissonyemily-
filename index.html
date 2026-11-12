@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-11 v53">
+<meta name="app-version" content="2026-11-12 v54">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2984,7 +2984,71 @@ function recalcularCuentas(){
   })();
 
   window._datosHoy = {fecha:hoy,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:res};
+  try{ autoGuardarDia(window._datosHoy); }catch(e){}
 }
+
+/* ══════════ GUARDADO AUTOMÁTICO DE DÍAS ══════════ */
+function _guardarEnHistorial(d){
+  const h = JSON.parse(lsGet('hist_v3')||'[]');
+  const idx = h.findIndex(x=>x.fecha===d.fecha);
+  if(idx>=0) h[idx]=d; else h.unshift(d);
+  lsSet('hist_v3', JSON.stringify(h));
+}
+function autoGuardarDia(d){
+  if(!d || !d.fecha) return;
+  if(!getClientes().length) return;
+  if(!(d.base||d.general||d.papeleria||d.prestamos||d.neki||d.gasto||d.entregado)) return;
+  _guardarEnHistorial(d);
+}
+function _calcularDiaPuro(fecha, clientes){
+  const man = JSON.parse(lsGet('sup_manual_'+fecha)||'{}');
+  let gasto = man.gasto||0;
+  try{ const g=JSON.parse(lsGet('gastos_dia_'+fecha)||'[]'); const t=g.reduce((a,x)=>a+(x.valor||0),0); if(t>0) gasto=t; }catch(e){}
+  const base=man.base||0, neki=man.neki||0, entregado=man.entregado||0;
+  let papeleria=0, general=0, prestamos=0, cancelados=0;
+  clientes.forEach(c=>{
+    if((c.fechaCreado||'').substring(0,10)===fecha && !(c.renovaciones>0)) papeleria += c.papeleriaCreacion||0;
+    (c.historialRenovaciones||[]).forEach(r=>{
+      if((r.fecha||'').substring(0,10)===fecha) papeleria += r.papeleriaRenovacion||0;
+      (r.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ general += p.monto; });
+      if((r.fecha||r.fechaCreado||'').substring(0,10)===fecha){ general += r.saldoQuedaba||0; cancelados += r.saldoQuedaba||0; }
+    });
+    (c.pagos||[]).filter(p=>p.fecha===fecha).forEach(p=>{ general += p.monto; });
+    if((c.fechaCreado===fecha && !(c.renovaciones>0)) || c.fechaRenovacion===fecha) prestamos += c.capital||0;
+    const pg=(c.pagos||[]);
+    if(c.saldo===0 && !c.volado && pg.length && pg.slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0].fecha===fecha){
+      cancelados += pg.filter(p=>p.fecha===fecha).reduce((a,p)=>a+p.monto,0);
+    }
+  });
+  const ent=base+general, sal=prestamos+neki+gasto;
+  return {fecha,base,general,papeleria,prestamos,neki,gasto,entregado,cancelados,totalEntradas:ent,totalSalidas:sal,resultado:ent-sal};
+}
+/* Guarda los días anteriores que se te olvidó guardar (solo los que tuvieron movimiento) */
+function rellenarDiasPerdidos(){
+  try{
+    const clientes=getClientes(); if(!clientes.length) return 0;
+    const hoy=fechaHoy();
+    const h=JSON.parse(lsGet('hist_v3')||'[]');
+    const guardados=new Set(h.map(x=>x.fecha));
+    const ultimo=h.reduce((m,x)=>x.fecha>m?x.fecha:m,'0000-00-00');
+    const fechas=new Set();
+    clientes.forEach(c=>{
+      [c.fechaCreado,c.fechaRenovacion].forEach(f=>{ if(f) fechas.add(String(f).substring(0,10)); });
+      (c.pagos||[]).forEach(p=>fechas.add(p.fecha));
+      (c.historialRenovaciones||[]).forEach(r=>{ if(r.fecha) fechas.add(String(r.fecha).substring(0,10)); (r.pagos||[]).forEach(p=>fechas.add(p.fecha)); });
+    });
+    let n=0;
+    Array.from(fechas).filter(f=>f&&/^\d{4}-\d{2}-\d{2}$/.test(f)&&f>ultimo&&f<hoy&&!guardados.has(f)).sort().forEach(f=>{
+      const d=_calcularDiaPuro(f,clientes);
+      if(d.base||d.general||d.papeleria||d.prestamos||d.neki||d.gasto){ _guardarEnHistorial(d); n++; }
+    });
+    if(n){ try{renderHistorial();}catch(e){} try{renderResumenSemanal();}catch(e){} }
+    return n;
+  }catch(e){ return 0; }
+}
+setTimeout(rellenarDiasPerdidos, 3500);
+setTimeout(rellenarDiasPerdidos, 9000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(rellenarDiasPerdidos, 800); });
 
 function guardarDia(){
   const d = getDatos();
@@ -5912,7 +5976,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-11 v53';
+const APP_VERSION = '2026-11-12 v54';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
