@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-14 v56">
+<meta name="app-version" content="2026-11-15 v57">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -4268,10 +4268,10 @@ function pagarCuotaYAvanzar(id){
   if(siguiente){
     setTimeout(()=>{
       const bodyNext=document.getElementById('cbody-'+siguiente.id);
-      if(bodyNext && window._vistaModo!=='delgada') bodyNext.style.display='block';
+      if(bodyNext && window._vistaModo==='completa') bodyNext.style.display='block';
       const card=document.getElementById('card-'+siguiente.id);
       if(card) card.scrollIntoView({behavior:'auto',block:'center'});
-      const inputNext=document.getElementById('cuota-input-'+siguiente.id);
+      const inputNext=document.getElementById(window._vistaModo==='compacta'?'cc-inp-'+siguiente.id:'cuota-input-'+siguiente.id);
       if(inputNext){ inputNext.focus(); inputNext.select(); }
     },30);
   } else {
@@ -4781,7 +4781,7 @@ function avanzarSiguienteCliente(idActual){
     if(bodyActual) bodyActual.style.display='none';
     const bodyNext=document.getElementById('cbody-'+siguiente.id);
     if(bodyNext){
-      if(window._vistaModo!=='delgada') bodyNext.style.display='block';
+      if(window._vistaModo==='completa') bodyNext.style.display='block';
       const card=document.getElementById('card-'+siguiente.id);
       if(card) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
       // Enfocar el input de cuota del siguiente
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-14 v56';
+const APP_VERSION = '2026-11-15 v57';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12569,7 +12569,7 @@ function renderVoladas(busq){
 #clientes-lista.compacta .cliente-card:not(.abierta) > *:not(.cc-row){display:none !important}
 #clientes-lista.compacta .cliente-card:not(.abierta) > .cc-row{display:flex}
 #clientes-lista.compacta .cliente-card.abierta > .cc-close{display:block}
-.cc-row{align-items:center;gap:8px;padding:8px 10px 8px 12px;cursor:pointer;border-left:5px solid var(--cc,#3b82f6);border-radius:14px}
+.cc-row{align-items:center;gap:8px;padding:5px 8px 5px 12px;cursor:pointer;border-left:5px solid var(--cc,#3b82f6);border-radius:14px}
 .cc-num{min-width:24px;height:24px;border-radius:50%;background:var(--cc,#3b82f6);color:white;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cc-mid{flex:1;min-width:0}
 .cc-foto{width:38px !important;height:38px !important}
@@ -12579,7 +12579,14 @@ function renderVoladas(busq){
 .cc-sal{text-align:right;flex-shrink:0}
 .cc-sal b{display:block;font-size:17px;font-weight:900;color:#ef4444;line-height:1.1}
 .cc-sal span{font-size:10px;font-weight:800;color:#94a3b8}
-.cc-pay{flex-shrink:0;border:none;border-radius:12px;padding:9px 11px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:white;background:linear-gradient(135deg,#00c853,#00e676);box-shadow:0 2px 8px rgba(0,200,83,.3);cursor:pointer}
+.cc-right{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0}
+.cc-right .cc-sal span{font-size:9px}
+.cc-cobro{display:flex;gap:4px;align-items:center}
+.cc-inp::-webkit-outer-spin-button,.cc-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.cc-inp{-moz-appearance:textfield;width:62px;box-sizing:border-box;border:2px solid #d8b4fe;border-radius:10px;padding:3px 2px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;text-align:center;outline:none;color:#1a1a2e;background:#fff}
+.cc-inp:focus{border-color:#a855f7}
+.cc-right .cc-sal b{font-size:16px}
+.cc-pay{flex-shrink:0;border:none;border-radius:11px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:white;background:linear-gradient(135deg,#00c853,#00e676);box-shadow:0 2px 8px rgba(0,200,83,.3);cursor:pointer}
 .cc-ok{flex-shrink:0;font-size:12px;font-weight:900;color:#fff;background:#00c853;border:2px solid #00a844;border-radius:12px;padding:6px 8px;box-shadow:0 2px 8px rgba(0,200,83,.4)}
 .cc-close{text-align:center;padding:6px;font-size:12px;font-weight:900;color:#7c3aed;background:#f5f3ff;cursor:pointer;border-bottom:1.5px solid #e9d5ff}
 </style>
@@ -12611,6 +12618,13 @@ function cobroRapido(id){
   var inp=document.getElementById('cuota-input-'+id); if(!inp) return;
   inp.value=c.cuotaSugerida; pagarCuota(id);
 }
+function cobroCompacto(id){
+  var c=getClientes().find(function(x){return x.id===id;}); if(!c) return;
+  var inp=document.getElementById('cc-inp-'+id); var v=parseFloat(inp&&inp.value)||0;
+  if(v<=0){ v=c.cuotaSugerida||0; if(!(v>0)){ showToast('⚠️ Escribe la cuota'); if(inp) inp.focus(); return; } if(!confirm('¿Cobrar '+fmt(v)+' a '+c.nombre+'?')) return; }
+  var real=document.getElementById('cuota-input-'+id); if(!real) return;
+  real.value=v; pagarCuotaYAvanzar(id);
+}
 function decorarCompacta(){
   var lista=document.getElementById('clientes-lista'); if(!lista) return;
   var btn=document.getElementById('btn-vista-compacta');
@@ -12630,12 +12644,13 @@ function decorarCompacta(){
     var col=pagoHoy>0?'#16a34a':(atr>2?'#dc2626':(atr>0?'#f59e0b':'#3b82f6'));
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+((c.diaSemana)?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1,3):'');
     var atrTxt=atr>0?('⏰ '+atr+'d atraso'):(atr<0?('⭐ '+Math.abs(atr)+'d adel.'):'✅ al día');
-    var accion=pagoHoy>0?'<div class="cc-ok">✅ '+fmt(pagoHoy)+'</div>':((c.saldo>0&&c.cuotaSugerida>0)?'<button class="cc-pay" onclick="event.stopPropagation();cobroRapido(\''+id+'\')">💵 '+fmt(c.cuotaSugerida)+'</button>':'');
+    var accion='';
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
     row.innerHTML='<div class="cc-num">'+(i+1)+'</div>'+foto+'<div class="cc-mid"><div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
-      +'<div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'+accion;
+      +'<div class="cc-right"><div class="cc-sal"><span>'+(pagoHoy>0?'<i style="font-style:normal;color:#00a844">✅ HOY '+fmt(pagoHoy)+'</i>':'SALDO')+'</span><b>'+fmt(c.saldo)+'</b></div>'
+      +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="number" inputmode="numeric" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
     card.insertBefore(cl,card.firstChild); card.insertBefore(row,card.firstChild);
   });
@@ -12667,7 +12682,14 @@ function decorarDelgada(lista,cards){
 }
 /* El saldo baja en vivo mientras escribes la cuota (antes de tocar Cobrar) */
 document.addEventListener('input', function(e){
-  var inp=e.target; if(!inp||!inp.classList||!inp.classList.contains('cuota-input')) return;
+  var inp=e.target; if(!inp||!inp.classList) return;
+  if(inp.classList.contains('cc-inp')){
+    var id2=(inp.id||'').replace('cc-inp-',''); var c2=getClientes().find(function(x){return x.id===id2;}); if(!c2) return;
+    var v2=parseFloat(inp.value)||0, n2=Math.max(0,(c2.saldo||0)-v2);
+    var b2=document.querySelector('#card-'+id2+' .cc-sal b'); if(b2){ b2.textContent=v2>0?(n2===0?'✅ $0':fmt(n2)):fmt(c2.saldo); b2.style.color=v2>0?(n2===0?'#10b981':'#2563eb'):'#ef4444'; }
+    return;
+  }
+  if(!inp.classList.contains('cuota-input')) return;
   var id=(inp.id||'').replace('cuota-input-',''); if(!id) return;
   var c=getClientes().find(function(x){return x.id===id;}); if(!c) return;
   var v=parseFloat(inp.value)||0, saldo=c.saldo||0, n=Math.max(0,saldo-v);
