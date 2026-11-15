@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-15 v58">
+<meta name="app-version" content="2026-11-15 v59">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-15 v58';
+const APP_VERSION = '2026-11-15 v59';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10527,6 +10527,23 @@ function _jParseFecha(q){
   }
   return null;
 }
+function _jPreguntaUltima(q){ return /ultim[oa]s?\s+(cuota|pago|abono|vez)|cuanto\s+(fue|dio|pago|abono)\s+(la\s+|el\s+)?ultim|cuando\s+(fue\s+)?(pago|dio|abono)\s+(por\s+)?ultim/.test(_jN(q)); }
+function _jRespuestaUltimaCuota(c, f){
+  var semanal=(c.tipo==='semanal'), C=c.cuotaSugerida||0, nom=c.nombre||'El cliente';
+  var dia=c.diaSemana?String(c.diaSemana):'';
+  var cab='🔎 Ya reviso, jefe…\n👤 '+nom+(semanal?' — es SEMANAL'+(dia?' (cobra los '+dia+')':''):' — es DIARIO')+'\n';
+  var pagos=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:(a.fecha>b.fecha?-1:0);});
+  if(!pagos.length) return cab+'❌ Todavía no ha dado ninguna cuota.';
+  var u=pagos[0], delDia=pagos.filter(function(p){return p.fecha===u.fecha;}), P=delDia.reduce(function(a,p){return a+(p.monto||0);},0);
+  var t=cab+'⏱️ Su última cuota fue el '+_jEtiqueta(u.fecha)+': '+f(P)+(delDia.length>1?' (en '+delDia.length+' pagos)':'')+'.\n';
+  if(c.saldo===0 && !c.volado) t+='🎉 Con ese pago terminó de pagar y quedó cancelado.';
+  else if(C>0){
+    if(P>=C) t+='👍 Dio la cuota completa'+(semanal?' semanal':'')+' que es '+f(C)+(P>C?' y '+f(P-C)+' de más.':'.');
+    else t+='⚠️ La cuota'+(semanal?' semanal':'')+' es '+f(C)+' y dio '+f(P)+': le faltaron '+f(C-P)+' para completarla.';
+  }
+  if(c.saldo>0) t+='\n💳 Saldo actual: '+f(c.saldo);
+  return t;
+}
 function _jRespuestaPagoDia(c, pregunta, f, fechaForzada){
   var fecha = fechaForzada || _jParseFecha(pregunta);
   if(!fecha) return null;
@@ -10608,7 +10625,7 @@ function _orbeRespuestaLocal(pregunta, s){
     clienteEncontrado = t.c;
   })();
   if (_respAmbigua) return _respAmbigua;
-  if (!clienteEncontrado && window._jUltimoCliente && _jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) {
+  if (!clienteEncontrado && window._jUltimoCliente && ((_jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) || _jPreguntaUltima(pregunta))) {
     clienteEncontrado = clientes.find(x => x && x.id === window._jUltimoCliente) || null;
   }
 
@@ -10616,7 +10633,7 @@ function _orbeRespuestaLocal(pregunta, s){
     const c = clienteEncontrado;
     window._jUltimoCliente = c.id;
     /* ¿pagó tal día? (también retoma la pregunta si antes hubo duda entre varios clientes) */
-    let _rp = _jRespuestaPagoDia(c, pregunta, f);
+    let _rp = _jPreguntaUltima(pregunta) ? _jRespuestaUltimaCuota(c, f) : _jRespuestaPagoDia(c, pregunta, f);
     if (!_rp && window._jPendiente && (Date.now()-window._jPendiente.t) < 120000 && !_jParseFecha(pregunta)) {
       _rp = _jRespuestaPagoDia(c, window._jPendiente.pregunta, f);
     }
