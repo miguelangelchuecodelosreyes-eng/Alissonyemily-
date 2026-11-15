@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-15 v57">
+<meta name="app-version" content="2026-11-15 v58">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-15 v57';
+const APP_VERSION = '2026-11-15 v58';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10494,6 +10494,77 @@ Cartera total: ${f(s.totalCartera)} en ${s.cuentaActivos} clientes activos
 Atrasados hoy: ${s.cuentaAtrasados} (${s.pctAtrasados}%)`;
 }
 
+
+/* ══════════ JARVIS: ¿pagó tal día? ══════════ */
+const _J_DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const _J_MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function _jN(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function _jFechaStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _jEtiqueta(fecha){ var p=fecha.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); return _J_DIAS[d.getDay()]+' '+d.getDate()+' de '+_J_MESES[d.getMonth()]; }
+function _jTienePalabrasPago(q){ return /\b(pag|dio|dieron|abon|cuota|plata|cobr|entreg|dej|consign|trajo|llevo|llego|cancel)/.test(_jN(q)); }
+/* Devuelve 'YYYY-MM-DD' o null según lo que diga la pregunta (hoy, ayer, antier, lunes…, el 14, 14 de noviembre) */
+function _jParseFecha(q){
+  q=_jN(q); var hoy=new Date(); hoy.setHours(12,0,0,0);
+  if(/\bantier\b|\banteayer\b/.test(q)){ var a=new Date(hoy); a.setDate(a.getDate()-2); return _jFechaStr(a); }
+  if(/\bayer\b/.test(q)){ var a2=new Date(hoy); a2.setDate(a2.getDate()-1); return _jFechaStr(a2); }
+  if(/\bhoy\b/.test(q)) return _jFechaStr(hoy);
+  var mes=-1; _J_MESES.forEach(function(m,i){ if(new RegExp('\\b'+m+'\\b').test(q)) mes=i; });
+  var mDia=q.match(/\b(\d{1,2})\b(?!\d)/);
+  var dias=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  var wd=-1; dias.forEach(function(d,i){ if(new RegExp('\\b'+d+'\\b').test(q)) wd=i; });
+  if(mDia && +mDia[1]>=1 && +mDia[1]<=31){
+    var dd=+mDia[1], y=hoy.getFullYear(), m=(mes>=0?mes:hoy.getMonth());
+    var f=new Date(y,m,dd,12);
+    if(f.getMonth()!==m) return null;
+    if(mes<0 && f>hoy){ f=new Date(y,m-1,dd,12); }
+    else if(mes>=0 && f>hoy){ f=new Date(y-1,m,dd,12); }
+    return _jFechaStr(f);
+  }
+  if(wd>=0){
+    var diff=(hoy.getDay()-wd+7)%7; var f2=new Date(hoy); f2.setDate(f2.getDate()-diff);
+    if(/\b(pasado|pasada|anterior)\b/.test(q) && diff===0) f2.setDate(f2.getDate()-7);
+    return _jFechaStr(f2);
+  }
+  return null;
+}
+function _jRespuestaPagoDia(c, pregunta, f, fechaForzada){
+  var fecha = fechaForzada || _jParseFecha(pregunta);
+  if(!fecha) return null;
+  if(!fechaForzada && !_jTienePalabrasPago(pregunta)) return null;
+  var hoy=_jFechaStr(new Date()), et=_jEtiqueta(fecha), nom=c.nombre||'El cliente';
+  var semanal=(c.tipo==='semanal'), dia=c.diaSemana?(String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1)).toLowerCase():'';
+  var cab='🔎 Ya reviso, jefe…\n'+'👤 '+nom+(semanal?' — es SEMANAL'+(dia?' (cobra los '+dia+')':''):' — es DIARIO')+'\n';
+  if(fecha>hoy) return cab+'📅 El '+et+' todavía no llega.';
+  var pagosDia=(c.pagos||[]).filter(function(p){return p.fecha===fecha;});
+  (c.historialRenovaciones||[]).forEach(function(r){ (r.pagos||[]).filter(function(p){return p.fecha===fecha;}).forEach(function(p){pagosDia.push(p);}); });
+  var P=pagosDia.reduce(function(a,p){return a+(p.monto||0);},0), C=c.cuotaSugerida||0;
+  var creado=(c.fechaCreado||'').substring(0,10);
+  var ult=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
+  if(P>0){
+    var t=cab+'✅ Sí jefe, el '+et+' dio '+f(P)+(pagosDia.length>1?' (en '+pagosDia.length+' pagos)':'')+'.\n';
+    var canceloHoy=(c.saldo===0 && !c.volado && ult && ult.fecha===fecha);
+    if(canceloHoy) t+='🎉 Con ese pago terminó de pagar y quedó cancelado.';
+    else if(C>0){
+      if(P>=C) t+='👍 Dio la cuota completa'+(semanal?' semanal':'')+' que es '+f(C)+(P>C?' y '+f(P-C)+' de más.':'.');
+      else t+='⚠️ La cuota'+(semanal?' semanal':'')+' es '+f(C)+' y dio '+f(P)+': le faltaron '+f(C-P)+' para completar la cuota.';
+    }
+    if(!canceloHoy) t+='\n💳 Saldo actual: '+f(c.saldo||0);
+    return t;
+  }
+  var t2=cab;
+  if(creado && fecha<creado) return t2+'🗓️ El '+et+' todavía no era cliente (ingresó el '+_jEtiqueta(creado)+').';
+  t2+='❌ No jefe, el '+et+' no dio plata.';
+  if(C>0) t2+='\n💵 Le tocaba la cuota'+(semanal?' semanal':'')+' de '+f(C)+'.';
+  if(semanal){
+    var d0=new Date(+fecha.split('-')[0],+fecha.split('-')[1]-1,+fecha.split('-')[2],12); var off=(d0.getDay()+6)%7; var ini=new Date(d0); ini.setDate(d0.getDate()-off); var fin=new Date(ini); fin.setDate(ini.getDate()+6);
+    var enSem=(c.pagos||[]).filter(function(p){return p.fecha>=_jFechaStr(ini)&&p.fecha<=_jFechaStr(fin);});
+    if(enSem.length){ t2+='\n📅 Pero esa semana sí pagó: '+enSem.map(function(p){return f(p.monto)+' el '+_jEtiqueta(p.fecha);}).join(', ')+'.'; }
+  }
+  if(ult) t2+='\n⏱️ Último pago: '+_jEtiqueta(ult.fecha)+' — '+f(ult.monto)+'.';
+  if(c.volado) t2+='\n🏃 Ojo: está marcado como volado.';
+  return t2;
+}
+
 function _orbeRespuestaLocal(pregunta, s){
   const f = n => '$'+Math.round(n||0).toLocaleString();
   const has = (...ks) => ks.some(k => pregunta.includes(k));
@@ -10525,6 +10596,7 @@ function _orbeRespuestaLocal(pregunta, s){
     function has_nombre_cualquiera(w){ return false; }
     const lista = x => '• ' + x.c.nombre + (x.c.cedula ? ' (CC ' + x.c.cedula + ')' : '') + ' — saldo ' + f(x.c.saldo||0);
     if (top.length > 1 && !top[0].completo) {
+      if(_jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) window._jPendiente={pregunta:pregunta,t:Date.now()};
       _respAmbigua = '🤔 Tengo varios clientes parecidos. ¿De cuál hablas?\n' + top.slice(0,6).map(lista).join('\n') + '\n\nEscríbeme el nombre completo o la cédula.';
       return;
     }
@@ -10536,9 +10608,20 @@ function _orbeRespuestaLocal(pregunta, s){
     clienteEncontrado = t.c;
   })();
   if (_respAmbigua) return _respAmbigua;
+  if (!clienteEncontrado && window._jUltimoCliente && _jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) {
+    clienteEncontrado = clientes.find(x => x && x.id === window._jUltimoCliente) || null;
+  }
 
   if (clienteEncontrado) {
     const c = clienteEncontrado;
+    window._jUltimoCliente = c.id;
+    /* ¿pagó tal día? (también retoma la pregunta si antes hubo duda entre varios clientes) */
+    let _rp = _jRespuestaPagoDia(c, pregunta, f);
+    if (!_rp && window._jPendiente && (Date.now()-window._jPendiente.t) < 120000 && !_jParseFecha(pregunta)) {
+      _rp = _jRespuestaPagoDia(c, window._jPendiente.pregunta, f);
+    }
+    window._jPendiente = null;
+    if (_rp) return _rp;
     const pagos = c.pagos || [];
 
     const diasNombre = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'];
