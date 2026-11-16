@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-16 v68">
+<meta name="app-version" content="2026-11-16 v69">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1345,7 +1345,7 @@ button[onclick="exportarDatos()"]{
   </div>
   <!-- Botones PDF y Backup -->
   <div style="margin:10px 14px 0;display:flex;gap:8px">
-    <button onclick="generarPDFRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+    <button onclick="abrirImpresionRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
       📄 PDF Ruta
     </button>
     <button onclick="descargarBackupDirecto()" style="flex:1;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.35)">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-16 v68';
+const APP_VERSION = '2026-11-16 v69';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8296,44 +8296,110 @@ function descargarBackupDirecto(){
   _entregarCopia('backup_alisson_emily_'+hoy+'.json', JSON.stringify(backup,null,2), false);
 }
 
+// ===== ELEGIR EL DIA PARA IMPRIMIR LA RUTA =====
+function abrirImpresionRuta(){
+  const hoy = fechaHoy();
+  let ov = document.getElementById('ov-imprimir-ruta');
+  if(ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'ov-imprimir-ruta';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:22px;padding:22px;max-width:340px;width:100%;font-family:Nunito,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.4)">'
+    +'<div style="font-size:18px;font-weight:900;color:#1a1a2e;margin-bottom:6px">🖨️ Imprimir ruta</div>'
+    +'<div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.4">Escoge el día. Si es un día anterior, la hoja sale con lo que <b>dio</b> cada cliente ese día y el <b>saldo</b> que le quedó.</div>'
+    +'<input type="date" id="imp-ruta-fecha" value="'+hoy+'" max="'+hoy+'" style="width:100%;padding:12px;border:2px solid #d9c8f5;border-radius:14px;font-size:16px;font-weight:800;box-sizing:border-box;margin-bottom:14px">'
+    +'<div style="display:flex;gap:10px">'
+    +'<button id="imp-ruta-no" style="flex:1;padding:13px;border:none;border-radius:14px;background:#eee;font-weight:900;font-size:14px;cursor:pointer">Cancelar</button>'
+    +'<button id="imp-ruta-si" style="flex:1.4;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;font-weight:900;font-size:14px;cursor:pointer">Imprimir</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('imp-ruta-no').onclick = ()=>ov.remove();
+  document.getElementById('imp-ruta-si').onclick = ()=>{
+    const f = document.getElementById('imp-ruta-fecha').value || hoy;
+    ov.remove();
+    generarPDFRuta(f>hoy?hoy:f);
+  };
+}
+
 // ===== PDF RUTA COMPLETA =====
-function generarPDFRuta(){
-  const fecha = getFechaActiva();
+function generarPDFRuta(fechaOpt){
+  const hoyStr = fechaHoy();
+  const fecha = fechaOpt || getFechaActiva();
+  const pasado = fecha < hoyStr;
   const clientes = getClientes();
   const ahora = new Date();
   const horaImp = ahora.toLocaleDateString('es-CO')+', '+ahora.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const _DM={lunes:'LUNES',martes:'MARTES',miercoles:'MIÉRCOLES',jueves:'JUEVES',viernes:'VIERNES',sabado:'SÁBADO',domingo:'DOMINGO'};
+  const _sinAc=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const _suma=a=>a.reduce((s,p)=>s+(p.monto||0),0);
 
-  // Construir filas solo clientes activos
+  // Atraso en una fecha cualquiera (misma regla que calcularAtraso, pero hasta ese dia)
+  function atrasoEn(inicio, hasta, tipo, diaSem, cuota, pagosHasta){
+    if(!inicio || inicio>=hasta) return 0;
+    const pagado=_suma(pagosHasta);
+    const cubiertas = cuota>0 ? Math.floor(pagado/cuota) : pagosHasta.length;
+    const objetivo = diaSemanaNombre2Num(diaSem); const dObj=(objetivo!==undefined)?objetivo:1;
+    let n=0; const cur=new Date(inicio+'T00:00:00'); cur.setDate(cur.getDate()+1);
+    const fin=new Date(hasta+'T00:00:00');
+    while(cur<=fin){
+      if(tipo==='semanal'){ if(cur.getDay()===dObj) n++; } else { if(cur.getDay()!==0) n++; }
+      cur.setDate(cur.getDate()+1);
+    }
+    return n-cubiertas;
+  }
+
+  // Estado de un cliente al terminar el dia "fecha" (null = ese dia no estaba activo)
+  function estadoEn(c){
+    const hist=(c.historialRenovaciones||[]).slice().sort((a,b)=>a.fecha<b.fecha?-1:1);
+    const idx=hist.findIndex(h=>h.fecha>fecha);
+    let pagos, prest, cuota, tipo, inicio, saldo;
+    if(idx>=0){
+      const e=hist[idx];
+      inicio = idx>0 ? hist[idx-1].fecha : (e.fechaCreado||c.fechaCreado||'');
+      if(inicio && inicio>fecha) return null;
+      pagos=e.pagos||[]; prest=e.prestamoCiclo||0; cuota=e.cuotaSugerida||c.cuotaSugerida||0;
+      tipo=(e.tipo||c.tipo||'diario').toLowerCase();
+      saldo=Math.max(0, prest-_suma(pagos.filter(p=>p.fecha<=fecha)));
+    } else {
+      inicio=c.fechaRenovacion||c.fechaCreado||'';
+      if(inicio && inicio>fecha) return null;
+      if(c.volado && c.fechaVolado && c.fechaVolado<fecha) return null;
+      pagos=c.pagos||[]; prest=c.prestamo||0; cuota=c.cuotaSugerida||0;
+      tipo=(c.tipo||'diario').toLowerCase();
+      const base=c.volado?(c.saldoPerdido||c.saldo||0):(c.saldo||0);
+      saldo=base+_suma(pagos.filter(p=>p.fecha>fecha));
+    }
+    const pagosHasta=pagos.filter(p=>p.fecha<=fecha);
+    const dio=_suma(pagos.filter(p=>p.fecha===fecha));
+    if(saldo<=0 && dio<=0) return null;
+    return {saldo,prest,cuota,tipo,dio,atraso:atrasoEn(inicio,fecha,tipo,c.diaSemana,cuota,pagosHasta)};
+  }
+
+  // Construir filas
   let filas=[], recaudado=0, cuotasDia=0, pagaron=0;
   clientes.forEach((c,i)=>{
-    if(c.saldo<=0) return;
-    const pagosDia=(c.pagos||[]).filter(p=>p.fecha===fecha);
-    const mp=pagosDia.reduce((s,p)=>s+p.monto,0);
-    const cuota=c.cuotaSugerida||0;
-    recaudado+=mp; cuotasDia+=cuota; if(mp>0) pagaron++;
-    const atraso=calcularAtraso(c);
-    const _DM={lunes:'LUNES',martes:'MARTES',miercoles:'MIÉRCOLES',jueves:'JUEVES',viernes:'VIERNES',sabado:'SÁBADO',domingo:'DOMINGO'};
-    const dia=((c.tipo||'').toLowerCase()==='semanal')?(_DM[String(c.diaSemana||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')]||''):'';
+    let st;
+    if(pasado){ st=estadoEn(c); if(!st) return; }
+    else {
+      if(c.saldo<=0) return;
+      const mp0=_suma((c.pagos||[]).filter(p=>p.fecha===fecha));
+      st={saldo:c.saldo||0,prest:c.prestamo||0,cuota:c.cuotaSugerida||0,tipo:(c.tipo||'diario').toLowerCase(),dio:mp0,atraso:calcularAtraso(c)};
+    }
+    recaudado+=st.dio; cuotasDia+=st.cuota; if(st.dio>0) pagaron++;
+    const dia=(st.tipo==='semanal')?(_DM[_sinAc(c.diaSemana)]||''):'';
     filas.push({dia,num:i+1,nombre:String(c.nombre||'').toUpperCase(),cedula:c.cedula||'',tel:c.tel||'',
-      tipo:(c.tipo||'diario').toLowerCase()==='semanal'?'S':'D',
-      total:c.prestamo||0,saldo:c.saldo||0,cuota,atraso,mp});
+      tipo:st.tipo==='semanal'?'S':'D',total:st.prest,saldo:st.saldo,cuota:st.cuota,atraso:st.atraso,mp:st.dio});
   });
   const totalSaldo=filas.reduce((s,f)=>s+f.saldo,0);
   const activos=filas.length;
 
-  function estadoStr(atraso,tipo){
-    const u=(tipo||'').toLowerCase()==='semanal'?'s':'d';
-    if(atraso>0) return atraso+u+' atraso';
-    if(atraso<0) return Math.abs(atraso)+u+' adelanto';
-    return 'Al dia';
-  }
   function fmtN(n){ return Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 
   function doPDF(){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
     const pW=215.9, pH=279.4, ML=10, MR=10, UW=pW-ML-MR;
-    const AZUL=[26,26,46], ROJO=[180,0,0], VERDE=[0,120,0], AZUL_E=[0,60,180];
+    const AZUL=[26,26,46], ROJO=[180,0,0], VERDE=[0,120,0];
     const ROJO_F=[255,242,242], GRIS_A=[245,246,255];
     let y=10;
 
@@ -8351,26 +8417,26 @@ function generarPDFRuta(){
       doc.text(msg, ML+UW, y+5.6, {align:'right'});
       doc.setTextColor(0,0,0);
     })();
-    doc.setFont('helvetica','bold'); doc.setFontSize(15);
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
-    doc.text('FECHA: '+fecha+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos, ML, y+13);
+    const dNom=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'][new Date(fecha+'T12:00:00').getDay()];
+    doc.text('FECHA: '+fecha+(pasado?' ('+dNom+')':'')+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos, ML, y+13);
     doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS: $'+fmtN(cuotasDia)+'  |  RECAUDADO: $'+fmtN(recaudado)+'  |  PAGARON: '+pagaron, ML, y+20);
     doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
     doc.line(ML,y+23,ML+UW,y+23);
     y+=27;
 
-    // Columnas
+    // Columnas (k = clave). En un dia anterior se agrega DIO al lado de CUOTA.
     const cols=[
-      {h:'#',      w:8,  r:true},
-      {h:'CLIENTE',w:0,  r:false, auto:true},
-      {h:'SALDO',  w:20, r:true, c:true},
-      {h:'CUOTA',  w:16, r:true, c:true},
-      {h:'TOTAL',  w:20, r:true, c:true},
-      {h:'T',      w:15, r:false, c:true},
-      {h:'ATRASO', w:18, r:false, c:true},
-      {h:'NOTAS',  w:0,  r:false},
+      {k:'num',  h:'#',      w:8,  r:true},
+      {k:'nom',  h:'CLIENTE',w:0},
+      {k:'saldo',h:'SALDO',  w:18, c:true},
+      {k:'cuota',h:'CUOTA',  w:15, c:true},
     ];
-    // El ancho de la columna CLIENTE se ajusta al nombre mas largo (o a la linea de cedula/tel)
+    if(pasado) cols.push({k:'dio',h:'DIO',w:15,c:true});
+    cols.push({k:'total',h:'TOTAL',w:18,c:true},{k:'tipo',h:'T',w:15,c:true},{k:'atraso',h:'ATRASO',w:15,c:true},{k:'notas',h:'NOTAS',w:0});
+    const ci=k=>cols.findIndex(c=>c.k===k);
+
+    // El ancho de CLIENTE se ajusta al nombre mas largo (o a la linea de cedula/tel)
     let maxNom=0;
     filas.forEach(f=>{
       doc.setFont('helvetica','bold'); doc.setFontSize(8);
@@ -8380,11 +8446,11 @@ function generarPDFRuta(){
       if(w>maxNom) maxNom=w;
     });
     cols[1].w=Math.min(Math.max(maxNom+5,45), 70);
-    [18,15,18,15,15].forEach((w,k)=>{ cols[k+2].w=w; });
-    cols[7].w=UW-8-cols[1].w-81;   // lo que sobra: espacio en blanco para anotar
+    const usados=cols.reduce((s,c)=>s+c.w,0);
+    cols[cols.length-1].w=UW-usados;   // lo que sobra: espacio en blanco para anotar
 
     const rowH=8.5, headH=9;
-    const LINEA=[90,90,90];   // color de las lineas
+    const LINEA=[90,90,90];
     let tableTop=y;
 
     function drawHead(yy){
@@ -8407,7 +8473,7 @@ function generarPDFRuta(){
       cols.forEach((col,i)=>{
         gx+=col.w;
         if(i<cols.length-1){
-          if(i===0 || true){ doc.line(gx, tableTop+headH, gx, yBot); }
+          doc.line(gx, tableTop+headH, gx, yBot);
           doc.setDrawColor(255,255,255); doc.setLineWidth(0.2);
           doc.line(gx, tableTop+1.5, gx, tableTop+headH-1.5);
           doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
@@ -8423,9 +8489,11 @@ function generarPDFRuta(){
       doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
       doc.text('TOTALES', ML+1, yy+6.5);
       let cx=ML+1;
-      cols.forEach((col,i)=>{
-        if(i===2) doc.text(fmtN(totalSaldo), cx+col.w/2-1, yy+6.5, {align:'center'});
-        if(i===3) doc.text(fmtN(cuotasDia),  cx+col.w/2-1, yy+6.5, {align:'center'});
+      cols.forEach(col=>{
+        const mid=cx+col.w/2-1;
+        if(col.k==='saldo') doc.text(fmtN(totalSaldo), mid, yy+6.5, {align:'center'});
+        if(col.k==='cuota') doc.text(fmtN(cuotasDia),  mid, yy+6.5, {align:'center'});
+        if(col.k==='dio')   doc.text(fmtN(recaudado),  mid, yy+6.5, {align:'center'});
         cx+=col.w;
       });
     }
@@ -8445,25 +8513,21 @@ function generarPDFRuta(){
       if(f.atraso>0){ doc.setFillColor(...ROJO_F); doc.rect(ML,y,UW,rowH,'F'); }
       else if(idx%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,y,UW,rowH,'F'); }
 
-      const vals=[
-        String(f.num), f.nombre,
-        fmtN(f.saldo),
-        f.cuota>0?fmtN(f.cuota):'-',
-        fmtN(f.total),
-        f.tipo,
-        f.atraso>0?String(f.atraso):'-',
-        ''
-      ];
+      const val={
+        num:String(f.num), nom:f.nombre, saldo:fmtN(f.saldo),
+        cuota:f.cuota>0?fmtN(f.cuota):'-', dio:f.mp>0?fmtN(f.mp):'-',
+        total:fmtN(f.total), tipo:f.tipo, atraso:f.atraso>0?String(f.atraso):'-', notas:''
+      };
       let cx=ML+1;
       const yc=y+5.6;
-      vals.forEach((val,vi)=>{
-        const col=cols[vi];
-        doc.setFontSize(vi>=2&&vi<=4?9.5:8); doc.setFont('helvetica', vi===1||vi===2?'bold':'normal');
-        if(vi===2)      doc.setTextColor(...ROJO);
-        else if(vi===6) doc.setTextColor(...ROJO);
+      cols.forEach(col=>{
+        const k=col.k, txt=val[k];
+        doc.setFontSize((k==='saldo'||k==='cuota'||k==='dio'||k==='total')?9.5:8);
+        doc.setFont('helvetica', (k==='nom'||k==='saldo'||(k==='dio'&&f.mp>0))?'bold':'normal');
+        if(k==='saldo'||k==='atraso') doc.setTextColor(...ROJO);
+        else if(k==='dio'&&f.mp>0) doc.setTextColor(...VERDE);
         else doc.setTextColor(0,0,0);
-        let txt=val;
-        if(vi===1){
+        if(k==='nom'){
           // nombre completo: si es largo, se achica la letra hasta que quepa
           let fs=8; doc.setFontSize(fs);
           while(fs>5 && doc.getTextWidth(txt)>col.w-2){ fs-=0.25; doc.setFontSize(fs); }
@@ -8472,12 +8536,12 @@ function generarPDFRuta(){
             doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
             doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
           }
-        } else if(vi===5 && f.dia){
+        } else if(k==='tipo' && f.dia){
           doc.setFontSize(9); doc.text(txt, cx+col.w/2-1, y+4.4, {align:'center'});
           doc.setFontSize(5.5); doc.setFont('helvetica','bold'); doc.setTextColor(110,50,170);
           doc.text(f.dia, cx+col.w/2-1, y+7.5, {align:'center'});
-        } else {
-          if(vi===5||vi===6) doc.setFontSize(9);
+        } else if(k!=='notas'){
+          if(k==='tipo'||k==='atraso') doc.setFontSize(9);
           doc.text(txt, col.c?cx+col.w/2-1:(col.r?cx+col.w-2:cx), yc+0.3, {align:col.c?'center':(col.r?'right':'left')});
         }
         cx+=col.w;
