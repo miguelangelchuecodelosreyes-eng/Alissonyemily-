@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-15 v61">
+<meta name="app-version" content="2026-11-15 v62">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-15 v61';
+const APP_VERSION = '2026-11-15 v62';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12846,6 +12846,14 @@ function _sincAbiertas(){
   });
   var _sc=window.scrollToCliente;
   window.scrollToCliente=function(id){ if(window._vistaModo==='delgada'){ var cd=document.getElementById('card-'+id); if(cd) cd.classList.add('det'); } if(window._vistaCompacta){ var c=document.getElementById('card-'+id); if(c) c.classList.add('abierta'); } return _sc.apply(this,arguments); };
+})();
+</script>
+<style>html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+<script>
+/* Bloquear zoom (pellizco y doble toque) */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(e){document.addEventListener(e,function(ev){ev.preventDefault();},{passive:false});});
+  document.addEventListener('touchmove',function(ev){ if(ev.touches&&ev.touches.length>1) ev.preventDefault(); },{passive:false});
 })();
 </script>
 </body>
