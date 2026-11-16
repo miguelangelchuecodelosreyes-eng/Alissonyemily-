@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-16 v64">
+<meta name="app-version" content="2026-11-16 v68">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-16 v64';
+const APP_VERSION = '2026-11-16 v68';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8363,27 +8363,58 @@ function generarPDFRuta(){
     const cols=[
       {h:'#',      w:8,  r:true},
       {h:'CLIENTE',w:0,  r:false, auto:true},
-      {h:'T',      w:15, r:false},
-      {h:'TOTAL',  w:20, r:true},
-      {h:'SALDO',  w:20, r:true},
-      {h:'CUOTA',  w:16, r:true},
-      {h:'ATRASO', w:18, r:true},
+      {h:'SALDO',  w:20, r:true, c:true},
+      {h:'CUOTA',  w:16, r:true, c:true},
+      {h:'TOTAL',  w:20, r:true, c:true},
+      {h:'T',      w:15, r:false, c:true},
+      {h:'ATRASO', w:18, r:false, c:true},
+      {h:'NOTAS',  w:0,  r:false},
     ];
-    const fixedW=cols.filter(c=>!c.auto).reduce((s,c)=>s+c.w,0);
-    cols[1].w=UW-fixedW;
+    // El ancho de la columna CLIENTE se ajusta al nombre mas largo (o a la linea de cedula/tel)
+    let maxNom=0;
+    filas.forEach(f=>{
+      doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      let w=doc.getTextWidth(f.nombre);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+      w=Math.max(w, doc.getTextWidth('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-')));
+      if(w>maxNom) maxNom=w;
+    });
+    cols[1].w=Math.min(Math.max(maxNom+5,45), 70);
+    [18,15,18,15,15].forEach((w,k)=>{ cols[k+2].w=w; });
+    cols[7].w=UW-8-cols[1].w-81;   // lo que sobra: espacio en blanco para anotar
 
     const rowH=8.5, headH=9;
+    const LINEA=[90,90,90];   // color de las lineas
+    let tableTop=y;
 
     function drawHead(yy){
+      tableTop=yy;
       doc.setFillColor(...AZUL);
       doc.rect(ML,yy,UW,headH,'F');
       doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
       let cx=ML+1;
       cols.forEach(col=>{
-        doc.text(col.h, col.r?cx+col.w-2:cx, yy+6.5, {align:col.r?'right':'left'});
+        doc.text(col.h, col.c?cx+col.w/2-1:(col.r?cx+col.w-2:cx), yy+6.5, {align:col.c?'center':(col.r?'right':'left')});
         cx+=col.w;
       });
       return yy+headH;
+    }
+
+    // Marco exterior y lineas verticales de arriba a abajo
+    function drawGrid(yBot){
+      doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
+      let gx=ML;
+      cols.forEach((col,i)=>{
+        gx+=col.w;
+        if(i<cols.length-1){
+          if(i===0 || true){ doc.line(gx, tableTop+headH, gx, yBot); }
+          doc.setDrawColor(255,255,255); doc.setLineWidth(0.2);
+          doc.line(gx, tableTop+1.5, gx, tableTop+headH-1.5);
+          doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
+        }
+      });
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
+      doc.rect(ML, tableTop, UW, yBot-tableTop, 'S');
     }
 
     function drawFoot(yy){
@@ -8393,8 +8424,8 @@ function generarPDFRuta(){
       doc.text('TOTALES', ML+1, yy+6.5);
       let cx=ML+1;
       cols.forEach((col,i)=>{
-        if(i===4) doc.text(fmtN(totalSaldo), cx+col.w-2, yy+6.5, {align:'right'});
-        if(i===5) doc.text(fmtN(cuotasDia),  cx+col.w-2, yy+6.5, {align:'right'});
+        if(i===2) doc.text(fmtN(totalSaldo), cx+col.w/2-1, yy+6.5, {align:'center'});
+        if(i===3) doc.text(fmtN(cuotasDia),  cx+col.w/2-1, yy+6.5, {align:'center'});
         cx+=col.w;
       });
     }
@@ -8403,6 +8434,7 @@ function generarPDFRuta(){
 
     filas.forEach((f,idx)=>{
       if(y+rowH>pH-14){
+        drawGrid(y);
         const np=doc.internal.getCurrentPageInfo().pageNumber;
         const nt=doc.internal.getNumberOfPages();
         doc.setFontSize(8); doc.setTextColor(150,150,150);
@@ -8414,17 +8446,20 @@ function generarPDFRuta(){
       else if(idx%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,y,UW,rowH,'F'); }
 
       const vals=[
-        String(f.num), f.nombre, f.tipo,
-        fmtN(f.total), fmtN(f.saldo),
+        String(f.num), f.nombre,
+        fmtN(f.saldo),
         f.cuota>0?fmtN(f.cuota):'-',
-        f.atraso>0?String(f.atraso):'-'
+        fmtN(f.total),
+        f.tipo,
+        f.atraso>0?String(f.atraso):'-',
+        ''
       ];
       let cx=ML+1;
       const yc=y+5.6;
       vals.forEach((val,vi)=>{
         const col=cols[vi];
-        doc.setFontSize(8); doc.setFont('helvetica', vi===1||vi===4?'bold':'normal');
-        if(vi===4)      doc.setTextColor(...ROJO);
+        doc.setFontSize(vi>=2&&vi<=4?9.5:8); doc.setFont('helvetica', vi===1||vi===2?'bold':'normal');
+        if(vi===2)      doc.setTextColor(...ROJO);
         else if(vi===6) doc.setTextColor(...ROJO);
         else doc.setTextColor(0,0,0);
         let txt=val;
@@ -8437,21 +8472,23 @@ function generarPDFRuta(){
             doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
             doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
           }
-        } else if(vi===2 && f.dia){
-          doc.text(txt, cx, y+4.2);
+        } else if(vi===5 && f.dia){
+          doc.setFontSize(9); doc.text(txt, cx+col.w/2-1, y+4.4, {align:'center'});
           doc.setFontSize(5.5); doc.setFont('helvetica','bold'); doc.setTextColor(110,50,170);
-          doc.text(f.dia, cx, y+7.4);
+          doc.text(f.dia, cx+col.w/2-1, y+7.5, {align:'center'});
         } else {
-                    doc.text(txt, col.r?cx+col.w-2:cx, yc, {align:col.r?'right':'left'});
+          if(vi===5||vi===6) doc.setFontSize(9);
+          doc.text(txt, col.c?cx+col.w/2-1:(col.r?cx+col.w-2:cx), yc+0.3, {align:col.c?'center':(col.r?'right':'left')});
         }
         cx+=col.w;
       });
-      doc.setDrawColor(220,220,220); doc.setLineWidth(0.1);
+      doc.setDrawColor(...LINEA); doc.setLineWidth(0.25);
       doc.line(ML,y+rowH,ML+UW,y+rowH);
       y+=rowH;
     });
 
     drawFoot(y);
+    drawGrid(y+rowH+1);
 
     const np=doc.internal.getCurrentPageInfo().pageNumber;
     const nt=doc.internal.getNumberOfPages();
