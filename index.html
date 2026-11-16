@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-16 v69">
+<meta name="app-version" content="2026-11-16 v70">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-16 v69';
+const APP_VERSION = '2026-11-16 v70';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8332,6 +8332,7 @@ function generarPDFRuta(fechaOpt){
   const _DM={lunes:'LUNES',martes:'MARTES',miercoles:'MIÉRCOLES',jueves:'JUEVES',viernes:'VIERNES',sabado:'SÁBADO',domingo:'DOMINGO'};
   const _sinAc=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const _suma=a=>a.reduce((s,p)=>s+(p.monto||0),0);
+  const cancelList=[];
 
   // Atraso en una fecha cualquiera (misma regla que calcularAtraso, pero hasta ese dia)
   function atrasoEn(inicio, hasta, tipo, diaSem, cuota, pagosHasta){
@@ -8370,8 +8371,14 @@ function generarPDFRuta(fechaOpt){
       saldo=base+_suma(pagos.filter(p=>p.fecha>fecha));
     }
     const pagosHasta=pagos.filter(p=>p.fecha<=fecha);
-    const dio=_suma(pagos.filter(p=>p.fecha===fecha));
-    if(saldo<=0 && dio<=0) return null;
+    let dio=_suma(pagos.filter(p=>p.fecha===fecha));
+    // cuota dada el mismo dia de renovar (del prestamo anterior)
+    if(idx<0) hist.filter(h=>h.fecha===fecha).forEach(h=>{ dio+=_suma((h.pagos||[]).filter(p=>p.fecha===fecha)); });
+    if(saldo<=0){
+      // cancelo ese dia: va a la lista de cancelados, no a la lista normal
+      if(dio>0) cancelList.push({nombre:String(c.nombre||'').toUpperCase(),monto:dio,tipo:'CANCELÓ'});
+      return null;
+    }
     return {saldo,prest,cuota,tipo,dio,atraso:atrasoEn(inicio,fecha,tipo,c.diaSemana,cuota,pagosHasta)};
   }
 
@@ -8379,7 +8386,13 @@ function generarPDFRuta(fechaOpt){
   let filas=[], recaudado=0, cuotasDia=0, pagaron=0;
   clientes.forEach((c,i)=>{
     let st;
-    if(pasado){ st=estadoEn(c); if(!st) return; }
+    if(pasado){
+      // renovo ese dia: el prestamo anterior se cancelo con lo que debia
+      (c.historialRenovaciones||[]).forEach(r=>{
+        if(r.fecha===fecha) cancelList.push({nombre:String(c.nombre||'').toUpperCase(),monto:r.saldoQuedaba||0,tipo:'RENOVÓ'});
+      });
+      st=estadoEn(c); if(!st) return;
+    }
     else {
       if(c.saldo<=0) return;
       const mp0=_suma((c.pagos||[]).filter(p=>p.fecha===fecha));
@@ -8392,6 +8405,7 @@ function generarPDFRuta(fechaOpt){
   });
   const totalSaldo=filas.reduce((s,f)=>s+f.saldo,0);
   const activos=filas.length;
+  const totalCancel=cancelList.reduce((s,x)=>s+x.monto,0);
 
   function fmtN(n){ return Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 
@@ -8420,7 +8434,8 @@ function generarPDFRuta(fechaOpt){
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
     const dNom=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'][new Date(fecha+'T12:00:00').getDay()];
     doc.text('FECHA: '+fecha+(pasado?' ('+dNom+')':'')+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos, ML, y+13);
-    doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS: $'+fmtN(cuotasDia)+'  |  RECAUDADO: $'+fmtN(recaudado)+'  |  PAGARON: '+pagaron, ML, y+20);
+    if(pasado) doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS DADAS: $'+fmtN(recaudado)+'  |  CANCELADOS: $'+fmtN(totalCancel)+' ('+cancelList.length+')  |  PAGARON: '+pagaron, ML, y+20);
+    else doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS: $'+fmtN(cuotasDia)+'  |  RECAUDADO: $'+fmtN(recaudado)+'  |  PAGARON: '+pagaron, ML, y+20);
     doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
     doc.line(ML,y+23,ML+UW,y+23);
     y+=27;
@@ -8467,13 +8482,14 @@ function generarPDFRuta(fechaOpt){
     }
 
     // Marco exterior y lineas verticales de arriba a abajo
-    function drawGrid(yBot){
+    function drawGrid(yBot,yLin){
+      if(yLin===undefined) yLin=yBot;
       doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
       let gx=ML;
       cols.forEach((col,i)=>{
         gx+=col.w;
         if(i<cols.length-1){
-          doc.line(gx, tableTop+headH, gx, yBot);
+          doc.line(gx, tableTop+headH, gx, yLin);
           doc.setDrawColor(255,255,255); doc.setLineWidth(0.2);
           doc.line(gx, tableTop+1.5, gx, tableTop+headH-1.5);
           doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
@@ -8552,7 +8568,65 @@ function generarPDFRuta(fechaOpt){
     });
 
     drawFoot(y);
-    drawGrid(y+rowH+1);
+    drawGrid(y+rowH+1, y);
+
+    // ===== Al final (dia anterior): cancelados y total de cuotas =====
+    if(pasado){
+      let yy=y+rowH+1+9;
+      const rH=7;
+      const necesito=10+rH+Math.max(1,Math.min(cancelList.length,4))*rH+rH+14;
+      if(yy+necesito>pH-14){
+        doc.setFontSize(8); doc.setTextColor(150,150,150);
+        doc.text('Página '+doc.internal.getCurrentPageInfo().pageNumber+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
+        doc.addPage(); yy=14;
+      }
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,0,0);
+      doc.text('CLIENTES CANCELADOS', ML, yy); yy+=3;
+      const w1=UW*0.5, w2=UW*0.2, w3=UW*0.3;
+      function cabCanc(y0){
+        doc.setFillColor(...AZUL); doc.rect(ML,y0,UW,rH,'F');
+        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+        doc.text('CLIENTE', ML+2, y0+4.9);
+        doc.text('TIPO', ML+w1+w2/2, y0+4.9, {align:'center'});
+        doc.text('CANCELÓ CON', ML+w1+w2+w3-3, y0+4.9, {align:'right'});
+        return y0+rH;
+      }
+      let top=yy; yy=cabCanc(yy);
+      if(cancelList.length===0){
+        doc.setTextColor(90,90,90); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text('Ningún cliente canceló este día', ML+2, yy+4.9);
+        doc.setDrawColor(...LINEA); doc.setLineWidth(0.25); doc.line(ML,yy+rH,ML+UW,yy+rH);
+        yy+=rH;
+      }
+      cancelList.forEach(x=>{
+        if(yy+rH>pH-30){
+          doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,top,UW,yy-top,'S');
+          doc.addPage(); top=14; yy=cabCanc(14);
+        }
+        doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,0,0);
+        doc.text(x.nombre, ML+2, yy+4.9);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110,50,170);
+        doc.text(x.tipo, ML+w1+w2/2, yy+4.9, {align:'center'});
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(0,0,0);
+        doc.text(fmtN(x.monto), ML+w1+w2+w3-3, yy+4.9, {align:'right'});
+        doc.setDrawColor(...LINEA); doc.setLineWidth(0.25); doc.line(ML,yy+rH,ML+UW,yy+rH);
+        yy+=rH;
+      });
+      // total cancelados
+      doc.setFillColor(...AZUL); doc.rect(ML,yy,UW,rH+1,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('TOTAL CANCELADOS ('+cancelList.length+')', ML+2, yy+5.3);
+      doc.text(fmtN(totalCancel), ML+w1+w2+w3-3, yy+5.3, {align:'right'});
+      yy+=rH+1;
+      doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
+      doc.line(ML+w1,top+rH,ML+w1,yy-rH-1); doc.line(ML+w1+w2,top+rH,ML+w1+w2,yy-rH-1);
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,top,UW,yy-top,'S');
+      // total de cuotas dadas (sin contar cancelados)
+      yy+=8;
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,100,0);
+      doc.text('TOTAL CUOTAS DADAS (sin cancelados): $'+fmtN(recaudado), ML, yy);
+      y=yy;
+    }
 
     const np=doc.internal.getCurrentPageInfo().pageNumber;
     const nt=doc.internal.getNumberOfPages();
