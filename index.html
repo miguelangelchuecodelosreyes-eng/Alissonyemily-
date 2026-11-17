@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v73">
+<meta name="app-version" content="2026-11-17 v74">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v73';
+const APP_VERSION = '2026-11-17 v74';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10800,7 +10800,53 @@ function _jParseFecha(q){
   }
   return null;
 }
-function _jPreguntaUltima(q){ return /ultim[oa]s?\s+(cuota|pago|abono|vez)|cuanto\s+(fue|dio|pago|abono)\s+(la\s+|el\s+)?ultim|cuando\s+(fue\s+)?(pago|dio|abono)\s+(por\s+)?ultim/.test(_jN(q)); }
+
+/* ===== Jarvis: cuotas del prestamo actual y lista de prestamos de un cliente ===== */
+function _jFechaLarga(fecha){ if(!fecha) return 'fecha desconocida'; var p=String(fecha).substring(0,10).split('-'); return (+p[2])+' de '+_J_MESES[+p[1]-1]+' de '+p[0]; }
+function _jPreguntaPrestamos(q){ q=_jN(q);
+  return /cuant[oa]s?\s+prestamos?/.test(q) || /prestamos?\s+(tiene|ha\s+tenido|lleva|llevan|ha\s+hecho|hizo|tuvo)/.test(q) || /historial\s+de\s+prestamos|todos\s+(los\s+)?prestamos|lista\s+de\s+prestamos|cuant[oa]s?\s+veces\s+(ha\s+|lo\s+)?(renovad|prestad|renovo|presto)|cuant[oa]s?\s+renovaciones/.test(q); }
+function _jPreguntaCuotas(q){ q=_jN(q);
+  if(_jPreguntaPrestamos(q) || _jPreguntaUltima(q)) return false;
+  return /cuant[oa]s?\s+(cuotas?|pagos?|abonos?)/.test(q) || /(cuotas?|pagos?|abonos?)\s+(lleva|llevan|ha\s+dado|ha\s+pagado|tiene|ha\s+hecho|dio|hizo)/.test(q) || /(historial|lista|detalle)\s+(de\s+)?(las\s+)?(cuotas|pagos|abonos)|todas\s+las\s+(cuotas|pagos|abonos)|desde\s+la\s+primera/.test(q); }
+function _jCabCliente(c){
+  var semanal=(c.tipo==='semanal'), dia=c.diaSemana?String(c.diaSemana):'';
+  return '🔎 Ya reviso y te digo, jefe…\n👤 '+(c.nombre||'El cliente')+(semanal?' — es SEMANAL'+(dia?' (cobra los '+dia+')':''):' — es DIARIO')+'\n';
+}
+function _jRespuestaCuotas(c, f){
+  var cab=_jCabCliente(c);
+  var ini=c.fechaRenovacion||c.fechaCreado||'';
+  var pagos=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?-1:(a.fecha>b.fecha?1:0);});
+  var t=cab+'📌 Préstamo actual'+(c.renovaciones>0?' (el n.° '+((c.renovaciones||0)+1)+')':'')+': '+f(c.capital||0)+(c.prestamo?' (a pagar '+f(c.prestamo)+')':'')+(ini?', empezó el '+_jFechaLarga(ini):'')+'.\n';
+  if(!pagos.length) return t+'❌ Todavía no ha dado ninguna cuota de este préstamo.'+(c.saldo>0?'\n💳 Debe '+f(c.saldo):'');
+  var tot=pagos.reduce(function(a,p){return a+(p.monto||0);},0);
+  t+='💵 Lleva '+pagos.length+' cuota'+(pagos.length===1?'':'s')+' dadas, en total '+f(tot)+':\n';
+  pagos.forEach(function(p,i){ t+=(i+1)+'. '+_jEtiqueta(p.fecha)+' — '+f(p.monto||0)+'\n'; });
+  t+='✅ La primera fue el '+_jEtiqueta(pagos[0].fecha)+' y la última el '+_jEtiqueta(pagos[pagos.length-1].fecha)+'.';
+  if(c.saldo>0) t+='\n💳 Saldo actual: '+f(c.saldo);
+  else if(!c.volado) t+='\n🎉 Ya terminó de pagar este préstamo.';
+  return t;
+}
+function _jRespuestaPrestamos(c, f){
+  var cab=_jCabCliente(c);
+  var hist=(c.historialRenovaciones||[]).slice().sort(function(a,b){return a.fecha<b.fecha?-1:(a.fecha>b.fecha?1:0);});
+  var loans=[];
+  hist.forEach(function(e,i){
+    var ini=(i===0)?(e.fechaCreado||c.fechaCreado||''):hist[i-1].fecha;
+    loans.push({ini:ini,capital:e.capitalCiclo||0,total:e.prestamoCiclo||0,fin:e.fecha,cancelo:e.saldoQuedaba||0});
+  });
+  loans.push({ini:hist.length?(c.fechaRenovacion||hist[hist.length-1].fecha):(c.fechaCreado||''),capital:c.capital||0,total:c.prestamo||0,actual:true});
+  var n=loans.length;
+  var t=cab+'📚 Lleva '+n+' préstamo'+(n===1?'':'s')+'.\n';
+  loans.forEach(function(L,i){
+    var ord=(i===0)?'El primer préstamo fue':(L.actual?'El actual (el '+(i+1)+'.º) fue':'El '+(i+1)+'.º fue');
+    t+=(i+1)+'. '+ord+' el '+_jFechaLarga(L.ini)+' de '+f(L.capital)+(L.total?' (a pagar '+f(L.total)+')':'');
+    if(L.actual) t+=(c.saldo>0?' — debe '+f(c.saldo):(c.volado?' — se voló':' — ya lo pagó'))+'.';
+    else t+=' — lo renovó el '+_jFechaLarga(L.fin)+(L.cancelo>0?' y lo canceló con '+f(L.cancelo):'')+'.';
+    t+='\n';
+  });
+  return t.replace(/\n$/,'');
+}
+function _jPreguntaUltima(q){ return /(cuota|pago|abono)s?\s+ultim[oa]|ultim[oa]s?\s+(cuota|pago|abono|vez)|cuanto\s+(fue|dio|pago|abono)\s+(la\s+|el\s+)?ultim|cuando\s+(fue\s+)?(pago|dio|abono)\s+(por\s+)?ultim/.test(_jN(q)); }
 function _jRespuestaUltimaCuota(c, f){
   var semanal=(c.tipo==='semanal'), C=c.cuotaSugerida||0, nom=c.nombre||'El cliente';
   var dia=c.diaSemana?String(c.diaSemana):'';
@@ -10866,7 +10912,7 @@ function _orbeRespuestaLocal(pregunta, s){
 
   /* Buscar cliente: exige que coincidan las palabras del nombre; si hay duda, pregunta en vez de adivinar */
   const _nrm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const _STOP = new Set('de del la el los las que cuanto debe deuda dame dime muestrame informacion info sobre cliente clientes direccion telefono celular pago pagos pago pagado cuota saldo prestamo semana semanal semanales diario diarios hoy ayer cuando donde vive queda ultimo ultima abono abonos numero cedula fecha ingreso ingreso tiene como esta por para con una uno quien cual total dias atraso atrasado resumen estado favor quiero saber ver mira del lunes martes miercoles jueves viernes sabado domingo y o a en un es son me mi mis al se lo le cuantas'.split(' '));
+  const _STOP = new Set('de del la el los las que cuanto debe deuda dame dime muestrame informacion info sobre cliente clientes direccion telefono celular pago pagos pago pagado cuota saldo prestamo semana semanal semanales diario diarios hoy ayer cuando donde vive queda ultimo ultima abono abonos numero cedula fecha ingreso ingreso tiene como esta por para con una uno quien cual total dias atraso atrasado resumen estado favor quiero saber ver mira del lunes martes miercoles jueves viernes sabado domingo y o a en un es son me mi mis al se lo le cuantas cuantos cuotas prestamos abonos lleva llevan hecho hizo tuvo historial lista detalle primera primero renovaciones renovado veces desde todas todos'.split(' '));
   const _qTok = _nrm(pregunta).split(/[^a-z0-9ñ]+/).filter(Boolean);
   let clienteEncontrado = null, _respAmbigua = null;
   (function(){
@@ -10898,7 +10944,7 @@ function _orbeRespuestaLocal(pregunta, s){
     clienteEncontrado = t.c;
   })();
   if (_respAmbigua) return _respAmbigua;
-  if (!clienteEncontrado && window._jUltimoCliente && ((_jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) || _jPreguntaUltima(pregunta))) {
+  if (!clienteEncontrado && window._jUltimoCliente && ((_jParseFecha(pregunta) && _jTienePalabrasPago(pregunta)) || _jPreguntaUltima(pregunta) || _jPreguntaPrestamos(pregunta) || _jPreguntaCuotas(pregunta))) {
     clienteEncontrado = clientes.find(x => x && x.id === window._jUltimoCliente) || null;
   }
 
@@ -10906,6 +10952,8 @@ function _orbeRespuestaLocal(pregunta, s){
     const c = clienteEncontrado;
     window._jUltimoCliente = c.id;
     /* ¿pagó tal día? (también retoma la pregunta si antes hubo duda entre varios clientes) */
+    if (_jPreguntaPrestamos(pregunta)) return _jRespuestaPrestamos(c, f);
+    if (_jPreguntaCuotas(pregunta)) return _jRespuestaCuotas(c, f);
     let _rp = _jPreguntaUltima(pregunta) ? _jRespuestaUltimaCuota(c, f) : _jRespuestaPagoDia(c, pregunta, f);
     if (!_rp && window._jPendiente && (Date.now()-window._jPendiente.t) < 120000 && !_jParseFecha(pregunta)) {
       _rp = _jRespuestaPagoDia(c, window._jPendiente.pregunta, f);
