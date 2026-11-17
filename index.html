@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v72">
+<meta name="app-version" content="2026-11-17 v73">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -4904,7 +4904,7 @@ function renderClientes(){
         <div style="flex:1;min-width:0;" onclick="toggleBody('${c.id}')">
           <!-- Número + Nombre -->
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <div style="min-width:24px;height:24px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#a855f7,#7c3aed);color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;">${numeroCliente+1}</div>
+            <div style="min-width:24px;height:24px;flex-shrink:0;border-radius:50%;background:${(c.tipo||'diario')==='semanal'?'linear-gradient(135deg,#ef4444,#b91c1c)':'linear-gradient(135deg,#22c55e,#15803d)'};color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;">${numeroCliente+1}</div>
             ${(c.tieneFotoCliente||c.tieneFotoCasa)?`<div class="foto-av" data-fid="${c.id}" data-ftipo="${c.tieneFotoCliente?'cliente':'casa'}" onclick="event.stopPropagation();verFotosCliente('${c.id}')">${c.tieneFotoCliente?'👤':'🏠'}</div>`:''}
             <div>
               <div style="font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.2;">👤 ${c.nombre}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">✅ RF</span>':''}${((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">🆕 NP</span>':''}</div>
@@ -4966,8 +4966,8 @@ function renderClientes(){
       <!-- ══ INPUT COBRO VISIBLE ══ -->
       ${c.saldo>0?`
       <div style="display:flex;gap:6px;align-items:center;padding:6px 10px 8px;border-top:1px solid #f0f0f8;background:#fafafa;border-radius:0 0 14px 14px;">
-        <input type="number" class="cuota-input" id="cuota-input-${c.id}"
-          autocomplete="off"
+        <input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_${c.id}" class="cuota-input" id="cuota-input-${c.id}"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other"
           placeholder="${c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota'}"
           style="width:110px;flex:none;border:2px solid #e5e7eb;border-radius:10px;padding:8px 8px;font-size:16px;font-weight:800;font-family:'Nunito',sans-serif;text-align:center;outline:none;color:#1a1a2e;"
           oninput="(function(inp){const v=parseFloat(inp.value)||0;const n=Math.max(0,${c.saldo}-v);const el=document.getElementById('nuevo-saldo-inline-${c.id}');if(el){el.textContent=v>0?'$'+n.toLocaleString('es-CO'):'—';el.style.color=v>0?(n===0?'#00cc55':'#ff1111'):'#aaa';}const hoyEl=document.getElementById('hoy-circulo-${c.id}');if(hoyEl){hoyEl.style.borderColor=v>0?'#FFD700':'#d1d5db';hoyEl.querySelector('.hoy-val').textContent=v>0?fmt(v):'—';hoyEl.querySelector('.hoy-val').style.color=v>0?'#b8860b':'#9ca3af';hoyEl.querySelector('.hoy-lbl').style.color=v>0?'#b8860b':'#9ca3af';}const saldoEl=document.getElementById('saldo-display-${c.id}');if(saldoEl){saldoEl.textContent=v>0?(n===0?'✅ $0':'$'+n.toLocaleString('es-CO')):'${fmt(c.saldo)}';saldoEl.style.color=v>0?(n===0?'#10b981':'#f59e0b'):'#ef4444';}})(this);"
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v72';
+const APP_VERSION = '2026-11-17 v73';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12924,6 +12924,9 @@ function renderVoladas(busq){
 #clientes-lista.delgada .cliente-card.det > .cliente-body{display:block !important}
 #clientes-lista.delgada .cc2{display:block;padding:7px 9px 2px}
 .cc2-top{display:flex;align-items:center;gap:7px;cursor:pointer}
+.cc2-num.t-d,.cc-num.t-d{background:#16a34a !important}
+.cc2-num.t-s,.cc-num.t-s{background:#dc2626 !important}
+.cc2-num,.cc-num{color:#fff !important;text-shadow:0 1px 1px rgba(0,0,0,.35)}
 .cc2-num{min-width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#7c3aed);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cc2-foto{width:32px !important;height:32px !important}
 .cc2-nom{flex:1;min-width:0;font-size:13px;font-weight:800;color:#1a1a2e;line-height:1.15}
@@ -13021,9 +13024,9 @@ function decorarCompacta(){
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
-    row.innerHTML='<div class="cc-num">'+(i+1)+'</div>'+foto+'<div class="cc-mid"><div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
+    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid"><div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
       +'<div class="cc-right"><div class="cc-sal"><span>'+(pagoHoy>0?'<i style="font-style:normal;color:#00a844">✅ HOY '+fmt(pagoHoy)+'</i>':'SALDO')+'</span><b>'+fmt(c.saldo)+'</b></div>'
-      +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="number" inputmode="numeric" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
+      +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
     card.insertBefore(cl,card.firstChild); card.insertBefore(row,card.firstChild);
   });
@@ -13045,7 +13048,7 @@ function decorarDelgada(lista,cards){
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+(c.diaSemana?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1):'');
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
     var d=document.createElement('div'); d.className='cc2';
-    d.innerHTML='<div class="cc2-top" onclick="toggleBody(\''+id+'\')"><div class="cc2-num">'+(i+1)+'</div>'+foto
+    d.innerHTML='<div class="cc2-top" onclick="toggleBody(\''+id+'\')"><div class="cc2-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto
       +'<div class="cc2-nom">'+(c.nombre||'')+'<small>'+(c.cedula?'<span style="white-space:nowrap">🪪 '+c.cedula+'</span> ':'')+(c.tel?'<span style="white-space:nowrap">📱 '+c.tel+'</span>':'')+'</small></div>'
       +'<div class="cc2-ic" onclick="event.stopPropagation()"><button onclick="verAbonosCliente(\''+id+'\')" style="background:#7c3aed">📋</button><button onclick="abrirRenovar(\''+id+'\')" style="background:#f97316">🔄</button><button onclick="compartirClienteWA(\''+id+'\')" style="background:#22c55e">💬</button></div></div>'
       +'<div class="cc2-info" onclick="toggleBody(\''+id+'\')">'+tipo+' · '+atrTxt+(up?' · <span style="color:#065f46">Últ '+fmt(up.monto)+'</span>':'')+'</div>'
@@ -13053,6 +13056,12 @@ function decorarDelgada(lista,cards){
     card.insertBefore(d,card.firstChild);
   });
 }
+/* Los campos de cuota aceptan solo numeros (ya no son type=number para que Chrome no ofrezca contrasenas) */
+document.addEventListener('input', function(e){
+  var t=e.target; if(t&&t.classList&&(t.classList.contains('cuota-input')||t.classList.contains('cc-inp'))){
+    var v=t.value.replace(/[^0-9]/g,''); if(v!==t.value) t.value=v;
+  }
+}, true);
 /* El saldo baja en vivo mientras escribes la cuota (antes de tocar Cobrar) */
 document.addEventListener('input', function(e){
   var inp=e.target; if(!inp||!inp.classList) return;
