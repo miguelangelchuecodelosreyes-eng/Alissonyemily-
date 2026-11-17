@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v71">
+<meta name="app-version" content="2026-11-17 v72">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5997,7 +5997,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v71';
+const APP_VERSION = '2026-11-17 v72';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8406,6 +8406,18 @@ function generarPDFRuta(fechaOpt){
   const totalSaldo=filas.reduce((s,f)=>s+f.saldo,0);
   const activos=filas.length;
   const totalCancel=cancelList.reduce((s,x)=>s+x.monto,0);
+  // Clientes volados (se fueron sin pagar): en un dia anterior, solo los que ya se habian ido
+  const volList=[];
+  clientes.forEach(c=>{
+    if(!c.volado) return;
+    if(pasado && !(c.fechaVolado && c.fechaVolado<=fecha)) return;
+    let debe=c.saldoPerdido||0;
+    if(pasado) debe+=_suma((c.pagos||[]).filter(p=>p.fecha>fecha));
+    volList.push({nombre:String(c.nombre||'').toUpperCase(),cedula:c.cedula||'',tel:c.tel||'',
+      tipo:(c.tipo||'diario').toLowerCase()==='semanal'?'S':'D',fecha:c.fechaVolado||'',prest:c.prestamo||0,debe});
+  });
+  volList.sort((a,b)=>(a.fecha<b.fecha?1:a.fecha>b.fecha?-1:0));
+  const totalVol=volList.reduce((s,x)=>s+x.debe,0);
 
   function fmtN(n){ return Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 
@@ -8445,10 +8457,11 @@ function generarPDFRuta(fechaOpt){
       {k:'num',  h:'#',      w:8,  r:true},
       {k:'nom',  h:'CLIENTE',w:0},
       {k:'saldo',h:'SALDO',  w:18, c:true},
+      {k:'notas',h:'NOTAS',  w:0},
       {k:'cuota',h:'CUOTA',  w:15, c:true},
     ];
     if(pasado) cols.push({k:'dio',h:'DIO',w:15,c:true});
-    cols.push({k:'total',h:'TOTAL',w:18,c:true},{k:'tipo',h:'T',w:15,c:true},{k:'atraso',h:'ATRASO',w:15,c:true},{k:'notas',h:'NOTAS',w:0});
+    cols.push({k:'total',h:'TOTAL',w:18,c:true},{k:'tipo',h:'T',w:15,c:true},{k:'atraso',h:'ATRASO',w:15,c:true});
     const ci=k=>cols.findIndex(c=>c.k===k);
 
     // El ancho de CLIENTE se ajusta al nombre mas largo (o a la linea de cedula/tel)
@@ -8462,7 +8475,7 @@ function generarPDFRuta(fechaOpt){
     });
     cols[1].w=Math.min(Math.max(maxNom+5,45), 70);
     const usados=cols.reduce((s,c)=>s+c.w,0);
-    cols[cols.length-1].w=UW-usados;   // lo que sobra: espacio en blanco para anotar
+    cols.find(c=>c.k==='notas').w=UW-usados;   // lo que sobra: espacio en blanco para anotar
 
     const rowH=8.5, headH=9;
     const LINEA=[90,90,90];
@@ -8626,6 +8639,68 @@ function generarPDFRuta(fechaOpt){
       yy+=8;
       doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,100,0);
       doc.text('TOTAL CUOTAS DADAS (sin cancelados): $'+fmtN(recaudado), ML, yy);
+      y=yy;
+    }
+
+    // ===== Clientes volados (se fueron sin pagar) =====
+    if(volList.length){
+      let yy = pasado ? y+10 : y+rowH+1+9;
+      const rH=8.5;
+      const wN=UW*0.44, wT=UW*0.07, wF=UW*0.17, wP=UW*0.16, wD=UW*0.16;
+      const xs=[ML, ML+wN, ML+wN+wT, ML+wN+wT+wF, ML+wN+wT+wF+wP, ML+UW];
+      if(yy+14+rH*3>pH-14){
+        doc.setFontSize(8); doc.setTextColor(150,150,150);
+        doc.text('Página '+doc.internal.getCurrentPageInfo().pageNumber+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
+        doc.addPage(); yy=14;
+      }
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,0,0);
+      doc.text('CLIENTES VOLADOS (se fueron sin pagar)', ML, yy); yy+=3;
+      let topV=yy;
+      function cabVol(y0){
+        doc.setFillColor(...AZUL); doc.rect(ML,y0,UW,rH-1,'F');
+        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+        doc.text('CLIENTE', xs[0]+2, y0+5.3);
+        doc.text('T', xs[1]+wT/2, y0+5.3, {align:'center'});
+        doc.text('SE FUE', xs[2]+wF/2, y0+5.3, {align:'center'});
+        doc.text('PRESTADO', xs[3]+wP/2, y0+5.3, {align:'center'});
+        doc.text('DEBE', xs[4]+wD/2, y0+5.3, {align:'center'});
+        return y0+rH-1;
+      }
+      function marcoVol(yTop,yBot){
+        doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
+        for(let k=1;k<5;k++) doc.line(xs[k], yTop+rH-1, xs[k], yBot);
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,yTop,UW,yBot-yTop,'S');
+      }
+      yy=cabVol(yy);
+      volList.forEach((v,i)=>{
+        if(yy+rH>pH-24){
+          marcoVol(topV,yy);
+          doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text('Página '+doc.internal.getCurrentPageInfo().pageNumber+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
+          doc.addPage(); topV=14; yy=cabVol(14);
+        }
+        if(i%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,yy,UW,rH,'F'); }
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
+        let fs=8; while(fs>5 && doc.getTextWidth(v.nombre)>wN-3){ fs-=0.25; doc.setFontSize(fs); }
+        doc.text(v.nombre, xs[0]+2, yy+3.8);
+        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
+        doc.text('C.C. '+(v.cedula||'-')+'   |   Tel. '+(v.tel||'-'), xs[0]+2, yy+7.2);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(0,0,0);
+        doc.text(v.tipo, xs[1]+wT/2, yy+5.6, {align:'center'});
+        doc.text(v.fecha||'-', xs[2]+wF/2, yy+5.6, {align:'center'});
+        doc.text(fmtN(v.prest), xs[3]+wP/2, yy+5.6, {align:'center'});
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...ROJO);
+        doc.text(fmtN(v.debe), xs[4]+wD/2, yy+5.6, {align:'center'});
+        doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.line(ML,yy+rH,ML+UW,yy+rH);
+        yy+=rH;
+      });
+      doc.setFillColor(...AZUL); doc.rect(ML,yy,UW,rH,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('TOTAL VOLADOS ('+volList.length+')', ML+2, yy+5.6);
+      doc.text(fmtN(totalVol), xs[4]+wD/2, yy+5.6, {align:'center'});
+      yy+=rH;
+      marcoVol(topV,yy-rH);
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,topV,UW,yy-topV,'S');
       y=yy;
     }
 
