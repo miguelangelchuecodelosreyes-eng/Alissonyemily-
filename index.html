@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v76">
+<meta name="app-version" content="2026-11-17 v77">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6007,7 +6007,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v76';
+const APP_VERSION = '2026-11-17 v77';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8316,7 +8316,7 @@ function abrirImpresionRuta(){
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:22px;padding:22px;max-width:340px;width:100%;font-family:Nunito,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.4)">'
     +'<div style="font-size:18px;font-weight:900;color:#1a1a2e;margin-bottom:6px">🖨️ Imprimir ruta</div>'
-    +'<div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.4">Escoge el día. Si es un día anterior, la hoja sale con lo que <b>dio</b> cada cliente ese día y el <b>saldo</b> que le quedó.</div>'
+    +'<div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.4">Escoge el día (hoy o uno anterior). La hoja sale con lo que <b>dio</b> cada cliente ese día y el <b>saldo</b> que le quedó.</div>'
     +'<input type="date" id="imp-ruta-fecha" value="'+hoy+'" max="'+hoy+'" style="width:100%;padding:12px;border:2px solid #d9c8f5;border-radius:14px;font-size:16px;font-weight:800;box-sizing:border-box;margin-bottom:14px">'
     +'<div style="display:flex;gap:10px">'
     +'<button id="imp-ruta-no" style="flex:1;padding:13px;border:none;border-radius:14px;background:#eee;font-weight:900;font-size:14px;cursor:pointer">Cancelar</button>'
@@ -8335,7 +8335,7 @@ function abrirImpresionRuta(){
 function generarPDFRuta(fechaOpt){
   const hoyStr = fechaHoy();
   const fecha = fechaOpt || getFechaActiva();
-  const pasado = fecha < hoyStr;
+  const pasado = true;   // hoy tambien sale con DIO, cancelados y total de cuotas (igual que un dia anterior)
   const clientes = getClientes();
   const ahora = new Date();
   const horaImp = ahora.toLocaleDateString('es-CO')+', '+ahora.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',hour12:true});
