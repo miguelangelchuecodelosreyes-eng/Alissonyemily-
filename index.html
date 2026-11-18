@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v84">
+<meta name="app-version" content="2026-11-17 v86">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6006,7 +6006,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v84';
+const APP_VERSION = '2026-11-17 v86';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8113,7 +8113,6 @@ function imprimirReporteDia(){
   // Recopilar cuotas del día: una fila por cliente, con lo que dio y el saldo que le quedó ese día
   let filas = [];
   let cancel = [];
-  let volP = [];
   let num = 1;
   clientes.forEach(c => {
     // renovó ese día: el préstamo anterior se canceló con lo que debía
@@ -8126,10 +8125,23 @@ function imprimirReporteDia(){
     const despues = (c.pagos||[]).filter(p => p.fecha > fecha).reduce((s,x)=>s+(x.monto||0),0);
     const base = c.volado ? (c.saldoPerdido||0) : (c.saldo||0);
     const saldo = Math.max(0, base + despues);
-    // volado (ya volado ese día o antes) que dio plata: sección aparte
-    if(c.volado && (!c.fechaVolado || c.fechaVolado <= fecha)){
-      volP.push({nombre:String(c.nombre||'').toUpperCase(), cedula:c.cedula||'', tel:c.tel||'', dio:dio, saldo:saldo});
-      return;
+    const esVol = !!(c.volado && (!c.fechaVolado || c.fechaVolado <= fecha));
+    // atraso a esa fecha (misma regla que el PDF Ruta)
+    let atraso = 0;
+    if(!esVol){
+      const ini = c.fechaRenovacion || c.fechaCreado || '';
+      const tp = (c.tipo||'diario').toLowerCase();
+      if(ini && ini < fecha){
+        const cuotaC = c.cuotaSugerida || 0;
+        const pagado = (c.pagos||[]).filter(p=>p.fecha<=fecha).reduce((a,x)=>a+(x.monto||0),0);
+        const cubiertas = cuotaC>0 ? Math.floor(pagado/cuotaC) : (c.pagos||[]).filter(p=>p.fecha<=fecha).length;
+        const ob = (typeof diaSemanaNombre2Num==='function') ? diaSemanaNombre2Num(c.diaSemana) : undefined;
+        const dObj = (ob!==undefined) ? ob : 1;
+        let n = 0; const cur = new Date(ini+'T00:00:00'); cur.setDate(cur.getDate()+1);
+        const fin = new Date(fecha+'T00:00:00');
+        while(cur<=fin){ if(tp==='semanal'){ if(cur.getDay()===dObj) n++; } else { if(cur.getDay()!==0) n++; } cur.setDate(cur.getDate()+1); }
+        atraso = Math.max(0, n - cubiertas);
+      }
     }
     if(saldo <= 0){
       // terminó de pagar ese día: va a cancelados con lo que dio
@@ -8144,7 +8156,11 @@ function imprimirReporteDia(){
       total: c.prestamo || 0,
       vCuota: c.cuotaSugerida || 0,
       dio: dio,
-      saldo: saldo
+      saldo: saldo,
+      vol: esVol,
+      atraso: atraso,
+      tipo: (c.tipo||'diario').toLowerCase()==='semanal'?'S':'D',
+      dia: ((c.tipo||'').toLowerCase()==='semanal') ? String(c.diaSemana||'').toUpperCase() : ''
     });
   });
 
@@ -8152,8 +8168,7 @@ function imprimirReporteDia(){
   const totalCancel = cancel.reduce((s,x)=>s+x.monto,0);
   // lo que realmente entró en el día: cuotas de los que siguen + lo que dieron al cancelar (los renovados no suman: no es plata que entró)
   const cancelDio = cancel.filter(x=>x.tipo==='CANCELÓ').reduce((s,x)=>s+x.monto,0);
-  const volDio = volP.reduce((s,x)=>s+x.dio,0);
-  const totalRecaudado = subtotalClientes + cancelDio + volDio;
+  const totalRecaudado = subtotalClientes + cancelDio;
   const $f = n => '$'+(n||0).toLocaleString('es-CO');
 
   function generarPDF(){
@@ -8186,7 +8201,7 @@ function imprimirReporteDia(){
     doc.setTextColor(0,0,0);
     doc.setFontSize(9);
     doc.setFont('helvetica','bold');
-    doc.text('TOTAL RECAUDADO: '+$f(totalRecaudado)+'   CANCELADOS: '+$f(totalCancel)+' ('+cancel.length+')   VOLADOS: '+$f(volDio)+' ('+volP.length+')', margin+2, y+7);
+    doc.text('TOTAL RECAUDADO: '+$f(totalRecaudado)+'     CANCELADOS: '+$f(totalCancel)+' ('+cancel.length+')', margin+2, y+7);
     y += 14;
 
     // ---- tabla con rejilla completa ----
@@ -8198,7 +8213,7 @@ function imprimirReporteDia(){
       doc.setFontSize(7);
       doc.setFont('helvetica','bold');
       let cx = margin+1;
-      cols.forEach(col=>{ doc.text(col.label, cx, y+5); cx+=col.w; });
+      cols.forEach(col=>{ if(col.c) doc.text(col.label, cx+col.w/2-1, y+5, {align:'center'}); else doc.text(col.label, cx, y+5); cx+=col.w; });
       tTop = y;
       lineas = [];
       y += rowH;
@@ -8217,51 +8232,101 @@ function imprimirReporteDia(){
     }
     function fila(vals, o){
       o = o || {};
-      if(y+rowH > pageH-14){
+      const rh = o.h || rowH;
+      if(y+rh > pageH-14){
         cerrarTabla();
         doc.addPage();
         y = margin;
         cabecera();
       }
-      if(o.fill){ doc.setFillColor(o.fill[0],o.fill[1],o.fill[2]); doc.rect(margin,y,tabW,rowH,'F'); }
+      if(o.fill){ doc.setFillColor(o.fill[0],o.fill[1],o.fill[2]); doc.rect(margin,y,tabW,rh,'F'); }
       let cx = margin+1;
       vals.forEach((val,vi)=>{
         const col = (o.color && o.color[vi]) || [0,0,0];
         doc.setTextColor(col[0],col[1],col[2]);
         doc.setFont('helvetica', (o.bold || (o.color && o.color[vi])) ? 'bold' : 'normal');
         doc.setFontSize(o.size || 7);
-        doc.text(String(val), cx, y+5);
+        if(cols[vi].c) doc.text(String(val), cx+cols[vi].w/2-1, y+(o.h?o.h/2+1.3:5), {align:'center'});
+        else doc.text(String(val), cx, y+5);
         cx += cols[vi].w;
       });
+      if(o.vol){
+        doc.setFont('helvetica','normal'); doc.setFontSize(o.size || 7);
+        const wN = doc.getTextWidth(String(vals[1]));
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
+        doc.text('VOLADO', margin+1+cols[0].w+wN+2, y+5);
+      }
       y += rowH;
       lineas.push(y);
     }
 
-    // TABLA PRINCIPAL: # · CLIENTE · DIO · SALDO · CUOTA · resto
+    // TABLA PRINCIPAL (mismo orden que el PDF Ruta): # · CLIENTE · SALDO · NOTAS · DIO · CUOTA · TOTAL · T · ATRASO
+    const rhC = 8.5;
     cols = [
-      {label:'#',         w:7},
-      {label:'CLIENTE',   w:58},
-      {label:'DIO',       w:22},
-      {label:'SALDO',     w:22},
-      {label:'CUOTA',     w:20},
-      {label:'CEDULA',    w:24},
-      {label:'TELEFONO',  w:24},
-      {label:'TOTAL',     w:22},
+      {label:'#',       w:8,  r:true},
+      {label:'CLIENTE', w:62},
+      {label:'SALDO',   w:20, c:true},
+      {label:'NOTAS',   w:0},
+      {label:'DIO',     w:17, c:true},
+      {label:'CUOTA',   w:17, c:true},
+      {label:'TOTAL',   w:20, c:true},
+      {label:'T',       w:14, c:true},
+      {label:'ATRASO',  w:16, c:true},
     ];
+    cols[3].w = tabW - cols.reduce((a,c)=>a+c.w,0);
     cabecera();
     filas.forEach((f,i)=>{
-      fila([
-        f.num,
-        f.nombre.substring(0,34),
-        $f(f.dio),
-        $f(f.saldo),
-        f.vCuota>0?$f(f.vCuota):'-',
-        f.cedula||'-',
-        f.tel||'-',
-        $f(f.total)
-      ], {fill: i%2===0?[250,250,250]:null, color:{2:[0,130,0],3:[180,0,0]}});
+      if(y+rhC > pageH-14){ cerrarTabla(); doc.addPage(); y = margin; cabecera(); }
+      if(f.vol){ doc.setFillColor(255,230,230); doc.rect(margin,y,tabW,rhC,'F'); }
+      else if(f.atraso>0){ doc.setFillColor(255,242,242); doc.rect(margin,y,tabW,rhC,'F'); }
+      else if(i%2===1){ doc.setFillColor(245,246,255); doc.rect(margin,y,tabW,rhC,'F'); }
+      let cx = margin+1;
+      const mid = k => cx+cols[k].w/2-1;
+      // #
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(0,0,0);
+      doc.text(String(f.num), cx+cols[0].w-2, y+5.4, {align:'right'}); cx += cols[0].w;
+      // CLIENTE (+ cédula y teléfono abajo, VOLADO al lado)
+      let fs = 8; doc.setFont('helvetica','bold'); doc.setFontSize(fs);
+      const maxW = cols[1].w - 2 - (f.vol?14:0);
+      while(fs>5 && doc.getTextWidth(f.nombre)>maxW){ fs-=0.25; doc.setFontSize(fs); }
+      doc.setTextColor(0,0,0);
+      doc.text(f.nombre, cx, y+3.8);
+      if(f.vol){
+        const wN = doc.getTextWidth(f.nombre);
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
+        doc.text('VOLADO', cx+wN+2, y+3.8);
+      }
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
+      doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
+      cx += cols[1].w;
+      // SALDO
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(180,0,0);
+      doc.text(f.saldo.toLocaleString('es-CO'), mid(2), y+5.9, {align:'center'}); cx += cols[2].w;
+      // NOTAS (en blanco)
+      cx += cols[3].w;
+      // DIO
+      doc.setFont('helvetica', f.dio>0?'bold':'normal'); doc.setFontSize(9.5);
+      if(f.dio>0) doc.setTextColor(0,130,0); else doc.setTextColor(0,0,0);
+      doc.text(f.dio>0?f.dio.toLocaleString('es-CO'):'-', mid(4), y+5.9, {align:'center'}); cx += cols[4].w;
+      // CUOTA
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(0,0,0);
+      doc.text(f.vCuota>0?f.vCuota.toLocaleString('es-CO'):'-', mid(5), y+5.9, {align:'center'}); cx += cols[5].w;
+      // TOTAL
+      doc.text(f.total.toLocaleString('es-CO'), mid(6), y+5.9, {align:'center'}); cx += cols[6].w;
+      // T
+      doc.setFontSize(9); doc.text(f.tipo, mid(7), f.dia?y+4.4:y+5.9, {align:'center'});
+      if(f.dia){
+        doc.setFontSize(5.5); doc.setFont('helvetica','bold'); doc.setTextColor(110,50,170);
+        doc.text(f.dia, mid(7), y+7.5, {align:'center'});
+      }
+      cx += cols[7].w;
+      // ATRASO
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(180,0,0);
+      doc.text(f.atraso>0?String(f.atraso):'-', mid(8), y+5.9, {align:'center'});
+      y += rhC;
+      lineas.push(y);
     });
-    fila(['','SUBTOTAL CLIENTES',$f(subtotalClientes),'','','','',''], {fill:[220,230,255], bold:true, size:8, color:{2:[0,130,0]}});
+    fila(['','SUBTOTAL CLIENTES','','',$f(subtotalClientes),'','','',''], {fill:[220,230,255], bold:true, size:8, color:{4:[0,130,0]}});
     cerrarTabla();
 
     // CANCELADOS
@@ -8291,33 +8356,6 @@ function imprimirReporteDia(){
     fila(['','TOTAL CANCELADOS ('+cancel.length+')','',$f(totalCancel)], {fill:[255,226,196], bold:true, size:8, color:{3:[150,70,0]}});
     cerrarTabla();
 
-    // VOLADOS QUE DIERON PLATA
-    if(volP.length){
-      y += 8;
-      if(y + rowH*4 > pageH-14){ doc.addPage(); y = margin; }
-      doc.setFillColor(150,0,0);
-      doc.rect(margin, y, tabW, 8, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.text('VOLADOS QUE DIERON PLATA ('+volP.length+')', margin+2, y+5.6);
-      y += 8;
-      cols = [
-        {label:'#',        w:7},
-        {label:'CLIENTE',  w:75},
-        {label:'DIO',      w:30},
-        {label:'DEBE',     w:30},
-        {label:'CEDULA',   w:28},
-        {label:'TELEFONO', w:29.9},
-      ];
-      cabecera();
-      volP.forEach((v,i)=>{
-        fila([i+1, v.nombre.substring(0,40), $f(v.dio), $f(v.saldo), v.cedula||'-', v.tel||'-'], {fill: i%2===0?[255,238,238]:null, color:{2:[0,130,0],3:[180,0,0]}});
-      });
-      fila(['','TOTAL VOLADOS ('+volP.length+')',$f(volDio),'','',''], {fill:[255,210,210], bold:true, size:8, color:{2:[0,130,0]}});
-      cerrarTabla();
-    }
-
     // TOTAL RECAUDADO DEL DIA (clientes + los que cancelaron)
     y += 6;
     if(y + 12 > pageH-14){ doc.addPage(); y = margin; }
@@ -8326,7 +8364,7 @@ function imprimirReporteDia(){
     doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
     doc.setFontSize(10);
-    doc.text('TOTAL RECAUDADO DEL DIA: '+$f(totalRecaudado)+'   (clientes '+$f(subtotalClientes)+' + cancelaron '+$f(cancelDio)+' + volados '+$f(volDio)+')', margin+2, y+6.8);
+    doc.text('TOTAL RECAUDADO DEL DIA: '+$f(totalRecaudado)+'   (clientes '+$f(subtotalClientes)+' + cancelaron '+$f(cancelDio)+')', margin+2, y+6.8);
 
     // PIE DE PAGINA
     const totalPags = doc.internal.getNumberOfPages();
@@ -8443,7 +8481,7 @@ function generarPDFRuta(fechaOpt){
   function estadoEn(c){
     const hist=(c.historialRenovaciones||[]).slice().sort((a,b)=>a.fecha<b.fecha?-1:1);
     const idx=hist.findIndex(h=>h.fecha>fecha);
-    let pagos, prest, cuota, tipo, inicio, saldo;
+    let pagos, prest, cuota, tipo, inicio, saldo, vol=false;
     if(idx>=0){
       const e=hist[idx];
       inicio = idx>0 ? hist[idx-1].fecha : (e.fechaCreado||c.fechaCreado||'');
@@ -8454,11 +8492,11 @@ function generarPDFRuta(fechaOpt){
     } else {
       inicio=c.fechaRenovacion||c.fechaCreado||'';
       if(inicio && inicio>fecha) return null;
-      if(c.volado && c.fechaVolado && c.fechaVolado<fecha) return null;
       pagos=c.pagos||[]; prest=c.prestamo||0; cuota=c.cuotaSugerida||0;
       tipo=(c.tipo||'diario').toLowerCase();
       const base=c.volado?(c.saldoPerdido||c.saldo||0):(c.saldo||0);
       saldo=base+_suma(pagos.filter(p=>p.fecha>fecha));
+      vol=!!(c.volado && (!c.fechaVolado || c.fechaVolado<=fecha));
     }
     const pagosHasta=pagos.filter(p=>p.fecha<=fecha);
     let dio=_suma(pagos.filter(p=>p.fecha===fecha));
@@ -8469,7 +8507,7 @@ function generarPDFRuta(fechaOpt){
       if(dio>0) cancelList.push({nombre:String(c.nombre||'').toUpperCase(),monto:dio,tipo:'CANCELÓ'});
       return null;
     }
-    return {saldo,prest,cuota,tipo,dio,atraso:atrasoEn(inicio,fecha,tipo,c.diaSemana,cuota,pagosHasta)};
+    return {saldo,prest,cuota,tipo,dio,vol,atraso:vol?0:atrasoEn(inicio,fecha,tipo,c.diaSemana,cuota,pagosHasta)};
   }
 
   // Construir filas
@@ -8488,27 +8526,15 @@ function generarPDFRuta(fechaOpt){
       const mp0=_suma((c.pagos||[]).filter(p=>p.fecha===fecha));
       st={saldo:c.saldo||0,prest:c.prestamo||0,cuota:c.cuotaSugerida||0,tipo:(c.tipo||'diario').toLowerCase(),dio:mp0,atraso:calcularAtraso(c)};
     }
-    recaudado+=st.dio; cuotasDia+=st.cuota; if(st.dio>0) pagaron++;
+    recaudado+=st.dio; if(!st.vol) cuotasDia+=st.cuota; if(st.dio>0) pagaron++;
     const dia=(st.tipo==='semanal')?(_DM[_sinAc(c.diaSemana)]||''):'';
     filas.push({dia,num:i+1,nombre:String(c.nombre||'').toUpperCase(),cedula:c.cedula||'',tel:c.tel||'',
-      tipo:st.tipo==='semanal'?'S':'D',total:st.prest,saldo:st.saldo,cuota:st.cuota,atraso:st.atraso,mp:st.dio});
+      tipo:st.tipo==='semanal'?'S':'D',total:st.prest,saldo:st.saldo,cuota:st.cuota,atraso:st.atraso,mp:st.dio,vol:!!st.vol});
   });
-  const totalSaldo=filas.reduce((s,f)=>s+f.saldo,0);
-  const activos=filas.length;
+  const totalSaldo=filas.filter(f=>!f.vol).reduce((s,f)=>s+f.saldo,0);
+  const activos=filas.filter(f=>!f.vol).length;
+  const nVol=filas.filter(f=>f.vol).length;
   const totalCancel=cancelList.reduce((s,x)=>s+x.monto,0);
-  // Clientes volados (se fueron sin pagar): en un dia anterior, solo los que ya se habian ido
-  const volList=[];
-  clientes.forEach(c=>{
-    if(!c.volado) return;
-    if(pasado && !(c.fechaVolado && c.fechaVolado<=fecha)) return;
-    let debe=c.saldoPerdido||0;
-    if(pasado) debe+=_suma((c.pagos||[]).filter(p=>p.fecha>fecha));
-    volList.push({nombre:String(c.nombre||'').toUpperCase(),cedula:c.cedula||'',tel:c.tel||'',
-      tipo:(c.tipo||'diario').toLowerCase()==='semanal'?'S':'D',fecha:c.fechaVolado||'',prest:c.prestamo||0,debe});
-  });
-  volList.sort((a,b)=>(a.fecha<b.fecha?1:a.fecha>b.fecha?-1:0));
-  const totalVol=volList.reduce((s,x)=>s+x.debe,0);
-
   function fmtN(n){ return Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 
   function doPDF(){
@@ -8535,7 +8561,7 @@ function generarPDFRuta(fechaOpt){
     })();
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
     const dNom=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'][new Date(fecha+'T12:00:00').getDay()];
-    doc.text('FECHA: '+fecha+(pasado?' ('+dNom+')':'')+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos, ML, y+13);
+    doc.text('FECHA: '+fecha+(pasado?' ('+dNom+')':'')+'  |  IMPRESION: '+horaImp+'  |  ACTIVOS: '+activos+(nVol?'  |  VOLADOS: '+nVol:''), ML, y+13);
     if(pasado) doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS DADAS: $'+fmtN(recaudado)+'  |  CANCELADOS: $'+fmtN(totalCancel)+' ('+cancelList.length+')  |  PAGARON: '+pagaron, ML, y+20);
     else doc.text('SALDO: $'+fmtN(totalSaldo)+'  |  CUOTAS: $'+fmtN(cuotasDia)+'  |  RECAUDADO: $'+fmtN(recaudado)+'  |  PAGARON: '+pagaron, ML, y+20);
     doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
@@ -8548,9 +8574,9 @@ function generarPDFRuta(fechaOpt){
       {k:'nom',  h:'CLIENTE',w:0},
       {k:'saldo',h:'SALDO',  w:18, c:true},
       {k:'notas',h:'NOTAS',  w:0},
-      {k:'cuota',h:'CUOTA',  w:15, c:true},
     ];
     if(pasado) cols.push({k:'dio',h:'DIO',w:15,c:true});
+    cols.push({k:'cuota',h:'CUOTA',w:15,c:true});
     cols.push({k:'total',h:'TOTAL',w:18,c:true},{k:'tipo',h:'T',w:15,c:true},{k:'atraso',h:'ATRASO',w:15,c:true});
     const ci=k=>cols.findIndex(c=>c.k===k);
 
@@ -8559,6 +8585,8 @@ function generarPDFRuta(fechaOpt){
     filas.forEach(f=>{
       doc.setFont('helvetica','bold'); doc.setFontSize(8);
       let w=doc.getTextWidth(f.nombre);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+      if(f.vol){ doc.setFont('helvetica','bold'); doc.setFontSize(6.5); w+=2+doc.getTextWidth('VOLADO'); }
       doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
       w=Math.max(w, doc.getTextWidth('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-')));
       if(w>maxNom) maxNom=w;
@@ -8631,7 +8659,8 @@ function generarPDFRuta(fechaOpt){
         doc.addPage();
         y=10; y=drawHead(y);
       }
-      if(f.atraso>0){ doc.setFillColor(...ROJO_F); doc.rect(ML,y,UW,rowH,'F'); }
+      if(f.vol){ doc.setFillColor(255,230,230); doc.rect(ML,y,UW,rowH,'F'); }
+      else if(f.atraso>0){ doc.setFillColor(...ROJO_F); doc.rect(ML,y,UW,rowH,'F'); }
       else if(idx%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,y,UW,rowH,'F'); }
 
       const val={
@@ -8653,6 +8682,11 @@ function generarPDFRuta(fechaOpt){
           let fs=8; doc.setFontSize(fs);
           while(fs>5 && doc.getTextWidth(txt)>col.w-2){ fs-=0.25; doc.setFontSize(fs); }
           doc.text(txt, cx, y+3.8);
+          if(f.vol){
+            const wN=doc.getTextWidth(txt);
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
+            doc.text('VOLADO', cx+wN+2, y+3.8);
+          }
           if(f.cedula||f.tel){
             doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
             doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
@@ -8729,68 +8763,6 @@ function generarPDFRuta(fechaOpt){
       yy+=8;
       doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,100,0);
       doc.text('TOTAL CUOTAS DADAS (sin cancelados): $'+fmtN(recaudado), ML, yy);
-      y=yy;
-    }
-
-    // ===== Clientes volados (se fueron sin pagar) =====
-    if(volList.length){
-      let yy = pasado ? y+10 : y+rowH+1+9;
-      const rH=8.5;
-      const wN=UW*0.44, wT=UW*0.07, wF=UW*0.17, wP=UW*0.16, wD=UW*0.16;
-      const xs=[ML, ML+wN, ML+wN+wT, ML+wN+wT+wF, ML+wN+wT+wF+wP, ML+UW];
-      if(yy+14+rH*3>pH-14){
-        doc.setFontSize(8); doc.setTextColor(150,150,150);
-        doc.text('Página '+doc.internal.getCurrentPageInfo().pageNumber+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
-        doc.addPage(); yy=14;
-      }
-      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,0,0);
-      doc.text('CLIENTES VOLADOS (se fueron sin pagar)', ML, yy); yy+=3;
-      let topV=yy;
-      function cabVol(y0){
-        doc.setFillColor(...AZUL); doc.rect(ML,y0,UW,rH-1,'F');
-        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-        doc.text('CLIENTE', xs[0]+2, y0+5.3);
-        doc.text('T', xs[1]+wT/2, y0+5.3, {align:'center'});
-        doc.text('SE FUE', xs[2]+wF/2, y0+5.3, {align:'center'});
-        doc.text('PRESTADO', xs[3]+wP/2, y0+5.3, {align:'center'});
-        doc.text('DEBE', xs[4]+wD/2, y0+5.3, {align:'center'});
-        return y0+rH-1;
-      }
-      function marcoVol(yTop,yBot){
-        doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
-        for(let k=1;k<5;k++) doc.line(xs[k], yTop+rH-1, xs[k], yBot);
-        doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,yTop,UW,yBot-yTop,'S');
-      }
-      yy=cabVol(yy);
-      volList.forEach((v,i)=>{
-        if(yy+rH>pH-24){
-          marcoVol(topV,yy);
-          doc.setFontSize(8); doc.setTextColor(150,150,150);
-          doc.text('Página '+doc.internal.getCurrentPageInfo().pageNumber+'  |  Alisson & Emily  |  '+fecha, pW/2, pH-5, {align:'center'});
-          doc.addPage(); topV=14; yy=cabVol(14);
-        }
-        if(i%2===1){ doc.setFillColor(...GRIS_A); doc.rect(ML,yy,UW,rH,'F'); }
-        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
-        let fs=8; while(fs>5 && doc.getTextWidth(v.nombre)>wN-3){ fs-=0.25; doc.setFontSize(fs); }
-        doc.text(v.nombre, xs[0]+2, yy+3.8);
-        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
-        doc.text('C.C. '+(v.cedula||'-')+'   |   Tel. '+(v.tel||'-'), xs[0]+2, yy+7.2);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(0,0,0);
-        doc.text(v.tipo, xs[1]+wT/2, yy+5.6, {align:'center'});
-        doc.text(v.fecha||'-', xs[2]+wF/2, yy+5.6, {align:'center'});
-        doc.text(fmtN(v.prest), xs[3]+wP/2, yy+5.6, {align:'center'});
-        doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...ROJO);
-        doc.text(fmtN(v.debe), xs[4]+wD/2, yy+5.6, {align:'center'});
-        doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.line(ML,yy+rH,ML+UW,yy+rH);
-        yy+=rH;
-      });
-      doc.setFillColor(...AZUL); doc.rect(ML,yy,UW,rH,'F');
-      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-      doc.text('TOTAL VOLADOS ('+volList.length+')', ML+2, yy+5.6);
-      doc.text(fmtN(totalVol), xs[4]+wD/2, yy+5.6, {align:'center'});
-      yy+=rH;
-      marcoVol(topV,yy-rH);
-      doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.rect(ML,topV,UW,yy-topV,'S');
       y=yy;
     }
 
