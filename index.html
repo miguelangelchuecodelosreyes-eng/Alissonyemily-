@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v80">
+<meta name="app-version" content="2026-11-17 v82">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6006,7 +6006,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v80';
+const APP_VERSION = '2026-11-17 v82';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8110,32 +8110,40 @@ function imprimirReporteDia(){
   const ahora = new Date();
   const horaStr = ahora.toLocaleString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:true});
 
-  // Recopilar cuotas del día
+  // Recopilar cuotas del día: una fila por cliente, con lo que dio y el saldo que le quedó ese día
   let filas = [];
+  let cancel = [];
   let num = 1;
   clientes.forEach(c => {
-    (c.pagos||[]).forEach(p => {
-      if(p.fecha === fecha){
-        // Usar el monto real pagado ese día como cuota del día
-        const vCuota = p.monto;
-        const totalPrestamo = c.prestamo || 0;
-        const totalPagadoHastaAhora = (c.pagos||[]).reduce((s,x)=>s+x.monto,0);
-        const saldo = Math.max(0, totalPrestamo - totalPagadoHastaAhora);
-        filas.push({
-          num: num++,
-          nombre: c.nombre,
-          cedula: c.cedula||'',
-          tel: c.tel||'',
-          total: totalPrestamo,
-          vCuota: vCuota,
-          dio: p.monto,
-          saldo: saldo
-        });
-      }
+    // renovó ese día: el préstamo anterior se canceló con lo que debía
+    (c.historialRenovaciones||[]).forEach(r => {
+      if(r.fecha === fecha) cancel.push({nombre:String(c.nombre||'').toUpperCase(), monto:r.saldoQuedaba||0, tipo:'RENOVÓ'});
+    });
+    const pagosDia = (c.pagos||[]).filter(p => p.fecha === fecha);
+    if(!pagosDia.length) return;
+    const dio = pagosDia.reduce((s,x)=>s+(x.monto||0),0);
+    const despues = (c.pagos||[]).filter(p => p.fecha > fecha).reduce((s,x)=>s+(x.monto||0),0);
+    const saldo = Math.max(0, (c.saldo||0) + despues);
+    if(saldo <= 0){
+      // terminó de pagar ese día: va a cancelados con lo que dio
+      cancel.push({nombre:String(c.nombre||'').toUpperCase(), monto:dio, tipo:'CANCELÓ'});
+      return;
+    }
+    filas.push({
+      num: num++,
+      nombre: String(c.nombre||'').toUpperCase(),
+      cedula: c.cedula||'',
+      tel: c.tel||'',
+      total: c.prestamo || 0,
+      vCuota: c.cuotaSugerida || 0,
+      dio: dio,
+      saldo: saldo
     });
   });
 
   const totalRecaudado = filas.reduce((s,f)=>s+f.dio,0);
+  const totalCancel = cancel.reduce((s,x)=>s+x.monto,0);
+  const $f = n => '$'+(n||0).toLocaleString('es-CO');
 
   function generarPDF(){
     const { jsPDF } = window.jspdf;
@@ -8143,6 +8151,8 @@ function imprimirReporteDia(){
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 8;
+    const tabW = pageW-margin*2;
+    const rowH = 7;
     let y = margin;
 
     // ENCABEZADO
@@ -8161,91 +8171,114 @@ function imprimirReporteDia(){
 
     // RESUMEN
     doc.setFillColor(240,245,255);
-    doc.rect(margin, y, pageW-margin*2, 10, 'F');
+    doc.rect(margin, y, tabW, 10, 'F');
     doc.setTextColor(0,0,0);
     doc.setFontSize(9);
     doc.setFont('helvetica','bold');
-    doc.text('TOTAL RECAUDADO: $'+totalRecaudado.toLocaleString('es-CO'), margin+2, y+7);
+    doc.text('TOTAL RECAUDADO: '+$f(totalRecaudado)+'     CANCELADOS: '+$f(totalCancel)+' ('+cancel.length+')', margin+2, y+7);
     y += 14;
 
-    // CABECERA TABLA
-    const cols = [
-      {label:'#',         w:7},
-      {label:'CLIENTE',   w:50},
-      {label:'CEDULA',    w:25},
-      {label:'TELEFONO',  w:25},
-      {label:'TOTAL',     w:24},
-      {label:'V.CUOTA',   w:24},
-      {label:'DIO',       w:24},
-      {label:'SALDO',     w:24},
-    ];
-    const rowH = 7;
-
-    doc.setFillColor(50,50,50);
-    doc.rect(margin, y, pageW-margin*2, rowH, 'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(7);
-    doc.setFont('helvetica','bold');
-    let cx = margin+1;
-    cols.forEach(col=>{ doc.text(col.label, cx, y+5); cx+=col.w; });
-    y += rowH;
-
-    // FILAS
-    filas.forEach((f,i)=>{
+    // ---- tabla con rejilla completa ----
+    let cols = [], tTop = 0, lineas = [];
+    function cabecera(){
+      doc.setFillColor(50,50,50);
+      doc.rect(margin, y, tabW, rowH, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(7);
+      doc.setFont('helvetica','bold');
+      let cx = margin+1;
+      cols.forEach(col=>{ doc.text(col.label, cx, y+5); cx+=col.w; });
+      tTop = y;
+      lineas = [];
+      y += rowH;
+    }
+    function cerrarTabla(){
+      // líneas horizontales, verticales y borde (después de los rellenos para que se vean todas)
+      doc.setDrawColor(60,60,60);
+      doc.setLineWidth(0.25);
+      lineas.forEach(ly=>doc.line(margin, ly, margin+tabW, ly));
+      let vx = margin;
+      cols.forEach((col,i)=>{ if(i>0) doc.line(vx, tTop, vx, y); vx+=col.w; });
+      doc.line(margin+tabW, tTop, margin+tabW, y);
+      doc.line(margin, tTop, margin, y);
+      doc.line(margin, y, margin+tabW, y);
+      doc.line(margin, tTop, margin+tabW, tTop);
+    }
+    function fila(vals, o){
+      o = o || {};
       if(y+rowH > pageH-14){
+        cerrarTabla();
         doc.addPage();
         y = margin;
-        doc.setFillColor(50,50,50);
-        doc.rect(margin, y, pageW-margin*2, rowH, 'F');
-        doc.setTextColor(255,255,255);
-        doc.setFontSize(7);
-        doc.setFont('helvetica','bold');
-        let cxH=margin+1;
-        cols.forEach(col=>{ doc.text(col.label,cxH,y+5); cxH+=col.w; });
-        y+=rowH;
+        cabecera();
       }
+      if(o.fill){ doc.setFillColor(o.fill[0],o.fill[1],o.fill[2]); doc.rect(margin,y,tabW,rowH,'F'); }
+      let cx = margin+1;
+      vals.forEach((val,vi)=>{
+        const col = (o.color && o.color[vi]) || [0,0,0];
+        doc.setTextColor(col[0],col[1],col[2]);
+        doc.setFont('helvetica', (o.bold || (o.color && o.color[vi])) ? 'bold' : 'normal');
+        doc.setFontSize(o.size || 7);
+        doc.text(String(val), cx, y+5);
+        cx += cols[vi].w;
+      });
+      y += rowH;
+      lineas.push(y);
+    }
 
-      if(i%2===0){ doc.setFillColor(250,250,250); doc.rect(margin,y,pageW-margin*2,rowH,'F'); }
-
-      const vals = [
-        String(f.num),
-        (f.nombre||'').substring(0,28),
+    // TABLA PRINCIPAL: # · CLIENTE · DIO · SALDO · CUOTA · resto
+    cols = [
+      {label:'#',         w:7},
+      {label:'CLIENTE',   w:58},
+      {label:'DIO',       w:22},
+      {label:'SALDO',     w:22},
+      {label:'CUOTA',     w:20},
+      {label:'CEDULA',    w:24},
+      {label:'TELEFONO',  w:24},
+      {label:'TOTAL',     w:22},
+    ];
+    cabecera();
+    filas.forEach((f,i)=>{
+      fila([
+        f.num,
+        f.nombre.substring(0,34),
+        $f(f.dio),
+        $f(f.saldo),
+        f.vCuota>0?$f(f.vCuota):'-',
         f.cedula||'-',
         f.tel||'-',
-        '$'+f.total.toLocaleString('es-CO'),
-        '$'+f.vCuota.toLocaleString('es-CO'),
-        '$'+f.dio.toLocaleString('es-CO'),
-        '$'+f.saldo.toLocaleString('es-CO'),
-      ];
-
-      cx = margin+1;
-      vals.forEach((val,vi)=>{
-        if(vi===6){ doc.setTextColor(0,130,0); doc.setFont('helvetica','bold'); }
-        else if(vi===7){ doc.setTextColor(180,0,0); doc.setFont('helvetica','bold'); }
-        else { doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); }
-        doc.setFontSize(7);
-        doc.text(val, cx, y+5);
-        cx+=cols[vi].w;
-      });
-      doc.setDrawColor(220,220,220);
-      doc.line(margin, y+rowH, pageW-margin, y+rowH);
-      y+=rowH;
+        $f(f.total)
+      ], {fill: i%2===0?[250,250,250]:null, color:{2:[0,130,0],3:[180,0,0]}});
     });
+    fila(['','TOTAL RECAUDADO',$f(totalRecaudado),'','','','',''], {fill:[220,230,255], bold:true, size:8, color:{2:[0,130,0]}});
+    cerrarTabla();
 
-    // FILA TOTAL
-    doc.setFillColor(220,230,255);
-    doc.rect(margin, y, pageW-margin*2, rowH, 'F');
+    // CANCELADOS
+    y += 8;
+    if(y + rowH*4 > pageH-14){ doc.addPage(); y = margin; }
+    doc.setFillColor(150,70,0);
+    doc.rect(margin, y, tabW, 8, 'F');
+    doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
-    doc.setFontSize(8);
-    doc.setTextColor(0,0,0);
-    cx=margin+1;
-    const tots=['','TOTAL RECAUDADO','','','','','$'+totalRecaudado.toLocaleString('es-CO'),''];
-    tots.forEach((val,vi)=>{
-      if(vi===6) doc.setTextColor(0,130,0);
-      else doc.setTextColor(0,0,0);
-      doc.text(val, cx, y+5);
-      cx+=cols[vi].w;
-    });
+    doc.setFontSize(9);
+    doc.text('CANCELADOS DEL DIA ('+cancel.length+')', margin+2, y+5.6);
+    y += 8;
+    cols = [
+      {label:'#',        w:7},
+      {label:'CLIENTE',  w:105},
+      {label:'TIPO',     w:44},
+      {label:'MONTO',    w:43.9},
+    ];
+    cabecera();
+    if(!cancel.length){
+      fila(['','NINGUNO','',''], {color:{1:[120,120,120]}});
+    } else {
+      cancel.forEach((x,i)=>{
+        fila([i+1, x.nombre.substring(0,50), x.tipo, $f(x.monto)], {fill: i%2===0?[255,244,232]:null, color:{3:[150,70,0]}});
+      });
+    }
+    fila(['','TOTAL CANCELADOS ('+cancel.length+')','',$f(totalCancel)], {fill:[255,226,196], bold:true, size:8, color:{3:[150,70,0]}});
+    cerrarTabla();
 
     // PIE DE PAGINA
     const totalPags = doc.internal.getNumberOfPages();
