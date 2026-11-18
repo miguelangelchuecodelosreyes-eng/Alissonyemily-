@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v91">
+<meta name="app-version" content="2026-11-18 v92">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2785,12 +2785,24 @@ function irA(p) {
 }
 
 // ===== CUENTAS — SOLO LECTURA DESDE SUPERVISOR =====
-function cargarDesdeSupervisor(){
+function cargarDesdeSupervisor(desdeHistorial){
   const hoy = getFechaActiva();
   // Mostrar fecha en cuentas
   const vistaFecha = document.getElementById('vista-fecha');
   if(vistaFecha) vistaFecha.textContent = fechaBonita(hoy);
-  const manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+  let manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
+  // Al EDITAR un día ya guardado: si no hay datos sueltos (porque se guardó y limpió),
+  // se recuperan base, neki, gasto y entregado desde lo que quedó guardado en el historial
+  if(desdeHistorial && !(manual.base||manual.neki||manual.gasto||manual.entregado||manual.papeleria)){
+    try{
+      const e = JSON.parse(lsGet('hist_v3')||'[]').find(x=>x.fecha===hoy);
+      if(e && (e.base||e.neki||e.gasto||e.entregado)){
+        manual = { base:e.base||0, papeleria:0, neki:e.neki||0, gasto:e.gasto||0, entregado:e.entregado||0 };
+        lsSet('sup_manual_'+hoy, JSON.stringify(manual));
+        lsRemove('no_auto_'+hoy);
+      }
+    }catch(err){}
+  }
 
   // Sincronizar total de gastos registrados en la sección Gastos
   try {
@@ -3583,7 +3595,7 @@ function cargarDia(fecha){
   // Ir a Detalles y luego recargar cuentas con la nueva fecha
   irA('detalles');
   // Recargar cuentas en background con la fecha correcta
-  setTimeout(cargarDesdeSupervisor, 50);
+  setTimeout(function(){ cargarDesdeSupervisor(true); }, 50);
   showToast('📅 Viendo el ' + fechaBonita(fecha));
 }
 
@@ -6003,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v91';
+const APP_VERSION = '2026-11-18 v92';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
