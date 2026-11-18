@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v89">
+<meta name="app-version" content="2026-11-18 v90">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -5461,12 +5461,9 @@ function initDrag(soloCards){
     let isDragging = false;
 
     card.addEventListener('touchstart', e => {
-      longPressTimer = setTimeout(() => {
-        isDragging = true;
-        dragSrcIdx = [...lista.querySelectorAll('.cliente-card')].indexOf(card);
-        card.classList.add('dragging');
-        navigator.vibrate && navigator.vibrate(50);
-      }, 400);
+      // Mantener presionado para mover clientes: DESACTIVADO (se movían sin querer).
+      // Para cambiar de lugar un cliente se usan los botones ↑ ↓ dentro de la tarjeta.
+      longPressTimer = null;
     }, {passive:true});
 
     card.addEventListener('touchmove', e => {
@@ -6006,7 +6003,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v89';
+const APP_VERSION = '2026-11-18 v90';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -13276,7 +13273,12 @@ function _sincAbiertas(){
   window.scrollToCliente=function(id){ if(window._vistaModo==='delgada'){ var cd=document.getElementById('card-'+id); if(cd) cd.classList.add('det'); } if(window._vistaCompacta){ var c=document.getElementById('card-'+id); if(c) c.classList.add('abierta'); } return _sc.apply(this,arguments); };
 })();
 </script>
-<style>html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+<style>html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* Sin selección de texto ni menú "Copiar" al mantener presionado en las tarjetas */
+.cliente-card,.cliente-card *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.cliente-card input,.cliente-card textarea{-webkit-user-select:text;user-select:text}
+</style>
+<script>document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.cliente-card')&&!e.target.closest('input,textarea')) e.preventDefault(); });</script>
 <script>
 /* Bloquear zoom (pellizco y doble toque) */
 (function(){
