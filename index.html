@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v86">
+<meta name="app-version" content="2026-11-18 v88">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6006,7 +6006,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v86';
+const APP_VERSION = '2026-11-18 v88';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8260,20 +8260,20 @@ function imprimirReporteDia(){
       lineas.push(y);
     }
 
-    // TABLA PRINCIPAL (mismo orden que el PDF Ruta): # · CLIENTE · SALDO · NOTAS · DIO · CUOTA · TOTAL · T · ATRASO
+    // TABLA PRINCIPAL (mismo orden que el PDF Ruta): # · CLIENTE · DIO · SALDO · NOTAS · CUOTA · TOTAL · T · ATRASO
     const rhC = 8.5;
     cols = [
       {label:'#',       w:8,  r:true},
-      {label:'CLIENTE', w:62},
+      {label:'CLIENTE', w:0},
+      {label:'DIO',     w:18, c:true},
       {label:'SALDO',   w:20, c:true},
-      {label:'NOTAS',   w:0},
-      {label:'DIO',     w:17, c:true},
-      {label:'CUOTA',   w:17, c:true},
+      {label:'NOTAS',   w:30},
+      {label:'CUOTA',   w:18, c:true},
       {label:'TOTAL',   w:20, c:true},
       {label:'T',       w:14, c:true},
       {label:'ATRASO',  w:16, c:true},
     ];
-    cols[3].w = tabW - cols.reduce((a,c)=>a+c.w,0);
+    cols[1].w = tabW - cols.reduce((a,c)=>a+c.w,0);
     cabecera();
     filas.forEach((f,i)=>{
       if(y+rhC > pageH-14){ cerrarTabla(); doc.addPage(); y = margin; cabecera(); }
@@ -8299,15 +8299,15 @@ function imprimirReporteDia(){
       doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
       doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
       cx += cols[1].w;
-      // SALDO
-      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(180,0,0);
-      doc.text(f.saldo.toLocaleString('es-CO'), mid(2), y+5.9, {align:'center'}); cx += cols[2].w;
-      // NOTAS (en blanco)
-      cx += cols[3].w;
       // DIO
       doc.setFont('helvetica', f.dio>0?'bold':'normal'); doc.setFontSize(9.5);
       if(f.dio>0) doc.setTextColor(0,130,0); else doc.setTextColor(0,0,0);
-      doc.text(f.dio>0?f.dio.toLocaleString('es-CO'):'-', mid(4), y+5.9, {align:'center'}); cx += cols[4].w;
+      doc.text(f.dio>0?f.dio.toLocaleString('es-CO'):'-', mid(2), y+5.9, {align:'center'}); cx += cols[2].w;
+      // SALDO
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(180,0,0);
+      doc.text(f.saldo.toLocaleString('es-CO'), mid(3), y+5.9, {align:'center'}); cx += cols[3].w;
+      // NOTAS (en blanco)
+      cx += cols[4].w;
       // CUOTA
       doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(0,0,0);
       doc.text(f.vCuota>0?f.vCuota.toLocaleString('es-CO'):'-', mid(5), y+5.9, {align:'center'}); cx += cols[5].w;
@@ -8326,7 +8326,7 @@ function imprimirReporteDia(){
       y += rhC;
       lineas.push(y);
     });
-    fila(['','SUBTOTAL CLIENTES','','',$f(subtotalClientes),'','','',''], {fill:[220,230,255], bold:true, size:8, color:{4:[0,130,0]}});
+    fila(['','SUBTOTAL CLIENTES',$f(subtotalClientes),'','','','','',''], {fill:[220,230,255], bold:true, size:8, color:{2:[0,130,0]}});
     cerrarTabla();
 
     // CANCELADOS
@@ -8572,10 +8572,10 @@ function generarPDFRuta(fechaOpt){
     const cols=[
       {k:'num',  h:'#',      w:8,  r:true},
       {k:'nom',  h:'CLIENTE',w:0},
-      {k:'saldo',h:'SALDO',  w:18, c:true},
-      {k:'notas',h:'NOTAS',  w:0},
     ];
     if(pasado) cols.push({k:'dio',h:'DIO',w:15,c:true});
+    cols.push({k:'saldo',h:'SALDO',w:18,c:true});
+    cols.push({k:'notas',h:'NOTAS',w:30});
     cols.push({k:'cuota',h:'CUOTA',w:15,c:true});
     cols.push({k:'total',h:'TOTAL',w:18,c:true},{k:'tipo',h:'T',w:15,c:true},{k:'atraso',h:'ATRASO',w:15,c:true});
     const ci=k=>cols.findIndex(c=>c.k===k);
@@ -8593,7 +8593,10 @@ function generarPDFRuta(fechaOpt){
     });
     cols[1].w=Math.min(Math.max(maxNom+5,45), 70);
     const usados=cols.reduce((s,c)=>s+c.w,0);
-    cols.find(c=>c.k==='notas').w=UW-usados;   // lo que sobra: espacio en blanco para anotar
+    // lo que sobra se reparte entre las columnas de números para que quede parejo
+    const num_c=cols.filter(c=>c.c);
+    const extra=(UW-usados)/num_c.length;
+    num_c.forEach(c=>{ c.w+=extra; });
 
     const rowH=8.5, headH=9;
     const LINEA=[90,90,90];
