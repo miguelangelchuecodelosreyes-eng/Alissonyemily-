@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v88">
+<meta name="app-version" content="2026-11-18 v89">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6006,7 +6006,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v88';
+const APP_VERSION = '2026-11-18 v89';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12731,7 +12731,7 @@ async function verFotosCliente(id){
   if(!c) return;
   const old=document.getElementById('visor-fotos'); if(old) old.remove();
   const [a,b] = await Promise.all([FotosDB.get(id+'_cliente'), FotosDB.get(id+'_casa')]);
-  const bloque=(titulo,src)=>`<div style="margin-bottom:14px"><div style="color:#e9d5ff;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${titulo}</div>${src?`<img src="${src}" style="width:100%;max-height:60vh;object-fit:contain;border-radius:16px;background:#000;display:block">`:`<div style="padding:26px;text-align:center;color:#a78bfa;font-weight:800;font-size:13px;border:2px dashed rgba(167,139,250,.4);border-radius:16px">Sin foto</div>`}</div>`;
+  const bloque=(titulo,src)=>`<div style="margin-bottom:14px"><div style="color:#e9d5ff;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${titulo}</div>${src?`<div class="zf-wrap" style="overflow:hidden;border-radius:16px;background:#000;touch-action:pan-y"><img src="${src}" draggable="false" style="width:100%;max-height:60vh;object-fit:contain;display:block;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none"></div>`:`<div style="padding:26px;text-align:center;color:#a78bfa;font-weight:800;font-size:13px;border:2px dashed rgba(167,139,250,.4);border-radius:16px">Sin foto</div>`}</div>`;
   const ov=document.createElement('div');
   ov.id='visor-fotos';
   ov.style.cssText='position:fixed;inset:0;background:rgba(15,10,30,.94);z-index:20000;overflow-y:auto;padding:18px 16px 30px;box-sizing:border-box';
@@ -12744,6 +12744,41 @@ async function verFotosCliente(id){
       <button onclick="document.getElementById('visor-fotos').remove()" style="padding:13px;border:2px solid rgba(255,255,255,.3);border-radius:16px;background:transparent;color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cerrar</button>
     </div></div>`;
   document.body.appendChild(ov);
+  ov.querySelectorAll('.zf-wrap').forEach(initZoomFoto);
+}
+/* Zoom con pellizco y doble toque SOLO dentro del visor de fotos de clientes */
+function initZoomFoto(w){
+  const im=w.querySelector('img'); if(!im) return;
+  let sc=1,tx=0,ty=0,d0=0,sc0=1,sx=0,sy=0,tx0=0,ty0=0,mode=0,lastTap=0;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  const clamp=()=>{
+    if(sc<=1){ tx=0; ty=0; return; }
+    const r=w.getBoundingClientRect();
+    const mx=r.width*(sc-1)/2, my=r.height*(sc-1)/2;
+    tx=Math.max(-mx,Math.min(mx,tx)); ty=Math.max(-my,Math.min(my,ty));
+  };
+  const apply=()=>{ im.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'; w.style.touchAction = sc>1?'none':'pan-y'; };
+  w.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){ mode=2; d0=dist(e.touches); sc0=sc; e.preventDefault(); }
+    else if(e.touches.length===1){
+      mode=1; sx=e.touches[0].clientX; sy=e.touches[0].clientY; tx0=tx; ty0=ty;
+      const now=Date.now();
+      if(now-lastTap<320){ sc=(sc>1)?1:2.5; tx=0; ty=0; clamp(); apply(); lastTap=0; e.preventDefault(); }
+      else lastTap=now;
+    }
+  },{passive:false});
+  w.addEventListener('touchmove',e=>{
+    if(mode===2 && e.touches.length===2){
+      sc=Math.max(1,Math.min(5,sc0*dist(e.touches)/d0)); clamp(); apply(); e.preventDefault();
+    } else if(mode===1 && sc>1 && e.touches.length===1){
+      tx=tx0+(e.touches[0].clientX-sx); ty=ty0+(e.touches[0].clientY-sy); clamp(); apply(); e.preventDefault();
+    }
+  },{passive:false});
+  w.addEventListener('touchend',e=>{
+    if(sc<1.03){ sc=1; tx=0; ty=0; apply(); }
+    if(e.touches.length===1){ mode=1; sx=e.touches[0].clientX; sy=e.touches[0].clientY; tx0=tx; ty0=ty; }
+    else if(e.touches.length===0) mode=0;
+  });
 }
 </script>
 
@@ -13245,8 +13280,8 @@ function _sincAbiertas(){
 <script>
 /* Bloquear zoom (pellizco y doble toque) */
 (function(){
-  ['gesturestart','gesturechange','gestureend'].forEach(function(e){document.addEventListener(e,function(ev){ev.preventDefault();},{passive:false});});
-  document.addEventListener('touchmove',function(ev){ if(ev.touches&&ev.touches.length>1) ev.preventDefault(); },{passive:false});
+  ['gesturestart','gesturechange','gestureend'].forEach(function(e){document.addEventListener(e,function(ev){ if(ev.target&&ev.target.closest&&ev.target.closest('#visor-fotos')) return; ev.preventDefault();},{passive:false});});
+  document.addEventListener('touchmove',function(ev){ if(ev.target&&ev.target.closest&&ev.target.closest('#visor-fotos')) return; if(ev.touches&&ev.touches.length>1) ev.preventDefault(); },{passive:false});
 })();
 </script>
 </body>
