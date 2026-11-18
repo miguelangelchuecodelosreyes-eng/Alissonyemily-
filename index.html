@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v74">
+<meta name="app-version" content="2026-11-17 v75">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1506,6 +1506,7 @@ button[onclick="exportarDatos()"]{
     <button class="btn btn-guardar" onclick="guardarDia()">💾 Guardar día</button>
     <button class="btn btn-limpiar" onclick="limpiarCuentas()">🗑️ Limpiar</button>
   </div>
+  <div style="margin-top:10px"><button class="btn btn-guardar" style="width:100%;background:linear-gradient(135deg,#0ea5e9,#6366f1)" onclick="guardarDia(true)">💾🗑️ Guardar y limpiar</button></div>
   <div class="botones-compartir" style="margin-top:10px">
     <button class="btn-wa" onclick="compartirWA(null)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.126 1.529 5.863L.057 23.428a.5.5 0 00.609.61l5.692-1.479A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.927 9.927 0 01-5.031-1.368l-.361-.214-3.741.972.994-3.639-.235-.374A9.927 9.927 0 012.062 12C2.062 6.515 6.515 2.062 12 2.062S21.938 6.515 21.938 12 17.485 21.938 12 21.938z"/></svg>
@@ -2999,6 +3000,8 @@ function autoGuardarDia(d){
   if(!d || !d.fecha) return;
   if(!getClientes().length) return;
   if(!(d.base||d.general||d.papeleria||d.prestamos||d.neki||d.gasto||d.entregado)) return;
+  const kNo='no_auto_'+d.fecha;
+  if(lsGet(kNo)){ if(d.base||d.neki||d.gasto||d.entregado) lsRemove(kNo); else return; }
   _guardarEnHistorial(d);
 }
 function _calcularDiaPuro(fecha, clientes){
@@ -3051,14 +3054,14 @@ setTimeout(rellenarDiasPerdidos, 3500);
 setTimeout(rellenarDiasPerdidos, 9000);
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(rellenarDiasPerdidos, 800); });
 
-function guardarDia(){
+function guardarDia(limpiar){
   const d = getDatos();
   if(d.base===0 && d.general===0 && d.papeleria===0){
     showToast('⚠️ Ingresa al menos un valor antes de guardar'); return;
   }
   confirmarAccion(
     '💾 Guardar día',
-    '¿Guardar las cuentas del ' + fechaBonita(d.fecha) + '?\n\nEntradas: ' + fmt(d.totalEntradas||0) + '\nSalidas: ' + fmt(d.totalSalidas||0) + '\nResultado: ' + fmt(d.resultado||0),
+    (limpiar?'¿Guardar las cuentas del ':'¿Guardar las cuentas del ') + fechaBonita(d.fecha) + (limpiar?' y luego limpiar base, papelería, neki y gasto?\n(Las cuotas de los clientes no se borran)':'?') + '\n\nEntradas: ' + fmt(d.totalEntradas||0) + '\nSalidas: ' + fmt(d.totalSalidas||0) + '\nResultado: ' + fmt(d.resultado||0),
     '#00aa44',
     () => {
       let h = JSON.parse(lsGet('hist_v3')||'[]');
@@ -3082,7 +3085,13 @@ function guardarDia(){
         renderPrestamos();
         renderDetalles();
       }, 50);
-      showToast('✅ Día guardado correctamente');
+      if(limpiar){
+        lsRemove('sup_manual_'+d.fecha);
+        lsSet('no_auto_'+d.fecha,'1');   // el dia ya quedo guardado: que el auto-guardado no lo pise con ceros
+        ['input-base','input-papeleria','input-neki','input-gasto','input-entregado'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+        recalcularCuentas();
+        showToast('✅ Día guardado y campos limpiados');
+      } else showToast('✅ Día guardado correctamente');
     }
   );
 }
@@ -3507,6 +3516,7 @@ function limpiarCuentas(){
     () => {
       const hoy = fechaHoy();
       lsRemove('sup_manual_'+hoy);
+      lsSet('no_auto_'+hoy,'1');   // lo que ya estaba guardado no se pisa con ceros
       document.getElementById('input-base').value = '';
       document.getElementById('input-papeleria').value = '';
       document.getElementById('input-neki').value = '';
@@ -5997,7 +6007,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v74';
+const APP_VERSION = '2026-11-17 v75';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -13000,6 +13010,7 @@ function renderVoladas(busq){
 .cc-row{gap:7px !important}
 .cc-nom{font-size:13.5px;font-weight:900;color:#1a1a2e;line-height:1.15;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .cc-sub{font-size:11px;font-weight:700;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cc-hoy{display:inline-block;background:linear-gradient(135deg,#22d3ee,#0891b2);color:#fff;font-size:12px;font-weight:900;letter-spacing:.2px;padding:2px 10px;border-radius:999px;margin-bottom:3px;box-shadow:0 2px 6px rgba(8,145,178,.4)}
 .cc-sal{text-align:right;flex-shrink:0}
 .cc-sal b{display:block;font-size:17px;font-weight:900;color:#ef4444;line-height:1.1}
 .cc-sal span{font-size:10px;font-weight:800;color:#94a3b8}
@@ -13072,8 +13083,8 @@ function decorarCompacta(){
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
-    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid"><div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
-      +'<div class="cc-right"><div class="cc-sal"><span>'+(pagoHoy>0?'<i style="font-style:normal;color:#00a844">✅ HOY '+fmt(pagoHoy)+'</i>':'SALDO')+'</span><b>'+fmt(c.saldo)+'</b></div>'
+    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
+      +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
     card.insertBefore(cl,card.firstChild); card.insertBefore(row,card.firstChild);
