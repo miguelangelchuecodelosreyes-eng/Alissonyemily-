@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v90">
+<meta name="app-version" content="2026-11-18 v91">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6003,7 +6003,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v90';
+const APP_VERSION = '2026-11-18 v91';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11073,6 +11073,15 @@ function _orbeRespuestaLocal(pregunta, s){
     const cuotaTxt = esSem
       ? `${f(c.cuotaSugerida||0)} por semana${c.diaSemana?' (cobra los '+c.diaSemana+')':''}`
       : `${f(c.cuotaSugerida||0)} por día`;
+    // ¿Cuándo le toca? → día de cobro y cuánto debe dar
+    if (has('le toca','cuando toca','cuándo toca','que dia','qué día','dia le toca','día le toca','cuando paga','cuándo paga','cuando cobra','cuándo cobra','cuando le cobro','cuándo le cobro')) {
+      const _cap = t => t ? t.charAt(0).toUpperCase()+t.slice(1) : t;
+      const cuotaV = f(c.cuotaSugerida||0);
+      if (esSem) {
+        return `🔎 Ya reviso, jefe…\n\n📅 A ${c.nombre} le toca el día ${c.diaSemana?_cap(String(c.diaSemana).toLowerCase()):'(sin día asignado)'}\n💵 Tiene que dar ${cuotaV}`;
+      }
+      return `🔎 Ya reviso, jefe…\n\n📅 ${c.nombre} es DIARIO: le toca todos los días (lunes a sábado)\n💵 Tiene que dar ${cuotaV}`;
+    }
     // Pregunta solo por dirección / teléfono
     if (has('dirección','direccion','donde vive','dónde vive','ubicación','ubicacion','donde queda','dónde queda')) {
       return `📍 ${c.nombre}\nDirección: ${c.dir||'No registrada'}${c.tel?'\n📱 Teléfono: '+c.tel:''}${c.nota?'\n📝 Nota: '+c.nota:''}`;
