@@ -617,6 +617,15 @@ body {
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
+// Si Google (gstatic) no cargó, intentar con otro servidor (jsDelivr)
+if (typeof firebase === 'undefined' || !firebase.database || !firebase.auth) {
+  window._sdkFallback = true;
+  document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.js"><\/script>');
+}
+</script>
+<script>
 (function() {
   // ── Alias para compatibilidad con el resto del código ──
   function initializeApp(cfg) { return firebase.initializeApp(cfg); }
@@ -746,7 +755,31 @@ body {
 
   window.logout = function() { cerrarSesion(); };
 
+  function mostrarSinConexion(motivo) {
+    const badge = document.getElementById('sync-badge');
+    if (badge) { badge.textContent = '🔴 Sin conexión a internet'; badge.style.background = 'rgba(239,68,68,0.35)'; }
+    agregarLog('🔴 ' + motivo, 'error');
+    agregarLog('💡 Abre google.com en Chrome: si no carga, es tu WiFi/datos', 'warn');
+    agregarLog('💡 Cuando haya internet, recarga esta página', 'warn');
+    if (!document.getElementById('aviso-sin-internet')) {
+      const d = document.createElement('div');
+      d.id = 'aviso-sin-internet';
+      d.style.cssText = 'margin:12px 14px;padding:14px 16px;background:#fef2f2;border:2px solid #ef4444;border-radius:16px;color:#b91c1c;font-weight:800;font-size:14px;line-height:1.5;text-align:center';
+      d.innerHTML = '📡 No se pudo conectar con Firebase.<br><span style="font-weight:700;font-size:12px;color:#7f1d1d">Revisa que tu WiFi o datos tengan internet real y recarga.</span><br><button onclick="location.reload()" style="margin-top:10px;padding:10px 18px;border:none;border-radius:14px;background:#ef4444;color:white;font-weight:900;font-family:inherit;cursor:pointer">🔄 Reintentar</button>';
+      const app = document.getElementById('app-screen');
+      if (app) app.insertBefore(d, app.firstChild);
+    }
+  }
+
   function iniciarFirebase() {
+    if (typeof firebase === 'undefined' || !firebase.database || !firebase.auth) {
+      mostrarSinConexion('No cargó Firebase (sin internet o bloqueado)');
+      return;
+    }
+    // Si en 10 segundos Firebase no responde, avisar
+    setTimeout(() => {
+      if (!window._diagDb) mostrarSinConexion('Firebase no respondió en 10 segundos');
+    }, 10000);
     // Reutilizar app existente para evitar error "duplicate app" en recarga
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     db = getDatabase(app);
@@ -960,14 +993,14 @@ body {
 
     for (const c of clientes) {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
-      const fechaCancelacion = (c.cancelado === true || c.saldo === 0) && ultimoPago ? ultimoPago.fecha : null;
+      const fechaCancelacion = (!c.volado && (c.cancelado === true || c.saldo === 0)) && ultimoPago ? ultimoPago.fecha : null;
       for (const p of (c.pagos || [])) {
         if (!p.fecha) continue;
         const dia = dias.find(d => d.fecha === p.fecha);
         if (!dia) continue;
         if (fechaCancelacion && p.fecha === fechaCancelacion) continue;
         dia.total += parseFloat(p.monto || 0);
-        dia.pagos.push({ nombre: c.nombre || '?', monto: parseFloat(p.monto || 0) });
+        dia.pagos.push({ nombre: (c.nombre || '?') + (c.volado ? ' (VOLADO)' : ''), monto: parseFloat(p.monto || 0) });
       }
       for (const r of (c.historialRenovaciones || [])) {
         for (const p of (r.pagos || [])) {
@@ -1415,7 +1448,7 @@ body {
     let cobradoDia = 0, montoCanceladosDia = 0;
     _modalClientes.forEach(c => {
       const ultimoPago = (c.pagos||[]).length > 0 ? c.pagos[0] : null;
-      const esCanceladoEseDia = (c.cancelado === true || c.saldo === 0) && ultimoPago && ultimoPago.fecha === fechaDia;
+      const esCanceladoEseDia = (!c.volado && (c.cancelado === true || c.saldo === 0)) && ultimoPago && ultimoPago.fecha === fechaDia;
       (c.pagos || []).forEach(p => { if (p.fecha !== fechaDia) return; cobradoDia += parseFloat(p.monto || 0); });
       if (esCanceladoEseDia) { montoCanceladosDia += (c.pagos||[]).filter(p=>p.fecha===fechaDia).reduce((s,p)=>s+parseFloat(p.monto||0),0); }
       (c.historialRenovaciones || []).forEach(r => {
