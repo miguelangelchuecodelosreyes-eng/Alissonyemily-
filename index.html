@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-17 v79">
+<meta name="app-version" content="2026-11-17 v80">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6006,7 +6006,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-17 v79';
+const APP_VERSION = '2026-11-17 v80';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -13007,6 +13007,7 @@ function renderVoladas(busq){
 .cc-mid{flex:1;min-width:0;text-align:center}
 .cc-mid .cc-nom,.cc-mid .cc-sub{text-align:center}
 .cc-foto{width:38px !important;height:38px !important}
+.cc-foto-ph{width:38px;height:38px;flex-shrink:0}   /* sin foto: se deja el mismo espacio para que todos los nombres y cuotas queden en la misma linea */
 .cc-row{gap:7px !important}
 .cc-nom{font-size:13.5px;font-weight:900;color:#1a1a2e;line-height:1.15;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .cc-sub{font-size:11px;font-weight:700;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -13083,7 +13084,7 @@ function decorarCompacta(){
     var accion='';
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
-    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
+    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
     row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
       +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
