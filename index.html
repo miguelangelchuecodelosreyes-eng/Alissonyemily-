@@ -11091,11 +11091,13 @@ async function _orbeChatResponder(){
   // Llamada real a Claude
   const sistema = `Eres el asistente IA del cobrador en la app "Alisson & Emily". Hablas español, cercano, con emojis moderados. Tus respuestas son CORTAS (máx 5 frases) y accionables. Usa los datos en vivo del usuario:
 
-${ctx}
+${String(ctx||'').slice(0,5000)}
 
 Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
 
-  const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
+  const _corta = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n) + '…' : t; };
+  const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-6)
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: _corta(m.content, 1200) }));
 
   const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
