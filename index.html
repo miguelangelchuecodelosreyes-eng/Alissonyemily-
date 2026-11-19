@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v95">
+<meta name="app-version" content="2026-11-19 v96">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6015,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v95';
+const APP_VERSION = '2026-11-19 v96';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11068,9 +11068,9 @@ async function orbIAEnviarMensaje(){
   arr[arr.length-1] = { role:'assistant', content: respuesta };
   _orbeGuardarChat(arr);
 
+  if(typeof _jarvisHablar==='function') _jarvisHablar(respuesta);
   _orbeTypewriter(div, respuesta, ()=>{
     _orbChatLoading = false;
-    if(typeof _jarvisHablar==='function') _jarvisHablar(respuesta);
   });
   _orbeScrollFinal();
 }
@@ -11822,6 +11822,7 @@ window.orbIANuevoChat = orbIANuevoChat;
         <h3 style="font-family:'Orbitron','Nunito',sans-serif;letter-spacing:3px;background:linear-gradient(90deg,#00d4ff,#0066ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">J.A.R.V.I.S.</h3>
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
+      <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="jarvisNuevoChat()" title="Nuevo chat">↺</button>
     </div>
@@ -12247,6 +12248,7 @@ document.addEventListener('click', function _jrvUnlock(){
 
 function _jarvisHablar(texto){
   if(!texto || !window.speechSynthesis) return;
+  try{ if(localStorage.getItem('jrv_voz_off')==='1') return; }catch(e){}
   const limpio = texto
     .replace(/[\u{1F300}-\u{1FAFF}]/gu,'')
     .replace(/[^\x00-\x7F\u00C0-\u024F\u00A0-\u00FF]/g,' ')
@@ -12262,6 +12264,7 @@ function _jarvisHablar(texto){
   function _ejecutar(){
     try {
       window.speechSynthesis.cancel();
+      try{ window.speechSynthesis.resume(); }catch(e){}
       const MAX = 160;
       const fragmentos = [];
       let resto = limpio;
@@ -12282,10 +12285,10 @@ function _jarvisHablar(texto){
       function hablarFrag(){
         if(idx2 >= fragmentos.length) return;
         const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
-        utt.lang = 'es-CO'; utt.rate = 0.88; utt.pitch = 0.82; utt.volume = 1.0;
+        utt.lang = 'es-CO'; utt.rate = 0.95; utt.pitch = 0.85; utt.volume = 1.0;
         if(voz) utt.voice = voz;
         utt.onstart = ()=>{
-          _jrvHablando = true;
+          _jrvHablando = true; window._jrvEmpezo = true;
           const bar = document.getElementById('jrv-voice-bar');
           if(bar) bar.classList.add('active');
         };
@@ -12306,7 +12309,7 @@ function _jarvisHablar(texto){
         window.speechSynthesis.speak(utt);
         _jrvVoz = utt;
       }
-      hablarFrag();
+      setTimeout(hablarFrag, 120); // en Android, hablar justo después de cancelar a veces se pierde
     } catch(e){}
   }
 
@@ -12326,6 +12329,43 @@ function _jarvisHablar(texto){
     _ejecutar();
   }
 }
+
+function _jrvPintarBoton(){
+  try{
+    const b = document.getElementById('orb-voz-btn'); if(!b) return;
+    const off = localStorage.getItem('jrv_voz_off')==='1';
+    b.textContent = off ? '🔇' : '🔊';
+    b.title = off ? 'Jarvis en silencio (toca para activar la voz)' : 'Voz activa (toca para silenciar)';
+  }catch(e){}
+}
+function jarvisVozToggle(){
+  let off=false; try{ off = localStorage.getItem('jrv_voz_off')==='1'; }catch(e){}
+  if(!off){
+    try{ localStorage.setItem('jrv_voz_off','1'); }catch(e){}
+    try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(e){}
+    _jrvPintarBoton();
+    _orbeMostrarMsg('ai','🔇 Listo jefe, me quedo en silencio. Toca el parlante para volver a activar mi voz.', false);
+    return;
+  }
+  try{ localStorage.removeItem('jrv_voz_off'); }catch(e){}
+  _jrvPintarBoton();
+  jarvisProbarVoz();
+}
+function jarvisProbarVoz(){
+  if(!window.speechSynthesis){
+    _orbeMostrarMsg('ai','🔇 Jefe, esta app no tiene voz disponible en este celular. Si quieres escucharme, abre la app en Chrome.', false);
+    return;
+  }
+  window._jrvEmpezo = false;
+  _orbeMostrarMsg('ai','🔊 Probando mi voz… ¿me escucha, jefe?', false);
+  _jarvisHablar('Hola jefe, ya puedo hablar. ¿Me escucha bien?');
+  setTimeout(()=>{
+    if(window._jrvEmpezo) return;
+    let n = 0; try{ n = (window.speechSynthesis.getVoices()||[]).length; }catch(e){}
+    _orbeMostrarMsg('ai','🔇 Jefe, mandé la voz pero el celular no la reprodujo (voces encontradas: '+n+').\n\nPrueba esto:\n1) Sube el volumen multimedia del celular.\n2) En Ajustes del celular → Idioma → Salida de texto a voz, elige "Servicios de voz de Google" y descarga el español.\n3) Si sigue sin sonar, puede que esta app (APK) no deje usar voz: abre la app en Chrome y prueba ahí.', false);
+  }, 3500);
+}
+setTimeout(_jrvPintarBoton, 1500);
 
 function _jarvisCallIarStop(){
   try { window.speechSynthesis.cancel(); } catch(e){}
