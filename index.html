@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v93">
+<meta name="app-version" content="2026-11-18 v94">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2793,11 +2793,11 @@ function cargarDesdeSupervisor(desdeHistorial){
   let manual = JSON.parse(lsGet('sup_manual_'+hoy)||'{}');
   // Al EDITAR un día ya guardado: si no hay datos sueltos (porque se guardó y limpió),
   // se recuperan base, neki, gasto y entregado desde lo que quedó guardado en el historial
-  if(desdeHistorial && !(manual.base||manual.neki||manual.gasto||manual.entregado||manual.papeleria)){
+  if(desdeHistorial && !(manual.base||manual.neki||manual.gasto||manual.entregado)){
     try{
       const e = JSON.parse(lsGet('hist_v3')||'[]').find(x=>x.fecha===hoy);
       if(e && (e.base||e.neki||e.gasto||e.entregado)){
-        manual = { base:e.base||0, papeleria:0, neki:e.neki||0, gasto:e.gasto||0, entregado:e.entregado||0 };
+        manual = Object.assign({}, manual, { base:e.base||0, neki:e.neki||0, gasto:e.gasto||0, entregado:e.entregado||0 });
         lsSet('sup_manual_'+hoy, JSON.stringify(manual));
         lsRemove('no_auto_'+hoy);
       }
@@ -6015,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v93';
+const APP_VERSION = '2026-11-18 v94';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
