@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v100">
+<meta name="app-version" content="2026-11-19 v101">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v100';
+const APP_VERSION = '2026-11-19 v101';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11310,7 +11310,7 @@ async function orbIAEnviarMensaje(){
   } catch(e) {
     // Si falla Claude (clave inválida, sin internet, etc.) caer al modo local
     const errMsg = (e.message||'').toLowerCase();
-    const esAuthError = errMsg.includes('401') || errMsg.includes('authentication') || errMsg.includes('api-key') || errMsg.includes('invalid');
+    const esAuthError = errMsg.includes('http 401') || errMsg.includes('http 403') || errMsg.includes('authentication_error') || errMsg.includes('x-api-key');
     if(esAuthError){
       // Limpiar clave inválida y usar modo local
       try { localStorage.removeItem('orb_claude_key'); } catch(ex){}
@@ -11321,7 +11321,7 @@ async function orbIAEnviarMensaje(){
       const st = document.getElementById('orb-conn-status');
       if(st) st.textContent = '◈ Clave inválida — modo local activado';
     } else {
-      respuesta = 'Sin conexión. Respondiendo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      respuesta = '⚠️ La IA no respondió: ' + (e.message||'error').slice(0,200) + '\nRespondo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
     }
   }
 
@@ -11365,15 +11365,26 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
   const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
   if (key.indexOf('gsk_')===0) {
-    const rg = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'content-type':'application/json', 'authorization':'Bearer '+key },
-      body: JSON.stringify({ model:'llama-3.3-70b-versatile', max_tokens:600, temperature:0.4,
-        messages: [{role:'system', content:sistema}].concat(messages) })
-    });
-    if (!rg.ok) { const t = await rg.text().catch(()=>''); throw new Error('HTTP '+rg.status+' '+t.slice(0,140)); }
-    const dg = await rg.json();
-    return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
+    const modelos = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-20b','gemma2-9b-it'];
+    let ultimoErr = '';
+    for (const mod of modelos) {
+      let rg;
+      try {
+        rg = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+key.trim() },
+          body: JSON.stringify({ model:mod, max_tokens:600, messages: [{role:'system', content:sistema}].concat(messages) })
+        });
+      } catch(netErr) { throw new Error('RED: no pude llegar a Groq ('+(netErr&&netErr.message||'sin conexión')+')'); }
+      if (rg.ok) {
+        const dg = await rg.json();
+        return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
+      }
+      const t = await rg.text().catch(()=>'');
+      ultimoErr = 'HTTP '+rg.status+' ('+mod+') '+t.slice(0,160);
+      if (rg.status===401 || rg.status===403) throw new Error('HTTP '+rg.status+' clave rechazada por Groq: '+t.slice(0,120));
+    }
+    throw new Error(ultimoErr);
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -12709,7 +12720,7 @@ function _jarvisHablarOnline(limpio){
       a.onerror = ()=>{ if(a.src===_JRV_SILENCIO) return; if(!window._jrvEmpezo && window._jrvProv < provs.length-1){ window._jrvProv++; siguiente(); return; } window._jrvErrorOnline = true; window._jrvDiag = 'el audio no cargó (código '+(a.error?a.error.code:'?')+')'; _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); };
       a.src = url;
       const pr = a.play();
-      if(pr && pr.catch) pr.catch(err=>{ window._jrvErrorOnline = true; window._jrvDiag = 'el celular no dejó reproducir ('+(err&&err.name||'error')+')'; });
+      if(pr && pr.catch) pr.catch(err=>{ if(!window._jrvEmpezo && window._jrvProv < provs.length-1){ window._jrvProv++; siguiente(); return; } window._jrvErrorOnline = true; window._jrvDiag = 'el celular no dejó reproducir ('+(err&&err.name||'error')+')'; });
     }
     siguiente();
   }catch(e){ window._jrvErrorOnline = true; }
