@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v97">
+<meta name="app-version" content="2026-11-19 v100">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2451,6 +2451,7 @@ button[onclick="exportarDatos()"]{
 function fmt(n) { return '$' + Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function val(id) { return parseFloat(document.getElementById(id).value)||0; }
 function fechaHoy() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fechaBonita(f) {
   if(!f) return '';
   const [y,m,d]=f.split('-');
@@ -3659,7 +3660,7 @@ function renderSemana(){
   document.getElementById('semana-rango').textContent=`${ff(l)} – ${ff(dom)}`;
   const hist=JSON.parse(lsGet('hist_v3')||'[]');
   const dias=[];
-  for(let i=0;i<7;i++){const d=new Date(l);d.setDate(l.getDate()+i);const iso=d.toISOString().split('T')[0];const r=hist.find(h=>h.fecha===iso);if(r)dias.push(r);}
+  for(let i=0;i<7;i++){const d=new Date(l);d.setDate(l.getDate()+i);const iso=_isoLocal(d);const r=hist.find(h=>h.fecha===iso);if(r)dias.push(r);}
   if(!dias.length){document.getElementById('semana-body').innerHTML='<div class="empty-hist">No hay días guardados esta semana</div>';document.getElementById('semana-dias-lista').innerHTML='';return;}
   const te=dias.reduce((s,h)=>s+(h.totalEntradas||0),0),ts=dias.reduce((s,h)=>s+(h.totalSalidas||0),0),tp=dias.reduce((s,h)=>s+(h.prestamos||0),0),tr=dias.reduce((s,h)=>s+(h.resultado||0),0);
   document.getElementById('semana-body').innerHTML=`
@@ -5787,7 +5788,7 @@ function calcularFechaFinal(fechaInicio, tipo, nCuotas, diaSemana){
     else if(tipo === 'semanal'){ if(d.getDay() === diaObjetivo) agregados++; }
     else agregados++;
   }
-  return d.toISOString().split('T')[0];
+  return _isoLocal(d);
 }
 
 function diasVencidos(fechaInicio, tipo, pagos, diaSemana){
@@ -6015,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v97';
+const APP_VERSION = '2026-11-19 v100';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8827,7 +8828,7 @@ function renderResumenSemanal(){
   let totalPrestado=0, totalPapeleria=0, diasConPrestamo=0, diasConPapeleria=0;
   for(let i=0;i<7;i++){
     const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
-    const iso = dia.toISOString().split('T')[0];
+    const iso = _isoLocal(dia);
     const registro = hist.find(h=>h.fecha===iso);
     if(registro){
       if((registro.prestamos||0)>0){ totalPrestado+=registro.prestamos; diasConPrestamo++; }
@@ -10654,7 +10655,7 @@ function _orbePintarStats(){ try {
   const status = document.getElementById('orb-conn-status');
   if(status){
     let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
-    status.textContent = key ? 'Groq conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 de Groq';
+    status.textContent = key ? (key.indexOf('gsk_')===0?'Groq':'Claude')+' conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 (Groq o Claude)';
   }
 } catch(e){ console.error("stats error:",e); } }
 
@@ -10673,7 +10674,7 @@ function orbIAGuardarKey(){
     if (k) localStorage.setItem('orb_claude_key', k);
     else   localStorage.removeItem('orb_claude_key');
   } catch(e){}
-  if(typeof showToast==='function') showToast(k ? '✅ Groq conectado' : '🗑️ Clave borrada');
+  if(typeof showToast==='function') showToast(k ? (k.indexOf('gsk_')===0?'✅ Groq conectado':'✅ Claude conectado') : '🗑️ Clave borrada');
   document.getElementById('orb-key-config').style.display = 'none';
   _orbePintarStats();
 }
@@ -10746,7 +10747,7 @@ function _jSi(t){ return /^(si|sip|sii+|claro|dale|ok|okey|listo|de una|hagale|a
 function _jNo(t){ return /^(no|nop|nel|nada|ninguna|ninguno|cero|mejor no|negativo|sin)\b/.test(_jNorm(t).trim()); }
 function _jCancelaTxt(t){ return /^(cancel\w*|olvidalo|olvida|dejalo|deja eso|deja asi|ya no|para|parar|salir|no quiero)\b/.test(_jNorm(t).trim()); }
 function _jFm(n){ const v=Math.round(n||0); return (v<0?'-':'')+'$'+Math.abs(v).toLocaleString('es-CO'); }
-const _J_STOP = new Set(['jarvis','jefe','borrar','borra','borrame','borrarme','borrarle','elimina','eliminar','eliminame','quita','quitar','quitame','anula','anular','cuota','cuotas','renovar','renovame','renueva','renovarle','renovacion','voy','vas','vamos','quiero','necesito','editar','editame','edita','editarle','cambiar','cambiame','cambia','modificar','modifica','actualizar','actualiza','corrige','corregir','telefono','numero','celular','cedula','direccion','nombre','nota','dia','cliente','para','favor','por','que','del','los','las','una','uno','con','dame','dime','hoy','mi','mis','liquidar','liquida','prestamo','saldo']);
+const _J_STOP = new Set(['jarvis','jefe','borrar','borra','borrame','borrarme','borrarle','elimina','eliminar','eliminame','quita','quitar','quitame','anula','anular','cuota','cuotas','renovar','renovame','renueva','renovarle','renovacion','voy','vas','vamos','quiero','necesito','editar','editame','edita','editarle','cambiar','cambiame','cambia','modificar','modifica','actualizar','actualiza','corrige','corregir','telefono','numero','celular','cedula','direccion','nombre','nota','dia','cliente','para','favor','por','que','del','los','las','una','uno','con','dame','dime','hoy','mi','mis','liquidar','liquida','prestamo','saldo','recuerda','recuerdame','recuerden','mete','metele','agrega','anota','apunta','pon','guarda','remover','remueve','remuevelo','saca','sacar','pendiente','pendientes','renovacion','renovaciones','gasto','gastos','semana','semanales','semanal','resumen','dame','muestrame','quien','quienes','esta','estan']);
 function _jBuscar(texto){
   const q = _jNorm(texto);
   const toks = q.split(/[^a-z0-9ñ]+/).filter(Boolean);
@@ -10782,6 +10783,236 @@ const _J_CAMPOS = [
 ];
 function _jCampoEn(t){ const q=_jNorm(t); return _J_CAMPOS.find(x=>x.re.test(q))||null; }
 
+/* ============================================================
+   JARVIS: consultas nuevas (prestado y meta, gastos, renovaciones pendientes, semanales de la semana)
+   ============================================================ */
+const _J_META = { meta:9000, bono:10000, bonoPago:100, paso:2000, pasoPago:50 }; // en miles de pesos (9000 = 9 millones)
+const _J_DIAS_L = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+function _jMillones(n){
+  const v = (n||0)*1000;
+  if(v>=1000000){ const m = v/1000000; return (Number.isInteger(m)?m:(Math.round(m*10)/10).toString().replace('.',','))+(m===1?' millón':' millones'); }
+  return Math.round(v/1000)+' mil';
+}
+function _jIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _jLunes(offsetSemanas){
+  const h = new Date(); h.setHours(0,0,0,0);
+  h.setDate(h.getDate() - ((h.getDay()+6)%7) + 7*(offsetSemanas||0));
+  return h;
+}
+function _jDiaCorto(iso){ const [y,m,d]=iso.split('-'); return d+'/'+m; }
+function _jPesos(valApp){ return '$'+Math.round((valApp||0)*1000).toLocaleString('es-CO'); }
+
+/* ---------- Préstamos de la semana + meta + bono ---------- */
+function _jPrestadoSemana(offset){
+  const lunes = _jLunes(offset), clientes = getClientes();
+  let totRen=0, totNue=0, lineas=[];
+  for(let i=0;i<7;i++){
+    const d = new Date(lunes); d.setDate(lunes.getDate()+i);
+    const F = _jIso(d), items=[];
+    clientes.forEach(c=>{
+      if(!c) return;
+      const nom = c.nombre||'?';
+      if((c.fechaRenovacion||'').substring(0,10)===F){
+        if((c.capital||0)>0) items.push({tipo:'ren', nom, v:c.capital});
+      } else {
+        (c.historialRenovaciones||[]).forEach(r=>{
+          if((r.fecha||'').substring(0,10)===F && (r.nuevoCapital||0)>0) items.push({tipo:'ren', nom, v:r.nuevoCapital});
+        });
+      }
+      if((c.fechaCreado||'').substring(0,10)===F && !(c.renovaciones>0) && (c.capital||0)>0) items.push({tipo:'nue', nom, v:c.capital});
+    });
+    if(items.length){
+      lineas.push('📅 '+_J_DIAS_L[i]+' '+_jDiaCorto(F));
+      items.forEach(it=>{
+        if(it.tipo==='ren'){ totRen+=it.v; lineas.push('   🔄 Le renovaste a '+it.nom+', le prestas '+_jFm(it.v)+' ('+_jMillones(it.v)+')'); }
+        else { totNue+=it.v; lineas.push('   🆕 Ingresaste al cliente nuevo '+it.nom+' con '+_jFm(it.v)+' ('+_jMillones(it.v)+')'); }
+      });
+    }
+  }
+  const total = totRen+totNue, M=_J_META;
+  const esActual = !offset;
+  let r = '🔎 Ya reviso, jefe…\n\n';
+  if(!total) return r+(esActual?'Todavía no has prestado nada esta semana ('+_jDiaCorto(_jIso(lunes))+' – '+_jDiaCorto(_jIso(new Date(lunes.getTime()+6*864e5)))+').':'No encontré préstamos en esa semana.');
+  r += (esActual?'Jefe, hasta el momento llevas ':'Jefe, esa semana prestaste ')+_jFm(total)+' ('+_jMillones(total)+').\n\n'+lineas.join('\n')+'\n\n';
+  r += '🔄 Renovaciones: '+_jFm(totRen)+'\n🆕 Nuevos: '+_jFm(totNue)+'\n';
+  if(esActual){
+    r += total>=M.meta ? '\n🎯 ¡Meta de '+_jFm(M.meta)+' ('+_jMillones(M.meta)+') cumplida!\n' : '\n🎯 Meta de la semana: '+_jFm(M.meta)+' ('+_jMillones(M.meta)+'). Te faltan '+_jFm(M.meta-total)+' ('+_jMillones(M.meta-total)+') para la meta.\n';
+    if(total>=M.bono){
+      const pasos = Math.floor((total-M.bono)/M.paso), extra = pasos*M.pasoPago;
+      r += '🏆 ¡Bono cumplido! Te llevas '+_jPesos(M.bonoPago)+' adicionales al sueldo'+(pasos>0?' y por lo que pasaste de más, '+_jPesos(extra)+' más.':'. Y si metes '+_jMillones(M.paso)+' más, te llevas '+_jPesos(M.pasoPago)+' más.');
+    } else {
+      r += '🏆 Ten en cuenta: el bono es a los '+_jFm(M.bono)+' ('+_jMillones(M.bono)+'); te llevas '+_jPesos(M.bonoPago)+' adicionales al sueldo, y por cada '+_jMillones(M.paso)+' que metas de más, '+_jPesos(M.pasoPago)+' más. Para el bono te faltan '+_jFm(M.bono-total)+'.';
+    }
+  }
+  return r;
+}
+
+/* ---------- Gastos ---------- */
+function _jMonto(txt){
+  const m = String(txt||'').match(/(\d[\d.,]*)\s*(mil(?:lones|lon|lón)?|millones|millon|millón|k)?/i);
+  if(!m) return null;
+  let s = m[1].replace(/[.,]+$/,'');
+  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g,''); else s = s.replace(',','.');
+  let n = parseFloat(s); if(isNaN(n)) return null;
+  const u = (m[2]||'').toLowerCase();
+  let pesos;
+  if(/^mill/.test(u)) pesos = n*1000000;
+  else if(u==='mil'||u==='k') pesos = n*1000;
+  else pesos = n>=1000 ? n : n*1000;
+  return {pesos, valor: pesos/1000, texto: m[0]};
+}
+function _jTipoGasto(desc){
+  const q=_jNorm(desc);
+  if(/gasolina|combustible|tanqueo|tanquee/.test(q)) return 'Gasolina';
+  if(/aceite/.test(q)) return 'Aceite';
+  if(/sueldo|salario/.test(q)) return 'Sueldo';
+  if(/arreglo|moto|mecanic|llanta|repuesto|taller|cadena|freno/.test(q)) return 'Arreglo de moto';
+  if(/jugo|comida|almuerzo|desayuno|cena|merienda|cafe|empanada|gaseosa|agua|helado|pan\b|arepa|hamburguesa|pizza|fruta|patilla|refresco/.test(q)) return 'Merienda';
+  return 'Otros';
+}
+function _jAgregarGasto(valor, descRaw){
+  const tipo = _jTipoGasto(descRaw);
+  let desc = String(descRaw||'').trim();
+  if(tipo==='Gasolina' || tipo==='Aceite' || tipo==='Sueldo'){ if(_jNorm(desc)===_jNorm(tipo)||/^(gasolina|aceite|sueldo|combustible)$/i.test(desc)) desc=''; }
+  const gastos = getGastosHoy();
+  gastos.push({ tipo, valor, desc, hora: new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) });
+  saveGastosHoy(gastos);
+  const total = gastos.reduce((s,g)=>s+g.valor,0);
+  try{
+    const inp = document.getElementById('input-gasto'); if(inp) inp.value = total;
+    const f = getFechaActiva();
+    const man = JSON.parse(lsGet('sup_manual_'+f)||'{}'); man.gasto = total; lsSet('sup_manual_'+f, JSON.stringify(man));
+    recalcularCuentas();
+  }catch(e){}
+  try{ renderGastosHoy(); }catch(e){}
+  try{ renderHistorialGastos(); }catch(e){}
+  return {tipo, desc, total};
+}
+function _jGastoEtiqueta(g){ return g.desc ? g.desc + (g.tipo && g.tipo!=='Otros' && _jNorm(g.desc)!==_jNorm(g.tipo) ? ' ('+g.tipo+')' : '') : (g.tipo||'Gasto'); }
+function _jGastosDia(F){ try{ return JSON.parse(lsGet('gastos_dia_'+F)||'[]'); }catch(e){ return []; } }
+function _jListarGastos(periodo){
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if(periodo==='hoy' || periodo==='ayer'){
+    const d = new Date(hoy); if(periodo==='ayer') d.setDate(d.getDate()-1);
+    const F = _jIso(d), l = _jGastosDia(F);
+    const cab = periodo==='hoy' ? 'los gastos que tuviste hoy fueron' : 'los gastos que tuviste ayer fueron';
+    if(!l.length) return '🔎 Ya reviso, jefe…\n\nJefe, '+(periodo==='hoy'?'hoy':'ayer')+' no tienes gastos registrados.';
+    const tot = l.reduce((s,g)=>s+(g.valor||0),0);
+    return '🔎 Ya reviso, jefe…\n\nJefe, '+cab+':\n'+l.map(g=>'• '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\n\nEso da un total de '+_jPesos(tot)+'.';
+  }
+  const off = periodo==='semana_pasada' ? -1 : 0, lunes = _jLunes(off);
+  let r = '🔎 Ya reviso, jefe…\n\nJefe, '+(off?'los gastos de la semana pasada ('+_jDiaCorto(_jIso(lunes))+' – '+_jDiaCorto(_jIso(new Date(lunes.getTime()+6*864e5)))+') fueron':'los gastos de esta semana han sido')+':\n', total=0, hay=false;
+  for(let i=0;i<7;i++){
+    const d=new Date(lunes); d.setDate(lunes.getDate()+i); const F=_jIso(d), l=_jGastosDia(F);
+    if(!l.length) continue; hay=true;
+    const sub=l.reduce((s,g)=>s+(g.valor||0),0); total+=sub;
+    r += '\n📅 '+_J_DIAS_L[i]+' '+_jDiaCorto(F)+' — '+_jPesos(sub)+'\n'+l.map(g=>'   • '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\n';
+  }
+  if(!hay) return '🔎 Ya reviso, jefe…\n\nJefe, no hay gastos registrados en '+(off?'la semana pasada':'esta semana')+'.';
+  return r+'\nEso da un total de '+_jPesos(total)+'.';
+}
+
+/* ---------- Renovaciones pendientes ---------- */
+function _jPendGet(){ try{ return JSON.parse(localStorage.getItem('jrv_renov_pend')||'[]').filter(id=>getClientes().some(c=>c.id===id)); }catch(e){ return []; } }
+function _jPendSet(l){ try{ localStorage.setItem('jrv_renov_pend', JSON.stringify(l)); }catch(e){} }
+function _jPendQuitar(id){ const l=_jPendGet(); if(l.includes(id)){ _jPendSet(l.filter(x=>x!==id)); return true; } return false; }
+function _jPendNombres(l){ return l.map(id=>{ const c=_jCliente(id); return c?c.nombre:null; }).filter(Boolean); }
+function _jPendAgregarTexto(texto){
+  const segs = String(texto).split(/[,;\n]| y /i), l=_jPendGet(), agregados=[], ya=[], dudosos=[], noenc=[];
+  segs.forEach(sg=>{
+    const limpio = sg.trim(); if(!limpio) return;
+    const c = _jBuscar(limpio);
+    if(c.length===1){ if(l.includes(c[0].id)) ya.push(c[0].nombre); else { l.push(c[0].id); agregados.push(c[0].nombre); } }
+    else if(c.length>1) dudosos.push(limpio+' (hay varios: '+c.slice(0,3).map(x=>x.nombre).join(' / ')+')');
+    else if(_jNorm(limpio).replace(/[^a-z]/g,'').length>2 && !/^(recuerd|mete|metel|agreg|anota|apunta|pon|guarda)/.test(_jNorm(limpio))) noenc.push(limpio);
+  });
+  _jPendSet(l);
+  let r = '';
+  if(agregados.length) r += '✅ Listo jefe, quedó pendiente para renovar: '+agregados.join(', ')+'.\n';
+  if(ya.length) r += 'Ya estaban en la lista: '+ya.join(', ')+'.\n';
+  if(dudosos.length) r += '🤔 No supe cuál es: '+dudosos.join('; ')+'. Dímelo con el nombre completo.\n';
+  if(noenc.length) r += '❓ No encontré a: '+noenc.join(', ')+'.\n';
+  if(!r) return null;
+  const todos=_jPendNombres(l);
+  return r+(todos.length?'\n📋 Pendientes ahora ('+todos.length+'): '+todos.join(', ')+'.':'');
+}
+function _jPendResumen(detallado){
+  const l=_jPendGet();
+  if(!l.length) return '🔎 Ya reviso, jefe…\n\nNo hay ninguna renovación pendiente.';
+  if(!detallado) return '🔎 Ya reviso, jefe…\n\nJefe, está pendiente por la renovación: '+_jPendNombres(l).join(', ')+'.';
+  return '🔎 Ya le digo, jefe…\n\n'+l.map(id=>{ const c=_jCliente(id); return '👤 '+c.nombre+' tiene un saldo de '+_jFm(c.saldo||0)+' y su préstamo es de '+_jFm(c.prestamo||0)+'.'; }).join('\n')+'\n\n¿Cuál renuevas?';
+}
+
+/* ---------- Semanales de la semana ---------- */
+function _jSemanalesSemana(offset){
+  const lunes=_jLunes(offset), hoyIso=_jIso(new Date()), clientes=getClientes();
+  const sem = clientes.filter(c=>c && (c.tipo==='semanal'||c.diaSemana) && c.diaSemana && !c.volado);
+  const dnum = {lunes:0,martes:1,miercoles:2,jueves:3,viernes:4,sabado:5,domingo:6};
+  let r = '🔎 Ya reviso, jefe…\n\n📅 Clientes semanales '+(offset?'de la semana pasada':'de esta semana')+' ('+_jDiaCorto(_jIso(lunes))+' – '+_jDiaCorto(_jIso(new Date(lunes.getTime()+6*864e5)))+'):\n', hay=false, totEsp=0, totPag=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(lunes); d.setDate(lunes.getDate()+i); const F=_jIso(d);
+    const del = sem.filter(c=>dnum[_jNorm(c.diaSemana)]===i && ((c.saldo||0)>0 || (c.pagos||[]).some(p=>p.fecha===F)) && (c.fechaCreado||'0000')<=F);
+    if(!del.length) continue; hay=true;
+    r += '\n'+(F===hoyIso?'🔔 ':'📅 ')+_J_DIAS_L[i]+' '+_jDiaCorto(F)+' ('+del.length+'):\n';
+    del.forEach(c=>{
+      const pag=(c.pagos||[]).filter(p=>p.fecha===F).reduce((s,p)=>s+(p.monto||0),0);
+      totEsp+=(c.cuotaSugerida||0); totPag+=pag;
+      const est = pag>0 ? '✅ pagó '+_jFm(pag) : (F>=hoyIso ? '⏳ por cobrar' : '❌ no pagó');
+      r += '   • '+c.nombre+' — cuota '+_jFm(c.cuotaSugerida||0)+' · '+est+'\n';
+    });
+  }
+  if(!hay) return '🔎 Ya reviso, jefe…\n\nNo encontré clientes semanales en esa semana.';
+  return r+'\n💰 Cuota esperada: '+_jFm(totEsp)+' · Cobrado: '+_jFm(totPag);
+}
+
+function _jConsultas(texto, t){
+  // préstamos de la semana / meta
+  if(/(cuanto|cuantos)\b.*\b(llevo|llevamos|he|va)\b.*prest|prest.*(llevo|hasta el momento|esta semana|semana)|\b(llevo|he) prestado|meta de prestamos|como voy (con|en) (la meta|los prestamos|prestamos)|cuanto (he )?prestado/.test(t) && !/gasto|pleno/.test(t))
+    return _jPrestadoSemana(/semana (pasada|anterior)|pasada/.test(t) ? -1 : 0);
+  // gastos: anotar
+  if(/\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*)\b.*\bgasto\b|\bnuevo gasto\b|\bgaste\b/.test(t)){
+    const m = _jMonto(texto.replace(/^.*?\bgasto\b[:\s]*/i,'') ) || _jMonto(texto);
+    if(!m){ window._jAcc={tipo:'gasto',paso:'monto',ts:Date.now(),d:{}}; return 'Claro jefe, ¿de cuánto fue el gasto y en qué? (por ejemplo: 3.000 jugo de patilla)'; }
+    let resto = texto.replace(/^.*?\bgasto\b[:\s]*/i,'');
+    resto = (resto||texto).replace(m.texto,'').replace(/^[\s:,\-]*(de|en|para|por)?\s+/i,'').replace(/\s+/g,' ').trim();
+    const g = _jAgregarGasto(m.valor, resto);
+    return '✅ Listo jefe, anoté el gasto: '+(g.desc||g.tipo)+' por '+_jPesos(m.valor)+' (en la app aparece como '+_jFm(m.valor)+').\nLlevas '+_jPesos(g.total)+' en gastos hoy.';
+  }
+  // gastos: consultar
+  if(/gastos?/.test(t) && /(hoy|ayer|semana|recuerd|dame|dime|muestr|cuales|cuanto|que gastos|mis gastos|tuve|llevo|fueron)/.test(t) && !/(plenos?|cuota)/.test(t)){
+    if(/semana (pasada|anterior)|ultima semana/.test(t)) return _jListarGastos('semana_pasada');
+    if(/semana/.test(t)) return _jListarGastos('semana');
+    if(/ayer/.test(t)) return _jListarGastos('ayer');
+    return _jListarGastos('hoy');
+  }
+  // renovaciones pendientes: agregar
+  if(/pendiente/.test(t) && /renov/.test(t) && /\b(recuerd\w*|mete\w*|agreg\w*|anota\w*|apunta\w*|pon\w*|incluy\w*|guarda\w*|anad\w*)\b/.test(t)){
+    const idx = t.lastIndexOf('pendiente'); const orig = texto.slice(Math.min(texto.length, texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').lastIndexOf('pendiente')+9));
+    const r = _jPendAgregarTexto(orig.replace(/^(s)?\s*[:\-]?\s*/,''));
+    if(r) return r;
+    window._jAcc={tipo:'pendAdd',paso:'nombres',ts:Date.now(),d:{}}; return 'Claro jefe, ¿a quién(es) dejo pendiente para renovar? Dime los nombres.';
+  }
+  // renovaciones pendientes: resumen / quién
+  if(/renovaciones? pendientes?|pendientes? (de|por|para) renov|quien(es)? (esta|estan|queda|quedan|falta|faltan) (pendiente|por renovar)|a quien (le )?falta renovar|resumen de (las )?renovaciones/.test(t))
+    return _jPendResumen(/resumen|saldo|detalle|dame|muestr/.test(t));
+  // renovaciones pendientes: quitar
+  if(/\b(remuev\w*|remover\w*|quit\w*|sac\w*|elimin\w*|borr\w*)\b/.test(t) && !/cuota/.test(t)){
+    const l=_jPendGet();
+    if(l.length){
+      const m=_jBuscar(texto).filter(c=>l.includes(c.id));
+      if(m.length===1){
+        _jPendSet(l.filter(x=>x!==m[0].id)); const q=_jPendNombres(_jPendGet());
+        return '✅ Listo jefe, saqué a '+m[0].nombre+' de las renovaciones pendientes.\n'+(q.length?'Entonces queda pendiente: '+q.join(', ')+'.':'Ya no queda nadie pendiente por renovar.');
+      }
+      if(/pendiente/.test(t)) return 'No encontré a ese cliente en la lista de pendientes, jefe. Están pendientes: '+_jPendNombres(l).join(', ')+'.';
+    }
+  }
+  // semanales de la semana
+  if(/semanales?/.test(t) && /(de la semana|esta semana|semana pasada|semana anterior|cada dia|por dia)/.test(t) && !/\bhoy\b/.test(t))
+    return _jSemanalesSemana(/semana (pasada|anterior)/.test(t) ? -1 : 0);
+  return null;
+}
+
 function _jAcciones(texto){
   const t = _jNorm(texto).trim();
   if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
@@ -10789,6 +11020,8 @@ function _jAcciones(texto){
     if(_jCancelaTxt(texto)){ window._jAcc=null; return 'Listo jefe, lo dejé así. No cambié nada. 👍'; }
     return _jPaso(texto);
   }
+  const _cons = _jConsultas(texto, t);
+  if(_cons) return _cons;
   let tipo = null;
   if(/\bliquid\w*/.test(t)) tipo='liquidar';
   else if(/(borr|elimin|quit|anul)\w*.*\bcuota|\bcuota.*(borr|elimin|quit|anul)/.test(t)) tipo='borrar';
@@ -10962,6 +11195,21 @@ function _jPaso(texto){
     }
   }
 
+  // ---- gasto sin monto / pendientes sin nombres ----
+  if(A.tipo==='gasto'){
+    const m = _jMonto(texto);
+    if(!m) return 'Dime el valor del gasto, jefe (por ejemplo 3.000 jugo de patilla).';
+    const resto = texto.replace(m.texto,'').replace(/^[\s:,\-]*(de|en|para|por)?\s+/i,'').replace(/\s+/g,' ').trim();
+    window._jAcc = null;
+    const g = _jAgregarGasto(m.valor, resto);
+    return '✅ Listo jefe, anoté el gasto: '+(g.desc||g.tipo)+' por '+_jPesos(m.valor)+' (en la app aparece como '+_jFm(m.valor)+').\nLlevas '+_jPesos(g.total)+' en gastos hoy.';
+  }
+  if(A.tipo==='pendAdd'){
+    const r = _jPendAgregarTexto(texto);
+    if(!r) return 'No encontré a ese cliente, jefe. Dime el nombre completo (o escribe "cancelar").';
+    window._jAcc = null; return r;
+  }
+
   // ---- liquidar ----
   if(A.tipo==='liquidar'){
     if(A.paso==='neki'){
@@ -10992,6 +11240,18 @@ function _jPaso(texto){
   return null;
 }
 
+(function(){
+  const _orig = window.confirmarRenovar;
+  if(typeof _orig === 'function'){
+    window.confirmarRenovar = function(){
+      let id=null, antes=0;
+      try{ id=document.getElementById('ren-id').value; antes=(getClientes().find(x=>x.id===id)||{}).renovaciones||0; }catch(e){}
+      const rr = _orig.apply(this, arguments);
+      try{ const c=getClientes().find(x=>x.id===id); if(c && (c.renovaciones||0)>antes) _jPendQuitar(id); }catch(e){}
+      return rr;
+    };
+  }
+})();
 function _jEjecutarRenovar(c, capital, papeleria, cuotaHoy){
   try{
     const saldoAnt = c.saldo||0;
@@ -11039,11 +11299,18 @@ async function orbIAEnviarMensaje(){
   let _acc = null;
   try { _acc = _jAcciones(texto); } catch(e){ console.error('jarvis acciones', e); window._jAcc = null; }
   try {
-    if(_acc) respuesta = _acc; else respuesta = await _orbeChatResponder();
+    if(_acc) respuesta = _acc;
+    else {
+      // Si nombra a un cliente de la base, responder SIEMPRE con los datos reales (la IA externa solo ve un resumen y a veces dice "no encuentro")
+      let _cl = []; try{ _cl = _jBuscar(texto); }catch(e){}
+      if(_cl.length===1) respuesta = _orbeRespuestaLocal(((texto||'')+' '+_cl[0].nombre).toLowerCase(), _orbeRecolectarStats());
+      else if(_cl.length>1 && _cl.length<=3) respuesta = '🤔 Jefe, hay varios con ese nombre:\n'+_cl.map(c=>'• '+c.nombre).join('\n')+'\nDime el nombre completo.';
+      else respuesta = await _orbeChatResponder();
+    }
   } catch(e) {
     // Si falla Claude (clave inválida, sin internet, etc.) caer al modo local
     const errMsg = (e.message||'').toLowerCase();
-    const esAuthError = errMsg.includes('http 401') || errMsg.includes('invalid api key');
+    const esAuthError = errMsg.includes('401') || errMsg.includes('authentication') || errMsg.includes('api-key') || errMsg.includes('invalid');
     if(esAuthError){
       // Limpiar clave inválida y usar modo local
       try { localStorage.removeItem('orb_claude_key'); } catch(ex){}
@@ -11052,9 +11319,9 @@ async function orbIAEnviarMensaje(){
       respuesta = _orbeRespuestaLocal(ultimo2, stats2);
       // Actualizar status
       const st = document.getElementById('orb-conn-status');
-      if(st) st.textContent = '◈ Groq rechazó la clave — vuelve a pegarla';
+      if(st) st.textContent = '◈ Clave inválida — modo local activado';
     } else {
-      respuesta = '⚠️ Error de Groq: ' + (e.message||'').slice(0,160) + '\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      respuesta = 'Sin conexión. Respondiendo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
     }
   }
 
@@ -11091,44 +11358,44 @@ async function _orbeChatResponder(){
   // Llamada real a Claude
   const sistema = `Eres el asistente IA del cobrador en la app "Alisson & Emily". Hablas español, cercano, con emojis moderados. Tus respuestas son CORTAS (máx 5 frases) y accionables. Usa los datos en vivo del usuario:
 
-${String(ctx||'').slice(0,5000)}
+${ctx}
 
 Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
 
-  const _corta = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n) + '…' : t; };
-  const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-6)
-    .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: _corta(m.content, 1200) }));
+  const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
-  const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + key },
-    body: JSON.stringify({ model: modelo, max_tokens: 600, messages: [{ role: 'system', content: sistema }].concat(messages) })
-  });
-  let modelo = lsGet('orb_groq_model');
-  let r = modelo ? await _groqPedir(modelo) : null;
-  if (!r || r.status === 404 || r.status === 400) {
-    // Buscar automáticamente un modelo de chat disponible en tu cuenta de Groq
-    const lm = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': 'Bearer ' + key } });
-    if (!lm.ok) throw new Error('HTTP ' + lm.status + ' ' + (await lm.text().catch(()=>'')).slice(0,140));
-    const ids = ((await lm.json()).data || []).filter(m => m.active !== false).map(m => m.id)
-      .filter(id => !/whisper|tts|guard|playai|orpheus|prompt|embed|compound/i.test(id));
-    const pref = ['llama', 'gpt-oss', 'qwen', 'kimi', 'gemma', 'mistral'];
-    ids.sort((x, y) => { const px = pref.findIndex(p => x.includes(p)), py = pref.findIndex(p => y.includes(p)); return (px<0?99:px) - (py<0?99:py) || y.localeCompare(x); });
-    let ultimo = null;
-    for (const id of ids.slice(0, 6)) {
-      ultimo = await _groqPedir(id);
-      if (ultimo.ok) { lsSet('orb_groq_model', id); break; }
-      if (ultimo.status === 401) break;
-    }
-    if (!ultimo) throw new Error('Groq no tiene modelos de chat disponibles');
-    r = ultimo;
+  if (key.indexOf('gsk_')===0) {
+    const rg = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type':'application/json', 'authorization':'Bearer '+key },
+      body: JSON.stringify({ model:'llama-3.3-70b-versatile', max_tokens:600, temperature:0.4,
+        messages: [{role:'system', content:sistema}].concat(messages) })
+    });
+    if (!rg.ok) { const t = await rg.text().catch(()=>''); throw new Error('HTTP '+rg.status+' '+t.slice(0,140)); }
+    const dg = await rg.json();
+    return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
   }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-haiku-latest',
+      max_tokens: 600,
+      system: sistema,
+      messages
+    })
+  });
   if (!r.ok) {
     const t = await r.text().catch(()=>'');
     throw new Error('HTTP '+r.status+' '+t.slice(0,140));
   }
   const data = await r.json();
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '(sin respuesta)';
+  return (data.content && data.content[0] && data.content[0].text) || '(sin respuesta)';
 }
 
 function _orbeContextoTexto(s){
@@ -11346,7 +11613,7 @@ function _orbeRespuestaLocal(pregunta, s){
       const lunesSP = new Date(hoy);
       lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
       const domSP = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
-      const fmt2 = d => d.toISOString().slice(0,10);
+      const fmt2 = d => _isoLocal(d);
 
       if (diaEncontrado && semanaPasada) {
         const numDia = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado']
@@ -11409,7 +11676,7 @@ function _orbeRespuestaLocal(pregunta, s){
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
     const domSP   = new Date(lunesSP); domSP.setDate(lunesSP.getDate() + 6);
-    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    const fmt2 = d2 => _isoLocal(d2);
     let totalG=0, resp='💸 Gastos semana pasada:\n';
     let hayDatos = false;
     for(let i=0;i<7;i++){
@@ -11434,7 +11701,7 @@ function _orbeRespuestaLocal(pregunta, s){
   if (has('pleno') && has('semana pasada','semana anterior','última semana','ultima semana')) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
-    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    const fmt2 = d2 => _isoLocal(d2);
     const DIAS_NOM2=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
     let totalP=0, resp='📊 Plenos semana pasada:\n', hayDatos=false;
     for(let i=0;i<7;i++){
@@ -11452,7 +11719,7 @@ function _orbeRespuestaLocal(pregunta, s){
   if (has('semana pasada','semana anterior','última semana','ultima semana')) {
     const hoy = new Date();
     const lunesSP = new Date(hoy); lunesSP.setDate(hoy.getDate() - hoy.getDay() - 6);
-    const fmt2 = d2 => d2.toISOString().slice(0,10);
+    const fmt2 = d2 => _isoLocal(d2);
     const domSPStr = fmt2(new Date(lunesSP.getTime()+6*86400000));
     const DIAS_NOM2=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
     let totCobrado=0, totPleno=0, totGastos=0, totPrestamos=0;
@@ -11490,7 +11757,7 @@ function _orbeRespuestaLocal(pregunta, s){
     const hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
     const hoyNum  = hoyDate.getDay(); // 0=dom,1=lun,...
     const hoyNom  = DIAS_NOM[hoyNum];
-    const fmt2    = d => d.toISOString().slice(0,10);
+    const fmt2    = d => _isoLocal(d);
 
     const semanales = clientes.filter(c => c && !c.cancelado && (c.tipo==='semanal'||!c.tipo) && Number(c.saldo)>0);
 
@@ -11683,7 +11950,7 @@ function _orbeRespuestaLocal(pregunta, s){
       const hoy2 = new Date(); hoy2.setHours(0,0,0,0);
       const diaNum2 = hoy2.getDay()===0?6:hoy2.getDay()-1;
       const lunesA2 = new Date(hoy2); lunesA2.setDate(hoy2.getDate()-diaNum2);
-      const fmt2 = d2=>d2.toISOString().slice(0,10);
+      const fmt2 = d2=>_isoLocal(d2);
       const DNOMS=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
       let totCob=0,totPleno=0,totGastos=0,totPrest=0,detDias='';
       const histV3 = JSON.parse(localStorage.getItem('hist_v3')||'[]');
@@ -11779,9 +12046,9 @@ Puedes guardarlo o reportarlo.`;
     return `👥 ${activos.length} clientes activos:\n`+activos.slice(0,8).map(c => `  • ${c.nombre}: saldo ${f(c.saldo)}`).join('\n')+(activos.length>8?`\n  ...y ${activos.length-8} más`:'');
   }
   if (has('claude','ia','clave','api','conectar')) {
-    return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Groq (gsk_…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
+    return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Groq (gsk_…) o de Anthropic (sk-ant-…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
   }
-  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Groq para análisis más profundo.`;
+  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Claude para análisis más profundo.`;
 }
 
 function _orbeTypewriter(el, text, done){
@@ -11834,14 +12101,14 @@ window.orbIANuevoChat = orbIANuevoChat;
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
-      <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Groq">🔑</button>
+      <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="jarvisNuevoChat()" title="Nuevo chat">↺</button>
     </div>
 
     <div id="orb-key-config" style="display:none">
-      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…). Se guarda solo en este dispositivo.</div>
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) o de Anthropic (sk-ant-…). Se guarda solo en este dispositivo.</div>
       <div class="orb-key-row">
-        <input type="password" id="orb-key-input" placeholder="gsk_..." autocomplete="off">
+        <input type="password" id="orb-key-input" placeholder="gsk_... o sk-ant-..." autocomplete="off">
         <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
       </div>
       <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
@@ -11858,6 +12125,9 @@ window.orbIANuevoChat = orbIANuevoChat;
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">💸 Gastos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">📈 Plenos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de esta semana')">📊 Resumen semana</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto llevo prestado?')">🎯 Prestado y meta</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de las renovaciones pendientes')">🔁 Renovaciones pendientes</button>
+      <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de hoy')">🧾 Gastos de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">📅 Semanales de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales están atrasados?')">🚨 Atrasados</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuáles clientes debería visitar primero?')">🎯 Prioridad</button>
@@ -12137,7 +12407,7 @@ function _orbeContextoTexto(s){
   let cuentasTexto = '';
   try {
     const hoy = new Date();
-    const fmt2 = d => d.toISOString().slice(0,10);
+    const fmt2 = d => _isoLocal(d);
 
     const lunesActual = new Date(hoy);
     const diaActual = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1;
@@ -12371,7 +12641,7 @@ function jarvisProbarVoz(){
   setTimeout(()=>{
     if(window._jrvEmpezo) return;
     if(!window.speechSynthesis){
-      _orbeMostrarMsg('ai','🔇 Jefe, usé la voz en línea pero no pude reproducirla.\n\nRevisa:\n1) Que el celular tenga internet.\n2) Sube el volumen multimedia.\n3) Vuelve a tocar el 🔊 para probar otra vez.', false);
+      _orbeMostrarMsg('ai','🔇 Jefe, usé la voz en línea pero no pude reproducirla'+(window._jrvDiag?' ('+window._jrvDiag+')':'')+'.\n\nRevisa:\n1) Que el celular tenga internet.\n2) Sube el volumen multimedia.\n3) Vuelve a tocar el 🔊 para probar otra vez.', false);
       return;
     }
     let n = 0; try{ n = (window.speechSynthesis.getVoices()||[]).length; }catch(e){}
@@ -12381,7 +12651,17 @@ function jarvisProbarVoz(){
 setTimeout(_jrvPintarBoton, 1500);
 
 /* ---- Voz en línea (para la app APK, donde no hay voz del navegador) ---- */
-let _jrvAudio = null, _jrvColaId = 0;
+let _jrvAudio = null, _jrvColaId = 0, _jrvEl = null;
+window._jrvDiag = '';
+const _JRV_SILENCIO = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+function _jrvElemento(){ if(!_jrvEl){ _jrvEl = new Audio(); _jrvEl.preload='auto'; } return _jrvEl; }
+// Con el primer toque en la pantalla se "desbloquea" el audio (Android lo exige para reproducir solo)
+document.addEventListener('touchend', function _jrvDesb(){
+  try{ const a=_jrvElemento(); a.src=_JRV_SILENCIO; const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>{}); }catch(e){}
+}, {capture:true, passive:true});
+document.addEventListener('click', function(){
+  try{ const a=_jrvElemento(); if(!a.src||a.src===_JRV_SILENCIO){ a.src=_JRV_SILENCIO; const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>{}); } }catch(e){}
+}, {capture:true});
 function _jrvFragmentos(txt){
   const MAX = 170, frs = []; let resto = txt;
   while(resto.length > MAX){
@@ -12414,14 +12694,22 @@ function _jarvisHablarOnline(limpio){
     function siguiente(){
       if(id !== _jrvColaId) return;
       if(i >= frs.length){ _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); return; }
-      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es-419&q=' + encodeURIComponent(frs[i]);
-      const a = new Audio(url);
+      const q = encodeURIComponent(frs[i]);
+      const provs = [
+        'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q='+q,
+        'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=es&q='+q,
+        'https://api.streamelements.com/kappa/v2/speech?voice=Miguel&text='+q
+      ];
+      window._jrvProv = window._jrvProv || 0;
+      const url = provs[Math.min(window._jrvProv, provs.length-1)];
+      const a = _jrvElemento();
       _jrvAudio = a;
-      a.onplaying = ()=>{ window._jrvEmpezo = true; _jrvHablando = true; const b=bar(); if(b) b.classList.add('active'); };
-      a.onended = ()=>{ i++; siguiente(); };
-      a.onerror = ()=>{ window._jrvErrorOnline = true; _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); };
+      a.onplaying = ()=>{ if(a.src===_JRV_SILENCIO) return; window._jrvEmpezo = true; _jrvHablando = true; const b=bar(); if(b) b.classList.add('active'); };
+      a.onended = ()=>{ if(a.src===_JRV_SILENCIO) return; i++; siguiente(); };
+      a.onerror = ()=>{ if(a.src===_JRV_SILENCIO) return; if(!window._jrvEmpezo && window._jrvProv < provs.length-1){ window._jrvProv++; siguiente(); return; } window._jrvErrorOnline = true; window._jrvDiag = 'el audio no cargó (código '+(a.error?a.error.code:'?')+')'; _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); };
+      a.src = url;
       const pr = a.play();
-      if(pr && pr.catch) pr.catch(()=>{ window._jrvErrorOnline = true; });
+      if(pr && pr.catch) pr.catch(err=>{ window._jrvErrorOnline = true; window._jrvDiag = 'el celular no dejó reproducir ('+(err&&err.name||'error')+')'; });
     }
     siguiente();
   }catch(e){ window._jrvErrorOnline = true; }
