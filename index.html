@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v96">
+<meta name="app-version" content="2026-11-19 v97">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6015,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v96';
+const APP_VERSION = '2026-11-19 v97';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12247,7 +12247,7 @@ document.addEventListener('click', function _jrvUnlock(){
 }, { once:true, capture:true });
 
 function _jarvisHablar(texto){
-  if(!texto || !window.speechSynthesis) return;
+  if(!texto) return;
   try{ if(localStorage.getItem('jrv_voz_off')==='1') return; }catch(e){}
   const limpio = texto
     .replace(/[\u{1F300}-\u{1FAFF}]/gu,'')
@@ -12260,6 +12260,8 @@ function _jarvisHablar(texto){
     .replace(/\s+/g,' ')
     .trim();
   if(!limpio) return;
+  // En la app del celular (APK/WebView) no existe la voz del navegador: se usa la voz en línea
+  if(!window.speechSynthesis){ _jarvisHablarOnline(limpio); return; }
 
   function _ejecutar(){
     try {
@@ -12342,7 +12344,7 @@ function jarvisVozToggle(){
   let off=false; try{ off = localStorage.getItem('jrv_voz_off')==='1'; }catch(e){}
   if(!off){
     try{ localStorage.setItem('jrv_voz_off','1'); }catch(e){}
-    try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(e){}
+    try{ _jarvisCallIarStop(); }catch(e){}
     _jrvPintarBoton();
     _orbeMostrarMsg('ai','🔇 Listo jefe, me quedo en silencio. Toca el parlante para volver a activar mi voz.', false);
     return;
@@ -12352,23 +12354,72 @@ function jarvisVozToggle(){
   jarvisProbarVoz();
 }
 function jarvisProbarVoz(){
-  if(!window.speechSynthesis){
-    _orbeMostrarMsg('ai','🔇 Jefe, esta app no tiene voz disponible en este celular. Si quieres escucharme, abre la app en Chrome.', false);
-    return;
-  }
-  window._jrvEmpezo = false;
+  window._jrvEmpezo = false; window._jrvErrorOnline = false;
   _orbeMostrarMsg('ai','🔊 Probando mi voz… ¿me escucha, jefe?', false);
   _jarvisHablar('Hola jefe, ya puedo hablar. ¿Me escucha bien?');
   setTimeout(()=>{
     if(window._jrvEmpezo) return;
+    if(!window.speechSynthesis){
+      _orbeMostrarMsg('ai','🔇 Jefe, usé la voz en línea pero no pude reproducirla.\n\nRevisa:\n1) Que el celular tenga internet.\n2) Sube el volumen multimedia.\n3) Vuelve a tocar el 🔊 para probar otra vez.', false);
+      return;
+    }
     let n = 0; try{ n = (window.speechSynthesis.getVoices()||[]).length; }catch(e){}
     _orbeMostrarMsg('ai','🔇 Jefe, mandé la voz pero el celular no la reprodujo (voces encontradas: '+n+').\n\nPrueba esto:\n1) Sube el volumen multimedia del celular.\n2) En Ajustes del celular → Idioma → Salida de texto a voz, elige "Servicios de voz de Google" y descarga el español.\n3) Si sigue sin sonar, puede que esta app (APK) no deje usar voz: abre la app en Chrome y prueba ahí.', false);
-  }, 3500);
+  }, 4500);
 }
 setTimeout(_jrvPintarBoton, 1500);
 
+/* ---- Voz en línea (para la app APK, donde no hay voz del navegador) ---- */
+let _jrvAudio = null, _jrvColaId = 0;
+function _jrvFragmentos(txt){
+  const MAX = 170, frs = []; let resto = txt;
+  while(resto.length > MAX){
+    let corte = resto.lastIndexOf('. ', MAX);
+    if(corte < 40) corte = resto.lastIndexOf(', ', MAX);
+    if(corte < 40) corte = resto.lastIndexOf(' ', MAX);
+    if(corte < 40) corte = MAX;
+    frs.push(resto.slice(0, corte+1).trim());
+    resto = resto.slice(corte+1).trim();
+  }
+  if(resto) frs.push(resto);
+  return frs.filter(Boolean);
+}
+function _jarvisHablarOnline(limpio){
+  try{
+    if(!window._jrvAvisoOnline){
+      window._jrvAvisoOnline = true;
+      try{
+        if(!localStorage.getItem('jrv_aviso_online')){
+          localStorage.setItem('jrv_aviso_online','1');
+          _orbeMostrarMsg('ai','ℹ️ Jefe, en el celular hablo con la voz en línea de Google: el texto de lo que digo viaja a internet para convertirse en voz. Si prefieres que no, toca el 🔊 para silenciarme.', false);
+        }
+      }catch(e){}
+    }
+    _jarvisCallIarStop();
+    const id = ++_jrvColaId;
+    const frs = _jrvFragmentos(limpio);
+    let i = 0;
+    const bar = ()=>document.getElementById('jrv-voice-bar');
+    function siguiente(){
+      if(id !== _jrvColaId) return;
+      if(i >= frs.length){ _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); return; }
+      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es-419&q=' + encodeURIComponent(frs[i]);
+      const a = new Audio(url);
+      _jrvAudio = a;
+      a.onplaying = ()=>{ window._jrvEmpezo = true; _jrvHablando = true; const b=bar(); if(b) b.classList.add('active'); };
+      a.onended = ()=>{ i++; siguiente(); };
+      a.onerror = ()=>{ window._jrvErrorOnline = true; _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); };
+      const pr = a.play();
+      if(pr && pr.catch) pr.catch(()=>{ window._jrvErrorOnline = true; });
+    }
+    siguiente();
+  }catch(e){ window._jrvErrorOnline = true; }
+}
+
 function _jarvisCallIarStop(){
-  try { window.speechSynthesis.cancel(); } catch(e){}
+  _jrvColaId++;
+  try{ if(_jrvAudio){ _jrvAudio.pause(); _jrvAudio = null; } }catch(e){}
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch(e){}
   _jrvHablando = false;
   const bar = document.getElementById('jrv-voice-bar');
   if(bar) bar.classList.remove('active');
