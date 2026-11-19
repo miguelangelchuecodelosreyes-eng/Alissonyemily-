@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v92">
+<meta name="app-version" content="2026-11-18 v93">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6015,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v92';
+const APP_VERSION = '2026-11-18 v93';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -9151,7 +9151,7 @@ function getVersiculoDelDia() {
 
 // ===== INIT =====
 function iniciarApp(){
-  document.getElementById('header-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('header-fecha').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); try{ document.getElementById('header-fecha').textContent += '  ·  '+String(APP_VERSION).split(' ').pop(); }catch(e){}
   // Mostrar banner si la app acaba de actualizarse
   (function(){
     const verNueva = localStorage.getItem('app_actualizada_flag');
