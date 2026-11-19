@@ -10654,7 +10654,7 @@ function _orbePintarStats(){ try {
   const status = document.getElementById('orb-conn-status');
   if(status){
     let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
-    status.textContent = key ? 'Claude conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 para Claude';
+    status.textContent = key ? 'Groq conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 de Groq';
   }
 } catch(e){ console.error("stats error:",e); } }
 
@@ -10673,7 +10673,7 @@ function orbIAGuardarKey(){
     if (k) localStorage.setItem('orb_claude_key', k);
     else   localStorage.removeItem('orb_claude_key');
   } catch(e){}
-  if(typeof showToast==='function') showToast(k ? '✅ Claude conectado' : '🗑️ Clave borrada');
+  if(typeof showToast==='function') showToast(k ? '✅ Groq conectado' : '🗑️ Clave borrada');
   document.getElementById('orb-key-config').style.display = 'none';
   _orbePintarStats();
 }
@@ -11097,19 +11097,16 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
 
   const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': 'Bearer ' + key
     },
     body: JSON.stringify({
-      model: 'claude-3-5-haiku-latest',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 600,
-      system: sistema,
-      messages
+      messages: [{ role: 'system', content: sistema }].concat(messages)
     })
   });
   if (!r.ok) {
@@ -11117,7 +11114,7 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
     throw new Error('HTTP '+r.status+' '+t.slice(0,140));
   }
   const data = await r.json();
-  return (data.content && data.content[0] && data.content[0].text) || '(sin respuesta)';
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '(sin respuesta)';
 }
 
 function _orbeContextoTexto(s){
@@ -11768,9 +11765,9 @@ Puedes guardarlo o reportarlo.`;
     return `👥 ${activos.length} clientes activos:\n`+activos.slice(0,8).map(c => `  • ${c.nombre}: saldo ${f(c.saldo)}`).join('\n')+(activos.length>8?`\n  ...y ${activos.length-8} más`:'');
   }
   if (has('claude','ia','clave','api','conectar')) {
-    return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Anthropic (sk-ant-…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
+    return `🔑 Para chat IA completo: toca el botón 🔑 arriba y pega tu clave de Groq (gsk_…). Se guarda solo en tu celular y te permite preguntar cualquier cosa con IA real.`;
   }
-  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Claude para análisis más profundo.`;
+  return `💡 Puedo responderte sobre:\n• Cualquier cliente: "¿Carlos pagó el viernes?"\n• Semana pasada: "dame los plenos de la semana pasada"\n• Gastos: "gastos de la semana pasada"\n• Tu día: "¿cómo voy hoy?"\n\n🔑 Conecta Groq para análisis más profundo.`;
 }
 
 function _orbeTypewriter(el, text, done){
@@ -11823,14 +11820,14 @@ window.orbIANuevoChat = orbIANuevoChat;
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
-      <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
+      <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Groq">🔑</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="jarvisNuevoChat()" title="Nuevo chat">↺</button>
     </div>
 
     <div id="orb-key-config" style="display:none">
-      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Anthropic (sk-ant-…). Se guarda solo en este dispositivo.</div>
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…). Se guarda solo en este dispositivo.</div>
       <div class="orb-key-row">
-        <input type="password" id="orb-key-input" placeholder="sk-ant-..." autocomplete="off">
+        <input type="password" id="orb-key-input" placeholder="gsk_..." autocomplete="off">
         <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
       </div>
       <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
