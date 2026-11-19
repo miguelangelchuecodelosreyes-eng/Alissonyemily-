@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-18 v94">
+<meta name="app-version" content="2026-11-19 v95">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6015,7 +6015,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-18 v94';
+const APP_VERSION = '2026-11-19 v95';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10729,6 +10729,294 @@ function orbIAEnviarRapido(t){
   if(inp) inp.value = t;
   orbIAEnviarMensaje();
 }
+/* ============================================================
+   JARVIS CON ACCIONES: borrar cuota, renovar, liquidar y editar cliente
+   Conversa paso a paso (estado en window._jAcc) y ejecuta con las mismas funciones de la app.
+   ============================================================ */
+function _jNorm(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function _jNum(t){
+  const m = String(t||'').replace(/\$/g,'').match(/\d[\d.,]*/);
+  if(!m) return null;
+  let s = m[0].replace(/[.,]+$/,'');
+  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g,''); else s = s.replace(',','.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function _jSi(t){ return /^(si|sip|sii+|claro|dale|ok|okey|listo|de una|hagale|adelante|afirmativo|borrala|borrela|borra|elimina|yes|correcto|exacto|eso|por supuesto)\b/.test(_jNorm(t).trim()); }
+function _jNo(t){ return /^(no|nop|nel|nada|ninguna|ninguno|cero|mejor no|negativo|sin)\b/.test(_jNorm(t).trim()); }
+function _jCancelaTxt(t){ return /^(cancel\w*|olvidalo|olvida|dejalo|deja eso|deja asi|ya no|para|parar|salir|no quiero)\b/.test(_jNorm(t).trim()); }
+function _jFm(n){ const v=Math.round(n||0); return (v<0?'-':'')+'$'+Math.abs(v).toLocaleString('es-CO'); }
+const _J_STOP = new Set(['jarvis','jefe','borrar','borra','borrame','borrarme','borrarle','elimina','eliminar','eliminame','quita','quitar','quitame','anula','anular','cuota','cuotas','renovar','renovame','renueva','renovarle','renovacion','voy','vas','vamos','quiero','necesito','editar','editame','edita','editarle','cambiar','cambiame','cambia','modificar','modifica','actualizar','actualiza','corrige','corregir','telefono','numero','celular','cedula','direccion','nombre','nota','dia','cliente','para','favor','por','que','del','los','las','una','uno','con','dame','dime','hoy','mi','mis','liquidar','liquida','prestamo','saldo']);
+function _jBuscar(texto){
+  const q = _jNorm(texto);
+  const toks = q.split(/[^a-z0-9ñ]+/).filter(Boolean);
+  const cands = [];
+  getClientes().forEach(c=>{
+    if(!c||!c.nombre) return;
+    const nomN = _jNorm(c.nombre);
+    const pals = nomN.split(/\s+/).filter(w=>w.length>=3);
+    const hit = pals.filter(w=>toks.includes(w) && !_J_STOP.has(w));
+    const completo = q.includes(nomN) || (c.cedula && String(c.cedula).length>=5 && toks.includes(String(c.cedula)));
+    if(completo || hit.length) cands.push({c, n: completo?99:hit.length});
+  });
+  if(!cands.length) return [];
+  const max = Math.max.apply(null, cands.map(x=>x.n));
+  return cands.filter(x=>x.n===max).map(x=>x.c);
+}
+function _jListaElegir(lista){
+  return lista.slice(0,8).map((c,i)=>(i+1)+'. '+c.nombre+(c.cedula?' (CC '+c.cedula+')':'')+' — saldo '+_jFm(c.saldo||0)).join('\n');
+}
+function _jRefrescar(id){
+  window._datosHoy = null;
+  try{ recalcularCuentas(); }catch(e){}
+  try{ if(!(id && typeof refrescarUnaCard==='function' && refrescarUnaCard(id))) renderClientes(); }catch(e){ try{ renderClientes(); }catch(e2){} }
+}
+const _J_CAMPOS = [
+  {k:'tel',     re:/telefono|celular|numero|cel\b|tel\b/, nom:'número de teléfono'},
+  {k:'cedula',  re:/cedula|\bcc\b/, nom:'cédula'},
+  {k:'dir',     re:/direccion|barrio|dir\b/, nom:'dirección'},
+  {k:'nombre',  re:/nombre/, nom:'nombre'},
+  {k:'cuota',   re:/cuota/, nom:'cuota sugerida'},
+  {k:'dia',     re:/\bdia\b|dia de cobro|dia de pago/, nom:'día de cobro'},
+  {k:'nota',    re:/\bnota\b|observacion/, nom:'nota'}
+];
+function _jCampoEn(t){ const q=_jNorm(t); return _J_CAMPOS.find(x=>x.re.test(q))||null; }
+
+function _jAcciones(texto){
+  const t = _jNorm(texto).trim();
+  if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
+  if(window._jAcc){
+    if(_jCancelaTxt(texto)){ window._jAcc=null; return 'Listo jefe, lo dejé así. No cambié nada. 👍'; }
+    return _jPaso(texto);
+  }
+  let tipo = null;
+  if(/\bliquid\w*/.test(t)) tipo='liquidar';
+  else if(/(borr|elimin|quit|anul)\w*.*\bcuota|\bcuota.*(borr|elimin|quit|anul)/.test(t)) tipo='borrar';
+  else if(/\b(renovar\w*|renovame|renovemos|renueva\w*)\b/.test(t)) tipo='renovar';
+  else if(/\b(edit|cambi|modific|actualiz|corrig)\w*/.test(t) && (_jCampoEn(t) || _jBuscar(texto).length)) tipo='editar';
+  if(!tipo) return null;
+  if(tipo==='liquidar') return _jEmpezarLiquidar();
+  const campo = tipo==='editar' ? _jCampoEn(t) : null;
+  return _jResolverCliente(tipo, texto, {campo: campo ? campo.k : null});
+}
+function _jResolverCliente(tipo, texto, d){
+  const c = _jBuscar(texto);
+  if(!c.length){
+    window._jAcc = {tipo, paso:'cliente', ts:Date.now(), d:d||{}};
+    return 'Bueno jefe, ¿de cuál cliente hablas? Dime el nombre o la cédula.';
+  }
+  if(c.length>1){
+    window._jAcc = {tipo, paso:'elegir', ts:Date.now(), d:d||{}, lista:c.slice(0,8).map(x=>x.id)};
+    return '🤔 Tengo varios parecidos, jefe. ¿Cuál es? Dime el número:\n'+_jListaElegir(c);
+  }
+  return _jEmpezar(tipo, c[0], d||{});
+}
+function _jCliente(id){ return getClientes().find(x=>x.id===id); }
+
+function _jEmpezar(tipo, c, d){
+  if(tipo==='borrar'){
+    const hoy = getFechaActiva();
+    const pagos = (c.pagos||[]);
+    const deHoy = pagos.filter(p=>p.fecha===hoy);
+    let p, intro;
+    if(deHoy.length){
+      p = deHoy[0];
+      const tot = deHoy.reduce((s,x)=>s+(x.monto||0),0);
+      intro = deHoy.length>1 ? 'La última cuota que dio hoy es de '+_jFm(p.monto)+' (en total hoy dio '+_jFm(tot)+')' : 'La cuota que dio hoy es de '+_jFm(p.monto);
+    } else if(pagos.length){
+      p = pagos.slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0)[0];
+      intro = 'Hoy no ha dado cuota. La última que dio fue de '+_jFm(p.monto)+' el '+fechaBonita(p.fecha);
+    } else {
+      return '🔎 Ya reviso, jefe… '+c.nombre+' no tiene ninguna cuota registrada, no hay nada que borrar.';
+    }
+    window._jAcc = {tipo:'borrar', paso:'confirmar', ts:Date.now(), id:c.id, d:{fecha:p.fecha, monto:p.monto}};
+    return '🔎 Ya reviso, jefe…\n\n'+intro+' ('+c.nombre+').\n¿Quieres que la borre? (sí / no)';
+  }
+  if(tipo==='renovar'){
+    window._jAcc = {tipo:'renovar', paso:'monto', ts:Date.now(), id:c.id, d:{}};
+    return '🔎 Bueno jefe, ya reviso…\n\n'+c.nombre+' está en '+_jFm(c.saldo||0)+' de saldo (su préstamo actual es de '+_jFm(c.prestamo||0)+').\n¿De cuánto va a ser el nuevo préstamo?';
+  }
+  if(tipo==='editar'){
+    if(d.campo){
+      const cm = _J_CAMPOS.find(x=>x.k===d.campo);
+      window._jAcc = {tipo:'editar', paso:'valor', ts:Date.now(), id:c.id, d:{campo:d.campo}};
+      return 'Jefe, ya lo hago. Dime cuál es el nuevo '+cm.nom+' de '+c.nombre+'.';
+    }
+    window._jAcc = {tipo:'editar', paso:'campo', ts:Date.now(), id:c.id, d:{}};
+    return 'Jefe, ya lo hago. ¿Qué le quieres editar a '+c.nombre+'? Puedo cambiar: teléfono, cédula, dirección, nombre, cuota, día de cobro o nota.';
+  }
+  return null;
+}
+
+function _jEmpezarLiquidar(){
+  let d; try{ d = getDatos(); }catch(e){ return 'Jefe, no pude leer las cuentas ahora mismo. Abre la pestaña Cuentas e inténtalo otra vez.'; }
+  window._jAcc = {tipo:'liquidar', paso:'neki', ts:Date.now(), d:{}};
+  const neki = d.neki||0, gasto = d.gasto||0;
+  return '🔎 Listo jefe, vamos a liquidar el '+fechaBonita(d.fecha||getFechaActiva())+'.\n\n'
+    +'📥 Entradas: '+_jFm(d.totalEntradas||0)+' (general '+_jFm(d.general||0)+(d.base?' + base '+_jFm(d.base):'')+')\n'
+    +'📤 Salidas: '+_jFm(d.totalSalidas||0)+(neki?' (neki '+_jFm(neki)+')':'')+(gasto?' (gasto '+_jFm(gasto)+')':'')+'\n'
+    +'✅ Lo que queda: '+_jFm(d.resultado||0)+'\n\n¿Cuánto tienes en neki? (si no hay, dime 0)';
+}
+
+function _jPaso(texto){
+  const A = window._jAcc, t = _jNorm(texto).trim();
+  A.ts = Date.now();
+  // ---- elegir cliente ----
+  if(A.paso==='cliente' || A.paso==='elegir'){
+    let c = null;
+    if(A.paso==='elegir'){
+      const n = _jNum(texto);
+      if(n && n>=1 && n<=A.lista.length) c = [_jCliente(A.lista[n-1])].filter(Boolean);
+      else c = _jBuscar(texto).filter(x=>A.lista.includes(x.id));
+    } else c = _jBuscar(texto);
+    if(!c || !c.length) return 'No encontré a ese cliente, jefe. Dime el nombre completo o la cédula (o escribe "cancelar").';
+    if(c.length>1){ A.paso='elegir'; A.lista=c.slice(0,8).map(x=>x.id); return '🤔 Siguen varios, jefe. Dime el número:\n'+_jListaElegir(c); }
+    const tipo = A.tipo, d = A.d; window._jAcc = null;
+    return _jEmpezar(tipo, c[0], d);
+  }
+  const c = A.id ? _jCliente(A.id) : null;
+  if(A.id && !c){ window._jAcc=null; return 'Jefe, ya no encuentro a ese cliente. Empecemos de nuevo.'; }
+
+  // ---- borrar cuota ----
+  if(A.tipo==='borrar'){
+    if(_jSi(texto)){
+      const cl = getClientes(), i = cl.findIndex(x=>x.id===A.id);
+      const pagos = cl[i].pagos||[];
+      const k = pagos.findIndex(p=>p.fecha===A.d.fecha && p.monto===A.d.monto);
+      window._jAcc = null;
+      if(k<0) return 'Jefe, esa cuota ya no está. No borré nada.';
+      const m = pagos[k].monto;
+      pagos.splice(k,1);
+      if(cl[i].volado) cl[i].saldoPerdido = (cl[i].saldoPerdido||0)+m; else cl[i].saldo = (cl[i].saldo||0)+m;
+      saveClientes(cl);
+      _jRefrescar(A.id);
+      const nuevo = cl[i].volado ? cl[i].saldoPerdido : cl[i].saldo;
+      return '✅ Listo jefe, borré la cuota de '+_jFm(m)+' de '+cl[i].nombre+'.\nAhora debe '+_jFm(nuevo)+'.';
+    }
+    if(_jNo(texto)){ window._jAcc=null; return 'Listo jefe, no borré nada. 👍'; }
+    return 'Respóndeme sí o no, jefe: ¿borro la cuota de '+_jFm(A.d.monto)+' de '+c.nombre+'?';
+  }
+
+  // ---- renovar ----
+  if(A.tipo==='renovar'){
+    if(A.paso==='monto'){
+      const n = _jNum(texto);
+      if(!n || n<=0) return 'Dime el valor del nuevo préstamo en números, jefe (por ejemplo 500).';
+      A.d.capital = n; A.paso='papeleria';
+      const ult = ((c.historialRenovaciones||[])[0]||{}).papeleriaRenovacion || c.papeleriaCreacion || 0;
+      const tot = calcPrestamo(n).total;
+      return 'Bueno jefe, préstamo nuevo de '+_jFm(n)+' (total a cobrar '+_jFm(tot)+').\n¿Cuánto le vas a descontar de papelería?'+(ult?' (la vez pasada fueron '+_jFm(ult)+')':'')+' Si no le descuentas, dime 0.';
+    }
+    if(A.paso==='papeleria'){
+      let n = _jNo(texto) ? 0 : _jNum(texto);
+      if(n===null) return 'Dime cuánto es la papelería en números, jefe (o 0 si no hay).';
+      A.d.papeleria = n; A.paso='cuota';
+      const cu = c.cuotaSugerida||0;
+      if(cu>0) return 'Papelería de '+_jFm(n)+'. 👍\nLa cuota de '+c.nombre+' es de '+_jFm(cu)+'. ¿Se la descuento de una? (sí / no, o dime otro valor)';
+      return 'Papelería de '+_jFm(n)+'. 👍\n¿Cuánta cuota le cobras hoy? (dime 0 si ninguna)';
+    }
+    if(A.paso==='cuota'){
+      const cu = c.cuotaSugerida||0;
+      let n;
+      if(_jSi(texto) && cu>0 && _jNum(texto)===null) n = cu;
+      else if(_jNo(texto) && _jNum(texto)===null) n = 0;
+      else n = _jNum(texto);
+      if(n===null) return 'Respóndeme sí o no, jefe (o dime el valor de la cuota que le descuentas).';
+      const d = A.d; window._jAcc = null;
+      return _jEjecutarRenovar(c, d.capital, d.papeleria||0, n);
+    }
+  }
+
+  // ---- editar ----
+  if(A.tipo==='editar'){
+    if(A.paso==='campo'){
+      const cm = _jCampoEn(texto);
+      if(!cm) return 'No te entendí, jefe. Dime qué quieres cambiar: teléfono, cédula, dirección, nombre, cuota, día de cobro o nota.';
+      A.d.campo = cm.k; A.paso='valor';
+      return 'Listo, dime cuál es el nuevo '+cm.nom+' de '+c.nombre+'.';
+    }
+    if(A.paso==='valor'){
+      const k = A.d.campo, cl = getClientes(), i = cl.findIndex(x=>x.id===A.id), cc = cl[i];
+      let v = String(texto).trim();
+      if(k==='tel'){ v = v.replace(/[^\d+ ]/g,'').trim(); if(v.replace(/\D/g,'').length<7) return 'Ese número no parece completo, jefe. Escríbelo otra vez.'; }
+      else if(k==='cedula'){ v = v.replace(/[^\d]/g,''); if(v.length<5) return 'Esa cédula no parece completa, jefe. Escríbela otra vez.'; }
+      else if(k==='cuota'){ const n=_jNum(texto); if(n===null||n<0) return 'Dime la cuota en números, jefe.'; v=n; }
+      else if(k==='dia'){
+        const dias=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+        const q=_jNorm(texto); const dd=dias.find(x=>q.includes(x));
+        if(!dd) return 'Dime el día de la semana, jefe (lunes, martes, miércoles…).';
+        v = dd==='miercoles'?'miércoles':(dd==='sabado'?'sábado':dd);
+      }
+      else if(k==='nombre'){ v = v.toUpperCase(); if(v.length<3) return 'Ese nombre es muy corto, jefe.'; }
+      if(k==='tel') cc.tel=v; else if(k==='cedula') cc.cedula=v; else if(k==='dir') cc.dir=v;
+      else if(k==='nombre') cc.nombre=v; else if(k==='cuota') cc.cuotaSugerida=v;
+      else if(k==='dia'){ cc.diaSemana=v; if(cc.tipo!=='semanal') cc.tipo='semanal'; } else if(k==='nota') cc.nota=v;
+      saveClientes(cl);
+      window._jAcc = null;
+      _jRefrescar(cc.id);
+      return '✅ Listo jefe, ya quedó el cliente '+cc.nombre+'. Los datos quedaron así:\n\n'
+        +'👤 Nombre: '+cc.nombre+'\n🪪 Cédula: '+(cc.cedula||'—')+'\n📱 Teléfono: '+(cc.tel||'—')+'\n📍 Dirección: '+(cc.dir||'—')+'\n'
+        +'📅 '+(cc.tipo==='semanal'?'Semanal'+(cc.diaSemana?' (cobra los '+cc.diaSemana+')':''):'Diario')+' · Cuota '+_jFm(cc.cuotaSugerida||0)+'\n'
+        +(cc.nota?'📝 Nota: '+cc.nota+'\n':'')
+        +'💳 Préstamo: '+_jFm(cc.prestamo||0)+' · Saldo: '+_jFm(cc.saldo||0);
+    }
+  }
+
+  // ---- liquidar ----
+  if(A.tipo==='liquidar'){
+    if(A.paso==='neki'){
+      const n = _jNo(texto) ? 0 : _jNum(texto);
+      if(n===null) return 'Dime cuánto tienes en neki en números, jefe (0 si no hay).';
+      const el = document.getElementById('input-neki'); if(el) el.value = n>0?n:'';
+      try{ recalcularCuentas(); }catch(e){}
+      const d = getDatos();
+      A.paso='efectivo';
+      return '✅ Neki en '+_jFm(n)+' (ya quedó en Cuentas).\nCon eso te queda '+_jFm(d.resultado||0)+' por entregar.\n¿Cuánto entregas en efectivo en la oficina?';
+    }
+    if(A.paso==='efectivo'){
+      let d0 = getDatos(); let n;
+      if(/\b(todo|eso|ese|igual|lo que queda|completo|exacto)\b/.test(t) && _jNum(texto)===null) n = d0.resultado||0;
+      else n = _jNo(texto) ? 0 : _jNum(texto);
+      if(n===null) return 'Dime cuánto entregas en efectivo en números, jefe.';
+      const el = document.getElementById('input-entregado'); if(el) el.value = n>0?n:'';
+      try{ recalcularCuentas(); }catch(e){}
+      const d = getDatos(); window._jAcc = null;
+      const res = d.resultado||0, dif = res - n;
+      const estado = dif===0 ? '✅ Cuadra perfecto.' : (dif>0 ? '⚠️ Descuadre: faltan '+_jFm(dif)+' por entregar.' : '⚠️ Descuadre: entregas '+_jFm(-dif)+' de más.');
+      return '✅ Listo jefe, liquidación lista:\n\n'
+        +'💳 Neki: '+_jFm(d.neki||0)+'\n🏦 Entregado en efectivo: '+_jFm(n)+'\n💰 Lo que queda: '+_jFm(res)+'\n'+estado
+        +'\n\nYa está en Cuentas. Cuando quieras, dale "Guardar y limpiar".';
+    }
+  }
+  window._jAcc = null;
+  return null;
+}
+
+function _jEjecutarRenovar(c, capital, papeleria, cuotaHoy){
+  try{
+    const saldoAnt = c.saldo||0;
+    abrirRenovar(c.id);
+    document.getElementById('ren-prestamo').value = capital;
+    document.getElementById('ren-papeleria').value = papeleria>0 ? papeleria : '';
+    document.getElementById('ren-cuota-hoy').value = cuotaHoy>0 ? cuotaHoy : '';
+    document.getElementById('ren-entregado').value = '';
+    confirmarRenovar();
+    const n = _jCliente(c.id) || c;
+    const entregar = capital - saldoAnt - cuotaHoy - papeleria;
+    const partes = ['saldo '+_jFm(saldoAnt)];
+    if(papeleria>0) partes.push('papelería '+_jFm(papeleria));
+    if(cuotaHoy>0) partes.push('cuota '+_jFm(cuotaHoy));
+    return '✅ Listo jefe, renové a '+n.nombre+'.\n\n'
+      +'💳 Nuevo préstamo: '+_jFm(capital)+' (total a cobrar '+_jFm(n.prestamo||0)+')\n'
+      +'➖ Descontado: '+partes.join(' + ')+'\n'
+      +(n.saldo!==undefined?'📌 Le queda de saldo: '+_jFm(n.saldo)+'\n':'')
+      +(entregar>0 ? '💸 Tienes que entregarle: '+_jFm(entregar) : (entregar<0 ? '⬆️ El cliente te entrega: '+_jFm(-entregar) : '✅ Cuadra exacto, no entregas nada.'));
+  } catch(e){
+    console.error('renovar jarvis', e);
+    return 'Jefe, algo falló al renovar y no estoy seguro de que se haya hecho. Revisa en Clientes y, si no aparece, renuévalo desde su ficha.';
+  }
+}
+
 async function orbIAEnviarMensaje(){
   if (_orbChatLoading) return;
   const inp = document.getElementById('orb-input');
@@ -10748,8 +11036,10 @@ async function orbIAEnviarMensaje(){
   _orbChatLoading = true;
 
   let respuesta = '';
+  let _acc = null;
+  try { _acc = _jAcciones(texto); } catch(e){ console.error('jarvis acciones', e); window._jAcc = null; }
   try {
-    respuesta = await _orbeChatResponder();
+    if(_acc) respuesta = _acc; else respuesta = await _orbeChatResponder();
   } catch(e) {
     // Si falla Claude (clave inválida, sin internet, etc.) caer al modo local
     const errMsg = (e.message||'').toLowerCase();
