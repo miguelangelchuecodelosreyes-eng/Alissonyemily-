@@ -11097,18 +11097,30 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
 
   const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'Authorization': 'Bearer ' + key
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 600,
-      messages: [{ role: 'system', content: sistema }].concat(messages)
-    })
+    headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({ model: modelo, max_tokens: 600, messages: [{ role: 'system', content: sistema }].concat(messages) })
   });
+  let modelo = lsGet('orb_groq_model');
+  let r = modelo ? await _groqPedir(modelo) : null;
+  if (!r || r.status === 404 || r.status === 400) {
+    // Buscar automáticamente un modelo de chat disponible en tu cuenta de Groq
+    const lm = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': 'Bearer ' + key } });
+    if (!lm.ok) throw new Error('HTTP ' + lm.status + ' ' + (await lm.text().catch(()=>'')).slice(0,140));
+    const ids = ((await lm.json()).data || []).filter(m => m.active !== false).map(m => m.id)
+      .filter(id => !/whisper|tts|guard|playai|orpheus|prompt|embed|compound/i.test(id));
+    const pref = ['llama', 'gpt-oss', 'qwen', 'kimi', 'gemma', 'mistral'];
+    ids.sort((x, y) => { const px = pref.findIndex(p => x.includes(p)), py = pref.findIndex(p => y.includes(p)); return (px<0?99:px) - (py<0?99:py) || y.localeCompare(x); });
+    let ultimo = null;
+    for (const id of ids.slice(0, 6)) {
+      ultimo = await _groqPedir(id);
+      if (ultimo.ok) { lsSet('orb_groq_model', id); break; }
+      if (ultimo.status === 401) break;
+    }
+    if (!ultimo) throw new Error('Groq no tiene modelos de chat disponibles');
+    r = ultimo;
+  }
   if (!r.ok) {
     const t = await r.text().catch(()=>'');
     throw new Error('HTTP '+r.status+' '+t.slice(0,140));
