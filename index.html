@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v101">
+<meta name="app-version" content="2026-11-19 v103">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v101';
+const APP_VERSION = '2026-11-19 v103';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11358,33 +11358,43 @@ async function _orbeChatResponder(){
   // Llamada real a Claude
   const sistema = `Eres el asistente IA del cobrador en la app "Alisson & Emily". Hablas español, cercano, con emojis moderados. Tus respuestas son CORTAS (máx 5 frases) y accionables. Usa los datos en vivo del usuario:
 
-${ctx}
+${String(ctx||'').slice(0,5000)}
 
 Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
 
-  const messages = msgs.slice(-12).map(m => ({ role: m.role, content: m.content }));
+  const _corta = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n) + '…' : t; };
+  const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-6)
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: _corta(m.content, 1200) }));
+  while(messages.length && messages[0].role!=='user') messages.shift();
 
   if (key.indexOf('gsk_')===0) {
-    const modelos = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-20b','gemma2-9b-it'];
-    let ultimoErr = '';
-    for (const mod of modelos) {
-      let rg;
-      try {
-        rg = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+key.trim() },
-          body: JSON.stringify({ model:mod, max_tokens:600, messages: [{role:'system', content:sistema}].concat(messages) })
-        });
-      } catch(netErr) { throw new Error('RED: no pude llegar a Groq ('+(netErr&&netErr.message||'sin conexión')+')'); }
-      if (rg.ok) {
-        const dg = await rg.json();
-        return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
+    const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + key.trim() },
+      body: JSON.stringify({ model: modelo, max_tokens: 600, messages: [{ role: 'system', content: sistema }].concat(messages) })
+    });
+    let modelo = lsGet('orb_groq_model');
+    let rg = modelo ? await _groqPedir(modelo) : null;
+    if (!rg || rg.status === 404 || rg.status === 400) {
+      // Buscar automáticamente un modelo de chat disponible en la cuenta de Groq
+      const lm = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': 'Bearer ' + key.trim() } });
+      if (!lm.ok) throw new Error('HTTP ' + lm.status + ' ' + (await lm.text().catch(()=>'')).slice(0,140));
+      const ids = ((await lm.json()).data || []).filter(m => m.active !== false).map(m => m.id)
+        .filter(id => !/whisper|tts|guard|playai|orpheus|prompt|embed|compound/i.test(id));
+      const pref = ['llama', 'gpt-oss', 'qwen', 'kimi', 'gemma', 'mistral'];
+      ids.sort((x, y) => { const px = pref.findIndex(p => x.includes(p)), py = pref.findIndex(p => y.includes(p)); return (px<0?99:px) - (py<0?99:py) || y.localeCompare(x); });
+      let ultimo = null;
+      for (const id of ids.slice(0, 6)) {
+        ultimo = await _groqPedir(id);
+        if (ultimo.ok) { lsSet('orb_groq_model', id); break; }
+        if (ultimo.status === 401) break;
       }
-      const t = await rg.text().catch(()=>'');
-      ultimoErr = 'HTTP '+rg.status+' ('+mod+') '+t.slice(0,160);
-      if (rg.status===401 || rg.status===403) throw new Error('HTTP '+rg.status+' clave rechazada por Groq: '+t.slice(0,120));
+      if (!ultimo) throw new Error('Groq no tiene modelos de chat disponibles');
+      rg = ultimo;
     }
-    throw new Error(ultimoErr);
+    if (!rg.ok) { const t = await rg.text().catch(()=>''); throw new Error('HTTP '+rg.status+' '+t.slice(0,140)); }
+    const dg = await rg.json();
+    return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -12671,6 +12681,7 @@ document.addEventListener('touchend', function _jrvDesb(){
   try{ const a=_jrvElemento(); a.src=_JRV_SILENCIO; const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>{}); }catch(e){}
 }, {capture:true, passive:true});
 document.addEventListener('click', function(){
+  try{ const ac=_jrvCtx(); if(ac && ac.state==='suspended') ac.resume(); }catch(e){}
   try{ const a=_jrvElemento(); if(!a.src||a.src===_JRV_SILENCIO){ a.src=_JRV_SILENCIO; const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>{}); } }catch(e){}
 }, {capture:true});
 function _jrvFragmentos(txt){
@@ -12686,6 +12697,47 @@ function _jrvFragmentos(txt){
   if(resto) frs.push(resto);
   return frs.filter(Boolean);
 }
+function _jrvCtx(){
+  if(!window._jrvAC){ const C = window.AudioContext||window.webkitAudioContext; if(C) window._jrvAC = new C(); }
+  return window._jrvAC;
+}
+// Intenta reproducir un fragmento por varios caminos; devuelve una promesa (ok / motivo del fallo)
+function _jrvFragmento(txt, id){
+  const q = encodeURIComponent(txt);
+  const SE = 'https://api.streamelements.com/kappa/v2/speech?voice=Miguel&text='+q;
+  const GO = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q='+q;
+  const viaElemento = (url, nombre)=> new Promise((ok,fail)=>{
+    const a = new Audio(); _jrvAudio = a; let fin=false;
+    const err = (m)=>{ if(fin) return; fin=true; fail(nombre+': '+m); };
+    a.onplaying = ()=>{ window._jrvEmpezo = true; _jrvHablando = true; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active'); };
+    a.onended = ()=>{ if(!fin){ fin=true; ok(); } };
+    a.onerror = ()=>err('no cargó (código '+(a.error?a.error.code:'?')+')');
+    a.src = url;
+    const pr = a.play(); if(pr && pr.catch) pr.catch(e=>err((e&&e.name)||'error'));
+  });
+  const viaWebAudio = (url, nombre)=> new Promise((ok,fail)=>{
+    const ac = _jrvCtx(); if(!ac) return fail(nombre+': sin AudioContext');
+    fetch(url).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
+      .then(buf=> new Promise((res,rej)=>{ const pr = ac.decodeAudioData(buf, res, rej); if(pr&&pr.catch) pr.catch(rej); }))
+      .then(audio=>{
+        if(id !== _jrvColaId) return ok();
+        try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+        const src = ac.createBufferSource(); src.buffer = audio; src.connect(ac.destination);
+        window._jrvSrc = src; window._jrvEmpezo = true; _jrvHablando = true;
+        const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active');
+        src.onended = ()=>ok(); src.start(0);
+      })
+      .catch(e=>fail(nombre+': '+((e&&(e.message||e.name))||'error')));
+  });
+  const pasos = [
+    ()=>viaWebAudio(SE,'voz A'),
+    ()=>viaElemento(SE,'voz B'),
+    ()=>viaWebAudio(GO,'voz C'),
+    ()=>viaElemento(GO,'voz D')
+  ];
+  return pasos.reduce((p,paso)=> p.catch(e=>{ window._jrvLog.push(String(e)); if(id!==_jrvColaId) return; return paso(); }),
+    Promise.reject('inicio')).then(()=>{}, e=>{ window._jrvLog.push(String(e)); throw e; });
+}
 function _jarvisHablarOnline(limpio){
   try{
     if(!window._jrvAvisoOnline){
@@ -12693,41 +12745,35 @@ function _jarvisHablarOnline(limpio){
       try{
         if(!localStorage.getItem('jrv_aviso_online')){
           localStorage.setItem('jrv_aviso_online','1');
-          _orbeMostrarMsg('ai','ℹ️ Jefe, en el celular hablo con la voz en línea de Google: el texto de lo que digo viaja a internet para convertirse en voz. Si prefieres que no, toca el 🔊 para silenciarme.', false);
+          _orbeMostrarMsg('ai','ℹ️ Jefe, en el celular hablo con una voz en línea: el texto de lo que digo viaja a internet para convertirse en voz. Si prefieres que no, toca el 🔊 para silenciarme.', false);
         }
       }catch(e){}
     }
     _jarvisCallIarStop();
+    window._jrvLog = []; window._jrvEmpezo = false;
     const id = ++_jrvColaId;
     const frs = _jrvFragmentos(limpio);
-    let i = 0;
-    const bar = ()=>document.getElementById('jrv-voice-bar');
-    function siguiente(){
-      if(id !== _jrvColaId) return;
-      if(i >= frs.length){ _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); return; }
-      const q = encodeURIComponent(frs[i]);
-      const provs = [
-        'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q='+q,
-        'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=es&q='+q,
-        'https://api.streamelements.com/kappa/v2/speech?voice=Miguel&text='+q
-      ];
-      window._jrvProv = window._jrvProv || 0;
-      const url = provs[Math.min(window._jrvProv, provs.length-1)];
-      const a = _jrvElemento();
-      _jrvAudio = a;
-      a.onplaying = ()=>{ if(a.src===_JRV_SILENCIO) return; window._jrvEmpezo = true; _jrvHablando = true; const b=bar(); if(b) b.classList.add('active'); };
-      a.onended = ()=>{ if(a.src===_JRV_SILENCIO) return; i++; siguiente(); };
-      a.onerror = ()=>{ if(a.src===_JRV_SILENCIO) return; if(!window._jrvEmpezo && window._jrvProv < provs.length-1){ window._jrvProv++; siguiente(); return; } window._jrvErrorOnline = true; window._jrvDiag = 'el audio no cargó (código '+(a.error?a.error.code:'?')+')'; _jrvHablando=false; const b=bar(); if(b) b.classList.remove('active'); };
-      a.src = url;
-      const pr = a.play();
-      if(pr && pr.catch) pr.catch(err=>{ if(!window._jrvEmpezo && window._jrvProv < provs.length-1){ window._jrvProv++; siguiente(); return; } window._jrvErrorOnline = true; window._jrvDiag = 'el celular no dejó reproducir ('+(err&&err.name||'error')+')'; });
-    }
-    siguiente();
-  }catch(e){ window._jrvErrorOnline = true; }
+    const fin = ()=>{ _jrvHablando=false; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.remove('active'); };
+    (async()=>{
+      for(const f of frs){
+        if(id !== _jrvColaId) return;
+        try{ await _jrvFragmento(f, id); }
+        catch(e){
+          if(id !== _jrvColaId) return;
+          window._jrvErrorOnline = true;
+          window._jrvDiag = (window._jrvLog||[]).filter(x=>x!=='inicio').slice(-4).join(' | ');
+          fin();
+          return;
+        }
+      }
+      fin();
+    })();
+  }catch(e){ window._jrvErrorOnline = true; window._jrvDiag = String(e&&e.message||e); }
 }
 
 function _jarvisCallIarStop(){
   _jrvColaId++;
+  try{ if(window._jrvSrc){ window._jrvSrc.onended=null; window._jrvSrc.stop(); window._jrvSrc=null; } }catch(e){}
   try{ if(_jrvAudio){ _jrvAudio.pause(); _jrvAudio = null; } }catch(e){}
   try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch(e){}
   _jrvHablando = false;
