@@ -11043,7 +11043,7 @@ async function orbIAEnviarMensaje(){
   } catch(e) {
     // Si falla Claude (clave inválida, sin internet, etc.) caer al modo local
     const errMsg = (e.message||'').toLowerCase();
-    const esAuthError = errMsg.includes('401') || errMsg.includes('authentication') || errMsg.includes('api-key') || errMsg.includes('invalid');
+    const esAuthError = errMsg.includes('http 401') || errMsg.includes('invalid api key');
     if(esAuthError){
       // Limpiar clave inválida y usar modo local
       try { localStorage.removeItem('orb_claude_key'); } catch(ex){}
@@ -11052,9 +11052,9 @@ async function orbIAEnviarMensaje(){
       respuesta = _orbeRespuestaLocal(ultimo2, stats2);
       // Actualizar status
       const st = document.getElementById('orb-conn-status');
-      if(st) st.textContent = '◈ Clave inválida — modo local activado';
+      if(st) st.textContent = '◈ Groq rechazó la clave — vuelve a pegarla';
     } else {
-      respuesta = 'Sin conexión. Respondiendo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      respuesta = '⚠️ Error de Groq: ' + (e.message||'').slice(0,160) + '\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
     }
   }
 
