@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v106">
+<meta name="app-version" content="2026-11-19 v108">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v106';
+const APP_VERSION = '2026-11-19 v108';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -8971,12 +8971,12 @@ function getBendicionDelDia() {
   return BENDICIONES[diaDelAnio % BENDICIONES.length];
 }
 
-// ===== BLOQUEO HORARIO (11pm - 6am) =====
+// ===== BLOQUEO HORARIO (12am - 6am) =====
 function verificarHorario() {
   const hora = new Date().getHours();
-  // Bloqueado: 11pm (23) y madrugada 0-5
-  // Permitido: 6am (6) hasta 10:59pm (22)
-  const estaPermitido = hora >= 6 && hora <= 22;
+  // Bloqueado: madrugada 0-5 (de 12:00 AM a 5:59 AM)
+  // Permitido: 6am (6) hasta 11:59pm (23)
+  const estaPermitido = hora >= 6 && hora <= 23;
   if (!estaPermitido) {
     // Cerrar sesion automaticamente al bloquearse
     lsRemove('cobrador_sesion');
@@ -8992,7 +8992,7 @@ function verificarHorario() {
         <div style="font-size:22px;font-weight:900;color:white;margin-bottom:10px">Sistema cerrado</div>
         <div style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;max-width:280px;margin-bottom:20px">
           El sistema esta disponible de<br>
-          <strong style="color:#ffd54f;font-size:18px">6:00 AM a 11:00 PM</strong><br>
+          <strong style="color:#ffd54f;font-size:18px">6:00 AM a 12:00 AM (medianoche)</strong><br>
           Descansa y que Dios te cuide esta noche 🙏
         </div>
         <div style="font-size:28px;font-weight:900;color:#ffd54f" id="reloj-bloqueado"></div>
@@ -10671,12 +10671,13 @@ function orbIAGuardarKey(){
   const inp = document.getElementById('orb-key-input');
   if(!inp) return;
   const k = (inp.value||'').trim();
-  if (k.indexOf('AIza')===0) { // clave de Gemini: solo para la VOZ de Jarvis
+  if (k && /^(AIza|AQ\.)/.test(k)) { // clave de Gemini: solo para la VOZ de Jarvis
     try{ localStorage.setItem('jrv_gemini_key', k); }catch(e){}
     inp.value=''; if(typeof showToast==='function') showToast('🔊 Voz de Jarvis conectada (Gemini)');
     document.getElementById('orb-key-config').style.display = 'none'; return;
   }
   if (k.toLowerCase()==='quitar voz') { try{ localStorage.removeItem('jrv_gemini_key'); }catch(e){} inp.value=''; if(typeof showToast==='function') showToast('Voz Gemini quitada'); return; }
+  if (k && !/^(gsk_|sk-ant)/.test(k)) { if(typeof showToast==='function') showToast('⚠️ Clave no reconocida: Groq empieza por gsk_ y Gemini por AIza o AQ.'); return; }
   try {
     if (k) localStorage.setItem('orb_claude_key', k);
     else   localStorage.removeItem('orb_claude_key');
@@ -10973,6 +10974,12 @@ function _jSemanalesSemana(offset){
 }
 
 function _jConsultas(texto, t){
+  if(/\bque (dia|fecha) (es|son|estamos|tenemos)|\bfecha de hoy|\ba cuantos estamos|\bque dia es hoy/.test(t)){
+    return '📅 Hoy es '+fechaBonita(_jIso(new Date()))+'.';
+  }
+  if(/\bque hora (es|son)|\bla hora\b/.test(t) && !/gasto|pleno/.test(t)){
+    return '🕐 Son las '+new Date().toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'})+'.';
+  }
   // préstamos de la semana / meta
   if(/(cuanto|cuantos)\b.*\b(llevo|llevamos|he|va)\b.*prest|prest.*(llevo|hasta el momento|esta semana|semana)|\b(llevo|he) prestado|meta de prestamos|como voy (con|en) (la meta|los prestamos|prestamos)|cuanto (he )?prestado/.test(t) && !/gasto|pleno/.test(t))
     return _jPrestadoSemana(/semana (pasada|anterior)|pasada/.test(t) ? -1 : 0);
@@ -12189,9 +12196,9 @@ window.orbIANuevoChat = orbIANuevoChat;
     </div>
 
     <div id="orb-key-config" style="display:none">
-      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) para el chat, o la de Gemini (AIza…) para que Jarvis hable. Se guarda solo en este dispositivo.</div>
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) para el chat, o la de Gemini (AIza… o AQ.…) para que Jarvis hable. Se guarda solo en este dispositivo.</div>
       <div class="orb-key-row">
-        <input type="password" id="orb-key-input" placeholder="gsk_... o AIza..." autocomplete="off">
+        <input type="password" id="orb-key-input" placeholder="gsk_... o AQ./AIza..." autocomplete="off">
         <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
       </div>
       <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
@@ -12857,30 +12864,9 @@ function _jrvFragmento(txt, id){
       src.onended = ()=>ok(); src.start(0);
     }).catch(e=>fail('Gemini: '+((e&&(e.message||e.name))||'error')));
   });
-  const viaPuter = ()=> new Promise((ok,fail)=>{
-    const hablar = ()=>{
-      try{
-        window.puter.ai.txt2speech(txt, {language:'es-ES', engine:'neural'}).then(a=>{
-          if(id !== _jrvColaId) return ok();
-          _jrvAudio = a; let fin=false;
-          a.onplaying = ()=>{ window._jrvEmpezo = true; _jrvHablando = true; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active'); };
-          a.onended = ()=>{ if(!fin){ fin=true; ok(); } };
-          a.onerror = ()=>{ if(!fin){ fin=true; fail('Puter: audio no cargó'); } };
-          const pr = a.play(); if(pr && pr.catch) pr.catch(e=>{ if(!fin){ fin=true; fail('Puter: '+((e&&e.name)||'no reprodujo')); } });
-        }).catch(e=>fail('Puter: '+((e&&(e.message||e.error))||'error')));
-      }catch(e){ fail('Puter: '+((e&&e.message)||'error')); }
-    };
-    if(window.puter && window.puter.ai) return hablar();
-    const sc = document.createElement('script'); sc.src = 'https://js.puter.com/v2/';
-    const tm = setTimeout(()=>fail('Puter: no cargó'), 8000);
-    sc.onload = ()=>{ clearTimeout(tm); hablar(); };
-    sc.onerror = ()=>{ clearTimeout(tm); fail('Puter: bloqueado'); };
-    document.head.appendChild(sc);
-  });
   const pasos = [
     ()=>viaGemini(),
     ()=>viaEdge(),
-    ()=>viaPuter(),
     ()=>viaWebAudio(SE,'voz A'),
     ()=>viaElemento(SE,'voz B'),
     ()=>viaWebAudio(GO,'voz C'),
