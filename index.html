@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v103">
+<meta name="app-version" content="2026-11-19 v106">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v103';
+const APP_VERSION = '2026-11-19 v106';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10590,7 +10590,7 @@ function _orbeRecolectarStats(){
         if (!hoyPago && (Number(c.saldo)||0) > 0) cuentaAtrasados++;
       }
       // Prestado en la fecha activa
-      if (c && c.fechaCreacion === fechaActiva) prestadoHoy += Number(c.prestamo)||0;
+      if (c && (c.fechaCreado||'').substring(0,10) === fechaActiva && !(c.renovaciones>0)) prestadoHoy += Number(c.capital||c.prestamo)||0;
       // Cobros del día
       (c && c.pagos || []).forEach(p => {
         if (p && p.fecha === fechaActiva) cobradoHoy += Number(p.monto)||0;
@@ -10604,7 +10604,8 @@ function _orbeRecolectarStats(){
   gastosHoy = v('input-gasto');
   papeleriaHoy = v('input-papeleria');
   const entregado = v('input-entregado');
-  const pleno = base + cobradoHoy + neki - gastosHoy - prestadoHoy - entregado;
+  let pleno = cobradoHoy;
+  try{ pleno = _orbePlenoRealDia(fechaActiva).pleno; }catch(e){}
 
   return {
     fecha: fechaActiva,
@@ -10670,6 +10671,12 @@ function orbIAGuardarKey(){
   const inp = document.getElementById('orb-key-input');
   if(!inp) return;
   const k = (inp.value||'').trim();
+  if (k.indexOf('AIza')===0) { // clave de Gemini: solo para la VOZ de Jarvis
+    try{ localStorage.setItem('jrv_gemini_key', k); }catch(e){}
+    inp.value=''; if(typeof showToast==='function') showToast('🔊 Voz de Jarvis conectada (Gemini)');
+    document.getElementById('orb-key-config').style.display = 'none'; return;
+  }
+  if (k.toLowerCase()==='quitar voz') { try{ localStorage.removeItem('jrv_gemini_key'); }catch(e){} inp.value=''; if(typeof showToast==='function') showToast('Voz Gemini quitada'); return; }
   try {
     if (k) localStorage.setItem('orb_claude_key', k);
     else   localStorage.removeItem('orb_claude_key');
@@ -11013,13 +11020,52 @@ function _jConsultas(texto, t){
   return null;
 }
 
+function _jCorregirCuentas(texto, t){
+  const hayNeki = /\bneki\b|nequi/.test(t);
+  const hayEfec = /\b(efectivo|entregu\w*|entrega\w*|oficina)\b/.test(t);
+  if(!(hayNeki || hayEfec)) return null;
+  const accion = /\b(corrig\w*|cambi\w*|modific\w*|edit\w*|borr\w*|quit\w*|elimin\w*|anul\w*|limpi\w*|reinici\w*|vuelv\w*|resetea\w*)\b/.test(t);
+  if(!accion) return null;
+  const borrar = /\b(borr\w*|quit\w*|elimin\w*|anul\w*|limpi\w*|reinici\w*|resetea\w*)\b/.test(t);
+  const fecha = getFechaActiva();
+  const poner = (campo, inputId, n)=>{
+    const el = document.getElementById(inputId); if(el) el.value = n>0?n:'';
+    try{ const man = JSON.parse(lsGet('sup_manual_'+fecha)||'{}'); man[campo]=n; lsSet('sup_manual_'+fecha, JSON.stringify(man)); }catch(e){}
+  };
+  const n = borrar ? 0 : _jNum(texto);
+  if(n===null){
+    window._jAcc = {tipo:'corrige', paso:'valor', ts:Date.now(), d:{neki:hayNeki&&!hayEfec, efec:hayEfec&&!hayNeki}};
+    if(hayNeki && hayEfec) return 'Dime los dos valores, jefe, por ejemplo: "corrige neki 60 y efectivo 100".';
+    return 'Claro jefe, ¿cuánto es el '+(hayNeki?'neki':'efectivo entregado')+' correcto?';
+  }
+  let r = '';
+  if(hayNeki && hayEfec && !borrar){
+    // "neki 60 y efectivo 100"
+    const mN = t.match(/neki\D{0,12}(\d+(?:[.,]\d+)?)/), mE = t.match(/(?:efectivo|entreg\w*|oficina)\D{0,12}(\d+(?:[.,]\d+)?)/);
+    if(!(mN && mE)) return 'Dime los dos valores, jefe, por ejemplo: "corrige neki 60 y efectivo 100".';
+    poner('neki','input-neki',parseFloat(mN[1].replace(',','.'))); poner('entregado','input-entregado',parseFloat(mE[1].replace(',','.')));
+    r = '✅ Corregido: neki '+_jFm(parseFloat(mN[1]))+' y efectivo '+_jFm(parseFloat(mE[1]))+'.';
+  } else {
+    if(hayNeki){ poner('neki','input-neki',n); r += '✅ '+(borrar?'Borré el neki.':'Neki corregido a '+_jFm(n)+'.'); }
+    if(hayEfec){ poner('entregado','input-entregado',n); r += (r?'\n':'')+'✅ '+(borrar?'Borré lo entregado en efectivo.':'Efectivo entregado corregido a '+_jFm(n)+'.'); }
+  }
+  try{ recalcularCuentas(); }catch(e){}
+  let d={}; try{ d=getDatos(); }catch(e){}
+  window._jAcc = null;
+  return r+'\nLo que queda por entregar: '+_jFm(d.resultado||0)+'. Ya está en Cuentas.';
+}
 function _jAcciones(texto){
   const t = _jNorm(texto).trim();
   if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
   if(window._jAcc){
     if(_jCancelaTxt(texto)){ window._jAcc=null; return 'Listo jefe, lo dejé así. No cambié nada. 👍'; }
-    return _jPaso(texto);
+    const _corr = _jCorregirCuentas(texto, t); if(_corr) return _corr;
+    const _A = window._jAcc;
+    const _esRespuesta = (_jNum(texto)!==null) || _jNo(texto) || /\b(todo|eso|ese|igual|completo|exacto|queda|si|ok|dale|listo)\b/.test(t);
+    if((_A.tipo==='liquidar' || _A.tipo==='corrige') && !_esRespuesta) window._jAcc = null; // pregunta otra cosa: salir del paso
+    else return _jPaso(texto);
   }
+  { const _corr2 = _jCorregirCuentas(texto, t); if(_corr2) return _corr2; }
   const _cons = _jConsultas(texto, t);
   if(_cons) return _cons;
   let tipo = null;
@@ -11210,6 +11256,18 @@ function _jPaso(texto){
     window._jAcc = null; return r;
   }
 
+  if(A.tipo==='corrige'){
+    const n = _jNo(texto) ? 0 : _jNum(texto);
+    if(n===null) return 'Dime el valor en números, jefe.';
+    const fecha = getFechaActiva();
+    const poner = (campo, inputId)=>{ const el=document.getElementById(inputId); if(el) el.value=n>0?n:''; try{ const man=JSON.parse(lsGet('sup_manual_'+fecha)||'{}'); man[campo]=n; lsSet('sup_manual_'+fecha, JSON.stringify(man)); }catch(e){} };
+    if(A.d.neki) poner('neki','input-neki'); if(A.d.efec) poner('entregado','input-entregado');
+    try{ recalcularCuentas(); }catch(e){}
+    let d={}; try{ d=getDatos(); }catch(e){}
+    window._jAcc=null;
+    return '✅ Listo jefe, corregido a '+_jFm(n)+'.\nLo que queda por entregar: '+_jFm(d.resultado||0)+'.';
+  }
+
   // ---- liquidar ----
   if(A.tipo==='liquidar'){
     if(A.paso==='neki'){
@@ -11303,7 +11361,11 @@ async function orbIAEnviarMensaje(){
     else {
       // Si nombra a un cliente de la base, responder SIEMPRE con los datos reales (la IA externa solo ve un resumen y a veces dice "no encuentro")
       let _cl = []; try{ _cl = _jBuscar(texto); }catch(e){}
-      if(_cl.length===1) respuesta = _orbeRespuestaLocal(((texto||'')+' '+_cl[0].nombre).toLowerCase(), _orbeRecolectarStats());
+      if(_cl.length===1){
+        const _q = (texto||'').replace(/dirre?c+i[oó]n|direcion|direcci[oó]n/ig,'dirección').replace(/tel[eé]f?ono|telefno|celuar|celular/ig,'teléfono');
+        respuesta = _orbeRespuestaLocal((_q+' '+_cl[0].nombre).toLowerCase(), _orbeRecolectarStats());
+        if(/^💡|^🤔/.test(respuesta)) respuesta = _orbeRespuestaLocal(_cl[0].nombre.toLowerCase(), _orbeRecolectarStats());
+      }
       else if(_cl.length>1 && _cl.length<=3) respuesta = '🤔 Jefe, hay varios con ese nombre:\n'+_cl.map(c=>'• '+c.nombre).join('\n')+'\nDime el nombre completo.';
       else respuesta = await _orbeChatResponder();
     }
@@ -12127,9 +12189,9 @@ window.orbIANuevoChat = orbIANuevoChat;
     </div>
 
     <div id="orb-key-config" style="display:none">
-      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) o de Anthropic (sk-ant-…). Se guarda solo en este dispositivo.</div>
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) para el chat, o la de Gemini (AIza…) para que Jarvis hable. Se guarda solo en este dispositivo.</div>
       <div class="orb-key-row">
-        <input type="password" id="orb-key-input" placeholder="gsk_... o sk-ant-..." autocomplete="off">
+        <input type="password" id="orb-key-input" placeholder="gsk_... o AIza..." autocomplete="off">
         <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
       </div>
       <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
@@ -12729,7 +12791,96 @@ function _jrvFragmento(txt, id){
       })
       .catch(e=>fail(nombre+': '+((e&&(e.message||e.name))||'error')));
   });
+  const viaEdge = ()=> new Promise((ok,fail)=>{
+    const ac = _jrvCtx(); if(!ac) return fail('voz E: sin AudioContext');
+    if(!(window.crypto && crypto.subtle)) return fail('voz E: sin crypto');
+    const TOKEN='6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+    const uid = ()=>'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16));
+    let ticks = Math.floor(Date.now()/1000) + 11644473600; ticks -= ticks % 300; ticks *= 1e7;
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(ticks)+TOKEN)).then(h=>{
+      const gec = Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+      const ws = new WebSocket('wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken='+TOKEN+'&ConnectionId='+uid()+'&Sec-MS-GEC='+gec+'&Sec-MS-GEC-Version=1-130.0.2849.68');
+      ws.binaryType = 'arraybuffer';
+      const partes = []; let listo=false;
+      const cierre = (fn)=>{ if(listo) return; listo=true; clearTimeout(tm); try{ws.close();}catch(e){} fn(); };
+      const tm = setTimeout(()=>cierre(()=>fail('voz E: tardó demasiado')), 9000);
+      const iso = new Date().toISOString();
+      ws.onopen = ()=>{
+        ws.send('X-Timestamp:'+iso+'\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n');
+        const t = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+        ws.send('X-RequestId:'+uid()+'\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:'+iso+'Z\r\nPath:ssml\r\n\r\n<speak version=\'1.0\' xmlns=\'http://www.w3.org/2001/10/synthesis\' xml:lang=\'es-CO\'><voice name=\'es-CO-GonzaloNeural\'><prosody pitch=\'+0Hz\' rate=\'+0%\' volume=\'+0%\'>'+t+'</prosody></voice></speak>');
+      };
+      ws.onerror = ()=>cierre(()=>fail('voz E: no conectó'));
+      ws.onclose = ()=>cierre(()=>fail('voz E: se cerró sin audio'));
+      ws.onmessage = (ev)=>{
+        if(typeof ev.data === 'string'){
+          if(ev.data.indexOf('Path:turn.end')>=0){
+            if(!partes.length) return cierre(()=>fail('voz E: llegó vacío'));
+            let n=0; partes.forEach(x=>n+=x.length); const all=new Uint8Array(n); let o=0; partes.forEach(x=>{all.set(x,o);o+=x.length;});
+            listo=true; clearTimeout(tm); try{ws.close();}catch(e){}
+            new Promise((res,rej)=>{ const pr=ac.decodeAudioData(all.buffer, res, rej); if(pr&&pr.catch) pr.catch(rej); })
+              .then(audio=>{
+                if(id !== _jrvColaId) return ok();
+                try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+                const src = ac.createBufferSource(); src.buffer = audio; src.connect(ac.destination);
+                window._jrvSrc = src; window._jrvEmpezo = true; _jrvHablando = true;
+                const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active');
+                src.onended = ()=>ok(); src.start(0);
+              }).catch(e=>fail('voz E: no pude decodificar ('+((e&&(e.message||e.name))||'?')+')'));
+          }
+        } else {
+          const v = new DataView(ev.data), hl = v.getUint16(0);
+          const head = new TextDecoder().decode(new Uint8Array(ev.data, 2, hl));
+          if(head.indexOf('Path:audio')>=0) partes.push(new Uint8Array(ev.data, 2+hl));
+        }
+      };
+    }).catch(e=>fail('voz E: '+((e&&e.message)||'error')));
+  });
+  const viaGemini = ()=> new Promise((ok,fail)=>{
+    let gk=''; try{ gk=localStorage.getItem('jrv_gemini_key')||''; }catch(e){}
+    if(!gk) return fail('sin clave Gemini');
+    const ac = _jrvCtx(); if(!ac) return fail('Gemini: sin AudioContext');
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent',{
+      method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':gk.trim()},
+      body: JSON.stringify({contents:[{parts:[{text:txt}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Charon'}}}}})
+    }).then(async r=>{ if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('HTTP '+r.status+' '+t.slice(0,90)); } return r.json(); })
+    .then(j=>{
+      const part = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+      const b64 = part && part.inlineData && part.inlineData.data; if(!b64) throw new Error('sin audio');
+      const bin = atob(b64), n = bin.length>>1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
+      for(let i=0;i<n;i++){ let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(v>=32768) v-=65536; ch[i]=v/32768; }
+      if(id !== _jrvColaId) return ok();
+      try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+      const src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination);
+      window._jrvSrc = src; window._jrvEmpezo = true; _jrvHablando = true;
+      const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active');
+      src.onended = ()=>ok(); src.start(0);
+    }).catch(e=>fail('Gemini: '+((e&&(e.message||e.name))||'error')));
+  });
+  const viaPuter = ()=> new Promise((ok,fail)=>{
+    const hablar = ()=>{
+      try{
+        window.puter.ai.txt2speech(txt, {language:'es-ES', engine:'neural'}).then(a=>{
+          if(id !== _jrvColaId) return ok();
+          _jrvAudio = a; let fin=false;
+          a.onplaying = ()=>{ window._jrvEmpezo = true; _jrvHablando = true; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active'); };
+          a.onended = ()=>{ if(!fin){ fin=true; ok(); } };
+          a.onerror = ()=>{ if(!fin){ fin=true; fail('Puter: audio no cargó'); } };
+          const pr = a.play(); if(pr && pr.catch) pr.catch(e=>{ if(!fin){ fin=true; fail('Puter: '+((e&&e.name)||'no reprodujo')); } });
+        }).catch(e=>fail('Puter: '+((e&&(e.message||e.error))||'error')));
+      }catch(e){ fail('Puter: '+((e&&e.message)||'error')); }
+    };
+    if(window.puter && window.puter.ai) return hablar();
+    const sc = document.createElement('script'); sc.src = 'https://js.puter.com/v2/';
+    const tm = setTimeout(()=>fail('Puter: no cargó'), 8000);
+    sc.onload = ()=>{ clearTimeout(tm); hablar(); };
+    sc.onerror = ()=>{ clearTimeout(tm); fail('Puter: bloqueado'); };
+    document.head.appendChild(sc);
+  });
   const pasos = [
+    ()=>viaGemini(),
+    ()=>viaEdge(),
+    ()=>viaPuter(),
     ()=>viaWebAudio(SE,'voz A'),
     ()=>viaElemento(SE,'voz B'),
     ()=>viaWebAudio(GO,'voz C'),
@@ -12752,7 +12903,8 @@ function _jarvisHablarOnline(limpio){
     _jarvisCallIarStop();
     window._jrvLog = []; window._jrvEmpezo = false;
     const id = ++_jrvColaId;
-    const frs = _jrvFragmentos(limpio);
+    let _gk=''; try{ _gk=localStorage.getItem('jrv_gemini_key')||''; }catch(e){}
+    const frs = _gk ? [limpio.slice(0,900)] : _jrvFragmentos(limpio);
     const fin = ()=>{ _jrvHablando=false; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.remove('active'); };
     (async()=>{
       for(const f of frs){
