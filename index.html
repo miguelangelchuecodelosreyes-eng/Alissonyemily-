@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v112">
+<meta name="app-version" content="2026-11-20 v114">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v112';
+const APP_VERSION = '2026-11-20 v114';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11046,17 +11046,141 @@ function _jFichaCompleta(c){
 }
 function _jSemanalesDe(fechaObj, etiqueta){
   const dnum = {domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
-  const wd = fechaObj.getDay();
-  const lista = getClientes().filter(c=>c && c.diaSemana && !c.volado && (c.saldo||0)>0 && dnum[_jNorm(c.diaSemana)]===wd);
-  const F = _jIso(fechaObj);
+  const wd = fechaObj.getDay(), F = _jIso(fechaObj), esHoy = (F===_jIso(new Date()));
+  const pagoDe = c=>(c.pagos||[]).filter(p=>String(p.fecha||'').substring(0,10)===F).reduce((s,p)=>s+(p.monto||0),0);
+  const lista = getClientes().filter(c=>c && c.diaSemana && !c.volado && dnum[_jNorm(c.diaSemana)]===wd && ((c.saldo||0)>0 || (esHoy && pagoDe(c)>0)));
   if(!lista.length) return '🔎 Ya reviso, jefe…\n\nNo tienes clientes semanales para '+etiqueta+' ('+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+').';
-  let tot=0;
-  const filas = lista.map(c=>{ tot+=(c.cuotaSugerida||0); return '• '+c.nombre+' — cuota '+_jFm(c.cuotaSugerida||0)+' (saldo '+_jFm(c.saldo||0)+')'; });
-  return '🔎 Ya reviso, jefe…\n\n📅 Semanales para '+etiqueta+', '+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+' ('+lista.length+' clientes):\n'+filas.join('\n')+'\n\n💰 Cuota esperada: '+_jFm(tot)+'.';
+  let tot=0, cob=0;
+  const filas = lista.map(c=>{
+    tot+=(c.cuotaSugerida||0); const pg = esHoy?pagoDe(c):0; cob+=pg;
+    return '• '+c.nombre+' — cuota '+_jFm(c.cuotaSugerida||0)+' (saldo '+_jFm(c.saldo||0)+')'+(esHoy?(pg>0?' ✅ pagó '+_jFm(pg):' ⏳ falta'):'');
+  });
+  return '🔎 Ya reviso, jefe…\n\n📅 Semanales para '+etiqueta+', '+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+' ('+lista.length+' clientes):\n'+filas.join('\n')+'\n\n💰 Cuota esperada: '+_jFm(tot)+'.'+(esHoy?' Cobrado: '+_jFm(cob)+'.':'');
 }
+
+/* ============================================================
+   JARVIS: RECORDATORIOS (avisa con voz + vibración + aviso en pantalla)
+   ============================================================ */
+function _jRecGet(){ try{ return JSON.parse(localStorage.getItem('jrv_recordatorios')||'[]'); }catch(e){ return []; } }
+function _jRecSet(l){ try{ localStorage.setItem('jrv_recordatorios', JSON.stringify(l)); }catch(e){} }
+function _jHoraBonita(d){ return d.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit',hour12:true}).replace('a. m.','a. m.').replace('p. m.','p. m.'); }
+function _jHoraHablada(d){
+  const h=d.getHours(), m=d.getMinutes(); const h12=h%12||12;
+  const per = h<12 ? 'de la mañana' : (h<19 ? 'de la tarde' : 'de la noche');
+  const mm = m===0 ? '' : (m===30?' y media':' con '+_jNumPalabras(m));
+  return (h12===1?'la una':'las '+_jNumPalabras(h12))+mm+' '+per;
+}
+function _jDiaBonito(d){
+  const h=new Date(); h.setHours(0,0,0,0); const x=new Date(d); x.setHours(0,0,0,0);
+  const dif=Math.round((x-h)/864e5);
+  if(dif===0) return 'hoy'; if(dif===1) return 'mañana'; if(dif===2) return 'pasado mañana';
+  return _J_DIAS_L[(d.getDay()+6)%7].toLowerCase()+' '+_jDiaCorto(_jIso(d));
+}
+function _jRecTercera(txt){
+  return String(txt).replace(/\btengo que\b/gi,'tiene que').replace(/\bme toca\b/gi,'le toca').replace(/\bvoy a\b/gi,'va a').replace(/\bdebo\b/gi,'debe').replace(/\bmi\b/gi,'su').replace(/\bme\b/gi,'le').trim();
+}
+function _jRecParse(texto){
+  const t=_jNorm(texto); const ahora=new Date(); let fecha=null, resto=texto;
+  // relativo: en 30 minutos / en 2 horas
+  let m=t.match(/\ben (\d{1,3}|una|media|dos|tres) (minutos?|horas?)\b/);
+  if(m){
+    let n = ({una:1,media:0.5,dos:2,tres:3})[m[1]] || parseInt(m[1],10);
+    const ms = /^hora/.test(m[2]) ? n*3600000 : n*60000;
+    fecha = new Date(ahora.getTime()+ms);
+  } else {
+    m=t.match(/\ba las? (\d{1,2})(?:[:.h ]?(\d{2}))?\s*(am|a m|pm|p m|de la manana|de la tarde|de la noche|de la madrugada|del dia|en la manana|en la tarde|en la noche)?/) ;
+    let mediodia = /\bmedio ?dia\b/.test(t);
+    if(!m && !mediodia) return null;
+    let h = mediodia && !m ? 12 : parseInt(m[1],10), mi = m&&m[2] ? parseInt(m[2],10) : 0;
+    const suf = m ? (m[3]||'') : '';
+    if(/pm|p m|tarde|noche/.test(suf)){ if(h<12) h+=12; }
+    else if(/am|a m|manana|madrugada|del dia/.test(suf)){ if(h===12) h=0; }
+    else { if(h>=1 && h<=6) h+=12; }  // sin am/pm: 1-6 se asume tarde, 7-11 mañana
+    if(h>23||mi>59) return null;
+    const base=new Date(ahora); base.setHours(h,mi,0,0);
+    let dias=null;
+    const t2 = t.replace(/(de la|en la|esta) (manana|tarde|noche|madrugada)/g,' ').replace(/\ba las? \d{1,2}(?:[:.h ]?\d{2})?\s*(am|a m|pm|p m)?/g,' ');
+    if(/pasado manana/.test(t2)) dias=2; else if(/\bmanana\b/.test(t2)) dias=1; else if(/\bhoy\b/.test(t2) || /esta (manana|tarde|noche)/.test(t)) dias=0;
+    const dn=t.match(/\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/);
+    if(dias===null && dn){ const idx={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6}[dn[1]]; dias=(idx-ahora.getDay()+7)%7; if(dias===0 && base<=ahora) dias=7; }
+    if(dias===null) dias = base>ahora ? 0 : 1;
+    base.setDate(base.getDate()+dias); fecha=base;
+  }
+  if(fecha<=ahora && !/ en \d/.test(' '+t)) return null;
+  // texto del recordatorio
+  let r = texto.replace(/^\s*(jarvis[, ]*)?(por favor[, ]*)?(recu[eé]rd\w*|av[ií]s\w*|record\w*)(me|nos|le)?\s*(que)?\s*/i,'')
+    .replace(/\ba las? \d{1,2}(?:[:.h ]?\d{2})?\s*(?:a\.? ?m\.?|p\.? ?m\.?|de la ma[nñ]ana|de la tarde|de la noche|de la madrugada|del d[ií]a|en la ma[nñ]ana|en la tarde|en la noche)?/ig,'')
+    .replace(/\b(pasado ma[nñ]ana|ma[nñ]ana|hoy|esta (?:ma[nñ]ana|tarde|noche))\b/ig,'')
+    .replace(/\ben (\d{1,3}|una|media|dos|tres) (minutos?|horas?)\b/ig,'')
+    .replace(/\b(el )?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b/ig,'')
+    .replace(/\bal medio ?d[ií]a\b/ig,'')
+    .replace(/\s+/g,' ').replace(/^[\s,.:;\-]+|[\s,.:;\-]+$/g,'').trim();
+  if(!r) r='tiene un pendiente';
+  return {fecha, texto:r};
+}
+function _jRecCrear(texto){
+  const p=_jRecParse(texto); if(!p) return null;
+  const l=_jRecGet(); const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  l.push({id, ts:p.fecha.getTime(), texto:p.texto, hecho:false}); _jRecSet(l);
+  try{ if(window.Notification && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
+  _jRecArrancar();
+  return '⏰ Listo jefe, te lo recuerdo '+_jDiaBonito(p.fecha)+' a las '+_jHoraBonita(p.fecha)+':\n“'+_jRecTercera(p.texto)+'”\n\nTe aviso hablando, con vibración y un aviso en pantalla. Ojo: suena si la app está abierta; si la tienes cerrada, te lo muestro apenas la abras.';
+}
+function _jRecListar(){
+  const l=_jRecGet().filter(r=>!r.hecho).sort((a,b)=>a.ts-b.ts);
+  if(!l.length) return '🔎 Ya reviso, jefe…\n\nNo tienes recordatorios pendientes.';
+  return '🔎 Ya reviso, jefe…\n\n⏰ Tus recordatorios:\n'+l.map((r,i)=>(i+1)+') '+_jDiaBonito(new Date(r.ts))+' a las '+_jHoraBonita(new Date(r.ts))+' — '+_jRecTercera(r.texto)).join('\n')+'\n\nPara quitar uno dime "borra el recordatorio 1".';
+}
+function _jRecBorrar(texto,t){
+  const l=_jRecGet().filter(r=>!r.hecho).sort((a,b)=>a.ts-b.ts);
+  if(!l.length) return 'No tienes recordatorios pendientes, jefe.';
+  const mm=t.match(/\b(\d{1,2})\b/);
+  if(/todos|todas/.test(t)){ _jRecSet(_jRecGet().filter(r=>r.hecho)); return '✅ Listo jefe, borré todos los recordatorios.'; }
+  const idx = mm ? parseInt(mm[1],10)-1 : (l.length===1?0:-1);
+  if(idx<0 || !l[idx]) return 'Dime cuál borro, jefe:\n'+l.map((r,i)=>(i+1)+') '+_jRecTercera(r.texto)).join('\n');
+  _jRecSet(_jRecGet().filter(r=>r.id!==l[idx].id));
+  return '✅ Listo jefe, borré el recordatorio: “'+_jRecTercera(l[idx].texto)+'”.';
+}
+function _jRecDisparar(r, tarde){
+  r.hecho=true; const l=_jRecGet().map(x=>x.id===r.id?Object.assign({},x,{hecho:true}):x); _jRecSet(l);
+  const frase = 'Jefe, para recordarle: '+_jRecTercera(r.texto)+'.';
+  try{ if(navigator.vibrate) navigator.vibrate([400,150,400,150,700]); }catch(e){}
+  try{ if(window.Notification && Notification.permission==='granted' && document.hidden) new Notification('Jarvis ⏰',{body:_jRecTercera(r.texto)}); }catch(e){}
+  try{
+    let b=document.getElementById('jrv-rec-banner'); if(b) b.remove();
+    b=document.createElement('div'); b.id='jrv-rec-banner';
+    b.style.cssText='position:fixed;left:10px;right:10px;top:10px;z-index:99999;background:linear-gradient(135deg,#16b8ff,#8b5cf6);color:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 10px 40px #0008;font-family:inherit';
+    b.innerHTML='<div style="font-weight:900;font-size:15px;margin-bottom:4px">⏰ Recordatorio de Jarvis'+(tarde?' (pendiente)':'')+'</div><div style="font-size:15px;line-height:1.35;font-weight:700"></div><div style="display:flex;gap:8px;margin-top:10px"><button style="flex:1;border:0;border-radius:12px;padding:10px;font-weight:900;background:#fff;color:#3b1f6b">Listo ✅</button><button style="flex:1;border:0;border-radius:12px;padding:10px;font-weight:900;background:#ffffff33;color:#fff">En 10 min</button></div>';
+    b.children[1].textContent = _jRecTercera(r.texto)+(tarde?' (era a las '+_jHoraBonita(new Date(r.ts))+')':'');
+    b.children[2].children[0].onclick=()=>{ b.remove(); try{ _jarvisCallIarStop(); }catch(e){} };
+    b.children[2].children[1].onclick=()=>{ const n=_jRecGet(); n.push({id:Date.now().toString(36),ts:Date.now()+600000,texto:r.texto,hecho:false}); _jRecSet(n); b.remove(); try{ _jarvisCallIarStop(); }catch(e){} };
+    document.body.appendChild(b);
+  }catch(e){}
+  try{ _jarvisHablar(frase); }catch(e){}
+}
+function _jRecRevisar(){
+  const ahora=Date.now();
+  _jRecGet().filter(r=>!r.hecho && r.ts<=ahora).sort((a,b)=>a.ts-b.ts).slice(0,1).forEach(r=>_jRecDisparar(r, ahora-r.ts>120000));
+}
+function _jRecArrancar(){
+  if(window._jRecTimer) return;
+  window._jRecTimer=setInterval(_jRecRevisar, 15000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _jRecRevisar(); });
+  window.addEventListener('focus', _jRecRevisar);
+  setTimeout(_jRecRevisar, 3000);
+}
+_jRecArrancar();
+
 function _jConsultas(texto, t){
+  // recordatorios con hora
+  if(/\b(recuerd\w*|avis\w*)\b/.test(t) && /\ba las? \d|\ben (\d{1,3}|una|media|dos|tres) (minutos?|horas?)\b|\bmedio ?dia\b/.test(t) && !/gasto|pendiente para renov|renovacion/.test(t)){
+    return _jRecCrear(texto) || 'No pude entender la hora, jefe. Dímelo así: "recuérdame mañana a las 9 de la mañana ir a cobrarle a Miguel".';
+  }
+  if(/\b(mis )?recordatorios?\b/.test(t) && /\b(borr\w*|elimin\w*|quit\w*|cancel\w*|anul\w*)\b/.test(t)) return _jRecBorrar(texto,t);
+  if(/\b(mis recordatorios|que recordatorios|cuales recordatorios|recordatorios pendientes|que me tienes (anotado|pendiente)|ver recordatorios|lista de recordatorios)\b/.test(t)) return _jRecListar();
   if(/semanales?|semanal\b/.test(t) && !/semana (pasada|anterior)|esta semana|de la semana/.test(t)){
     const hoy=new Date(); hoy.setHours(12,0,0,0);
+    if(/\bhoy\b|\btocan\b|\btoca\b/.test(t) && !/manana|semana (pasada|anterior)/.test(t)) return _jSemanalesDe(hoy,'hoy');
     if(/pasado manana/.test(t)){ const d=new Date(hoy); d.setDate(d.getDate()+2); return _jSemanalesDe(d,'pasado mañana'); }
     if(/\bmanana\b/.test(t)){ const d=new Date(hoy); d.setDate(d.getDate()+1); return _jSemanalesDe(d,'mañana'); }
     const m = t.match(/\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/);
@@ -11598,7 +11722,9 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
     }
     if (!rg.ok) { const t = await rg.text().catch(()=>''); throw new Error('HTTP '+rg.status+' '+t.slice(0,140)); }
     const dg = await rg.json();
-    return (dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content) || '(sin respuesta)';
+    const _txtG = dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content;
+    if(!_txtG || !String(_txtG).trim()) throw new Error('Groq no devolvió texto');
+    return _txtG;
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -13041,25 +13167,37 @@ function _jrvFragmento(txt, id){
     Promise.reject('inicio')).then(()=>{}, e=>{ window._jrvLog.push(String(e)); throw e; });
 }
 function _jrvTrozosRapidos(txt){
-  // frases cortas: la primera sale rápido y las demás se piden en paralelo mientras suena la anterior
-  const fr = String(txt).replace(/\s+/g,' ').match(/[^.!?¡¿:;\n]+[.!?:;]?/g) || [txt];
-  const out=[]; let acc='';
-  fr.forEach(f=>{ f=f.trim(); if(!f) return; if((acc+' '+f).length>140 && acc){ out.push(acc); acc=f; } else acc = acc?acc+' '+f:f; });
+  // 1º trozo corto (sale rápido); luego trozos grandes que se piden a la vez mientras suena el anterior. Máx. 3 peticiones.
+  const fr = (String(txt).replace(/\s+/g,' ').match(/[^.!?¡¿:;]+[.!?:;]?/g) || [txt]).map(f=>f.trim()).filter(Boolean);
+  const out=[]; let acc='', primero=true;
+  fr.forEach(f=>{
+    const lim = primero ? 90 : 420;
+    if(acc && (acc+' '+f).length>lim){ out.push(acc); acc=f; primero=false; } else acc = acc?acc+' '+f:f;
+  });
   if(acc) out.push(acc);
-  return out.slice(0,4);
+  // si quedaron más de 3, unir los últimos
+  while(out.length>3){ const x=out.pop(); out[out.length-1]+=' '+x; }
+  return out;
 }
-function _jrvGeminiBuffer(txt, gk){
+window._jrvCache = window._jrvCache || {};
+function _jrvGeminiBuffer(txt, gk, intento){
+  intento = intento||0;
+  if(window._jrvCache[txt]) return Promise.resolve(window._jrvCache[txt]);
   const ac = _jrvCtx(); if(!ac) return Promise.reject('sin AudioContext');
   return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent',{
     method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':gk.trim()},
     body: JSON.stringify({contents:[{parts:[{text:txt}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Charon'}}}}})
-  }).then(async r=>{ if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('HTTP '+r.status+' '+t.slice(0,90)); } return r.json(); })
+  }).then(async r=>{ if(!r.ok){ const t=await r.text().catch(()=>''); const e=new Error('HTTP '+r.status+' '+t.slice(0,90)); e.status=r.status; throw e; } return r.json(); })
   .then(j=>{
     const part = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
     const b64 = part && part.inlineData && part.inlineData.data; if(!b64) throw new Error('sin audio');
     const bin = atob(b64), n = bin.length>>1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
     for(let i=0;i<n;i++){ let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(v>=32768) v-=65536; ch[i]=v/32768; }
+    window._jrvCache[txt] = buf;
     return buf;
+  }).catch(e=>{
+    if(intento<2 && (e.status===429 || e.status===500 || e.status===503 || /sin audio/.test(e.message))) return new Promise(r=>setTimeout(r, 1200*(intento+1))).then(()=>_jrvGeminiBuffer(txt, gk, intento+1));
+    throw e;
   });
 }
 function _jrvTocarBuffer(buf, id){
