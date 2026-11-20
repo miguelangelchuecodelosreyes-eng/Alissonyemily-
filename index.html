@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v108">
+<meta name="app-version" content="2026-11-19 v109">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v108';
+const APP_VERSION = '2026-11-19 v109';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11432,7 +11432,7 @@ ${String(ctx||'').slice(0,5000)}
 Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
 
   const _corta = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n) + '…' : t; };
-  const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-6)
+  const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-4)
     .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: _corta(m.content, 1200) }));
   while(messages.length && messages[0].role!=='user') messages.shift();
 
@@ -11440,7 +11440,7 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
     const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + key.trim() },
-      body: JSON.stringify({ model: modelo, max_tokens: 600, messages: [{ role: 'system', content: sistema }].concat(messages) })
+      body: JSON.stringify({ model: modelo, max_tokens: 350, messages: [{ role: 'system', content: sistema }].concat(messages) })
     });
     let modelo = lsGet('orb_groq_model');
     let rg = modelo ? await _groqPedir(modelo) : null;
@@ -12875,6 +12875,38 @@ function _jrvFragmento(txt, id){
   return pasos.reduce((p,paso)=> p.catch(e=>{ window._jrvLog.push(String(e)); if(id!==_jrvColaId) return; return paso(); }),
     Promise.reject('inicio')).then(()=>{}, e=>{ window._jrvLog.push(String(e)); throw e; });
 }
+function _jrvTrozosRapidos(txt){
+  // frases cortas: la primera sale rápido y las demás se piden en paralelo mientras suena la anterior
+  const fr = String(txt).replace(/\s+/g,' ').match(/[^.!?¡¿:;\n]+[.!?:;]?/g) || [txt];
+  const out=[]; let acc='';
+  fr.forEach(f=>{ f=f.trim(); if(!f) return; if((acc+' '+f).length>140 && acc){ out.push(acc); acc=f; } else acc = acc?acc+' '+f:f; });
+  if(acc) out.push(acc);
+  return out.slice(0,4);
+}
+function _jrvGeminiBuffer(txt, gk){
+  const ac = _jrvCtx(); if(!ac) return Promise.reject('sin AudioContext');
+  return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent',{
+    method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':gk.trim()},
+    body: JSON.stringify({contents:[{parts:[{text:txt}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Charon'}}}}})
+  }).then(async r=>{ if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('HTTP '+r.status+' '+t.slice(0,90)); } return r.json(); })
+  .then(j=>{
+    const part = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+    const b64 = part && part.inlineData && part.inlineData.data; if(!b64) throw new Error('sin audio');
+    const bin = atob(b64), n = bin.length>>1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
+    for(let i=0;i<n;i++){ let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(v>=32768) v-=65536; ch[i]=v/32768; }
+    return buf;
+  });
+}
+function _jrvTocarBuffer(buf, id){
+  return new Promise(ok=>{
+    const ac=_jrvCtx(); if(id!==_jrvColaId) return ok();
+    try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+    const src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination);
+    window._jrvSrc = src; window._jrvEmpezo = true; _jrvHablando = true;
+    const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.add('active');
+    src.onended = ()=>ok(); src.start(0);
+  });
+}
 function _jarvisHablarOnline(limpio){
   try{
     if(!window._jrvAvisoOnline){
@@ -12890,11 +12922,18 @@ function _jarvisHablarOnline(limpio){
     window._jrvLog = []; window._jrvEmpezo = false;
     const id = ++_jrvColaId;
     let _gk=''; try{ _gk=localStorage.getItem('jrv_gemini_key')||''; }catch(e){}
-    const frs = _gk ? [limpio.slice(0,900)] : _jrvFragmentos(limpio);
+    const frs = _gk ? _jrvTrozosRapidos(limpio) : _jrvFragmentos(limpio);
     const fin = ()=>{ _jrvHablando=false; const b=document.getElementById('jrv-voice-bar'); if(b) b.classList.remove('active'); };
     (async()=>{
-      for(const f of frs){
+      const pre = _gk ? frs.map(f=>_jrvGeminiBuffer(f,_gk)) : null;   // se piden todos a la vez
+      if(pre) pre.forEach(pp=>pp.catch(()=>{}));
+      for(let k=0;k<frs.length;k++){
+        const f = frs[k];
         if(id !== _jrvColaId) return;
+        if(pre){
+          try{ const buf = await pre[k]; await _jrvTocarBuffer(buf, id); continue; }
+          catch(e){ window._jrvLog.push('Gemini: '+((e&&e.message)||e)); }
+        }
         try{ await _jrvFragmento(f, id); }
         catch(e){
           if(id !== _jrvColaId) return;
@@ -13313,6 +13352,7 @@ function proximaFechaCobro(c){
       cobrado += total;
       pendiente += (c.saldo||0);
     });
+    try{ cobrado = _orbePlenoRealDia(hoy).pleno; }catch(e){}
     return {cobrado, pendiente, pagaronHoy, totalClientes:clientes.length};
   }
   function calc7Dias(){
@@ -13327,9 +13367,9 @@ function proximaFechaCobro(c){
       const d = new Date(lunes); d.setDate(d.getDate()+i);
       const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       let total = 0;
-      clientes.forEach(c=>{
-        (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===k).forEach(p=>{ total += (p.monto||0); });
-      });
+      try{ total = _orbePlenoRealDia(k).pleno; }catch(e){
+        clientes.forEach(c=>{ (c.pagos||[]).filter(p=>(p.fecha||'').slice(0,10)===k).forEach(p=>{ total += (p.monto||0); }); });
+      }
       arr.push({fecha:k, total, label:labels[i]});
     }
     return arr;
