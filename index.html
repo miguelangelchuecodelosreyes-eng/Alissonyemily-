@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v120">
+<meta name="app-version" content="2026-11-20 v121">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6035,7 +6035,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v120';
+const APP_VERSION = '2026-11-20 v121';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -12845,6 +12845,7 @@ window.orbIANuevoChat = orbIANuevoChat;
   <div class="jb-top">
     <button class="jb-orb" type="button" onclick="jrvBarCallar()" aria-label="Callar a Jarvis"><i></i><i></i><i></i></button>
     <div style="flex:1;min-width:0"><div class="jb-txt" id="jrv-bar-txt">…</div><div class="jb-hint" id="jrv-bar-hint"></div><div class="jb-hint" id="jrv-bar-voz" style="color:#ffb86b"></div></div>
+    <button class="jb-x" type="button" onclick="jarvisTablero()" aria-label="Qué puede hacer">📋</button>
     <button class="jb-x" type="button" onclick="cerrarOrbeIA()" aria-label="Cerrar">✕</button>
   </div>
   <form class="jb-row" onsubmit="event.preventDefault(); jrvBarEnviar();">
@@ -12863,6 +12864,7 @@ window.orbIANuevoChat = orbIANuevoChat;
         <h3 style="font-family:'Orbitron','Nunito',sans-serif;letter-spacing:3px;background:linear-gradient(90deg,#00d4ff,#0066ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">J.A.R.V.I.S.</h3>
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
+      <button class="orb-btn ghost orb-btn-mini" onclick="jarvisTablero()" title="¿Qué puede hacer Jarvis?">📋</button>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-cambiar" onclick="_orbeMostrarMsg('ai', jarvisCambiarVoz(), false)" title="Cambiar la voz de Jarvis (web)">🎙️</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
@@ -12885,13 +12887,13 @@ window.orbIANuevoChat = orbIANuevoChat;
 
     <div class="orb-quick" id="orb-quick">
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto debo entregar hoy?')">🏦 ¿Cuánto entrego?</button>
+      <button class="orb-chip" onclick="jarvisTablero()">📋 ¿Qué puede hacer?</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">⚡ Estado del día</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de esta semana')">💸 Gastos de la semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">💸 Gastos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">📈 Plenos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de esta semana')">📊 Resumen semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto llevo prestado?')">🎯 Prestado y meta</button>
-      <button class="orb-chip" onclick="jarvisTablero()">📋 ¿Qué puede hacer?</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de las renovaciones pendientes')">🔁 Renovaciones pendientes</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de hoy')">🧾 Gastos de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">📅 Semanales de hoy</button>
