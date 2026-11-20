@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v115">
+<meta name="app-version" content="2026-11-20 v116">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6035,7 +6035,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v115';
+const APP_VERSION = '2026-11-20 v116';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10715,7 +10715,15 @@ function _jrvBarObservar(){
       let habla=false;
       try{ habla = !!window._jrvHablando || (window.speechSynthesis && window.speechSynthesis.speaking); }catch(e){}
       bar.classList.toggle('habla', !!habla);
-      if(window._jrvErrorOnline){ window._jrvErrorOnline=false; const h=document.getElementById('jrv-bar-hint'); if(h) h.textContent='🔇 No pude hablar ahora (límite de voz). El texto está arriba.'; }
+      if(window._jrvErrorOnline){
+        window._jrvErrorOnline=false; const h=document.getElementById('jrv-bar-voz');
+        const dg=String(window._jrvDiag||''); let m='no pude hablar ahora';
+        if(/429/.test(dg)) m='la voz gratis de Gemini llegó a su límite, espera un minuto';
+        else if(/403|401|API key|permission/i.test(dg)) m='Gemini rechazó la clave de voz';
+        else if(/sin clave/i.test(dg)) m='falta la clave de voz (🔑 en ⤢ Completo)';
+        else if(dg) m=dg.slice(0,70);
+        if(h) h.textContent='🔇 '+m;
+      }
     }catch(e){}
   }, 300);
 }
@@ -10724,7 +10732,7 @@ function jrvBarEnviar(){
     const bi=document.getElementById('jrv-bar-input'), oi=document.getElementById('orb-input');
     const v=(bi.value||'').trim(); if(!v) return;
     if(window._orbChatLoading || (typeof _orbChatLoading!=='undefined' && _orbChatLoading)){ const h=document.getElementById('jrv-bar-hint'); if(h) h.textContent='Un momento jefe, estoy respondiendo…'; return; }
-    bi.value=''; oi.value=v; window._jrvEsperaResp=true; window._jBrief=true;
+    bi.value=''; oi.value=v; window._jrvEsperaResp=true; window._jBrief=true; window._jrvDiag=''; try{ document.getElementById('jrv-bar-voz').textContent=''; }catch(e){}
     try{ jrvBarCallar(); }catch(e){}
     Promise.resolve(orbIAEnviarMensaje()).catch(e=>{ _jrvBarTexto('⚠️ Algo falló, jefe: '+((e&&e.message)||'error')+'. Inténtalo otra vez.',''); });
   }catch(e){ _jrvBarTexto('⚠️ Algo falló, jefe. Inténtalo otra vez.',''); }
@@ -11744,7 +11752,9 @@ async function orbIAEnviarMensaje(){
       const st = document.getElementById('orb-conn-status');
       if(st) st.textContent = '◈ Clave inválida — modo local activado';
     } else {
-      respuesta = '⚠️ La IA no respondió: ' + (e.message||'error').slice(0,200) + '\nRespondo en modo local.\n\n' + _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      const _loc = _orbeRespuestaLocal((texto||'').toLowerCase(), _orbeRecolectarStats());
+      if(window._jBrief) respuesta = /^💡|^🤔/.test(_loc) ? 'Jefe, no pude consultar la IA ahora ('+(e.message||'error').slice(0,80)+'). Pregúntame de otra forma o toca ⤢ Completo.' : _loc;
+      else respuesta = '⚠️ La IA no respondió: ' + (e.message||'error').slice(0,200) + '\nRespondo en modo local.\n\n' + _loc;
     }
   }
 
@@ -11795,7 +11805,7 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
     const _groqPedir = (modelo) => fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + key.trim() },
-      body: JSON.stringify({ model: modelo, max_tokens: (window._jBrief?160:350), messages: [{ role: 'system', content: sistema }].concat(messages) })
+      body: JSON.stringify(Object.assign({ model: modelo, max_tokens: (window._jBrief?500:800), messages: [{ role: 'system', content: sistema }].concat(messages) }, /gpt-oss/i.test(modelo)?{reasoning_effort:'low'}:{}))
     });
     let modelo = lsGet('orb_groq_model');
     let rg = modelo ? await _groqPedir(modelo) : null;
@@ -11817,9 +11827,20 @@ Si el usuario pregunta algo fuera del tema de cobranza, igual responde con natur
       rg = ultimo;
     }
     if (!rg.ok) { const t = await rg.text().catch(()=>''); throw new Error('HTTP '+rg.status+' '+t.slice(0,140)); }
-    const dg = await rg.json();
-    const _txtG = dg.choices && dg.choices[0] && dg.choices[0].message && dg.choices[0].message.content;
-    if(!_txtG || !String(_txtG).trim()) throw new Error('Groq no devolvió texto');
+    let dg = await rg.json();
+    const _leer = d => d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+    let _txtG = _leer(dg);
+    if(!_txtG || !String(_txtG).trim()){
+      // el modelo guardado gastó todo en "pensar" y no escribió: probar modelos normales
+      for (const alt of ['llama-3.3-70b-versatile','llama-3.1-8b-instant']) {
+        if (alt === modelo) continue;
+        try{
+          const r2 = await _groqPedir(alt);
+          if (r2.ok){ const t2 = _leer(await r2.json()); if(t2 && String(t2).trim()){ lsSet('orb_groq_model', alt); return t2; } }
+        }catch(e3){}
+      }
+      throw new Error('Groq no devolvió texto');
+    }
     return _txtG;
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -12540,7 +12561,7 @@ window.orbIANuevoChat = orbIANuevoChat;
 <div id="jrv-bar" role="dialog" aria-label="Jarvis">
   <div class="jb-top">
     <button class="jb-orb" type="button" onclick="jrvBarCallar()" aria-label="Callar a Jarvis"><i></i><i></i><i></i></button>
-    <div style="flex:1;min-width:0"><div class="jb-txt" id="jrv-bar-txt">…</div><div class="jb-hint" id="jrv-bar-hint"></div></div>
+    <div style="flex:1;min-width:0"><div class="jb-txt" id="jrv-bar-txt">…</div><div class="jb-hint" id="jrv-bar-hint"></div><div class="jb-hint" id="jrv-bar-voz" style="color:#ffb86b"></div></div>
     <button class="jb-x" type="button" onclick="cerrarOrbeIA()" aria-label="Cerrar">✕</button>
   </div>
   <form class="jb-row" onsubmit="event.preventDefault(); jrvBarEnviar();">
@@ -13265,7 +13286,6 @@ function _jrvFragmento(txt, id){
     }).catch(e=>fail('Gemini: '+((e&&(e.message||e.name))||'error')));
   });
   const pasos = [
-    ()=>viaGemini(),
     ()=>viaEdge(),
     ()=>viaWebAudio(SE,'voz A'),
     ()=>viaElemento(SE,'voz B'),
@@ -13276,23 +13296,26 @@ function _jrvFragmento(txt, id){
     Promise.reject('inicio')).then(()=>{}, e=>{ window._jrvLog.push(String(e)); throw e; });
 }
 function _jrvTrozosRapidos(txt){
-  // 1º trozo corto (sale rápido); luego trozos grandes que se piden a la vez mientras suena el anterior. Máx. 3 peticiones.
-  const fr = (String(txt).replace(/\s+/g,' ').match(/[^.!?¡¿:;]+[.!?:;]?/g) || [txt]).map(f=>f.trim()).filter(Boolean);
-  const out=[]; let acc='', primero=true;
-  fr.forEach(f=>{
-    const lim = primero ? 90 : 420;
-    if(acc && (acc+' '+f).length>lim){ out.push(acc); acc=f; primero=false; } else acc = acc?acc+' '+f:f;
-  });
-  if(acc) out.push(acc);
-  // si quedaron más de 3, unir los últimos
-  while(out.length>3){ const x=out.pop(); out[out.length-1]+=' '+x; }
-  return out;
+  // Pocas peticiones (la clave gratis de Gemini tiene límite por minuto): 1 trozo si es corto, 2 si es largo.
+  const t = String(txt).replace(/\s+/g,' ').trim();
+  const corteEn = (x, max)=>{ if(x.length<=max) return x; let c=Math.max(x.lastIndexOf('. ',max), x.lastIndexOf('? ',max), x.lastIndexOf('! ',max), x.lastIndexOf(': ',max)); if(c<40) c=x.lastIndexOf(' ',max); if(c<40) c=max; return x.slice(0,c+1).trim(); };
+  if(window._jrvModo==='barra') return [corteEn(t,230)];          // barra: solo lo esencial, 1 petición
+  if(t.length<=200) return [t];
+  const a = corteEn(t,110), resto = t.slice(a.length).trim();
+  return resto ? [a, corteEn(resto,360)] : [a];
 }
 window._jrvCache = window._jrvCache || {};
+function _jrvPcmABuffer(b64, ac){
+  const bin = atob(b64), n = bin.length>>1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
+  for(let i=0;i<n;i++){ let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(v>=32768) v-=65536; ch[i]=v/32768; }
+  return buf;
+}
 function _jrvGeminiBuffer(txt, gk, intento){
   intento = intento||0;
   if(window._jrvCache[txt]) return Promise.resolve(window._jrvCache[txt]);
   const ac = _jrvCtx(); if(!ac) return Promise.reject('sin AudioContext');
+  const claveC = 'jrv_vc_'+txt.length+'_'+Array.from(txt).reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7);
+  if(txt.length<=90){ try{ const g=localStorage.getItem(claveC); if(g){ const bf=_jrvPcmABuffer(g,ac); window._jrvCache[txt]=bf; return Promise.resolve(bf); } }catch(e){} }
   return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent',{
     method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':gk.trim()},
     body: JSON.stringify({contents:[{parts:[{text:txt}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Charon'}}}}})
@@ -13300,12 +13323,12 @@ function _jrvGeminiBuffer(txt, gk, intento){
   .then(j=>{
     const part = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
     const b64 = part && part.inlineData && part.inlineData.data; if(!b64) throw new Error('sin audio');
-    const bin = atob(b64), n = bin.length>>1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
-    for(let i=0;i<n;i++){ let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(v>=32768) v-=65536; ch[i]=v/32768; }
+    const buf = _jrvPcmABuffer(b64, ac);
     window._jrvCache[txt] = buf;
+    if(txt.length<=90){ try{ const ks=Object.keys(localStorage).filter(k=>k.indexOf('jrv_vc_')===0); if(ks.length>=6) localStorage.removeItem(ks[0]); localStorage.setItem(claveC, b64); }catch(e){} }
     return buf;
   }).catch(e=>{
-    if(intento<2 && (e.status===429 || e.status===500 || e.status===503 || /sin audio/.test(e.message))) return new Promise(r=>setTimeout(r, 1200*(intento+1))).then(()=>_jrvGeminiBuffer(txt, gk, intento+1));
+    if(intento<1 && (e.status===500 || e.status===503 || /sin audio/.test(e.message))) return new Promise(r=>setTimeout(r, 1200*(intento+1))).then(()=>_jrvGeminiBuffer(txt, gk, intento+1));
     throw e;
   });
 }
@@ -13344,7 +13367,12 @@ function _jarvisHablarOnline(limpio){
         if(id !== _jrvColaId) return;
         if(pre){
           try{ const buf = await pre[k]; await _jrvTocarBuffer(buf, id); continue; }
-          catch(e){ window._jrvLog.push('Gemini: '+((e&&e.message)||e)); }
+          catch(e){
+            window._jrvLog.push('Gemini: '+((e&&e.message)||e));
+            if(e && (e.status===429 || e.status===401 || e.status===403 || e.status===400)){   // sin sentido probar los otros caminos
+              window._jrvErrorOnline = true; window._jrvDiag = 'Gemini: '+(e.message||e.status); fin(); return;
+            }
+          }
         }
         try{ await _jrvFragmento(f, id); }
         catch(e){
