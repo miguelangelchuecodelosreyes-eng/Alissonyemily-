@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v110">
+<meta name="app-version" content="2026-11-19 v112">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v110';
+const APP_VERSION = '2026-11-19 v112';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10926,14 +10926,56 @@ function _jPendGet(){ try{ return JSON.parse(localStorage.getItem('jrv_renov_pen
 function _jPendSet(l){ try{ localStorage.setItem('jrv_renov_pend', JSON.stringify(l)); }catch(e){} }
 function _jPendQuitar(id){ const l=_jPendGet(); if(l.includes(id)){ _jPendSet(l.filter(x=>x!==id)); return true; } return false; }
 function _jPendNombres(l){ return l.map(id=>{ const c=_jCliente(id); return c?c.nombre:null; }).filter(Boolean); }
+function _jLev(a,b){
+  if(a===b) return 0; const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=[],cur=[]; for(let j=0;j<=n;j++) prev[j]=j;
+  for(let i=1;i<=m;i++){ cur=[i]; for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); prev=cur; }
+  return prev[n];
+}
+function _jSimilares(texto){
+  const qt = _jNorm(texto).split(/[^a-z0-9ñ]+/).filter(w=>w.length>=3 && !_J_STOP.has(w));
+  if(!qt.length) return [];
+  const sc = [];
+  getClientes().forEach(c=>{
+    if(!c || !c.nombre) return;
+    const nt = _jNorm(c.nombre).split(/[^a-z0-9ñ]+/).filter(w=>w.length>=2);
+    if(!nt.length) return;
+    let tot=0;
+    qt.forEach(w=>{ let best=0; nt.forEach(x=>{ let sim = 1 - _jLev(w,x)/Math.max(w.length,x.length); if(x.startsWith(w)||w.startsWith(x)) sim=Math.max(sim,0.85); if(sim>best) best=sim; }); tot+=best; });
+    const score = tot/qt.length;
+    if(score>=0.62) sc.push({c, score});
+  });
+  sc.sort((a,b)=>b.score-a.score);
+  const top = sc.slice(0,3);
+  if(top.length>1 && top[0].score - top[1].score >= 0.12) return [top[0].c];   // uno claramente mejor
+  return top.map(x=>x.c);
+}
+function _jPendPreguntarSiguiente(){
+  const q = window._jPendCola || [];
+  while(q.length){
+    const it = q.shift();
+    if(!it.cands.length) continue;
+    window._jAcc = {tipo:'pendConfirma', paso:'si', ts:Date.now(), d:{}, cands: it.cands.map(x=>x.id)};
+    if(it.cands.length===1) return '🤔 Jefe, no encontré "'+it.texto+'". ¿No será este cliente '+it.cands[0].nombre+'? (dime sí o no)';
+    return '🤔 Jefe, no encontré "'+it.texto+'". ¿No será alguno de estos? Dime el número:\n'+it.cands.map((x,i)=>(i+1)+') '+x.nombre).join('\n');
+  }
+  return null;
+}
 function _jPendAgregarTexto(texto){
-  const segs = String(texto).split(/[,;\n]| y /i), l=_jPendGet(), agregados=[], ya=[], dudosos=[], noenc=[];
+  const segs = String(texto).split(/[,;\n]| y /i), l=_jPendGet(), agregados=[], ya=[], dudosos=[], noenc=[], sugeridos=[];
   segs.forEach(sg=>{
     const limpio = sg.trim(); if(!limpio) return;
     const c = _jBuscar(limpio);
     if(c.length===1){ if(l.includes(c[0].id)) ya.push(c[0].nombre); else { l.push(c[0].id); agregados.push(c[0].nombre); } }
-    else if(c.length>1) dudosos.push(limpio+' (hay varios: '+c.slice(0,3).map(x=>x.nombre).join(' / ')+')');
-    else if(_jNorm(limpio).replace(/[^a-z]/g,'').length>2 && !/^(recuerd|mete|metel|agreg|anota|apunta|pon|guarda)/.test(_jNorm(limpio))) noenc.push(limpio);
+    else if(c.length>1){
+      const sim = _jSimilares(limpio);
+      if(sim.length) sugeridos.push({texto:limpio, cands:sim});
+      else dudosos.push(limpio+' (hay varios: '+c.slice(0,3).map(x=>x.nombre).join(' / ')+')');
+    }
+    else if(_jNorm(limpio).replace(/[^a-z]/g,'').length>2 && !/^(recuerd|mete|metel|agreg|anota|apunta|pon|guarda)/.test(_jNorm(limpio))){
+      const sim = _jSimilares(limpio);
+      if(sim.length) sugeridos.push({texto:limpio, cands:sim}); else noenc.push(limpio);
+    }
   });
   _jPendSet(l);
   let r = '';
@@ -10941,15 +10983,21 @@ function _jPendAgregarTexto(texto){
   if(ya.length) r += 'Ya estaban en la lista: '+ya.join(', ')+'.\n';
   if(dudosos.length) r += '🤔 No supe cuál es: '+dudosos.join('; ')+'. Dímelo con el nombre completo.\n';
   if(noenc.length) r += '❓ No encontré a: '+noenc.join(', ')+'.\n';
-  if(!r) return null;
+  window._jPendCola = sugeridos;
+  const pregunta = _jPendPreguntarSiguiente();
+  if(!r && !pregunta) return null;
   const todos=_jPendNombres(l);
-  return r+(todos.length?'\n📋 Pendientes ahora ('+todos.length+'): '+todos.join(', ')+'.':'');
+  return r+(r && todos.length?'\n📋 Pendientes ahora ('+todos.length+'): '+todos.join(', ')+'.':'')+(pregunta?(r?'\n\n':'')+pregunta:'');
 }
+function _jPendFalta(l){ const n=_jPendNombres(l); return n.length ? 'Solo le falta '+n.join(', ')+'.' : 'Ya no le falta nadie por renovar.'; }
 function _jPendResumen(detallado){
   const l=_jPendGet();
   if(!l.length) return '🔎 Ya reviso, jefe…\n\nNo hay ninguna renovación pendiente.';
   if(!detallado) return '🔎 Ya reviso, jefe…\n\nJefe, está pendiente por la renovación: '+_jPendNombres(l).join(', ')+'.';
-  return '🔎 Ya le digo, jefe…\n\n'+l.map(id=>{ const c=_jCliente(id); return '👤 '+c.nombre+' tiene un saldo de '+_jFm(c.saldo||0)+' y su préstamo es de '+_jFm(c.prestamo||0)+'.'; }).join('\n')+'\n\n¿Cuál renuevas?';
+  const partes = l.map(id=>{ const c=_jCliente(id); return c.nombre+' con un saldo de '+_jFm(c.saldo||0); });
+  const frase = partes.length===1 ? partes[0] : partes.slice(0,-1).join(', a ')+' y a '+partes[partes.length-1];
+  window._jAcc = {tipo:'pendQuitar', paso:'nombre', ts:Date.now(), d:{}};
+  return '🔎 Ya le digo, jefe…\n\nJefe, tiene a '+frase+'.\n\n¿Cuál renuevo?';
 }
 
 /* ---------- Semanales de la semana ---------- */
@@ -11040,7 +11088,7 @@ function _jConsultas(texto, t){
     return _jListarGastos('hoy');
   }
   // renovaciones pendientes: agregar
-  if(/pendiente/.test(t) && /renov/.test(t) && /\b(recuerd\w*|mete\w*|agreg\w*|anota\w*|apunta\w*|pon\w*|incluy\w*|guarda\w*|anad\w*)\b/.test(t)){
+  if(/pendiente/.test(t) && /renov/.test(t) && /\b(recuerd\w*|mete\w*|agreg\w*|anota\w*|apunta\w*|pon\w*|incluy\w*|guarda\w*|aguard\w*|anad\w*|marca\w*|deja\w*)\b/.test(t)){
     const idx = t.lastIndexOf('pendiente'); const orig = texto.slice(Math.min(texto.length, texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').lastIndexOf('pendiente')+9));
     const r = _jPendAgregarTexto(orig.replace(/^(s)?\s*[:\-]?\s*/,''));
     if(r) return r;
@@ -11056,7 +11104,7 @@ function _jConsultas(texto, t){
       const m=_jBuscar(texto).filter(c=>l.includes(c.id));
       if(m.length===1){
         _jPendSet(l.filter(x=>x!==m[0].id)); const q=_jPendNombres(_jPendGet());
-        return '✅ Listo jefe, saqué a '+m[0].nombre+' de las renovaciones pendientes.\n'+(q.length?'Entonces queda pendiente: '+q.join(', ')+'.':'Ya no queda nadie pendiente por renovar.');
+        return '✅ Listo jefe, ya lo saco de las renovaciones pendientes ('+m[0].nombre+').\n'+_jPendFalta(_jPendGet());
       }
       if(/pendiente/.test(t)) return 'No encontré a ese cliente en la lista de pendientes, jefe. Están pendientes: '+_jPendNombres(l).join(', ')+'.';
     }
@@ -11103,9 +11151,44 @@ function _jCorregirCuentas(texto, t){
 }
 function _jAcciones(texto){
   const t = _jNorm(texto).trim();
+  // Atajo: si el mensaje empieza con un punto, son nombres para renovación pendiente (.Miguel angel chueco .Juan Barreto)
+  if(/^\s*\./.test(texto) && !/^\s*\.{2,}/.test(texto) && /[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(texto)){
+    window._jAcc = null;
+    const nombres = texto.replace(/^\s*\./,'').replace(/\./g,',');
+    const r = _jPendAgregarTexto(nombres);
+    if(r) return r.replace('✅ Listo jefe, quedó pendiente para renovar:','✅ Listo jefe, ya lo pongo como renovación pendiente:');
+    return 'No encontré a ese cliente, jefe. Escríbelo así: .Nombre Apellido .Otro Cliente';
+  }
   if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
   if(window._jAcc){
     if(_jCancelaTxt(texto)){ window._jAcc=null; return 'Listo jefe, lo dejé así. No cambié nada. 👍'; }
+    if(window._jAcc.tipo==='pendConfirma'){
+      const A0=window._jAcc; let elegido=null;
+      const num = t.match(/^\s*(\d)\b/);
+      if(num && A0.cands[+num[1]-1]) elegido = A0.cands[+num[1]-1];
+      else if(A0.cands.length===1 && /^(si|ese|esa|dale|ok|correcto|exacto|claro|afirmativo|listo|yes|el mismo)\b/.test(t)) elegido = A0.cands[0];
+      else { const m=_jBuscar(texto).filter(c=>A0.cands.includes(c.id)); if(m.length===1) elegido=m[0].id; }
+      if(elegido){
+        const l=_jPendGet(); if(!l.includes(elegido)) l.push(elegido); _jPendSet(l); window._jAcc=null;
+        const sig=_jPendPreguntarSiguiente();
+        return '✅ Listo jefe, ya lo pongo como renovación pendiente: '+_jCliente(elegido).nombre+'.\n\n📋 Pendientes ahora ('+l.length+'): '+_jPendNombres(l).join(', ')+'.'+(sig?'\n\n'+sig:'');
+      }
+      if(/^(no|nel|nop|negativo|ninguno|ese no)\b/.test(t)){
+        window._jAcc=null; const sig=_jPendPreguntarSiguiente();
+        return 'Listo jefe, no lo agrego. Escríbelo como está en la app, con un punto adelante: .Nombre Apellido'+(sig?'\n\n'+sig:'');
+      }
+      window._jAcc=null; return _jAcciones(texto);
+    }
+    if(window._jAcc.tipo==='pendQuitar'){
+      const l=_jPendGet(); let m=[]; try{ m=_jBuscar(texto).filter(c=>l.includes(c.id)); }catch(e){}
+      if(/\b(direccion|telefono|celular|numero|cedula|cuanto|cuando|debe|deuda|pagos?|datos|informacion|info|dime|dame|donde|vive|nota|tiene|cuota|ultimo|historial)\b/.test(t)) m=[]; // es una pregunta sobre el cliente, no una selección
+      if(m.length===1){
+        _jPendSet(l.filter(x=>x!==m[0].id)); window._jAcc=null;
+        return '✅ Listo jefe, ya lo saco de las renovaciones pendientes ('+m[0].nombre+').\n'+_jPendFalta(_jPendGet());
+      }
+      if(m.length>1) return '🤔 Hay varios parecidos, jefe. Dime el nombre completo: '+m.map(c=>c.nombre).join(' / ');
+      window._jAcc=null; return _jAcciones(texto); // preguntó otra cosa: seguir normal
+    }
     const _corr = _jCorregirCuentas(texto, t); if(_corr) return _corr;
     const _A = window._jAcc;
     const _esRespuesta = (_jNum(texto)!==null) || _jNo(texto) || /\b(todo|eso|ese|igual|completo|exacto|queda|si|ok|dale|listo)\b/.test(t);
