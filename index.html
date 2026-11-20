@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v116">
+<meta name="app-version" content="2026-11-20 v120">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6035,7 +6035,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v116';
+const APP_VERSION = '2026-11-20 v120';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11008,10 +11008,15 @@ function _jListarGastos(periodo){
   if(periodo==='hoy' || periodo==='ayer'){
     const d = new Date(hoy); if(periodo==='ayer') d.setDate(d.getDate()-1);
     const F = _jIso(d), l = _jGastosDia(F);
-    const cab = periodo==='hoy' ? 'los gastos que tuviste hoy fueron' : 'los gastos que tuviste ayer fueron';
-    if(!l.length) return '🔎 Ya reviso, jefe…\n\nJefe, '+(periodo==='hoy'?'hoy':'ayer')+' no tienes gastos registrados.';
-    const tot = l.reduce((s,g)=>s+(g.valor||0),0);
-    return '🔎 Ya reviso, jefe…\n\nJefe, '+cab+':\n'+l.map(g=>'• '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\n\nEso da un total de '+_jPesos(tot)+'.';
+    const notas = periodo==='hoy' ? _jNotasPend() : _jNotasGet(F).filter(n=>!n.ing);
+    const cab = periodo==='hoy' ? 'los gastos de hoy fueron' : 'los gastos de ayer fueron';
+    if(!l.length && !notas.length) return '🔎 Ya reviso, jefe…\n\nJefe, '+(periodo==='hoy'?'hoy':'ayer')+' no tienes gastos registrados ni anotados.';
+    let r = '🔎 Ya reviso, jefe…\n\nJefe, '+cab+':\n';
+    if(notas.length) r += '\n📝 Anotados (todavía NO están en el sistema):\n'+notas.map(n=>'• '+_jNotaTxt(n)).join('\n')+'\n';
+    if(l.length){ const tot=l.reduce((s,g)=>s+(g.valor||0),0); r += '\n✅ Ya ingresados al sistema:\n'+l.map(g=>'• '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\nTotal ingresado: '+_jPesos(tot)+'.\n'; }
+    if(notas.length) r += '\n¿Quieres que ingrese alguno al sistema? No lo ingreso hasta que me digas. Dime por ejemplo "ingresa el de '+((notas[0].desc||'gasto').split(' ')[0])+'" o "ingresa todos".';
+    r += '\n¿Quieres borrar algún gasto de '+(periodo==='hoy'?'hoy':'ayer')+'?';
+    return r;
   }
   const off = periodo==='semana_pasada' ? -1 : 0, lunes = _jLunes(off);
   let r = '🔎 Ya reviso, jefe…\n\nJefe, '+(off?'los gastos de la semana pasada ('+_jDiaCorto(_jIso(lunes))+' – '+_jDiaCorto(_jIso(new Date(lunes.getTime()+6*864e5)))+') fueron':'los gastos de esta semana han sido')+':\n', total=0, hay=false;
@@ -11023,6 +11028,109 @@ function _jListarGastos(periodo){
   }
   if(!hay) return '🔎 Ya reviso, jefe…\n\nJefe, no hay gastos registrados en '+(off?'la semana pasada':'esta semana')+'.';
   return r+'\nEso da un total de '+_jPesos(total)+'.';
+}
+
+/* ---------- Notas rápidas de gastos (con ') ---------- */
+function _jNotasKey(F){ return 'jrv_notas_gasto_'+(F||_jIso(new Date())); }
+function _jNotasGet(F){ try{ return JSON.parse(localStorage.getItem(_jNotasKey(F))||'[]'); }catch(e){ return []; } }
+function _jNotasSet(l,F){ try{ localStorage.setItem(_jNotasKey(F), JSON.stringify(l)); }catch(e){} }
+function _jNotasPend(){ return _jNotasGet().filter(n=>!n.ing); }
+function _jNotaTxt(n){ return (n.valor?_jPesos(n.valor)+' ':'')+n.desc; }
+function _jNotasAnotar(texto){
+  const partes = String(texto).split(/['’‘´`]/).map(x=>x.trim()).filter(Boolean);
+  const l=_jNotasGet(), nuevas=[];
+  partes.forEach((p,i)=>{
+    const m=_jMonto(p); let desc=p, valor=null;
+    if(m){ valor=m.valor; desc=p.replace(m.texto,'').replace(/^[\s:,\-]*(de|en|para|por)?\s+/i,'').replace(/\s+/g,' ').trim(); }
+    if(!desc && !valor) return;
+    const n={id:Date.now()+i, desc:desc||'Gasto', valor:valor, ing:false, hora:new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})};
+    l.push(n); nuevas.push(n);
+  });
+  if(!nuevas.length) return 'No entendí el gasto, jefe. Escríbelo así: \'5 arroz de pollo';
+  _jNotasSet(l);
+  const sin = l.filter(n=>!n.ing).length;
+  return '📝 Anotado, jefe:\n'+nuevas.map(n=>'• '+_jNotaTxt(n)).join('\n')+'\n\nNo lo he ingresado al sistema. Cuando quieras dime "ingresa el gasto de '+((nuevas[0].desc||'gasto').split(' ')[0])+'" o pregúntame "gastos de hoy".'+(sin>nuevas.length?'\n(Tienes '+sin+' gastos anotados sin ingresar.)':'');
+}
+function _jNotasIngresar(ids){
+  const l=_jNotasGet(), hechos=[], sinValor=[]; let total=0;
+  ids.forEach(id=>{
+    const n=l.find(x=>x.id===id && !x.ing); if(!n) return;
+    if(!n.valor){ sinValor.push(n.desc); return; }
+    total = _jAgregarGasto(n.valor, n.desc).total; n.ing=true; hechos.push(n);
+  });
+  _jNotasSet(l);
+  let r='';
+  if(hechos.length) r += '✅ Listo jefe, ya ingresé al sistema: '+hechos.map(_jNotaTxt).join(', ')+'.\nLlevas '+_jPesos(total)+' en gastos hoy.';
+  if(sinValor.length) r += (r?'\n':'')+'⚠️ A "'+sinValor.join(', ')+'" no le anoté valor. Dímelo así: "gasto 5.000 '+sinValor[0]+'".';
+  const resto=l.filter(n=>!n.ing);
+  if(resto.length) r += '\n📝 Todavía sin ingresar: '+resto.map(_jNotaTxt).join(', ')+'.';
+  return r || 'No encontré ese gasto anotado, jefe.';
+}
+function _jBorrarGastoSys(idx){
+  const gastos=getGastosHoy(); const g=gastos.splice(idx,1)[0]; if(!g) return null;
+  saveGastosHoy(gastos);
+  const total=gastos.reduce((s,x)=>s+x.valor,0);
+  try{
+    const inp=document.getElementById('input-gasto'); if(inp) inp.value = total||'';
+    const f=getFechaActiva(); const man=JSON.parse(lsGet('sup_manual_'+f)||'{}'); man.gasto=total; lsSet('sup_manual_'+f, JSON.stringify(man));
+    recalcularCuentas();
+  }catch(e){}
+  try{ renderGastosHoy(); }catch(e){}
+  try{ renderHistorialGastos(); }catch(e){}
+  return {g,total};
+}
+function _jGastosBorrables(){
+  const out=[];
+  _jNotasPend().forEach(n=>out.push({src:'nota', id:n.id, txt:_jNotaTxt(n)+' (anotado, sin ingresar)', desc:n.desc}));
+  getGastosHoy().forEach((g,i)=>out.push({src:'sys', idx:i, txt:_jPesos(g.valor)+' '+_jGastoEtiqueta(g)+' (ya ingresado)', desc:(g.desc||'')+' '+(g.tipo||'')}));
+  return out;
+}
+function _jBorrarItemGasto(it){
+  if(it.src==='nota'){ _jNotasSet(_jNotasGet().filter(n=>n.id!==it.id)); return '🗑️ Listo jefe, borré la nota: '+it.txt.replace(' (anotado, sin ingresar)','')+'.'; }
+  const r=_jBorrarGastoSys(it.idx); if(!r) return 'No pude borrar ese gasto, jefe.';
+  return '🗑️ Listo jefe, borré el gasto '+_jPesos(r.g.valor)+' '+_jGastoEtiqueta(r.g)+'.\nAhora llevas '+_jPesos(r.total)+' en gastos hoy.';
+}
+function _jTokensGasto(t){
+  const stop=new Set(['gasto','gastos','tambien','bueno','jefe','hoy','que','una','uno','sistema','esa','ese','este','esta','los','las','del','con','para','por','todos','todas']);
+  return t.split(/[^a-z0-9ñ]+/).filter(w=>w.length>=3 && !stop.has(w) && !/^(ingres|met|pas|registr|agreg|sub|anot|guard|pon|borr|elimin|quit|sac|anul|dime|dame)/.test(w));
+}
+function _jCoincideGasto(qt, desc){
+  const nt=_jNorm(desc).split(/[^a-z0-9ñ]+/).filter(w=>w.length>=3);
+  return qt.some(w=>nt.some(x=>x===w || (w.length>=4 && x.length>=4 && (x.startsWith(w)||w.startsWith(x)))));
+}
+function _jNotasIntent(texto,t){
+  const pend=_jNotasPend();
+  const verbDel=/\b(borr\w*|elimin\w*|quit\w*|sac\w*|anul\w*)\b/.test(t);
+  const verbIng=/\b(ingres\w*|met\w*|pas\w*|registr\w*|agreg\w*|sub\w*|anot\w*|guard\w*|pon\w*|cargu?\w*)\b/.test(t);
+  const hayGasto=/\bgastos?\b/.test(t);
+  const tambien=/^\s*(y|e)\s+(tambien\s+)?(el|la|los|las)\b/.test(t) || /\btambien\b/.test(t);
+  const qt=_jTokensGasto(t);
+  // borrar un gasto
+  if(verbDel && hayGasto && !/cuota|renov|pendient/.test(t)){
+    const todos=_jGastosBorrables();
+    if(!todos.length) return 'Hoy no tienes gastos para borrar, jefe.';
+    const m = qt.length ? todos.filter(x=>_jCoincideGasto(qt,x.desc)) : [];
+    if(m.length===1) return _jBorrarItemGasto(m[0]);
+    const lista = m.length>1 ? m : todos;
+    window._jAcc={tipo:'gastoBorrar', paso:'cual', ts:Date.now(), d:{}, lista:lista.map(x=>x.src==='nota'?{src:'nota',id:x.id}:{src:'sys',idx:x.idx})};
+    return '🗑️ ¿Cuál gasto borro, jefe? Dime el número o el nombre:\n'+lista.map((x,i)=>(i+1)+') '+x.txt).join('\n');
+  }
+  // ingresar una nota al sistema
+  if(pend.length && !verbDel && (verbIng||tambien) && (hayGasto || tambien || /\b(el|la) (de|del)\b/.test(t))){
+    if(/\bcuota\b|renov|pendiente para/.test(t) && !hayGasto) return null;
+    if(/\b(todos|todas|todo)\b/.test(t) && (hayGasto||verbIng)){
+      window._jAcc={tipo:'notaConf', paso:'si', ts:Date.now(), d:{}, ids:pend.map(n=>n.id)};
+      return '🤔 ¿Ingreso estos '+pend.length+' gastos al sistema, jefe? (sí o no)\n'+pend.map(n=>'• '+_jNotaTxt(n)).join('\n');
+    }
+    const m = qt.length ? pend.filter(n=>_jCoincideGasto(qt,n.desc)) : [];
+    if(m.length===1){
+      window._jAcc={tipo:'notaConf', paso:'si', ts:Date.now(), d:{}, ids:[m[0].id]};
+      return '🤔 ¿El de '+_jNotaTxt(m[0])+', jefe? (dime sí o no)';
+    }
+    if(m.length>1) return '🤔 Hay varios parecidos, jefe: '+m.map(_jNotaTxt).join(' / ')+'. Dime cuál con más detalle.';
+    if(hayGasto && verbIng && !/\d/.test(texto)) return '❓ No encontré ese gasto entre los anotados, jefe. Tienes anotados: '+pend.map(_jNotaTxt).join(', ')+'.';
+  }
+  return null;
 }
 
 /* ---------- Renovaciones pendientes ---------- */
@@ -11275,7 +11383,132 @@ function _jRecArrancar(){
 }
 _jRecArrancar();
 
+function _jRegistrarPagoJ(c, monto){
+  const clientes=getClientes(); const idx=clientes.findIndex(x=>x.id===c.id); if(idx<0) return 'No encontré al cliente, jefe.';
+  const antes=clientes[idx].saldo||0;
+  clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
+  clientes[idx].saldo=Math.max(0,antes-monto);
+  clientes[idx].pagos=clientes[idx].pagos||[];
+  clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
+  saveClientes(clientes);
+  const act=getClientes().find(x=>x.id===c.id);
+  try{ if(act && act.cedula) archivarClienteEnHistorial(act); }catch(e){}
+  window._datosHoy=null;
+  try{ if(!window._editandoDiaAnterior) setFechaActiva(fechaHoy()); }catch(e){}
+  try{ recalcularCuentas(); }catch(e){}
+  try{ if(!refrescarUnaCard(c.id)) renderClientes(); }catch(e){}
+  const nuevo=act?act.saldo:0;
+  return '✅ Listo jefe, registré el pago de '+_jFm(monto)+' a '+c.nombre+'.\n'+(nuevo>0?'Le queda un saldo de '+_jFm(nuevo)+'.':'🎉 Ya terminó de pagar, quedó cancelado.')+'\n(Si te equivocaste, dime "borra la cuota de '+c.nombre.split(' ')[0]+'".)';
+}
+function _jPagoCliente(texto,t){
+  if(/\b(borr|elimin|quit|anul|cambi|edit|corrig)\w*/.test(t) || /gasto|renov|pendient|liquid|recordatorio|voz\b/.test(t) || /\b(cuanto|cuando|que|cual|como|quien|donde)\b/.test(t)) return null;
+  const verbo=/\b(met\w*|pon\w*|anot\w*|registr\w*|aplic\w*|cobr\w*|ingres\w*|abon\w*|sum\w*|carg\w*|descont\w*)\b/.test(t) && /\b(cuota|pago|abono|plata|dinero|\d+)\b/.test(t);
+  const pago=/\b(pago|pagaron|abono|abonaron|dejo|dio|dieron)\b/.test(t) && /\d/.test(texto);
+  if(!verbo && !pago) return null;
+  const c=_jBuscar(texto);
+  const sinNombres=texto.replace(/\d{7,}/g,'');
+  let monto=_jNum(sinNombres.replace(/\bmil\b/ig,''));
+  const dice_cuota=/\bla cuota\b|\bcuota\b/.test(t) && monto===null;
+  if(c.length===1){
+    if(dice_cuota){ monto=c[0].cuotaSugerida||0; }
+    if(monto>0) return _jRegistrarPagoJ(c[0], monto);
+    window._jAcc={tipo:'pago',paso:'monto',ts:Date.now(),d:{},cid:c[0].id,monto:null};
+    return '¿Cuánto pagó '+c[0].nombre+', jefe? (por ejemplo: 60)';
+  }
+  if(c.length>1){
+    window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:c.slice(0,8).map(x=>x.id),cuota:dice_cuota};
+    return '🤔 Tengo varios parecidos, jefe. ¿Cuál es? Dime el número:\n'+_jListaElegir(c);
+  }
+  if(!/\b(cuota|pago|abono)\b/.test(t)) return null;
+  if(monto===null && !dice_cuota) return null;
+  window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:null,cuota:dice_cuota};
+  return 'Claro jefe, ¿a cuál cliente le registro '+(monto?'los '+_jFm(monto):'la cuota')+'? Dime el nombre.';
+}
+function jarvisTablero(){
+  const old=document.getElementById('jrv-tablero'); if(old){ old.remove(); return; }
+  // [emoji, título, [[texto mostrado, texto que se escribe, enviar directo?]]]
+  const C=[
+   ['⚡','Símbolos rápidos',[
+     ['.  (punto) → renovación pendiente','.Juan Pérez',0],
+     ["'  (comilla) → guardar un gasto sin ingresarlo","'5 arroz de pollo",0]]],
+   ['👤','Datos de un cliente',[
+     ['Teléfono, dirección, saldo, pagos, cuota…','Teléfono de ',0],
+     ['Cualquier dato de cualquier cliente','Dime todo de ',0]]],
+   ['🔁','Renovaciones',[
+     ['Renovar a un cliente','Renueva a ',0],
+     ['Resumen de las pendientes','Dame el resumen de las renovaciones pendientes',1],
+     ['Quitar una pendiente','Borra renovación pendiente',1]]],
+   ['💵','Pagos y cuotas',[
+     ['Registrar la cuota de un cliente','Métele la cuota a ',0],
+     ['Registrar un pago con valor','Métele 60 a ',0],
+     ['Borrar la cuota de un cliente','Borra la cuota de ',0]]],
+   ['🧾','Liquidar y cuentas',[
+     ['Liquidar el día','Liquida',1],
+     ['Corregir neki o efectivo','Corrige neki ',0]]],
+   ['💸','Gastos',[
+     ['Ver los gastos de hoy','Gastos de hoy',1],
+     ['Ingresar un gasto anotado','Ingresa el gasto de ',0],
+     ['Borrar un gasto','Borra un gasto',1],
+     ['Anotar gasto directo al sistema','Anota gasto 3.000 jugo',0]]],
+   ['📅','Semanales y préstamos',[
+     ['Semanales de hoy','Semanales de hoy',1],
+     ['Semanales de mañana','Semanales de mañana',1],
+     ['Cuánto llevo prestado y la meta','Cuánto llevo prestado',1]]],
+   ['⏰','Recordatorios',[
+     ['Avisarte con hora (suena y habla)','Recuérdame mañana a las 9 am ir a cobrarle a ',0],
+     ['Ver mis recordatorios','Mis recordatorios',1]]],
+   ['🎙️','Voz',[
+     ['Cambiar la voz (en la web)','Cambia la voz',1]]]
+  ];
+  const NO=['Crear clientes o préstamos nuevos (eso se hace en la app, con el botón +)','Marcar un cliente como volado ni cambiar sus fotos','Enviar mensajes de WhatsApp o llamar','Avisarte con recordatorios si la app está cerrada (solo suena si está abierta)','Pasar las notas con \' ni los recordatorios a otro celular (quedan en ese celular)','Borrar clientes'];
+  const esc=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const ov=document.createElement('div'); ov.id='jrv-tablero';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(8,6,28,.96);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 40px;font-family:Nunito,sans-serif;color:#e9e7ff';
+  ov.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:18px;font-weight:900">📋 Qué puede hacer Jarvis</div><button onclick="document.getElementById(\'jrv-tablero\').remove()" style="border:none;background:#3b2f7a;color:#fff;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:900">✕ Cerrar</button></div>'
+   +'<div style="font-size:12px;color:#a9a3d8;margin-bottom:12px;font-weight:700">Toca un ejemplo y se escribe en el chat. Si falta el nombre del cliente, lo completas tú y lo envías.</div>'
+   +C.map((g,gi)=>'<div style="background:#17123f;border:1.5px solid #3b2f7a;border-radius:16px;padding:11px 12px;margin-bottom:10px"><div style="font-size:14px;font-weight:900;margin-bottom:7px">'+g[0]+' '+g[1]+'</div>'
+      +g[2].map((it,ii)=>'<div class="jt-it" data-g="'+gi+'" data-i="'+ii+'" style="background:#241b5c;border-radius:12px;padding:9px 11px;margin-top:6px;font-size:13px;font-weight:700;cursor:pointer;line-height:1.3">'+esc(it[0])+'<div style="font-size:11px;color:#8fd3ff;margin-top:2px;font-weight:800">“'+esc(it[1].trim())+'”</div></div>').join('')+'</div>').join('')
+   +'<div style="background:#3a1620;border:1.5px solid #7f2c3f;border-radius:16px;padding:11px 12px"><div style="font-size:14px;font-weight:900;margin-bottom:6px">🚫 Lo que NO puede hacer</div>'+NO.map(x=>'<div style="font-size:12.5px;font-weight:700;margin-top:5px;line-height:1.35">• '+esc(x)+'</div>').join('')+'</div>';
+  document.body.appendChild(ov);
+  ov.querySelectorAll('.jt-it').forEach(el=>el.addEventListener('click',()=>{
+    const it=C[+el.dataset.g][2][+el.dataset.i]; ov.remove();
+    const inp=document.getElementById('orb-input'); if(!inp) return;
+    inp.value=it[1];
+    if(it[2]) orbIAEnviarMensaje(); else { try{ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); }catch(e){} }
+  }));
+}
+function _jAyuda(){
+  return '❓ Esto puedo hacer, jefe:\n\n'
+  +'⚡ SÍMBOLOS\n'
+  +'• .Juan Pérez .Ana Gómez → los deja como renovación pendiente (punto adelante)\n'
+  +"• '5 arroz de pollo → anota un gasto rápido SIN ingresarlo al sistema (comilla adelante)\n\n"
+  +'💸 GASTOS\n'
+  +'• "gastos de hoy" / "ayer" / "de la semana" / "semana pasada"\n'
+  +'• "ingresa el gasto de arroz" (te pregunta y respondes sí) · "ingresa todos"\n'
+  +'• "borra el gasto de arroz" · "borra un gasto"\n'
+  +'• "anota gasto 3.000 jugo" → lo ingresa directo\n\n'
+  +'🔁 RENOVACIONES\n'
+  +'• "resumen de renovaciones pendientes" · "a quién le falta renovar"\n'
+  +'• "borra renovación pendiente" (te pregunta cuál) · "…todas"\n\n'
+  +'💵 PAGOS\n'
+  +'• "métele la cuota a José Arias" · "métele 60 a José Arias" · "José Arias pagó 60"\n'
+  +'• "borra la cuota de José" · "liquida a …" · "renueva a …"\n\n'
+  +'📅 CONSULTAS\n'
+  +'• "cuánto llevo prestado" · "semanales de hoy / mañana / lunes / de la semana"\n'
+  +'• "qué día es hoy" · cualquier dato de un cliente (nombre + teléfono, dirección, saldo…)\n\n'
+  +'⏰ RECORDATORIOS\n'
+  +'• "recuérdame mañana a las 9 am ir a cobrarle a Miguel" · "mis recordatorios"\n\n'
+  +'🧾 CUENTAS\n'
+  +'• "corrige neki 60" · "corrige efectivo 100" · "borra el neki"\n\n'
+  +'🎙️ VOZ\n'
+  +'• "cambia la voz" · "voz de hombre / mujer" (en la web) · botón 🔊 silencia\n\n'
+  +'Cuando quieras ver esto otra vez, escribe "ayuda".';
+}
 function _jConsultas(texto, t){
+  if(/^\s*(ayuda|ayudame|comandos|combinaciones|simbolos|que puedes hacer|que sabes hacer|que haces|como funciona|instrucciones)\b|\bque (puedes|sabes) hacer\b|\blista de comandos\b/.test(t)){ setTimeout(()=>{ try{ jarvisTablero(); }catch(e){} },50); return '📋 Te abro el tablero con todo lo que puedo hacer, jefe.'; }
+  if(/\b(cambi\w*|otra|otro|siguiente|distinta|elige\w*|prueba\w*) (la |de |otra |una )?(voz)\b|\bvoz (de )?(hombre|mujer|masculina|femenina|distinta|otra)|\botra voz\b/.test(t) && !/gasto|cliente/.test(t))
+    return jarvisCambiarVoz(/hombre|masculin/.test(t)?'hombre':(/mujer|femenin/.test(t)?'mujer':''));
+  { const _n = _jNotasIntent(texto, t); if(_n) return _n; }
   // recordatorios con hora
   if(/\b(recuerd\w*|avis\w*)\b/.test(t) && /\ba las? \d|\ben (\d{1,3}|una|media|dos|tres) (minutos?|horas?)\b|\bmedio ?dia\b/.test(t) && !/gasto|pendiente para renov|renovacion/.test(t)){
     return _jRecCrear(texto) || 'No pude entender la hora, jefe. Dímelo así: "recuérdame mañana a las 9 de la mañana ir a cobrarle a Miguel".';
@@ -11300,7 +11533,8 @@ function _jConsultas(texto, t){
   if(/(cuanto|cuantos)\b.*\b(llevo|llevamos|he|va)\b.*prest|prest.*(llevo|hasta el momento|esta semana|semana)|\b(llevo|he) prestado|meta de prestamos|como voy (con|en) (la meta|los prestamos|prestamos)|cuanto (he )?prestado/.test(t) && !/gasto|pleno/.test(t))
     return _jPrestadoSemana(/semana (pasada|anterior)|pasada/.test(t) ? -1 : 0);
   // gastos: anotar
-  if(/\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*)\b.*\bgasto\b|\bnuevo gasto\b|\bgaste\b/.test(t)){
+  const _pideLista = /\b(los|mis|todos los|cuales|que) gastos\b|gastos (de|del|que|hoy|ayer|semana)/.test(t) && !/\d/.test(texto);
+  if(!_pideLista && /\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*)\b.*\bgasto\b|\bnuevo gasto\b|\bgaste\b/.test(t)){
     const m = _jMonto(texto.replace(/^.*?\bgasto\b[:\s]*/i,'') ) || _jMonto(texto);
     if(!m){ window._jAcc={tipo:'gasto',paso:'monto',ts:Date.now(),d:{}}; return 'Claro jefe, ¿de cuánto fue el gasto y en qué? (por ejemplo: 3.000 jugo de patilla)'; }
     let resto = texto.replace(/^.*?\bgasto\b[:\s]*/i,'');
@@ -11315,26 +11549,35 @@ function _jConsultas(texto, t){
     if(/ayer/.test(t)) return _jListarGastos('ayer');
     return _jListarGastos('hoy');
   }
-  // renovaciones pendientes: agregar
-  if(/pendiente/.test(t) && /renov/.test(t) && /\b(recuerd\w*|mete\w*|agreg\w*|anota\w*|apunta\w*|pon\w*|incluy\w*|guarda\w*|aguard\w*|anad\w*|marca\w*|deja\w*)\b/.test(t)){
-    const idx = t.lastIndexOf('pendiente'); const orig = texto.slice(Math.min(texto.length, texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').lastIndexOf('pendiente')+9));
+  // renovaciones pendientes (agregar / quitar / resumen)
+  const _hayRen = /renov\w*/.test(t) && /pendient\w*/.test(t);
+  const _vQuitar = /\b(remuev\w*|remover\w*|quit\w*|sac\w*|elimin\w*|borr\w*|limpi\w*|vaci\w*|cancel\w*|anul\w*)\b/.test(t) && !/cuota|gasto/.test(t);
+  if(_hayRen && _vQuitar){
+    const l=_jPendGet();
+    if(!l.length) return 'No hay ninguna renovación pendiente, jefe. La lista está vacía.';
+    if(/\b(todas|todos|todo|toda|completa|vacia|vaciar|limpia)\b/.test(t)){ _jPendSet([]); return '✅ Listo jefe, borré todas las renovaciones pendientes.'; }
+    const m=_jBuscar(texto).filter(c=>l.includes(c.id));
+    if(m.length===1){ _jPendSet(l.filter(x=>x!==m[0].id)); return '✅ Listo jefe, ya lo saco de las renovaciones pendientes ('+m[0].nombre+').\n'+_jPendFalta(_jPendGet()); }
+    window._jAcc = {tipo:'pendQuitar', paso:'nombre', ts:Date.now(), d:{}};
+    return '🗑️ ¿A cuál saco de las renovaciones pendientes, jefe? Dime el nombre:\n'+_jPendNombres(l).map(n=>'• '+n).join('\n')+'\n(o dime "todas" para borrarlas todas)';
+  }
+  if(_hayRen && /\b(recuerd\w*|mete\w*|agreg\w*|anota\w*|apunta\w*|pon\w*|incluy\w*|guarda\w*|aguard\w*|anad\w*|marca\w*|deja\w*)\b/.test(t) && !/\b(resum\w*|dame|dime|cuales|cuantos|quienes?)\b/.test(t)){
+    const orig = texto.slice(Math.min(texto.length, texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').lastIndexOf('pendiente')+9));
     const r = _jPendAgregarTexto(orig.replace(/^(s)?\s*[:\-]?\s*/,''));
     if(r) return r;
     window._jAcc={tipo:'pendAdd',paso:'nombres',ts:Date.now(),d:{}}; return 'Claro jefe, ¿a quién(es) dejo pendiente para renovar? Dime los nombres.';
   }
-  // renovaciones pendientes: resumen / quién
-  if(/renovaciones? pendientes?|pendientes? (de|por|para) renov|quien(es)? (esta|estan|queda|quedan|falta|faltan) (pendiente|por renovar)|a quien (le )?falta renovar|resumen de (las )?renovaciones/.test(t))
-    return _jPendResumen(/resumen|saldo|detalle|dame|muestr/.test(t));
-  // renovaciones pendientes: quitar
-  if(/\b(remuev\w*|remover\w*|quit\w*|sac\w*|elimin\w*|borr\w*)\b/.test(t) && !/cuota/.test(t)){
+  if(_hayRen || /quien(es)? (esta|estan|queda|quedan|falta|faltan) (pendiente|por renovar)|a quien (le )?falta renovar|resum\w* de (las )?renovaciones/.test(t))
+    return _jPendResumen(/resum\w*|saldo|detalle|dame|muestr|dime/.test(t));
+  // quitar de pendientes sin decir "pendiente"
+  if(/\b(remuev\w*|remover\w*|quit\w*|sac\w*|elimin\w*|borr\w*)\b/.test(t) && !/cuota|gasto/.test(t)){
     const l=_jPendGet();
     if(l.length){
       const m=_jBuscar(texto).filter(c=>l.includes(c.id));
       if(m.length===1){
-        _jPendSet(l.filter(x=>x!==m[0].id)); const q=_jPendNombres(_jPendGet());
+        _jPendSet(l.filter(x=>x!==m[0].id));
         return '✅ Listo jefe, ya lo saco de las renovaciones pendientes ('+m[0].nombre+').\n'+_jPendFalta(_jPendGet());
       }
-      if(/pendiente/.test(t)) return 'No encontré a ese cliente en la lista de pendientes, jefe. Están pendientes: '+_jPendNombres(l).join(', ')+'.';
     }
   }
   // semanales de la semana
@@ -11387,8 +11630,46 @@ function _jAcciones(texto){
     if(r) return r.replace('✅ Listo jefe, quedó pendiente para renovar:','✅ Listo jefe, ya lo pongo como renovación pendiente:');
     return 'No encontré a ese cliente, jefe. Escríbelo así: .Nombre Apellido .Otro Cliente';
   }
+  // Atajo: ' al inicio = anotar gasto rápido ('5 arroz de pollo) sin ingresarlo al sistema
+  if(/^\s*['’‘´`]/.test(texto) && /[a-zA-Z0-9áéíóúñ]/.test(texto)){ window._jAcc = null; return _jNotasAnotar(texto); }
   if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
   if(window._jAcc){
+    if(window._jAcc.tipo==='pago'){
+      const A0=window._jAcc; let cid=A0.cid, monto=A0.monto;
+      if(!cid){
+        const num=t.match(/^\s*(\d)\b/);
+        if(A0.lista && num && A0.lista[+num[1]-1]) cid=A0.lista[+num[1]-1];
+        else { const m=_jBuscar(texto); if(m.length===1) cid=m[0].id; }
+      }
+      if(cid){
+        const cc=_jCliente(cid);
+        if(monto==null || monto===0){ const n=_jNum(texto.replace(/\bmil\b/ig,'')); if(n!==null && !A0.lista) monto=n; else if(A0.cuota) monto=cc.cuotaSugerida||0; }
+        if(monto>0){ window._jAcc=null; return _jRegistrarPagoJ(cc, monto); }
+        if(A0.paso==='monto' && _jNum(texto)===null){ window._jAcc=null; return _jAcciones(texto); }
+        A0.cid=cid; A0.paso='monto'; return '¿Cuánto pagó '+cc.nombre+', jefe?';
+      }
+      window._jAcc=null; return _jAcciones(texto);
+    }
+    if(window._jAcc.tipo==='notaConf'){
+      const A0=window._jAcc;
+      if(/^\s*(si|sii+|dale|ok|claro|correcto|exacto|listo|ese|esa|ingresalo|ingresalos|afirmativo|yes|asi es)\b/.test(t)){
+        window._jAcc=null; let r=_jNotasIngresar(A0.ids);
+        const rest=texto.replace(/^\s*(si|sii+|dale|ok|claro|correcto|exacto|listo|ese|esa|ingresalo|ingresalos|afirmativo|yes|asi es)\b[\s.,;:!]*/i,'').trim();
+        if(/[a-zA-Z]{3}/.test(rest)){ const ex=_jAcciones(rest); if(ex) r+='\n\n'+ex; }
+        return r;
+      }
+      if(_jNo(texto)){ window._jAcc=null; return 'Listo jefe, no lo ingreso. Sigue anotado. 👍'; }
+      window._jAcc=null; return _jAcciones(texto);
+    }
+    if(window._jAcc.tipo==='gastoBorrar'){
+      const A0=window._jAcc; const todos=_jGastosBorrables();
+      const lista=A0.lista.map(k=>todos.find(x=>x.src===k.src && (k.src==='nota'?x.id===k.id:x.idx===k.idx))).filter(Boolean);
+      let el=null; const num=t.match(/^\s*(\d+)\b/);
+      if(num && lista[+num[1]-1]) el=lista[+num[1]-1];
+      else { const qt=_jTokensGasto(t); const m=qt.length?lista.filter(x=>_jCoincideGasto(qt,x.desc)):[]; if(m.length===1) el=m[0]; }
+      if(el){ window._jAcc=null; return _jBorrarItemGasto(el); }
+      window._jAcc=null; return _jAcciones(texto);
+    }
     if(_jCancelaTxt(texto)){ window._jAcc=null; return 'Listo jefe, lo dejé así. No cambié nada. 👍'; }
     if(window._jAcc.tipo==='pendConfirma'){
       const A0=window._jAcc; let elegido=null;
@@ -11408,7 +11689,8 @@ function _jAcciones(texto){
       window._jAcc=null; return _jAcciones(texto);
     }
     if(window._jAcc.tipo==='pendQuitar'){
-      const l=_jPendGet(); let m=[]; try{ m=_jBuscar(texto).filter(c=>l.includes(c.id)); }catch(e){}
+      const l=_jPendGet();
+      if(/^\s*(todas?|todos|todo|toda la lista|las dos|los dos)\b/.test(t) && l.length){ _jPendSet([]); window._jAcc=null; return '✅ Listo jefe, borré todas las renovaciones pendientes.'; } let m=[]; try{ m=_jBuscar(texto).filter(c=>l.includes(c.id)); }catch(e){}
       if(/\b(direccion|telefono|celular|numero|cedula|cuanto|cuando|debe|deuda|pagos?|datos|informacion|info|dime|dame|donde|vive|nota|tiene|cuota|ultimo|historial)\b/.test(t)) m=[]; // es una pregunta sobre el cliente, no una selección
       if(m.length===1){
         _jPendSet(l.filter(x=>x!==m[0].id)); window._jAcc=null;
@@ -11426,6 +11708,7 @@ function _jAcciones(texto){
   { const _corr2 = _jCorregirCuentas(texto, t); if(_corr2) return _corr2; }
   const _cons = _jConsultas(texto, t);
   if(_cons) return _cons;
+  { const _pg = _jPagoCliente(texto, t); if(_pg) return _pg; }
   let tipo = null;
   if(/\bliquid\w*/.test(t)) tipo='liquidar';
   else if(/(borr|elimin|quit|anul)\w*.*\bcuota|\bcuota.*(borr|elimin|quit|anul)/.test(t)) tipo='borrar';
@@ -12581,6 +12864,7 @@ window.orbIANuevoChat = orbIANuevoChat;
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
+      <button class="orb-btn ghost orb-btn-mini" id="orb-voz-cambiar" onclick="_orbeMostrarMsg('ai', jarvisCambiarVoz(), false)" title="Cambiar la voz de Jarvis (web)">🎙️</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="jarvisNuevoChat()" title="Nuevo chat">↺</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="jarvisModoBarra()" title="Volver a la barra">▾</button>
@@ -12607,6 +12891,7 @@ window.orbIANuevoChat = orbIANuevoChat;
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los plenos de la semana pasada por día')">📈 Plenos semana pasada</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de esta semana')">📊 Resumen semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto llevo prestado?')">🎯 Prestado y meta</button>
+      <button class="orb-chip" onclick="jarvisTablero()">📋 ¿Qué puede hacer?</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame el resumen de las renovaciones pendientes')">🔁 Renovaciones pendientes</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de hoy')">🧾 Gastos de hoy</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Qué clientes semanales tocan hoy?')">📅 Semanales de hoy</button>
@@ -13035,6 +13320,9 @@ function _jDineroHablado(txt){
     if(!pesosCompl) n = n*1000;
     n = Math.round(n);
     return (neg?'menos ':'')+_jNumPalabras(n)+((n>=1000000 && n%1000000===0)?' de pesos':' pesos');
+  }).replace(/(^|[^\d.,$\u200B])(\d{1,3}\.\d{3})(?!\d|\.\d|,\d)/g,(m,pre,num)=>{
+    const n = parseInt(num.replace('.',''),10)*1000;   // en la app 9.000 = 9 millones
+    return pre+_jNumPalabras(n)+((n>=1000000 && n%1000000===0)?' de pesos':' pesos');
   }).replace(/\u200B/g,'');
 }
 function _jarvisHablar(texto){
@@ -13071,7 +13359,7 @@ function _jarvisHablar(texto){
       }
       if(resto) fragmentos.push(resto);
       const voces = window.speechSynthesis.getVoices() || [];
-      const voz = voces.find(v=>v.lang==='es-CO') ||
+      const voz = _jrvVozGuardada(voces) || voces.find(v=>v.lang==='es-CO') ||
                   voces.find(v=>v.lang==='es-US') ||
                   voces.find(v=>v.lang && v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
                   voces.find(v=>v.lang && v.lang.startsWith('es')) || null;
@@ -13124,6 +13412,26 @@ function _jarvisHablar(texto){
   }
 }
 
+function _jrvVozGuardada(voces){
+  try{ const n=localStorage.getItem('jrv_voz_nombre'); if(n) return (voces||[]).find(v=>v.name===n)||null; }catch(e){}
+  return null;
+}
+function jarvisCambiarVoz(pref){
+  if(!window.speechSynthesis) return '🎙️ Jefe, en la app del celular uso una sola voz. En la web (Chrome) sí puedo cambiarla: dime "cambia la voz" allá.';
+  const todas=(speechSynthesis.getVoices()||[]).filter(v=>v.lang && /^es/i.test(v.lang));
+  if(!todas.length) return '🎙️ Jefe, este navegador no tiene voces en español instaladas.';
+  const H=/jorge|diego|carlos|juan|pablo|male|hombre|enrique|miguel|raul|alvaro|pedro|andres|luis|antonio/i, M=/female|mujer|monica|paulina|helena|laura|sabina|lucia|elena|salome|paloma|esperanza|google espa|maria|sofia|camila/i;
+  let lista=todas;
+  if(pref==='hombre'){ const f=todas.filter(v=>H.test(v.name)&&!/female/i.test(v.name)); if(f.length) lista=f; }
+  if(pref==='mujer'){ const f=todas.filter(v=>M.test(v.name)); if(f.length) lista=f; }
+  let actual=''; try{ actual=localStorage.getItem('jrv_voz_nombre')||''; }catch(e){}
+  const i=lista.findIndex(v=>v.name===actual);
+  const v=lista[(i+1)%lista.length];
+  try{ localStorage.setItem('jrv_voz_nombre', v.name); localStorage.removeItem('jrv_voz_off'); }catch(e){}
+  _jrvPintarBoton();
+  setTimeout(()=>_jarvisHablar('Hola jefe, así sueno ahora. ¿Le gusta esta voz?'), 200);
+  return '🎙️ Probé la voz: '+v.name+' ('+v.lang+') — '+(todas.indexOf(v)+1)+' de '+todas.length+' voces en español.\nSi no te gusta, dime "otra voz" y la cambio (o "voz de hombre" / "voz de mujer").';
+}
 function _jrvPintarBoton(){
   try{
     const b = document.getElementById('orb-voz-btn'); if(!b) return;
@@ -14424,8 +14732,11 @@ function renderVoladas(busq){
     var pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
     var f=(c.fechaVolado||'').split('-').reverse().join('/');
     return '<div style="background:white;border:1.5px solid #fed7aa;border-radius:16px;padding:12px;margin-bottom:10px">'
-     +'<div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:15px;font-weight:900;color:#1a1a2e">'+(c.nombre||'')+'</div><div style="font-size:11px;font-weight:900;color:#c2410c;white-space:nowrap">🏃 '+f+'</div></div>'
-     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-top:4px;line-height:1.5">'
+     +'<div style="display:flex;align-items:center;gap:10px"><div style="display:flex;gap:6px;flex-shrink:0">'
+     +(c.tieneFotoCliente?'<div class="foto-av" style="width:54px;height:54px;font-size:22px" data-fid="'+c.id+'" data-ftipo="cliente" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">👤</div>':'')
+     +(c.tieneFotoCasa?'<div class="foto-av" style="width:54px;height:54px;font-size:22px;border-radius:14px" data-fid="'+c.id+'" data-ftipo="casa" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">🏠</div>':'')
+     +'</div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:15px;font-weight:900;color:#1a1a2e">'+(c.nombre||'')+'</div><div style="font-size:11px;font-weight:900;color:#c2410c;white-space:nowrap">🏃 '+f+'</div></div></div></div>'
+     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-top:6px;line-height:1.5">'
      +(c.cedula?'🪪 '+c.cedula+'<br>':'')+(c.tel?'📞 '+c.tel+'<br>':'')+(c.dir?'📍 '+c.dir+'<br>':'')
      +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))+'</div>'
      +'<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div>'
@@ -14433,6 +14744,7 @@ function renderVoladas(busq){
      +'<div style="display:flex;gap:8px;margin-top:8px"><input type="number" id="vcuota-'+c.id+'" inputmode="numeric" placeholder="Cuota que pagó" autocomplete="off" style="flex:1;min-width:0;border:2px solid #fed7aa;border-radius:12px;padding:10px 12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;outline:none"><button onclick="registrarCuotaVolada(\''+c.id+'\')" style="padding:10px 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">💵 Cuota</button></div>'
      +'<button onclick="restaurarVolado(\''+c.id+'\')" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:12px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">↩️ Devolver a clientes activos</button></div>';
   }).join('');
+  try{ hidratarFotosTarjetas(); }catch(e){}
 }
 </script>
 
