@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-19 v109">
+<meta name="app-version" content="2026-11-19 v110">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6016,7 +6016,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-19 v109';
+const APP_VERSION = '2026-11-19 v110';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10714,6 +10714,7 @@ function _orbeMostrarMsg(tipo, texto, guardar){
   if(!cont) return null;
   const div = document.createElement('div');
   div.className = 'orb-msg ' + (tipo==='user'?'user':'ai');
+  texto = String(texto==null?'':texto).replace(/\*\*/g,'').replace(/\u200B/g,'');
   div.textContent = texto;
   cont.appendChild(div);
   _orbeScrollFinal();
@@ -10808,7 +10809,7 @@ function _jLunes(offsetSemanas){
   return h;
 }
 function _jDiaCorto(iso){ const [y,m,d]=iso.split('-'); return d+'/'+m; }
-function _jPesos(valApp){ return '$'+Math.round((valApp||0)*1000).toLocaleString('es-CO'); }
+function _jPesos(valApp){ return '$\u200B'+Math.round((valApp||0)*1000).toLocaleString('es-CO'); }
 
 /* ---------- Préstamos de la semana + meta + bono ---------- */
 function _jPrestadoSemana(offset){
@@ -10832,8 +10833,8 @@ function _jPrestadoSemana(offset){
     if(items.length){
       lineas.push('📅 '+_J_DIAS_L[i]+' '+_jDiaCorto(F));
       items.forEach(it=>{
-        if(it.tipo==='ren'){ totRen+=it.v; lineas.push('   🔄 Le renovaste a '+it.nom+', le prestas '+_jFm(it.v)+' ('+_jMillones(it.v)+')'); }
-        else { totNue+=it.v; lineas.push('   🆕 Ingresaste al cliente nuevo '+it.nom+' con '+_jFm(it.v)+' ('+_jMillones(it.v)+')'); }
+        if(it.tipo==='ren'){ totRen+=it.v; lineas.push('   🔄 Le renovaste a '+it.nom+', le prestas '+_jFm(it.v)+''); }
+        else { totNue+=it.v; lineas.push('   🆕 Ingresaste al cliente nuevo '+it.nom+' con '+_jFm(it.v)+''); }
       });
     }
   }
@@ -10841,15 +10842,15 @@ function _jPrestadoSemana(offset){
   const esActual = !offset;
   let r = '🔎 Ya reviso, jefe…\n\n';
   if(!total) return r+(esActual?'Todavía no has prestado nada esta semana ('+_jDiaCorto(_jIso(lunes))+' – '+_jDiaCorto(_jIso(new Date(lunes.getTime()+6*864e5)))+').':'No encontré préstamos en esa semana.');
-  r += (esActual?'Jefe, hasta el momento llevas ':'Jefe, esa semana prestaste ')+_jFm(total)+' ('+_jMillones(total)+').\n\n'+lineas.join('\n')+'\n\n';
+  r += (esActual?'Jefe, hasta el momento llevas ':'Jefe, esa semana prestaste ')+_jFm(total)+'.\n\n'+lineas.join('\n')+'\n\n';
   r += '🔄 Renovaciones: '+_jFm(totRen)+'\n🆕 Nuevos: '+_jFm(totNue)+'\n';
   if(esActual){
-    r += total>=M.meta ? '\n🎯 ¡Meta de '+_jFm(M.meta)+' ('+_jMillones(M.meta)+') cumplida!\n' : '\n🎯 Meta de la semana: '+_jFm(M.meta)+' ('+_jMillones(M.meta)+'). Te faltan '+_jFm(M.meta-total)+' ('+_jMillones(M.meta-total)+') para la meta.\n';
+    r += total>=M.meta ? '\n🎯 ¡Meta de '+_jFm(M.meta)+' cumplida!\n' : '\n🎯 Meta de la semana: '+_jFm(M.meta)+'. Te faltan '+_jFm(M.meta-total)+' para la meta.\n';
     if(total>=M.bono){
       const pasos = Math.floor((total-M.bono)/M.paso), extra = pasos*M.pasoPago;
       r += '🏆 ¡Bono cumplido! Te llevas '+_jPesos(M.bonoPago)+' adicionales al sueldo'+(pasos>0?' y por lo que pasaste de más, '+_jPesos(extra)+' más.':'. Y si metes '+_jMillones(M.paso)+' más, te llevas '+_jPesos(M.pasoPago)+' más.');
     } else {
-      r += '🏆 Ten en cuenta: el bono es a los '+_jFm(M.bono)+' ('+_jMillones(M.bono)+'); te llevas '+_jPesos(M.bonoPago)+' adicionales al sueldo, y por cada '+_jMillones(M.paso)+' que metas de más, '+_jPesos(M.pasoPago)+' más. Para el bono te faltan '+_jFm(M.bono-total)+'.';
+      r += '🏆 Ten en cuenta: el bono es a los '+_jFm(M.bono)+'; te llevas '+_jPesos(M.bonoPago)+' adicionales al sueldo, y por cada '+_jMillones(M.paso)+' que metas de más, '+_jPesos(M.pasoPago)+' más. Para el bono te faltan '+_jFm(M.bono-total)+'.';
     }
   }
   return r;
@@ -10973,7 +10974,46 @@ function _jSemanalesSemana(offset){
   return r+'\n💰 Cuota esperada: '+_jFm(totEsp)+' · Cobrado: '+_jFm(totPag);
 }
 
+function _jFichaCompleta(c){
+  const f=n=>_jFm(n||0), hoy=_jIso(new Date());
+  const pagos=(c.pagos||[]).slice().sort((a,b)=>b.fecha>a.fecha?1:b.fecha<a.fecha?-1:0);
+  const totPag=pagos.reduce((s,p)=>s+(p.monto||0),0);
+  const ult=pagos[0];
+  const dias = ult ? Math.round((new Date(hoy)-new Date(ult.fecha))/864e5) : null;
+  const L=[];
+  L.push('Nombre: '+(c.nombre||'')); if(c.cedula) L.push('Cédula: '+c.cedula);
+  L.push('Teléfono: '+(c.tel||c.telefono||c.celular||'no tiene')); L.push('Dirección: '+(c.dir||c.direccion||'no tiene'));
+  L.push('Tipo: '+(c.tipo||'')+(c.diaSemana?' (cobra los '+c.diaSemana+')':'')); L.push('Cuota: '+f(c.cuotaSugerida));
+  L.push('Préstamo actual: '+f(c.prestamo)+' | Capital entregado: '+f(c.capital)+' | Saldo que debe: '+f(c.saldo));
+  if(c.volado) L.push('ESTÁ VOLADO. Deuda perdida: '+f(c.saldoPerdido)+(c.fechaVolado?' desde '+c.fechaVolado:''));
+  if(c.fechaCreado) L.push('Ingresó: '+String(c.fechaCreado).substring(0,10));
+  if(c.papeleriaCreacion) L.push('Papelería al crear: '+f(c.papeleriaCreacion));
+  L.push('Renovaciones: '+(c.renovaciones||0)+(c.fechaRenovacion?' (última '+String(c.fechaRenovacion).substring(0,10)+')':''));
+  (c.historialRenovaciones||[]).slice(-6).forEach(r=>L.push('  · Renovó el '+String(r.fecha||'').substring(0,10)+': nuevo capital '+f(r.nuevoCapital)+', saldo que quedaba '+f(r.saldoQuedaba)));
+  L.push('Pagos hechos: '+pagos.length+' por un total de '+f(totPag));
+  if(ult) L.push('Último pago: '+ult.fecha+' de '+f(ult.monto)+' (hace '+dias+' días)'); else L.push('Nunca ha pagado.');
+  L.push('Pagos recientes: '+pagos.slice(0,12).map(p=>p.fecha+' '+f(p.monto)).join(' | '));
+  if(c.nota) L.push('Nota: '+c.nota);
+  return L.join('\n');
+}
+function _jSemanalesDe(fechaObj, etiqueta){
+  const dnum = {domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+  const wd = fechaObj.getDay();
+  const lista = getClientes().filter(c=>c && c.diaSemana && !c.volado && (c.saldo||0)>0 && dnum[_jNorm(c.diaSemana)]===wd);
+  const F = _jIso(fechaObj);
+  if(!lista.length) return '🔎 Ya reviso, jefe…\n\nNo tienes clientes semanales para '+etiqueta+' ('+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+').';
+  let tot=0;
+  const filas = lista.map(c=>{ tot+=(c.cuotaSugerida||0); return '• '+c.nombre+' — cuota '+_jFm(c.cuotaSugerida||0)+' (saldo '+_jFm(c.saldo||0)+')'; });
+  return '🔎 Ya reviso, jefe…\n\n📅 Semanales para '+etiqueta+', '+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+' ('+lista.length+' clientes):\n'+filas.join('\n')+'\n\n💰 Cuota esperada: '+_jFm(tot)+'.';
+}
 function _jConsultas(texto, t){
+  if(/semanales?|semanal\b/.test(t) && !/semana (pasada|anterior)|esta semana|de la semana/.test(t)){
+    const hoy=new Date(); hoy.setHours(12,0,0,0);
+    if(/pasado manana/.test(t)){ const d=new Date(hoy); d.setDate(d.getDate()+2); return _jSemanalesDe(d,'pasado mañana'); }
+    if(/\bmanana\b/.test(t)){ const d=new Date(hoy); d.setDate(d.getDate()+1); return _jSemanalesDe(d,'mañana'); }
+    const m = t.match(/\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/);
+    if(m){ const idx={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6}[m[1]]; const d=new Date(hoy); d.setDate(d.getDate()+((idx-d.getDay()+7)%7)); return _jSemanalesDe(d, 'el '+m[1]); }
+  }
   if(/\bque (dia|fecha) (es|son|estamos|tenemos)|\bfecha de hoy|\ba cuantos estamos|\bque dia es hoy/.test(t)){
     return '📅 Hoy es '+fechaBonita(_jIso(new Date()))+'.';
   }
@@ -11368,12 +11408,23 @@ async function orbIAEnviarMensaje(){
     else {
       // Si nombra a un cliente de la base, responder SIEMPRE con los datos reales (la IA externa solo ve un resumen y a veces dice "no encuentro")
       let _cl = []; try{ _cl = _jBuscar(texto); }catch(e){}
-      if(_cl.length===1){
+      let _key=''; try{ _key = localStorage.getItem('orb_claude_key')||''; }catch(e){}
+      const _localCliente = ()=>{
         const _q = (texto||'').replace(/dirre?c+i[oó]n|direcion|direcci[oó]n/ig,'dirección').replace(/tel[eé]f?ono|telefno|celuar|celular/ig,'teléfono');
-        respuesta = _orbeRespuestaLocal((_q+' '+_cl[0].nombre).toLowerCase(), _orbeRecolectarStats());
-        if(/^💡|^🤔/.test(respuesta)) respuesta = _orbeRespuestaLocal(_cl[0].nombre.toLowerCase(), _orbeRecolectarStats());
+        let r = _orbeRespuestaLocal((_q+' '+_cl[0].nombre).toLowerCase(), _orbeRecolectarStats());
+        if(/^💡|^🤔/.test(r)) r = _orbeRespuestaLocal(_cl[0].nombre.toLowerCase(), _orbeRecolectarStats());
+        return r;
+      };
+      if(_cl.length>=1 && _cl.length<=3){
+        if(_key){
+          // la IA recibe la ficha COMPLETA del cliente: puede responder cualquier dato
+          window._jExtraCtx = _cl.map(_jFichaCompleta).join('\n\n');
+          try{ respuesta = await _orbeChatResponder(); }
+          catch(e2){ respuesta = _cl.length===1 ? _localCliente() : '🤔 Jefe, hay varios con ese nombre:\n'+_cl.map(c=>'• '+c.nombre).join('\n')+'\nDime el nombre completo.'; }
+          finally{ window._jExtraCtx=''; }
+        } else if(_cl.length===1) respuesta = _localCliente();
+        else respuesta = '🤔 Jefe, hay varios con ese nombre:\n'+_cl.map(c=>'• '+c.nombre).join('\n')+'\nDime el nombre completo.';
       }
-      else if(_cl.length>1 && _cl.length<=3) respuesta = '🤔 Jefe, hay varios con ese nombre:\n'+_cl.map(c=>'• '+c.nombre).join('\n')+'\nDime el nombre completo.';
       else respuesta = await _orbeChatResponder();
     }
   } catch(e) {
@@ -11401,11 +11452,12 @@ async function orbIAEnviarMensaje(){
   const div = _orbeMostrarMsg('ai', '', true);
   // Reemplazar último guardado por la versión final cuando termine
   const arr = _orbeCargarChat();
-  arr[arr.length-1] = { role:'assistant', content: respuesta };
+  const _vista = String(respuesta).replace(/\*\*/g,'').replace(/\u200B/g,'');
+  arr[arr.length-1] = { role:'assistant', content: _vista };
   _orbeGuardarChat(arr);
 
   if(typeof _jarvisHablar==='function') _jarvisHablar(respuesta);
-  _orbeTypewriter(div, respuesta, ()=>{
+  _orbeTypewriter(div, _vista, ()=>{
     _orbChatLoading = false;
   });
   _orbeScrollFinal();
@@ -11414,7 +11466,7 @@ async function orbIAEnviarMensaje(){
 async function _orbeChatResponder(){
   const msgs = _orbeCargarChat(); // ya incluye el último user
   const stats = _orbeRecolectarStats();
-  const ctx = _orbeContextoTexto(stats);
+  const ctx = (window._jExtraCtx ? ('=== DATOS COMPLETOS DEL CLIENTE (responde SOLO con estos datos; los montos están en MILES de pesos: $3.500 = 3,5 millones; di las cifras tal como aparecen) ===\n'+window._jExtraCtx+'\n=== FIN CLIENTE ===\n\n') : '') + _orbeContextoTexto(stats);
 
   let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
 
@@ -12617,8 +12669,38 @@ document.addEventListener('click', function _jrvUnlock(){
   document.removeEventListener('click', _jrvUnlock);
 }, { once:true, capture:true });
 
+function _jNumPalabras(n){
+  n = Math.floor(Math.abs(n)); if(n===0) return 'cero';
+  const U=['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte','veintiuno','veintidós','veintitrés','veinticuatro','veinticinco','veintiséis','veintisiete','veintiocho','veintinueve'];
+  const D=['','','','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  const C=['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+  function menor1000(x){
+    if(x===100) return 'cien';
+    let r=''; const c=Math.floor(x/100), rest=x%100;
+    if(c) r+=C[c]+(rest?' ':'');
+    if(rest<30) r+=U[rest]; else { const d=Math.floor(rest/10), u=rest%10; r+=D[d]+(u?' y '+U[u]:''); }
+    return r.trim();
+  }
+  const partes=[];
+  const mm=Math.floor(n/1000000), mi=Math.floor((n%1000000)/1000), re=n%1000;
+  if(mm) partes.push(mm===1?'un millón':menor1000(mm).replace(/uno$/,'un')+' millones');
+  if(mi) partes.push(mi===1?'mil':menor1000(mi).replace(/uno$/,'un')+' mil');
+  if(re) partes.push(menor1000(re));
+  return partes.join(' ');
+}
+function _jDineroHablado(txt){
+  return String(txt).replace(/(-?)\$(\u200B)?\s?(\d[\d.,]*)/g,(m,neg,pesosCompl,num)=>{
+    let v = num.replace(/[.,]+$/,'');
+    if(/^\d{1,3}([.,]\d{3})+$/.test(v)) v = v.replace(/[.,]/g,''); else v = v.replace(',','.');
+    let n = parseFloat(v); if(isNaN(n)) return m;
+    if(!pesosCompl) n = n*1000;
+    n = Math.round(n);
+    return (neg?'menos ':'')+_jNumPalabras(n)+((n>=1000000 && n%1000000===0)?' de pesos':' pesos');
+  }).replace(/\u200B/g,'');
+}
 function _jarvisHablar(texto){
   if(!texto) return;
+  texto = _jDineroHablado(texto);
   try{ if(localStorage.getItem('jrv_voz_off')==='1') return; }catch(e){}
   const limpio = texto
     .replace(/[\u{1F300}-\u{1FAFF}]/gu,'')
