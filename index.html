@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v125">
+<meta name="app-version" content="2026-11-20 v126">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6064,7 +6064,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v125';
+const APP_VERSION = '2026-11-20 v126';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -10687,7 +10687,9 @@ function jarvisModoBarra(primera){
       const saludo=_jrvSaludoBarra();
       _jrvBarTexto(saludo,'');
       let ult=0; try{ ult=parseInt(localStorage.getItem('jrv_saludo_ts')||'0',10); }catch(e){}
-      if(Date.now()-ult>20*60*1000){            // habla el saludo como máximo 1 vez cada 20 min
+      let _off=false; try{ _off=localStorage.getItem('jrv_voz_off')==='1'; }catch(e){}
+      if(_off){ try{ const hv=document.getElementById('jrv-bar-voz'); if(hv) hv.textContent='🔇 Mi voz está apagada. Ábrelo en ⤢ Completo y toca el 🔊 para activarla.'; }catch(e){} }
+      if(Date.now()-ult>3*60*1000){            // habla el saludo como máximo 1 vez cada 3 min
         try{ localStorage.setItem('jrv_saludo_ts', String(Date.now())); }catch(e){}
         setTimeout(()=>{ try{ _jarvisHablar(saludo); }catch(e){} }, 250);
       }
