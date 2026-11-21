@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v126">
+<meta name="app-version" content="2026-11-21 v127">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1401,6 +1401,11 @@ button[onclick="exportarDatos()"]{
     </button>
   </div>
 
+  <div style="margin:8px 14px 0;display:flex;gap:8px">
+    <button onclick="exportarFotosClientes()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">📷 Guardar fotos (archivo)</button>
+    <button onclick="document.getElementById('fotos-file-input').click()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">📥 Cargar fotos</button>
+    <input type="file" id="fotos-file-input" accept=".json,application/json" style="display:none" onchange="importarFotosClientes(this)">
+  </div>
   <div id="panel-semanas" style="display:none;margin:10px 14px 0"></div>
   <div id="clientes-lista"></div>
 </div>
@@ -6064,7 +6069,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v126';
+const APP_VERSION = '2026-11-21 v127';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11535,7 +11540,65 @@ function _jAyuda(){
   +'• "cambia la voz" · "voz de hombre / mujer" (en la web) · botón 🔊 silencia\n\n'
   +'Cuando quieras ver esto otra vez, escribe "ayuda".';
 }
+/* ============================================================
+   JARVIS: información del cliente (cuotas una por una, préstamos, saldo, tipo)
+   ============================================================ */
+function _jFechaBonita(iso){
+  const p=String(iso||'').substring(0,10).split('-'); if(p.length<3) return String(iso||'sin fecha');
+  const y=+p[0]; return (+p[2])+' de '+_J_MESES[+p[1]-1]+(y&&y!==new Date().getFullYear()?' de '+y:'');
+}
+function _jTipoCli(c){ const t=_jNorm(c.tipo||''); return /seman/.test(t)?('semanal'+(c.diaSemana?' (cobra los '+c.diaSemana+')':'')):(/diar/.test(t)?'diario':(c.tipo||'sin tipo')); }
+function _jPrestamosDe(c){ return 1+Math.max(c.renovaciones||0,(c.historialRenovaciones||[]).length); }
+function _jInfoCuotas(c){
+  const pagos=(c.pagos||[]).slice().sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+  const tot=pagos.reduce((s,p)=>s+(p.monto||0),0);
+  let r='📒 '+c.nombre+' — '+_jTipoCli(c)+'\n';
+  if(!pagos.length) r+='Todavía no ha pagado ninguna cuota.\n';
+  else r+='Lleva '+pagos.length+' cuota'+(pagos.length===1?'':'s')+' pagada'+(pagos.length===1?'':'s')+', en total '+_jFm(tot)+':\n'+pagos.map((p,i)=>(i+1)+'. '+_jFechaBonita(p.fecha)+' — '+_jFm(p.monto)).join('\n')+'\n';
+  const falt=(c.cuotaSugerida>0&&c.saldo>0)?Math.ceil(c.saldo/c.cuotaSugerida):0;
+  r+='\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
+  if(c.cuotaSugerida) r+=' Cuota: '+_jFm(c.cuotaSugerida)+(falt?' (le faltan unas '+falt+' cuotas)':'')+'.';
+  return r;
+}
+function _jInfoPrestamos(c){
+  const n=_jPrestamosDe(c);
+  let r='📒 '+c.nombre+' lleva '+n+' préstamo'+(n===1?'':'s')+' (el actual y '+(n-1)+' '+(n-1===1?'renovación':'renovaciones')+').\n';
+  r+='Préstamo actual: '+_jFm(c.prestamo)+' — capital entregado '+_jFm(c.capital)+'. Es '+_jTipoCli(c)+'.';
+  (c.historialRenovaciones||[]).forEach((x,i)=>{ r+='\n'+(i+2)+'. Renovó el '+_jFechaBonita(x.fecha)+' con capital '+_jFm(x.nuevoCapital)+' (quedaba debiendo '+_jFm(x.saldoQuedaba)+')'; });
+  r+='\n💰 Saldo que debe hoy: '+_jFm(c.saldo||0)+'.';
+  return r;
+}
+function _jInfoFicha(c){
+  const pagos=(c.pagos||[]), ult=pagos.slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))[0];
+  let r='📒 '+c.nombre+(c.cedula?' (CC '+c.cedula+')':'')+'\n';
+  r+='• Tipo: '+_jTipoCli(c)+'\n• Teléfono: '+(c.tel||c.telefono||c.celular||'no tiene')+'\n• Dirección: '+(c.dir||c.direccion||'no tiene')+'\n';
+  r+='• Préstamos: '+_jPrestamosDe(c)+' — actual '+_jFm(c.prestamo)+'\n• Cuota: '+_jFm(c.cuotaSugerida||0)+'\n• Cuotas pagadas: '+pagos.length+'\n';
+  if(ult) r+='• Último pago: '+_jFechaBonita(ult.fecha)+' de '+_jFm(ult.monto)+'\n';
+  if(c.volado) r+='• 🏃 Está volado. Deuda perdida: '+_jFm(c.saldoPerdido)+'\n';
+  if(c.nota) r+='• Nota: '+c.nota+'\n';
+  r+='\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
+  return r;
+}
+function _jClienteIntent(texto,t){
+  if(/\b(met\w*|pon\w*|anot\w*|registr\w*|aplic\w*|cobr\w*|borr\w*|elimin\w*|quit\w*|ingres\w*|abon\w*|renuev\w*|liquid\w*|cambi\w*|corrig\w*|edit\w*|recuerd\w*)\b/.test(t)) return null;
+  if(/telefono|celular|cedula|direccion|barrio|\bnota\b/.test(t)) return null;
+  if(/semanales|gasto|renov|pendient|prestado|recordatorio|voz\b/.test(t)) return null;
+  const pideCuotas=/\b(cuotas?|pagos?|abonos?|pagado|pagadas)\b/.test(t) && /\b(cuantas?|cuantos|lleva|llevan|muestr\w*|lista\w*|dime|cuales|historial|detall\w*|una por una|ha pagado|fechas?)\b/.test(t);
+  const pidePrest=/\bprestamos?\b/.test(t) && /\b(cuantos?|lleva|llevan|tiene|ha (sacado|tenido|hecho)|cuales|historial)\b/.test(t);
+  const pideSaldo=/\b(saldo|debe|deuda|queda|falta)\b/.test(t) && /\b(cuanto|cual|dime|saldo)\b/.test(t);
+  const pideFicha=/\b(informacion|info|datos|ficha|resumen|todo (de|sobre)|como (esta|va)|cuentame|hablame)\b/.test(t);
+  if(!(pideCuotas||pidePrest||pideSaldo||pideFicha)) return null;
+  let m=_jBuscar(texto);
+  if(!m.length && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000){ const c0=_jCliente(window._jUltCli.id); if(c0) m=[c0]; }
+  if(!m.length) return null;
+  if(m.length>3) return '🤔 Hay varios clientes con ese nombre, jefe:\n'+_jListaElegir(m)+'\nDime el nombre completo.';
+  if(m.length===1) window._jUltCli={id:m[0].id,ts:Date.now()};
+  const f=pideCuotas?_jInfoCuotas:(pidePrest?_jInfoPrestamos:(pideSaldo&&!pideFicha?(c=>'📒 '+c.nombre+' debe '+_jFm(c.saldo||0)+' de un préstamo de '+_jFm(c.prestamo)+'. Es '+_jTipoCli(c)+(c.cuotaSugerida?', cuota '+_jFm(c.cuotaSugerida):'')+'.'):_jInfoFicha));
+  return '🔎 Ya reviso, jefe…\n\n'+m.map(f).join('\n\n');
+}
 function _jConsultas(texto, t){
+  { const _m0=_jBuscar(texto); if(_m0.length===1) window._jUltCli={id:_m0[0].id,ts:Date.now()}; }
+  { const _ci=_jClienteIntent(texto,t); if(_ci) return _ci; }
   if(/\bvoz normal\b|\brestablec\w* (la )?voz\b/.test(t)){ try{ localStorage.removeItem('jrv_voz_tono'); localStorage.removeItem('jrv_voz_vel'); localStorage.removeItem('jrv_voz_nombre'); }catch(e){} return '🎙️ Listo jefe, volví a mi voz normal.'; }
   if((/\b(voz|habla\w*|suena)\b/.test(t) && /\b(grave|gruesa|profund\w*|ronca|agud\w*|fina|rapid\w*|lent\w*|despacio)\b/.test(t) && !/gasto|cliente|pago/.test(t)) || /^\s*(mas|menos) (grave|agud\w*|rapid\w*|lent\w*)\b/.test(t)) return jarvisAjustarVoz(t);
   if(/^\s*(ayuda|ayudame|comandos|combinaciones|simbolos|que puedes hacer|que sabes hacer|que haces|como funciona|instrucciones)\b|\bque (puedes|sabes) hacer\b|\blista de comandos\b/.test(t)){ setTimeout(()=>{ try{ jarvisTablero(); }catch(e){} },50); return '📋 Te abro el tablero con todo lo que puedo hacer, jefe.'; }
@@ -13347,8 +13410,23 @@ function _jNumPalabras(n){
   if(re) partes.push(menor1000(re));
   return partes.join(' ');
 }
+function _jFechaHablada(d,m,y){
+  d=+d; m=+m; if(m<1||m>12||d<1||d>31) return null;
+  let r=(d===1?'primero':_jNumPalabras(d))+' de '+_J_MESES[m-1];
+  if(y && +y!==new Date().getFullYear()) r+=' de '+_jNumPalabras(+y);
+  return r;
+}
 function _jDineroHablado(txt){
-  return String(txt).replace(/(-?)\$(\u200B)?\s?(\d[\d.,]*)/g,(m,neg,pesosCompl,num)=>{
+  return String(txt)
+  .replace(/\b(20\d\d)-(\d{1,2})-(\d{1,2})\b/g,(x,y,m,d)=>_jFechaHablada(d,m,y)||x)
+  .replace(/(^|[^\d.,$\u200B\/-])(\d{1,2})\s?[-\/]\s?(\d{1,2})(?![\d\/-])/g,(x,pre,a,b)=>{
+    a=+a; b=+b; let r=null;
+    if(a<=12 && b>12 && b<=31) r=_jFechaHablada(b,a);       // 11-19  => mes-día
+    else if(a>12 && a<=31 && b<=12) r=_jFechaHablada(a,b);   // 19/11  => día-mes
+    else if(/\//.test(x) && a<=12 && b<=12) r=_jFechaHablada(a,b); // 10/11 (día/mes)
+    return r? pre+r : x;
+  })
+  .replace(/(-?)\$(\u200B)?\s?(\d[\d.,]*)/g,(m,neg,pesosCompl,num)=>{
     let v = num.replace(/[.,]+$/,'');
     if(/^\d{1,3}([.,]\d{3})+$/.test(v)) v = v.replace(/[.,]/g,''); else v = v.replace(',','.');
     let n = parseFloat(v); if(isNaN(n)) return m;
@@ -14472,6 +14550,43 @@ async function hidratarFotosTarjetas(){
     const src = await FotosDB.get(el.dataset.fid+'_'+el.dataset.ftipo);
     if(src){ el.style.backgroundImage='url('+src+')'; el.textContent=''; }
   }
+}
+async function exportarFotosClientes(){
+  try{
+    showToast('📷 Reuniendo las fotos…');
+    const fotos={}; let n=0;
+    for(const c of getClientes()){
+      if(!c) continue;
+      for(const tipo of ['cliente','casa']){
+        const src=await FotosDB.get(c.id+'_'+tipo);
+        if(src){ fotos[c.id+'_'+tipo]=src; n++; }
+      }
+    }
+    if(!n){ showToast('📷 En este celular no hay fotos guardadas'); return; }
+    const fecha=fechaHoy();
+    await _entregarCopia('fotos_alisson_emily_'+fecha+'.json', JSON.stringify({version:1,fecha,fotos}), false);
+    showToast('✅ '+n+' fotos guardadas en el archivo');
+  }catch(e){ showToast('❌ No se pudieron guardar las fotos'); }
+}
+function importarFotosClientes(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=async()=>{
+    try{
+      const d=JSON.parse(rd.result); const fotos=d.fotos||{}; let n=0;
+      const ids=new Set(getClientes().map(c=>c.id));
+      for(const k of Object.keys(fotos)){
+        await FotosDB.set(k,fotos[k]); n++;
+        const id=k.replace(/_(cliente|casa)$/,''), tipo=k.endsWith('_casa')?'casa':'cliente';
+        if(ids.has(id)){ const cl=getClientes(); const i=cl.findIndex(x=>x.id===id); if(i>=0){ cl[i][tipo==='casa'?'tieneFotoCasa':'tieneFotoCliente']=true; saveClientes(cl); } }
+      }
+      try{ renderClientes(); }catch(e){}
+      try{ hidratarFotosTarjetas(); }catch(e){}
+      showToast('✅ '+n+' fotos cargadas');
+    }catch(e){ showToast('❌ Ese archivo no es de fotos'); }
+    input.value='';
+  };
+  rd.readAsText(f);
 }
 function abrirFotosCliente(id){
   const c = getClientes().find(x=>x.id===id);
