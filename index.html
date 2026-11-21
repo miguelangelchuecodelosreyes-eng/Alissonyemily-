@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v133">
+<meta name="app-version" content="2026-11-21 v135">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v133';
+const APP_VERSION = '2026-11-21 v135';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11444,11 +11444,24 @@ function _jRecArrancar(){
 }
 _jRecArrancar();
 
-function _jRegistrarPagoJ(c, monto){
+function _jActualizarDiaPasado(fecha){
+  // Recalcula las cuentas guardadas de ese día con la cuota nueva (conserva base, neki, gasto y entregado ya guardados)
+  try{
+    const d=_calcularDiaPuro(fecha,getClientes());
+    const h=JSON.parse(lsGet('hist_v3')||'[]');
+    const old=h.find(x=>x.fecha===fecha);
+    if(old){ ['base','neki','gasto','entregado'].forEach(k=>{ if(old[k]!=null) d[k]=old[k]; }); d.totalEntradas=d.base+d.general; d.totalSalidas=d.prestamos+d.neki+d.gasto; d.resultado=d.totalEntradas-d.totalSalidas; }
+    _guardarEnHistorial(d);
+    try{ renderHistorial(); }catch(e){} try{ renderResumenSemanal(); }catch(e){}
+    return '\n📒 Ya actualicé las cuentas del '+_jDiaNombre(fecha)+': General '+_jFm(d.general)+(d.cancelados>0?', cancelados '+_jFm(d.cancelados):'')+', resultado '+_jFm(d.resultado)+'.';
+  }catch(e){ return ''; }
+}
+function _jRegistrarPagoJ(c, monto, fechaPago){
   const clientes=getClientes(); const idx=clientes.findIndex(x=>x.id===c.id); if(idx<0) return 'No encontré al cliente, jefe.';
   if(clientes[idx].volado){
     const cv=clientes[idx], debia=cv.saldoPerdido||0;
-    cv.pagos=cv.pagos||[]; cv.pagos.unshift({fecha:getFechaActiva(),monto});
+    cv.pagos=cv.pagos||[]; cv.pagos.unshift({fecha:fechaPago||getFechaActiva(),monto});
+    if(fechaPago) cv.pagos.sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
     cv.saldoPerdido=Math.max(0,debia-monto);
     const salda=cv.saldoPerdido<=0;
     if(salda){ cv.volado=false; delete cv.fechaVolado; delete cv.saldoPerdido; cv.saldo=0; }
@@ -11456,14 +11469,16 @@ function _jRegistrarPagoJ(c, monto){
     try{ if(cv.cedula) archivarClienteEnHistorial(cv); }catch(e){}
     window._datosHoy=null; try{ recalcularCuentas(); }catch(e){}
     try{ renderClientes(); }catch(e){}
+    const _dp=fechaPago?_jActualizarDiaPasado(fechaPago):'';
     const pagTot=(cv.pagos||[]).reduce((a,x)=>a+(x.monto||0),0);
-    return '✅ Listo jefe, registré la cuota de '+_jFm(monto)+' a '+cv.nombre+' (está volado).\n'+(salda?'🎉 Pagó toda la deuda que había perdido y quedó cancelado.':'🏃 Todavía te debe '+_jFm(cv.saldoPerdido)+' de lo que perdiste. Lleva pagado '+_jFm(pagTot)+' desde que voló.')+'\n(Se ve en la pestaña Voladas, en "Alcanzó a pagar". Si te equivocaste, dime "borra la cuota de '+cv.nombre.split(' ')[0]+'".)';
+    return '✅ Listo jefe, registré la cuota de '+_jFm(monto)+' a '+cv.nombre+(fechaPago?' con fecha del '+_jDiaNombre(fechaPago):'')+' (está volado).\n'+(salda?'🎉 Pagó toda la deuda que había perdido y quedó cancelado.':'🏃 Todavía te debe '+_jFm(cv.saldoPerdido)+' de lo que perdiste. Lleva pagado '+_jFm(pagTot)+' desde que voló.')+_dp+'\n(Se ve en la pestaña Voladas, en "Alcanzó a pagar". Si te equivocaste, dime "borra la cuota de '+cv.nombre.split(' ')[0]+'".)';
   }
   const antes=clientes[idx].saldo||0;
   clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
   clientes[idx].saldo=Math.max(0,antes-monto);
   clientes[idx].pagos=clientes[idx].pagos||[];
-  clientes[idx].pagos.unshift({fecha:getFechaActiva(),monto});
+  clientes[idx].pagos.unshift({fecha:fechaPago||getFechaActiva(),monto});
+  if(fechaPago) clientes[idx].pagos.sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
   saveClientes(clientes);
   const act=getClientes().find(x=>x.id===c.id);
   try{ if(act && act.cedula) archivarClienteEnHistorial(act); }catch(e){}
@@ -11472,7 +11487,9 @@ function _jRegistrarPagoJ(c, monto){
   try{ recalcularCuentas(); }catch(e){}
   try{ if(!refrescarUnaCard(c.id)) renderClientes(); }catch(e){}
   const nuevo=act?act.saldo:0;
-  return '✅ Listo jefe, registré el pago de '+_jFm(monto)+' a '+c.nombre+'.\n'+(nuevo>0?'Le queda un saldo de '+_jFm(nuevo)+'.':'🎉 Ya terminó de pagar, quedó cancelado.')+'\n(Si te equivocaste, dime "borra la cuota de '+c.nombre.split(' ')[0]+'".)';
+  const _dp=fechaPago?_jActualizarDiaPasado(fechaPago):'';
+  const _fp = fechaPago ? ' con fecha del '+_jDiaNombre(fechaPago) : '';
+  return '✅ Listo jefe, registré el pago de '+_jFm(monto)+' a '+c.nombre+_fp+'.\n'+(nuevo>0?'Le queda un saldo de '+_jFm(nuevo)+'.':'🎉 Ya terminó de pagar, quedó cancelado.')+_dp+'\n(Si te equivocaste, dime "borra la cuota de '+c.nombre.split(' ')[0]+'".)';
 }
 function _jPagoCliente(texto,t){
   if(/\b(borr|elimin|quit|anul|cambi|edit|corrig)\w*/.test(t) || /gasto|renov|pendient|liquid|recordatorio|voz\b/.test(t) || /\b(cuanto|cuando|que|cual|como|quien|donde)\b/.test(t)) return null;
@@ -11480,22 +11497,34 @@ function _jPagoCliente(texto,t){
   const pago=/\b(pago|pagaron|abono|abonaron|dejo|dio|dieron)\b/.test(t) && /\d/.test(texto);
   if(!verbo && !pago) return null;
   const c=_jBuscar(texto);
-  const sinNombres=texto.replace(/\d{7,}/g,'');
+  // fecha del pago ("de ayer", "del martes", "el día 17")
+  let fechaPago=null, tt=t;
+  const reF=/\b(anteayer|antier|ayer)\b|\b(domingo|lunes|martes|miercoles|jueves|viernes|sabado)s?\b(\s+pasado)?|\bdia\s+\d{1,2}\b(\s+de\s+(este mes|mes pasado|[a-z]+))?|\bel\s+\d{1,2}\s+de\s+[a-z]+|\bel\s+\d{1,2}\s*$/g;
+  const mf=t.match(reF);
+  if(mf){
+    fechaPago=_jParseFechaReporte(mf.join(' '));
+    tt=t.replace(reF,' ');
+    if(fechaPago){
+      if(fechaPago>_jIso(new Date())) return '📅 Esa fecha todavía no llega, jefe. Dime un día que ya pasó (por ejemplo "de ayer" o "del martes").';
+      if(fechaPago===_jIso(new Date())) fechaPago=null;
+    }
+  }
+  const sinNombres=(fechaPago?tt:t).replace(/\d{7,}/g,'');
   let monto=_jNum(sinNombres.replace(/\bmil\b/ig,''));
   const dice_cuota=/\bla cuota\b|\bcuota\b/.test(t) && monto===null;
   if(c.length===1){
     if(dice_cuota){ monto=c[0].cuotaSugerida||0; }
-    if(monto>0) return _jRegistrarPagoJ(c[0], monto);
-    window._jAcc={tipo:'pago',paso:'monto',ts:Date.now(),d:{},cid:c[0].id,monto:null};
+    if(monto>0) return _jRegistrarPagoJ(c[0], monto, fechaPago);
+    window._jAcc={tipo:'pago',paso:'monto',ts:Date.now(),d:{},cid:c[0].id,monto:null,fecha:fechaPago};
     return '¿Cuánto pagó '+c[0].nombre+', jefe? (por ejemplo: 60)';
   }
   if(c.length>1){
-    window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:c.slice(0,8).map(x=>x.id),cuota:dice_cuota};
+    window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:c.slice(0,8).map(x=>x.id),cuota:dice_cuota,fecha:fechaPago};
     return '🤔 Tengo varios parecidos, jefe. ¿Cuál es? Dime el número:\n'+_jListaElegir(c);
   }
   if(!/\b(cuota|pago|abono)\b/.test(t)) return null;
   if(monto===null && !dice_cuota) return null;
-  window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:null,cuota:dice_cuota};
+  window._jAcc={tipo:'pago',paso:'cliente',ts:Date.now(),d:{},cid:null,monto:monto,lista:null,cuota:dice_cuota,fecha:fechaPago};
   return 'Claro jefe, ¿a cuál cliente le registro '+(monto?'los '+_jFm(monto):'la cuota')+'? Dime el nombre.';
 }
 function jarvisTablero(){
@@ -11700,9 +11729,10 @@ function _jPanelManual(mostrar){
   window._jPanelManualVisible = !!mostrar;
 }
 function _jPanelManualIntent(texto,t){
-  if(!/\bpanel(es)? manual(es)?\b|\bpanel manuel\b|\bpaneles\b/.test(t)) return null;
+  if(!/\bpanel(es)?\b/.test(t)) return null;
+  if(/\b(gasto|cliente|jarvis panel)\b/.test(t) && !/\bmanua\w*\b/.test(t)) return null;
   if(/\b(oculta\w*|esconde\w*|quita\w*|cierra\w*|cerrar|bloquea\w*|desactiva\w*)\b/.test(t)){ _jPanelManual(false); return '🔒 Listo jefe, ya oculté el panel manual. Cuando lo necesites, dime "Jarvis, dame acceso al panel manual".'; }
-  if(/\b(acceso|abre\w*|abrir|muestr\w*|ver|dame|activa\w*|quiero|necesito|pon\w*)\b/.test(t)){ _jPanelManual(true); return '🔓 Claro jefe, ya le doy acceso al panel manual. Ya puede ver Clientes, Detalles, Préstamos, Cuentas, Gasto y Ajustes, y todo funciona igual que siempre. Cuando termine dime "oculta el panel manual".'; }
+  if(/\b(acceso|abre\w*|abrir|muestr\w*|ver|dame|activa\w*|quiero|necesito|pon\w*|habilita\w*|desbloquea\w*)\b/.test(t)){ _jPanelManual(true); return '🔓 Claro jefe, ya le doy acceso al panel manual. Ya puede ver Clientes, Detalles, Préstamos, Cuentas, Gasto y Ajustes, y todo funciona igual que siempre. Cuando termine dime "oculta el panel manual".'; }
   return null;
 }
 function _jConsultas(texto, t){
@@ -11855,7 +11885,7 @@ function _jAcciones(texto){
       if(cid){
         const cc=_jCliente(cid);
         if(monto==null || monto===0){ const n=_jNum(texto.replace(/\bmil\b/ig,'')); if(n!==null && !A0.lista) monto=n; else if(A0.cuota) monto=cc.cuotaSugerida||0; }
-        if(monto>0){ window._jAcc=null; return _jRegistrarPagoJ(cc, monto); }
+        if(monto>0){ window._jAcc=null; return _jRegistrarPagoJ(cc, monto, A0.fecha||null); }
         if(A0.paso==='monto' && _jNum(texto)===null){ window._jAcc=null; return _jAcciones(texto); }
         A0.cid=cid; A0.paso='monto'; return '¿Cuánto pagó '+cc.nombre+', jefe?';
       }
@@ -12286,6 +12316,10 @@ async function orbIAEnviarMensaje(){
 
   // Quitar typing
   if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
+  // La IA no registra nada: si dice que lo hizo, es inventado -> se corrige
+  if(/\b(registr[eé]|cobr[eé]|apliqu[eé]|a[ñn]ad[ií]|ingres[eé]|anot[eé]|agregu[eé]|actualic[eé]|guard[eé]|borr[eé]|elimin[eé]|descont[eé])\b|\bnuevo saldo\b|\bse (registr[oó]|aplic[oó]|a[ñn]adi[oó]) (el|la|un|una)\b.*\b(pago|cuota|gasto)\b/i.test(String(respuesta||''))){
+    respuesta = '⚠️ Jefe, eso NO quedó registrado: yo desde aquí solo consulto. Para que quede de verdad dímelo así:\n• Cuota: "métele 60 a José Arias" (o "…de ayer")\n• Gasto: "ingresa 5 de aceite en gasto"\n• Renovar: "renueva a José Arias"';
+  }
 
   // Mostrar respuesta con efecto máquina de escribir
   const div = _orbeMostrarMsg('ai', '', true);
@@ -12320,7 +12354,7 @@ async function _orbeChatResponder(){
 
 ${String(ctx||'').slice(0,5000)}
 
-Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad.`;
+Si el usuario pregunta algo fuera del tema de cobranza, igual responde con naturalidad. IMPORTANTE: tú NO puedes registrar, cobrar, anotar, borrar ni cambiar nada en la app y nunca calculas saldos nuevos; no digas que lo hiciste. Si piden hacer una acción, responde solo: "Dímelo así: métele 60 a NOMBRE".`;
 
   const _corta = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n) + '…' : t; };
   const messages = msgs.filter(m => !String(m.content||'').startsWith('⚠️')).slice(-4)
