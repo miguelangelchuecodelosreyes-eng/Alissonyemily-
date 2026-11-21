@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v140">
+<meta name="app-version" content="2026-11-21 v141">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v140';
+const APP_VERSION = '2026-11-21 v141';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11729,6 +11729,7 @@ function _jCorregirPerdida(texto,t){
   const m=_jBuscar(texto);
   if(m.length!==1) return null;
   const n=_jNum(texto.replace(/\d{7,}/g,'').replace(/\bmil\b/ig,''));
+  if(n===null && /\b(deuda|saldo|perdid\w*|debe)\b/.test(t)) return '🤔 ¿A cuánto quieres dejar '+(m[0].volado?'lo que perdiste con ':'el saldo de ')+m[0].nombre+', jefe? Dímelo completo, por ejemplo: "corrige la '+(m[0].volado?'deuda':'deuda')+' de '+m[0].nombre.split(' ')[0]+' a 200".';
   if(n===null || n<0) return null;
   if(!m[0].volado){
     if(!/\b(saldo|deuda|debe|queda)\b/.test(t)) return null;
@@ -11942,6 +11943,8 @@ function _jAcciones(texto){
   // Atajo: ' al inicio = anotar gasto rápido ('5 arroz de pollo) sin ingresarlo al sistema
   if(/^\s*['’‘´`]/.test(texto) && /[a-zA-Z0-9áéíóúñ]/.test(texto)){ window._jAcc = null; return _jNotasAnotar(texto); }
   if(window._jAcc && Date.now()-window._jAcc.ts > 15*60*1000) window._jAcc = null;
+  // Si en medio de un diálogo pides corregir una deuda/saldo, se abandona el diálogo y se atiende eso
+  if(window._jAcc && /\b(corrig\w*|cambi\w*|ajust\w*|arregl\w*|actualiz\w*)\b/.test(t) && /\b(deuda|saldo|perdid\w*)\b/.test(t)) window._jAcc=null;
   if(window._jAcc){
     if(window._jAcc.tipo==='pago'){
       const A0=window._jAcc; let cid=A0.cid, monto=A0.monto;
