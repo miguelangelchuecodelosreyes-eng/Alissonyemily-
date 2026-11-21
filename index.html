@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v130">
+<meta name="app-version" content="2026-11-21 v132">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6067,7 +6067,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v130';
+const APP_VERSION = '2026-11-21 v132';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11431,6 +11431,19 @@ _jRecArrancar();
 
 function _jRegistrarPagoJ(c, monto){
   const clientes=getClientes(); const idx=clientes.findIndex(x=>x.id===c.id); if(idx<0) return 'No encontré al cliente, jefe.';
+  if(clientes[idx].volado){
+    const cv=clientes[idx], debia=cv.saldoPerdido||0;
+    cv.pagos=cv.pagos||[]; cv.pagos.unshift({fecha:getFechaActiva(),monto});
+    cv.saldoPerdido=Math.max(0,debia-monto);
+    const salda=cv.saldoPerdido<=0;
+    if(salda){ cv.volado=false; delete cv.fechaVolado; delete cv.saldoPerdido; cv.saldo=0; }
+    saveClientes(clientes);
+    try{ if(cv.cedula) archivarClienteEnHistorial(cv); }catch(e){}
+    window._datosHoy=null; try{ recalcularCuentas(); }catch(e){}
+    try{ renderClientes(); }catch(e){}
+    const pagTot=(cv.pagos||[]).reduce((a,x)=>a+(x.monto||0),0);
+    return '✅ Listo jefe, registré la cuota de '+_jFm(monto)+' a '+cv.nombre+' (está volado).\n'+(salda?'🎉 Pagó toda la deuda que había perdido y quedó cancelado.':'🏃 Todavía te debe '+_jFm(cv.saldoPerdido)+' de lo que perdiste. Lleva pagado '+_jFm(pagTot)+' desde que voló.')+'\n(Se ve en la pestaña Voladas, en "Alcanzó a pagar". Si te equivocaste, dime "borra la cuota de '+cv.nombre.split(' ')[0]+'".)';
+  }
   const antes=clientes[idx].saldo||0;
   clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
   clientes[idx].saldo=Math.max(0,antes-monto);
@@ -11566,8 +11579,8 @@ function _jInfoCuotas(c){
   if(!pagos.length) r+='Todavía no ha pagado ninguna cuota.\n';
   else r+='Lleva '+pagos.length+' cuota'+(pagos.length===1?'':'s')+' pagada'+(pagos.length===1?'':'s')+', en total '+_jFm(tot)+':\n'+pagos.map((p,i)=>(i+1)+'. '+_jFechaBonita(p.fecha)+' — '+_jFm(p.monto)).join('\n')+'\n';
   const falt=(c.cuotaSugerida>0&&c.saldo>0)?Math.ceil(c.saldo/c.cuotaSugerida):0;
-  r+='\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
-  if(c.cuotaSugerida) r+=' Cuota: '+_jFm(c.cuotaSugerida)+(falt?' (le faltan unas '+falt+' cuotas)':'')+'.';
+  r+= c.volado ? '\n🏃 Está volado. Deuda por recuperar: '+_jFm(c.saldoPerdido||0)+'.' : '\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
+  if(c.cuotaSugerida && !c.volado) r+=' Cuota: '+_jFm(c.cuotaSugerida)+(falt?' (le faltan unas '+falt+' cuotas)':'')+'.';
   return r;
 }
 function _jInfoPrestamos(c){
@@ -11603,10 +11616,23 @@ function _jClienteIntent(texto,t){
   if(!m.length) return null;
   if(m.length>3) return '🤔 Hay varios clientes con ese nombre, jefe:\n'+_jListaElegir(m)+'\nDime el nombre completo.';
   if(m.length===1) window._jUltCli={id:m[0].id,ts:Date.now()};
-  const f=pideCuotas?_jInfoCuotas:(pidePrest?_jInfoPrestamos:(pideSaldo&&!pideFicha?(c=>'📒 '+c.nombre+' debe '+_jFm(c.saldo||0)+' de un préstamo de '+_jFm(c.prestamo)+'. Es '+_jTipoCli(c)+(c.cuotaSugerida?', cuota '+_jFm(c.cuotaSugerida):'')+'.'):_jInfoFicha));
+  const f=pideCuotas?_jInfoCuotas:(pidePrest?_jInfoPrestamos:(pideSaldo&&!pideFicha?(c=>c.volado?('📒 '+c.nombre+' está volado y todavía te debe '+_jFm(c.saldoPerdido||0)+'.'):'📒 '+c.nombre+' debe '+_jFm(c.saldo||0)+' de un préstamo de '+_jFm(c.prestamo)+'. Es '+_jTipoCli(c)+(c.cuotaSugerida?', cuota '+_jFm(c.cuotaSugerida):'')+'.'):_jInfoFicha));
   return '🔎 Ya reviso, jefe…\n\n'+m.map(f).join('\n\n');
 }
+function _jCorregirPerdida(texto,t){
+  if(!/\b(corrig\w*|cambi\w*|ajust\w*|arregl\w*|dej\w*|pon\w*|actualiz\w*)\b/.test(t)) return null;
+  if(!/\b(perdid\w*|perdiste|deuda|saldo|debe|queda)\b/.test(t)) return null;
+  const m=_jBuscar(texto).filter(c=>c.volado);
+  if(m.length!==1) return null;
+  const n=_jNum(texto.replace(/\d{7,}/g,'').replace(/\bmil\b/ig,''));
+  if(n===null || n<0) return null;
+  const cs=getClientes(), i=cs.findIndex(x=>x.id===m[0].id), antes=cs[i].saldoPerdido||0;
+  cs[i].saldoPerdido=n; saveClientes(cs);
+  window._datosHoy=null; try{ recalcularCuentas(); }catch(e){} try{ renderClientes(); }catch(e){}
+  return '✅ Listo jefe, corregí lo que perdiste con '+cs[i].nombre+': antes '+_jFm(antes)+', ahora '+_jFm(n)+'.';
+}
 function _jConsultas(texto, t){
+  { const _cp=_jCorregirPerdida(texto,t); if(_cp) return _cp; }
   { const _m0=_jBuscar(texto); if(_m0.length===1) window._jUltCli={id:_m0[0].id,ts:Date.now()}; }
   { const _ci=_jClienteIntent(texto,t); if(_ci) return _ci; }
   if(/\bvoz normal\b|\brestablec\w* (la )?voz\b/.test(t)){ try{ localStorage.removeItem('jrv_voz_tono'); localStorage.removeItem('jrv_voz_vel'); localStorage.removeItem('jrv_voz_nombre'); }catch(e){} return '🎙️ Listo jefe, volví a mi voz normal.'; }
