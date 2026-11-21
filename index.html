@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v121">
+<meta name="app-version" content="2026-11-20 v122">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6035,7 +6035,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v121';
+const APP_VERSION = '2026-11-20 v122';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -13361,7 +13361,7 @@ function _jarvisHablar(texto){
       }
       if(resto) fragmentos.push(resto);
       const voces = window.speechSynthesis.getVoices() || [];
-      const voz = _jrvVozGuardada(voces) || voces.find(v=>v.lang==='es-CO') ||
+      const voz = _jrvVozGuardada(voces) || _jrvMejorVozHombre(voces) || voces.find(v=>v.lang==='es-CO') ||
                   voces.find(v=>v.lang==='es-US') ||
                   voces.find(v=>v.lang && v.lang.startsWith('es') && !v.name.toLowerCase().includes('female')) ||
                   voces.find(v=>v.lang && v.lang.startsWith('es')) || null;
@@ -13369,7 +13369,8 @@ function _jarvisHablar(texto){
       function hablarFrag(){
         if(idx2 >= fragmentos.length) return;
         const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
-        utt.lang = 'es-CO'; utt.rate = 0.95; utt.pitch = 0.85; utt.volume = 1.0;
+        utt.lang = 'es-CO'; utt.volume = 1.0;
+        if(voz && /natural|online/i.test(voz.name)){ utt.rate = 1.0; utt.pitch = 1.0; } else { utt.rate = 0.97; utt.pitch = 0.8; }
         if(voz) utt.voice = voz;
         utt.onstart = ()=>{
           _jrvHablando = true; window._jrvEmpezo = true;
@@ -13414,6 +13415,20 @@ function _jarvisHablar(texto){
   }
 }
 
+function _jrvMejorVozHombre(voces){
+  const es=(voces||[]).filter(v=>v.lang && /^es/i.test(v.lang)); if(!es.length) return null;
+  const orden=[['gonzalo',100],['jorge',95],['alvaro',90],['diego',85],['pablo',80],['raul',78],['andres',76],['alonso',74],['arnau',70],['tomas',68],['carlos',66],['juan',64],['enrique',62],['miguel',60],['luis',58],['jose',56],['pedro',54],['male',50],['hombre',50]];
+  let mejor=null, ms=0;
+  es.forEach(v=>{
+    const n=v.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); let sc=0;
+    orden.forEach(([k,pt])=>{ if(n.indexOf(k)>=0 && !/female/.test(n) && pt>sc) sc=pt; });
+    if(!sc) return;
+    if(/natural|online/.test(n)) sc+=20;
+    if(v.lang==='es-CO') sc+=10; else if(v.lang==='es-US'||v.lang==='es-MX') sc+=5;
+    if(sc>ms){ ms=sc; mejor=v; }
+  });
+  return mejor;
+}
 function _jrvVozGuardada(voces){
   try{ const n=localStorage.getItem('jrv_voz_nombre'); if(n) return (voces||[]).find(v=>v.name===n)||null; }catch(e){}
   return null;
@@ -13470,6 +13485,14 @@ function jarvisProbarVoz(){
   }, 4500);
 }
 setTimeout(_jrvPintarBoton, 1500);
+setTimeout(()=>{ try{
+  if(!/^https?:$/.test(location.protocol)){
+    const d=document.createElement('div');
+    d.style.cssText='position:fixed;left:10px;right:10px;bottom:90px;z-index:2147483600;background:#7f1d1d;color:#fff;border-radius:14px;padding:12px 14px;font:800 13px Nunito,sans-serif;line-height:1.35;box-shadow:0 6px 24px rgba(0,0,0,.5)';
+    d.innerHTML='⚠️ Abriste la app como ARCHIVO, por eso no conecta con la nube. Ábrela desde el enlace: <b>miguelangelchuecodelosreyes-eng.github.io/Alissonyemily-/</b> en Chrome.<div style="margin-top:8px"><button style="border:none;border-radius:10px;padding:7px 12px;font-weight:900" onclick="this.parentNode.parentNode.remove()">Entendido</button></div>';
+    document.body.appendChild(d);
+  }
+}catch(e){} }, 3500);
 
 /* ---- Voz en línea (para la app APK, donde no hay voz del navegador) ---- */
 let _jrvAudio = null, _jrvColaId = 0, _jrvEl = null;
