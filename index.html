@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v138">
+<meta name="app-version" content="2026-11-21 v139">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v138';
+const APP_VERSION = '2026-11-21 v139';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11695,14 +11695,33 @@ function _jClienteIntent(texto,t){
   const pidePrest=/\bprestamos?\b/.test(t) && /\b(cuantos?|lleva|llevan|tiene|ha (sacado|tenido|hecho)|cuales|historial)\b/.test(t);
   const pideSaldo=/\b(saldo|debe|deuda|queda|falta)\b/.test(t) && /\b(cuanto|cual|dime|saldo)\b/.test(t);
   const pideFicha=/\b(informacion|info|datos|ficha|resumen|todo (de|sobre)|como (esta|va)|cuentame|hablame)\b/.test(t);
-  if(!(pideCuotas||pidePrest||pideSaldo||pideFicha)) return null;
+  const pideCancel=/\bcancel\w*\b/.test(t) && /\b(cuando|que dia|que fecha|fecha|dia|con cuanto|cuanto|como|termino|acabo|ya)\b/.test(t);
+  if(!(pideCuotas||pidePrest||pideSaldo||pideFicha||pideCancel)) return null;
   let m=_jBuscar(texto);
   if(!m.length && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000){ const c0=_jCliente(window._jUltCli.id); if(c0) m=[c0]; }
   if(!m.length) return null;
   if(m.length>3) return '🤔 Hay varios clientes con ese nombre, jefe:\n'+_jListaElegir(m)+'\nDime el nombre completo.';
   if(m.length===1) window._jUltCli={id:m[0].id,ts:Date.now()};
+  if(pideCancel && !pideCuotas && !pidePrest){
+    return '🔎 Ya reviso, jefe…\n\n'+m.map(_jInfoCancelo).join('\n\n');
+  }
   const f=pideCuotas?_jInfoCuotas:(pidePrest?_jInfoPrestamos:(pideSaldo&&!pideFicha?(c=>c.volado?('📒 '+c.nombre+' está volado y todavía te debe '+_jFm(c.saldoPerdido||0)+'.'):'📒 '+c.nombre+' debe '+_jFm(c.saldo||0)+' de un préstamo de '+_jFm(c.prestamo)+'. Es '+_jTipoCli(c)+(c.cuotaSugerida?', cuota '+_jFm(c.cuotaSugerida):'')+'.'):_jInfoFicha));
   return '🔎 Ya reviso, jefe…\n\n'+m.map(f).join('\n\n');
+}
+function _jInfoCancelo(c){
+  const pg=(c.pagos||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  const hist=(c.historialRenovaciones||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  if(c.volado) return '🏃 '+c.nombre+' está volado, no ha cancelado. Todavía te debe '+_jFm(c.saldoPerdido||0)+' de lo que perdiste.';
+  if((c.saldo||0)<=0 && pg.length){
+    const F=pg[0].fecha, delDia=pg.filter(x=>x.fecha===F), tot=delDia.reduce((a,x)=>a+(x.monto||0),0);
+    const totPrest=pg.reduce((a,x)=>a+(x.monto||0),0);
+    return '🎉 '+c.nombre+' canceló el '+_jDiaNombre(String(F).substring(0,10))+'.\n💵 Canceló con '+_jFm(tot)+(delDia.length>1?' (en '+delDia.length+' pagos ese día)':'')+'.\n📚 En total pagó '+_jFm(totPrest)+' de este préstamo ('+pg.length+' cuotas).';
+  }
+  if(hist.length){
+    const r=hist[0], F=String(r.fecha||'').substring(0,10);
+    return '🔁 '+c.nombre+' canceló al renovar, el '+(F?_jDiaNombre(F):'(fecha desconocida)')+', con '+_jFm(r.saldoQuedaba||0)+' que le quedaban. Ahora tiene un préstamo nuevo y debe '+_jFm(c.saldo||0)+'.';
+  }
+  return '📒 '+c.nombre+' todavía no ha cancelado: debe '+_jFm(c.saldo||0)+'.';
 }
 function _jCorregirPerdida(texto,t){
   if(!/\b(corrig\w*|cambi\w*|ajust\w*|arregl\w*|dej\w*|pon\w*|actualiz\w*)\b/.test(t)) return null;
