@@ -9,7 +9,7 @@
   function limpia(){
     try{ if(window.caches) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});}); }catch(e){}
     try{ if(navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});}); }catch(e){}
-    setTimeout(function(){ location.href=location.pathname+'?r='+Date.now(); },700);
+    setTimeout(function(){ if(/^https?:$/.test(location.protocol)) location.href=location.pathname+'?r='+Date.now(); else location.reload(); },700);
   }
   window.__recargaLimpia=limpia;
   function mostrar(){
@@ -20,7 +20,7 @@
       document.body.appendChild(d); }
     d.innerHTML='⚠️ La app tuvo un problema al cargar. Toca "Recarga limpia" (no borra tus datos).<br><button onclick="__recargaLimpia()" style="margin:6px 0;padding:8px 12px;border:0;border-radius:8px;font-weight:900">🔄 Recarga limpia</button><br><span style="opacity:.8">'+errs.slice(-3).join('<br>').replace(/</g,'&lt;')+'</span>';
   }
-  function reg(m){ errs.push(m); if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mostrar); else mostrar(); }
+  function reg(m){ if(!/^https?:$/.test(location.protocol)) return; /* abierta como archivo: ya hay otro aviso */ errs.push(m); if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mostrar); else mostrar(); }
   window.addEventListener('error',function(e){
     var t=e.target;
     if(t && t!==window && t.tagName==='SCRIPT' && t.src) reg('No cargó: '+t.src);
@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v123">
+<meta name="app-version" content="2026-11-20 v124">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6064,7 +6064,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v123';
+const APP_VERSION = '2026-11-20 v124';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
