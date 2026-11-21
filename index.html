@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v127">
+<meta name="app-version" content="2026-11-21 v128">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1402,9 +1402,7 @@ button[onclick="exportarDatos()"]{
   </div>
 
   <div style="margin:8px 14px 0;display:flex;gap:8px">
-    <button onclick="exportarFotosClientes()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">📷 Guardar fotos (archivo)</button>
-    <button onclick="document.getElementById('fotos-file-input').click()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">📥 Cargar fotos</button>
-    <input type="file" id="fotos-file-input" accept=".json,application/json" style="display:none" onchange="importarFotosClientes(this)">
+    <button onclick="subirFotosANube()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">☁️ Subir fotos a la nube</button>
   </div>
   <div id="panel-semanas" style="display:none;margin:10px 14px 0"></div>
   <div id="clientes-lista"></div>
@@ -6069,7 +6067,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v127';
+const APP_VERSION = '2026-11-21 v128';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -9965,6 +9963,15 @@ function abrirPanelDiagnostico() {
   window.onValue = onValue;
   window.getUsuarioActivo = getUsuarioActivo;
   window._fbAuth = auth;
+  // Fotos de clientes en la nube (carpeta aparte: no la pisa la sincronización de clientes)
+  window._fotoNube = {
+    async _auth(){ if(!auth.currentUser) await _esperarAuth(8000); if(!auth.currentUser) throw new Error('sin sesión de Firebase'); },
+    _base(){ return 'fotos_usuarios/'+getUsuarioActivo(); },
+    async subir(k,v){ await this._auth(); const b=this._base(); await set(ref(db,b+'/f/'+k), v); await set(ref(db,b+'/idx/'+k), true); },
+    async quitar(k){ await this._auth(); const b=this._base(); await set(ref(db,b+'/f/'+k), null); await set(ref(db,b+'/idx/'+k), null); },
+    async bajar(k){ await this._auth(); const s=await get(ref(db,this._base()+'/f/'+k)); return s.val()||null; },
+    async indice(){ await this._auth(); const s=await get(ref(db,this._base()+'/idx')); return s.val()||{}; }
+  };
 
   // Función global para subir datos a Firebase
   window.syncFirebase = async function(forzado = false) {
@@ -14445,17 +14452,24 @@ const FotosDB = (function(){
     });
     return dbp;
   }
-  async function get(k){
+  window._fotoNubeTry = window._fotoNubeTry || {};
+  async function get(k,soloLocal){
     if(window._fotoCache[k]) return window._fotoCache[k];
+    let v=null;
     try{
       const db = await open();
-      const v = await new Promise((res,rej)=>{ const q=db.transaction('f').objectStore('f').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); });
+      v = await new Promise((res,rej)=>{ const q=db.transaction('f').objectStore('f').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); });
       if(v) window._fotoCache[k]=v;
-      return v||null;
-    }catch(e){ return null; }
+    }catch(e){ v=null; }
+    if(!v && !soloLocal && window._fotoNube && navigator.onLine && !window._fotoNubeTry[k]){
+      window._fotoNubeTry[k]=1;
+      try{ const nv=await window._fotoNube.bajar(k); if(nv){ await set(k,nv,true); return nv; } }catch(e){}
+    }
+    return v||null;
   }
-  async function set(k,v){
+  async function set(k,v,soloLocal){
     window._fotoCache[k]=v;
+    if(!soloLocal){ try{ if(window._fotoNube && navigator.onLine) window._fotoNube.subir(k,v).catch(_fotoNubeError); }catch(e){} }
     try{
       const db = await open();
       await new Promise((res,rej)=>{ const t=db.transaction('f','readwrite'); t.objectStore('f').put(v,k); t.oncomplete=res; t.onerror=()=>rej(t.error); });
@@ -14463,6 +14477,7 @@ const FotosDB = (function(){
   }
   async function del(k){
     delete window._fotoCache[k];
+    try{ if(window._fotoNube && navigator.onLine) window._fotoNube.quitar(k).catch(()=>{}); }catch(e){}
     try{
       const db = await open();
       await new Promise((res,rej)=>{ const t=db.transaction('f','readwrite'); t.objectStore('f').delete(k); t.oncomplete=res; t.onerror=()=>rej(t.error); });
@@ -14545,11 +14560,59 @@ function aplicarFotosA(cli){
   window._fotosTemp = {};
 }
 async function hidratarFotosTarjetas(){
-  const els = document.querySelectorAll('.foto-av[data-fid]');
-  for(const el of els){
-    const src = await FotosDB.get(el.dataset.fid+'_'+el.dataset.ftipo);
-    if(src){ el.style.backgroundImage='url('+src+')'; el.textContent=''; }
+  const els = Array.from(document.querySelectorAll('.foto-av[data-fid]'));
+  for(let i=0;i<els.length;i+=6){
+    await Promise.all(els.slice(i,i+6).map(async el=>{
+      const src = await FotosDB.get(el.dataset.fid+'_'+el.dataset.ftipo);
+      if(src){ el.style.backgroundImage='url('+src+')'; el.textContent=''; }
+    }));
   }
+}
+function _fotoNubeError(e){
+  const m=String((e&&e.message)||e||'');
+  if(window._fotoReglasMostrado) return;
+  if(/PERMISSION_DENIED|permission/i.test(m)){ window._fotoReglasMostrado=true; _fotoReglasAyuda(); }
+}
+function _fotoReglasAyuda(){
+  const old=document.getElementById('modal-fotos-reglas'); if(old) old.remove();
+  const bloque='"fotos_usuarios": {\n  "$k": { ".read": "auth != null", ".write": "auth != null" }\n},';
+  const d=document.createElement('div'); d.id='modal-fotos-reglas';
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  d.innerHTML='<div style="background:#fff;border-radius:20px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow:auto;font-family:Nunito,sans-serif">'
+   +'<div style="font-size:17px;font-weight:900;color:#b45309;margin-bottom:8px">☁️ Falta un permiso en Firebase</div>'
+   +'<div style="font-size:13px;font-weight:700;color:#475569;line-height:1.5">Para guardar las fotos en la nube hay que agregar una regla (una sola vez):<br><b>1.</b> Entra a console.firebase.google.com → tu proyecto <b>alissonyemily</b> → <b>Realtime Database</b> → pestaña <b>Reglas</b>.<br><b>2.</b> Debajo de <b>"rules": {</b> pega este bloque (arriba de "usuarios"):</div>'
+   +'<pre id="fr-txt" style="background:#0f172a;color:#a7f3d0;border-radius:12px;padding:10px;font-size:12px;white-space:pre-wrap;margin:8px 0">'+bloque+'</pre>'
+   +'<div style="font-size:13px;font-weight:700;color:#475569;line-height:1.5"><b>3.</b> Toca <b>Publicar</b>. Luego vuelve aquí y toca otra vez "Subir fotos a la nube".</div>'
+   +'<button id="fr-cp" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:900;font-size:14px">📋 Copiar el bloque</button>'
+   +'<button id="fr-x" style="width:100%;margin-top:6px;padding:10px;border:none;background:none;color:#94a3b8;font-weight:800;font-size:13px">Cerrar</button></div>';
+  document.body.appendChild(d);
+  document.getElementById('fr-x').onclick=()=>d.remove();
+  document.getElementById('fr-cp').onclick=()=>{ const ta=document.createElement('textarea'); ta.value=bloque; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); showToast('✅ Copiado');}catch(e){} ta.remove(); };
+}
+async function subirFotosANube(){
+  if(!window._fotoNube){ showToast('❌ La nube no está lista, espera unos segundos'); return; }
+  if(!navigator.onLine){ showToast('❌ Sin internet'); return; }
+  try{
+    showToast('☁️ Revisando fotos…');
+    let idx={}; try{ idx=await window._fotoNube.indice(); }catch(e){ window._fotoReglasMostrado=false; _fotoNubeError(e); if(!/PERMISSION/i.test(String(e.message||e))) showToast('❌ '+(e.message||e)); return; }
+    const pend=[]; let total=0;
+    for(const c of getClientes()){
+      if(!c) continue;
+      for(const tipo of ['cliente','casa']){
+        const k=c.id+'_'+tipo, src=await FotosDB.get(k,true);
+        if(src){ total++; if(!idx[k]) pend.push([k,src]); }
+      }
+    }
+    if(!total){ showToast('📷 En este celular no hay fotos para subir'); return; }
+    if(!pend.length){ showToast('✅ Las '+total+' fotos ya están en la nube'); return; }
+    let ok=0;
+    for(let i=0;i<pend.length;i++){
+      try{ await window._fotoNube.subir(pend[i][0],pend[i][1]); ok++; }
+      catch(e){ window._fotoReglasMostrado=false; _fotoNubeError(e); showToast('❌ Se subieron '+ok+' de '+pend.length); return; }
+      if(i%5===0) showToast('☁️ Subiendo fotos… '+(i+1)+' de '+pend.length);
+    }
+    showToast('✅ Listo: '+ok+' fotos subidas a la nube');
+  }catch(e){ showToast('❌ No se pudieron subir las fotos'); }
 }
 async function exportarFotosClientes(){
   try{
