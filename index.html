@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-20 v124">
+<meta name="app-version" content="2026-11-20 v125">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6064,7 +6064,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-20 v124';
+const APP_VERSION = '2026-11-20 v125';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11534,6 +11534,8 @@ function _jAyuda(){
   +'Cuando quieras ver esto otra vez, escribe "ayuda".';
 }
 function _jConsultas(texto, t){
+  if(/\bvoz normal\b|\brestablec\w* (la )?voz\b/.test(t)){ try{ localStorage.removeItem('jrv_voz_tono'); localStorage.removeItem('jrv_voz_vel'); localStorage.removeItem('jrv_voz_nombre'); }catch(e){} return '🎙️ Listo jefe, volví a mi voz normal.'; }
+  if((/\b(voz|habla\w*|suena)\b/.test(t) && /\b(grave|gruesa|profund\w*|ronca|agud\w*|fina|rapid\w*|lent\w*|despacio)\b/.test(t) && !/gasto|cliente|pago/.test(t)) || /^\s*(mas|menos) (grave|agud\w*|rapid\w*|lent\w*)\b/.test(t)) return jarvisAjustarVoz(t);
   if(/^\s*(ayuda|ayudame|comandos|combinaciones|simbolos|que puedes hacer|que sabes hacer|que haces|como funciona|instrucciones)\b|\bque (puedes|sabes) hacer\b|\blista de comandos\b/.test(t)){ setTimeout(()=>{ try{ jarvisTablero(); }catch(e){} },50); return '📋 Te abro el tablero con todo lo que puedo hacer, jefe.'; }
   if(/\b(cambi\w*|otra|otro|siguiente|distinta|elige\w*|prueba\w*) (la |de |otra |una )?(voz)\b|\bvoz (de )?(hombre|mujer|masculina|femenina|distinta|otra)|\botra voz\b/.test(t) && !/gasto|cliente/.test(t))
     return jarvisCambiarVoz(/hombre|masculin/.test(t)?'hombre':(/mujer|femenin/.test(t)?'mujer':''));
@@ -13399,7 +13401,8 @@ function _jarvisHablar(texto){
         if(idx2 >= fragmentos.length) return;
         const utt = new SpeechSynthesisUtterance(fragmentos[idx2]);
         utt.lang = 'es-CO'; utt.volume = 1.0;
-        if(voz && /natural|online/i.test(voz.name)){ utt.rate = 1.0; utt.pitch = 1.0; } else { utt.rate = 0.97; utt.pitch = 0.8; }
+        if(voz && /natural|online/i.test(voz.name)){ utt.rate = 1.0; utt.pitch = 1.0; } else { utt.rate = 0.97; utt.pitch = 0.7; }
+        try{ const tn=parseFloat(localStorage.getItem('jrv_voz_tono')), vl=parseFloat(localStorage.getItem('jrv_voz_vel')); if(tn>0) utt.pitch=tn; if(vl>0) utt.rate=vl; }catch(e){}
         if(voz) utt.voice = voz;
         utt.onstart = ()=>{
           _jrvHablando = true; window._jrvEmpezo = true;
@@ -13462,14 +13465,27 @@ function _jrvVozGuardada(voces){
   try{ const n=localStorage.getItem('jrv_voz_nombre'); if(n) return (voces||[]).find(v=>v.name===n)||null; }catch(e){}
   return null;
 }
+function jarvisAjustarVoz(t){
+  let tono=0.7, vel=0.97;
+  try{ const a=parseFloat(localStorage.getItem('jrv_voz_tono')), b=parseFloat(localStorage.getItem('jrv_voz_vel')); if(a>0) tono=a; if(b>0) vel=b; }catch(e){}
+  if(/grave|gruesa|profund|ronca/.test(t)) tono=Math.max(0.1,tono-0.15);
+  else if(/agud|fina/.test(t)) tono=Math.min(2,tono+0.15);
+  if(/rapid|mas veloz|acelera/.test(t)) vel=Math.min(2,vel+0.12);
+  else if(/lent|despacio/.test(t)) vel=Math.max(0.5,vel-0.12);
+  try{ localStorage.setItem('jrv_voz_tono',tono.toFixed(2)); localStorage.setItem('jrv_voz_vel',vel.toFixed(2)); localStorage.removeItem('jrv_voz_off'); }catch(e){}
+  setTimeout(()=>_jarvisHablar('Hola jefe, así suena mi voz ahora. ¿Le gusta?'),200);
+  return '🎚️ Listo jefe, ajusté mi voz (tono '+tono.toFixed(2)+', velocidad '+vel.toFixed(2)+'). Dime "más grave", "más aguda", "más rápida" o "más lenta" para seguir ajustándola. Para volver a la normal: "voz normal".';
+}
 function jarvisCambiarVoz(pref){
   if(!window.speechSynthesis) return '🎙️ Jefe, en la app del celular uso una sola voz. En la web (Chrome) sí puedo cambiarla: dime "cambia la voz" allá.';
   const todas=(speechSynthesis.getVoices()||[]).filter(v=>v.lang && /^es/i.test(v.lang));
   if(!todas.length) return '🎙️ Jefe, este navegador no tiene voces en español instaladas.';
   const H=/jorge|diego|carlos|juan|pablo|male|hombre|enrique|miguel|raul|alvaro|pedro|andres|luis|antonio/i, M=/female|mujer|monica|paulina|helena|laura|sabina|lucia|elena|salome|paloma|esperanza|google espa|maria|sofia|camila/i;
   let lista=todas;
-  if(pref==='hombre'){ const f=todas.filter(v=>H.test(v.name)&&!/female/i.test(v.name)); if(f.length) lista=f; }
-  if(pref==='mujer'){ const f=todas.filter(v=>M.test(v.name)); if(f.length) lista=f; }
+  if(pref==='hombre'){ const f=todas.filter(v=>H.test(v.name)&&!/female/i.test(v.name)); if(f.length) lista=f;
+    else { try{ localStorage.setItem('jrv_voz_tono','0.5'); localStorage.removeItem('jrv_voz_off'); }catch(e){} setTimeout(()=>_jarvisHablar('Hola jefe, así suena mi voz de hombre. ¿Le gusta?'),200);
+      return '🎙️ Jefe, tu celular solo trae '+todas.length+' voces genéricas en español y ninguna dice si es de hombre. Te puse la voz más grave para que suene masculina. Si la quieres aún más grave dime "más grave"; si quedó muy gruesa, "más aguda".'; } }
+  if(pref==='mujer'){ const f=todas.filter(v=>M.test(v.name)); if(f.length) lista=f; else { try{ localStorage.setItem('jrv_voz_tono','1.2'); }catch(e){} setTimeout(()=>_jarvisHablar('Hola jefe, así suena mi voz de mujer.'),200); return '🎙️ Listo jefe, subí el tono para que suene más femenina. Dime "más grave" o "más aguda" para ajustarla.'; } }
   let actual=''; try{ actual=localStorage.getItem('jrv_voz_nombre')||''; }catch(e){}
   const i=lista.findIndex(v=>v.name===actual);
   const v=lista[(i+1)%lista.length];
