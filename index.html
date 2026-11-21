@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v128">
+<meta name="app-version" content="2026-11-21 v130">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6067,7 +6067,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v128';
+const APP_VERSION = '2026-11-21 v130';
 
 function mostrarVersionApp(){
   const el = document.getElementById('app-version-fecha');
@@ -11029,7 +11029,6 @@ function _jTipoGasto(desc){
 function _jAgregarGasto(valor, descRaw){
   const tipo = _jTipoGasto(descRaw);
   let desc = String(descRaw||'').trim();
-  if(tipo==='Gasolina' || tipo==='Aceite' || tipo==='Sueldo'){ if(_jNorm(desc)===_jNorm(tipo)||/^(gasolina|aceite|sueldo|combustible)$/i.test(desc)) desc=''; }
   const gastos = getGastosHoy();
   gastos.push({ tipo, valor, desc, hora: new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) });
   saveGastosHoy(gastos);
@@ -11055,9 +11054,13 @@ function _jListarGastos(periodo){
     const cab = periodo==='hoy' ? 'los gastos de hoy fueron' : 'los gastos de ayer fueron';
     if(!l.length && !notas.length) return '🔎 Ya reviso, jefe…\n\nJefe, '+(periodo==='hoy'?'hoy':'ayer')+' no tienes gastos registrados ni anotados.';
     let r = '🔎 Ya reviso, jefe…\n\nJefe, '+cab+':\n';
-    if(notas.length) r += '\n📝 Anotados (todavía NO están en el sistema):\n'+notas.map(n=>'• '+_jNotaTxt(n)).join('\n')+'\n';
-    if(l.length){ const tot=l.reduce((s,g)=>s+(g.valor||0),0); r += '\n✅ Ya ingresados al sistema:\n'+l.map(g=>'• '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\nTotal ingresado: '+_jPesos(tot)+'.\n'; }
-    if(notas.length) r += '\n¿Quieres que ingrese alguno al sistema? No lo ingreso hasta que me digas. Dime por ejemplo "ingresa el de '+((notas[0].desc||'gasto').split(' ')[0])+'" o "ingresa todos".';
+    if(l.length){ const tot=l.reduce((s,g)=>s+(g.valor||0),0); r += '\n✅ En el sistema hay metidos:\n'+l.map(g=>'• '+_jPesos(g.valor)+' '+_jGastoEtiqueta(g)).join('\n')+'\nTotal en el sistema: '+_jPesos(tot)+'.\n'; }
+    else r += '\n✅ En el sistema no hay gastos metidos todavía.\n';
+    if(notas.length){
+      r += '\n📝 Quedan pendientes, sin meter al sistema:\n'+notas.map((n,i)=>(i+1)+') '+_jNotaTxt(n)).join('\n')+'\n';
+      if(periodo==='hoy') window._jAcc={tipo:'notaElige', paso:'num', ts:Date.now(), d:{}, ids:notas.map(n=>n.id)};
+      r += '\n¿Cuál quieres que ingrese? Dime el número (por ejemplo "uno" o "1 y 2") o "todos". No ingreso nada hasta que me digas.';
+    }
     r += '\n¿Quieres borrar algún gasto de '+(periodo==='hoy'?'hoy':'ayer')+'?';
     return r;
   }
@@ -11159,7 +11162,7 @@ function _jNotasIntent(texto,t){
     return '🗑️ ¿Cuál gasto borro, jefe? Dime el número o el nombre:\n'+lista.map((x,i)=>(i+1)+') '+x.txt).join('\n');
   }
   // ingresar una nota al sistema
-  if(pend.length && !verbDel && (verbIng||tambien) && (hayGasto || tambien || /\b(el|la) (de|del)\b/.test(t))){
+  if(pend.length && !verbDel && !/\d/.test(texto) && (verbIng||tambien) && (hayGasto || tambien || /\b(el|la) (de|del)\b/.test(t))){
     if(/\bcuota\b|renov|pendiente para/.test(t) && !hayGasto) return null;
     if(/\b(todos|todas|todo)\b/.test(t) && (hayGasto||verbIng)){
       window._jAcc={tipo:'notaConf', paso:'si', ts:Date.now(), d:{}, ids:pend.map(n=>n.id)};
@@ -11637,13 +11640,16 @@ function _jConsultas(texto, t){
     return _jPrestadoSemana(/semana (pasada|anterior)|pasada/.test(t) ? -1 : 0);
   // gastos: anotar
   const _pideLista = /\b(los|mis|todos los|cuales|que) gastos\b|gastos (de|del|que|hoy|ayer|semana)/.test(t) && !/\d/.test(texto);
-  if(!_pideLista && /\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*)\b.*\bgasto\b|\bnuevo gasto\b|\bgaste\b/.test(t)){
-    const m = _jMonto(texto.replace(/^.*?\bgasto\b[:\s]*/i,'') ) || _jMonto(texto);
+  if(!_pideLista && (/\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*|ingres\w*|met\w*|pon\w*|agreg\w*|suma\w*|carg\w*|sub\w*)\b.*\bgastos?\b|\bnuevo gasto\b|\bgaste\b|\bgastos?\b.*\b(ingres\w*|met\w*|anot\w*)\b/.test(t)) && !/\b(borr\w*|elimin\w*|quit\w*|anul\w*)\b/.test(t)){
+    let base = texto.replace(/\b(recuerd\w*|anota\w*|apunta\w*|registra\w*|guarda\w*|ingresa\w*|ingrese\w*|mete\w*|metele|pon\w*|agrega\w*|suma\w*|carga\w*|sube|subir)\b/ig,' ')
+      .replace(/\b(el|un|nuevo|este|mi)\s+gastos?\b/ig,' ').replace(/\bgastos?\b/ig,' ')
+      .replace(/\b(como|al sistema|por favor|jefe|gaste)\b/ig,' ').replace(/\s+/g,' ').trim();
+    const m = _jMonto(base);
     if(!m){ window._jAcc={tipo:'gasto',paso:'monto',ts:Date.now(),d:{}}; return 'Claro jefe, ¿de cuánto fue el gasto y en qué? (por ejemplo: 3.000 jugo de patilla)'; }
-    let resto = texto.replace(/^.*?\bgasto\b[:\s]*/i,'');
-    resto = (resto||texto).replace(m.texto,'').replace(/^[\s:,\-]*(de|en|para|por)?\s+/i,'').replace(/\s+/g,' ').trim();
+    let resto = base.replace(m.texto,' ').replace(/\s+/g,' ').trim();
+    for(let k=0;k<4;k++) resto = resto.replace(/^([\s:,\-]|\b(de|en|para|por|del|la|el|los)\b)+/i,'').replace(/([\s:,\-]|\b(de|en|para|por|del)\b)+$/i,'').trim();
     const g = _jAgregarGasto(m.valor, resto);
-    return '✅ Listo jefe, anoté el gasto: '+(g.desc||g.tipo)+' por '+_jPesos(m.valor)+' (en la app aparece como '+_jFm(m.valor)+').\nLlevas '+_jPesos(g.total)+' en gastos hoy.';
+    return '✅ Listo jefe, ya ingresé el gasto al sistema: '+(resto||g.tipo)+' por '+_jPesos(m.valor)+' (en la app aparece como '+_jFm(m.valor)+').\nLlevas '+_jPesos(g.total)+' en gastos hoy.';
   }
   // gastos: consultar
   if(/gastos?/.test(t) && /(hoy|ayer|semana|recuerd|dame|dime|muestr|cuales|cuanto|que gastos|mis gastos|tuve|llevo|fueron)/.test(t) && !/(plenos?|cuota)/.test(t)){
@@ -11750,6 +11756,22 @@ function _jAcciones(texto){
         if(monto>0){ window._jAcc=null; return _jRegistrarPagoJ(cc, monto); }
         if(A0.paso==='monto' && _jNum(texto)===null){ window._jAcc=null; return _jAcciones(texto); }
         A0.cid=cid; A0.paso='monto'; return '¿Cuánto pagó '+cc.nombre+', jefe?';
+      }
+      window._jAcc=null; return _jAcciones(texto);
+    }
+    if(window._jAcc.tipo==='notaElige'){
+      const A0=window._jAcc, pal={uno:1,una:1,primero:1,primer:1,dos:2,segundo:2,tres:3,tercero:3,cuatro:4,cuarto:4,cinco:5,quinto:5,seis:6,siete:7,ocho:8};
+      const toks=t.split(/[^a-z0-9ñ]+/).filter(Boolean);
+      const nums=[...new Set(toks.map(w=>/^\d+$/.test(w)?+w:pal[w]).filter(n=>n>=1 && n<=A0.ids.length))];
+      const todos=/\b(todos|todas|todo)\b/.test(t);
+      const borrar=/\b(borr\w*|elimin\w*|quit\w*|anul\w*)\b/.test(t);
+      if(nums.length || (todos && !/gasto/.test(t.replace(/gastos? de hoy/,'')))){
+        const ids = todos ? A0.ids.slice() : nums.map(n=>A0.ids[n-1]);
+        window._jAcc=null;
+        const lista=_jNotasGet().filter(n=>ids.includes(n.id));
+        if(borrar){ _jNotasSet(_jNotasGet().filter(n=>!ids.includes(n.id))); return '🗑️ Listo jefe, borré '+(lista.length===1?'la nota':'las notas')+': '+lista.map(_jNotaTxt).join(', ')+'.'; }
+        window._jAcc={tipo:'notaConf', paso:'si', ts:Date.now(), d:{}, ids};
+        return '🤔 ¿Ingreso '+(lista.length===1?'el':'los')+' '+lista.map((n,i)=>(todos?'':(nums[i]+') '))+_jNotaTxt(n)).join(' y ')+' al sistema, jefe? (dime sí o no)';
       }
       window._jAcc=null; return _jAcciones(texto);
     }
