@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v146">
+<meta name="app-version" content="2026-11-22 v147">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v146';
+const APP_VERSION = '2026-11-22 v147';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11869,6 +11869,7 @@ function _jConsultas(texto, t){
   { const _pm=_jPanelManualIntent(texto,t); if(_pm) return _pm; }
   { const _nl=_jNotaLibreIntent(texto,t); if(_nl) return _nl; }
   { const _qp=_jQuienPagoIntent(texto,t); if(_qp) return _qp; }
+  { const _rs=_jResumenSemanaIntent(texto,t); if(_rs) return _rs; }
   if(/^\s*(por favor |jarvis )?(guarda|guardar|guardalo|guardala|guarda y limpia|guardar y limpiar|guarda el dia|guarda la liquidacion|guarda las cuentas|guarda el cierre)\s*(el dia|la liquidacion|las cuentas|y limpia\w*|ya|por favor)?\s*$/.test(t)) return _jGuardarDia();
   { const _rp=_jReporteIntent(texto,t); if(_rp) return _rp; }
   { const _cp=_jCorregirPerdida(texto,t); if(_cp) return _cp; }
@@ -12065,6 +12066,50 @@ function _jQuienPagoIntent(texto,t){
   const dia=F===_jIso(new Date())?'hoy':'el '+_jDiaNombre(F);
   if(!n) return '🔎 Ya reviso, jefe… '+dia+' no aparece ningún pago registrado.';
   return '🔎 Ya reviso, jefe…\n\n✅ Pagaron '+dia+' ('+n+' cliente'+(n>1?'s':'')+'):\n'+filas.join('\n')+'\n\n💰 Total: '+_jFm(tot)+'.';
+}
+function _jPrestadoDelDia(F, clientes){
+  const nuevos=[], renov=[];
+  clientes.forEach(c=>{
+    const h=(c.historialRenovaciones||[]).slice().sort((a,b)=>(a.numRenovacion||0)-(b.numRenovacion||0));
+    const fc=String(c.fechaCreado||'').substring(0,10);
+    if(fc===F){ const cap=h.length? (h[0].capitalCiclo||0) : (c.capital||0); if(cap>0) nuevos.push({n:c.nombre,v:cap}); }
+    h.forEach(r=>{ if(String(r.fecha||'').substring(0,10)===F && (r.nuevoCapital||0)>0) renov.push({n:c.nombre,v:r.nuevoCapital}); });
+    if(!h.some(r=>String(r.fecha||'').substring(0,10)===F) && String(c.fechaRenovacion||'').substring(0,10)===F && (c.capital||0)>0) renov.push({n:c.nombre,v:c.capital});
+  });
+  return {nuevos,renov,total:nuevos.concat(renov).reduce((a,x)=>a+x.v,0)};
+}
+function _jResumenSemanaIntent(texto,t){
+  const pideRes=/\bresumen\b/.test(t) && (/\bsemana\b|\bsemanal\b/.test(t));
+  const pidePl=/\bplenos?\b/.test(t) && (/\bsemana\b|\bresumen\b|\bpor dia\b|\bdia por dia\b/.test(t));
+  if(!(pideRes||pidePl)) return null;
+  if(/\b(imprim\w*|pdf|reporte|renov\w*|gastos?|semanales|clientes?)\b/.test(t)) return null;
+  const soloPlenos = pidePl; // "resumen de los plenos" / "plenos de la semana por día"
+  const off=/semana (pasada|anterior)/.test(t)?-1:0;
+  const lunes=_jLunes(off), hoyIso=_jIso(new Date());
+  const cs=getClientes();
+  let hist=[]; try{ hist=JSON.parse(lsGet('hist_v3')||'[]'); }catch(e){}
+  const lineasPl=[], bloques=[]; let tPl=0,tPr=0,tEn=0,tGa=0,hayDia=false;
+  for(let i=0;i<7;i++){
+    const d=new Date(lunes); d.setDate(lunes.getDate()+i); const F=_jIso(d);
+    if(F>hoyIso) break;
+    const dia=_J_DIAS_L[i]+' '+d.getDate();
+    const pl=_orbePlenoRealDia(F).pleno||0;
+    const pr=_jPrestadoDelDia(F,cs);
+    const h=hist.find(x=>x.fecha===F)||_calcularDiaPuro(F,cs);
+    const ent=h.entregado||0, gas=h.gasto||0;
+    if(!pl && !pr.total && !ent && !gas) continue;
+    hayDia=true; tPl+=pl; tPr+=pr.total; tEn+=ent; tGa+=gas;
+    lineasPl.push(dia+': '+_jFm(pl));
+    let b='📅 '+dia+(F===hoyIso?' (hoy, va parcial)':'')+'\n   🎯 Pleno: '+_jFm(pl)+'\n   💸 Prestaste: '+_jFm(pr.total);
+    if(pr.nuevos.length) b+='\n        • Nuevos '+_jFm(pr.nuevos.reduce((a,x)=>a+x.v,0))+': '+pr.nuevos.map(x=>x.n+' '+_jFm(x.v)).join(', ');
+    if(pr.renov.length) b+='\n        • Renovaciones '+_jFm(pr.renov.reduce((a,x)=>a+x.v,0))+': '+pr.renov.map(x=>x.n+' '+_jFm(x.v)).join(', ');
+    b+='\n   🏦 Entregaste: '+_jFm(ent)+'\n   🧾 Gastos: '+_jFm(gas);
+    bloques.push(b);
+  }
+  const rango=(off?'de la semana pasada':'de esta semana');
+  if(!hayDia) return '📭 No encuentro movimiento '+rango+', jefe.';
+  if(soloPlenos) return '🎯 Jefe, estos son los plenos '+rango+':\n\n'+lineasPl.join('\n')+'\n\n✅ Pleno total: '+_jFm(tPl)+'.';
+  return '📊 Jefe, este es el resumen '+rango+':\n\n'+bloques.join('\n\n')+'\n\n✅ Total de la semana → Pleno: '+_jFm(tPl)+' · Prestaste: '+_jFm(tPr)+' · Entregaste: '+_jFm(tEn)+' · Gastos: '+_jFm(tGa)+'.';
 }
 function _jGuardarDia(){
   let d; try{ d=getDatos(); }catch(e){ d={}; }
