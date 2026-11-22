@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-21 v143">
+<meta name="app-version" content="2026-11-21 v146">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-21 v143';
+const APP_VERSION = '2026-11-21 v146';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11317,6 +11317,57 @@ function _jFichaCompleta(c){
   if(c.nota) L.push('Nota: '+c.nota);
   return L.join('\n');
 }
+/* ---- Pendientes de semanales guardados en las notas ---- */
+function _jPendSemGet(){ try{ return JSON.parse(localStorage.getItem('jrv_pend_sem')||'[]'); }catch(e){ return []; } }
+function _jPendSemSet(l){ try{ localStorage.setItem('jrv_pend_sem',JSON.stringify(l)); }catch(e){} }
+function _jPendSemVigentes(){
+  // quita los que ya pagaron la cuota de esa semana
+  const cs=getClientes(), out=[];
+  _jPendSemGet().forEach(e=>{
+    const c=cs.find(x=>x.id===e.cid); if(!c || c.volado || (c.saldo||0)<=0) return;
+    const d=new Date(e.fecha+'T12:00:00'); const lun=new Date(d); lun.setDate(d.getDate()-((d.getDay()+6)%7)); const dom=new Date(lun); dom.setDate(lun.getDate()+6);
+    const i0=_jIso(lun), i1=_jIso(dom);
+    const tot=(c.pagos||[]).filter(x=>{const f=String(x.fecha||'').substring(0,10); return f>=i0 && f<=i1;}).reduce((a,x)=>a+(x.monto||0),0);
+    const cuota=c.cuotaSugerida||e.cuota||0;
+    if(tot>=cuota) return;
+    out.push(Object.assign({},e,{nombre:c.nombre,cuota,falta:cuota-tot}));
+  });
+  _jPendSemSet(out.map(e=>({cid:e.cid,nombre:e.nombre,fecha:e.fecha,dia:e.dia,cuota:e.cuota})));
+  return out;
+}
+function _jPendSemTexto(){
+  const l=_jPendSemVigentes(); if(!l.length) return '';
+  const orden=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  const por={}; l.forEach(e=>{ (por[e.fecha]=por[e.fecha]||{dia:e.dia,l:[]}).l.push(e); });
+  let r='📌 Jefe, tienes en notas estos clientes pendientes del pago de semanales:\n';
+  Object.keys(por).sort().forEach(f=>{ const g=por[f]; r+='\n'+g.dia.charAt(0).toUpperCase()+g.dia.slice(1)+' ('+_jDiaCorto(f)+')\n'+g.l.map(e=>'   • '+e.nombre+' — cuota '+_jFm(e.cuota)+(e.falta<e.cuota?' (le falta '+_jFm(e.falta)+')':'')).join('\n')+'\n'; });
+  return r;
+}
+/* Anota SOLO (sin que lo pidas) a los semanales que no dieron la cuota el día que les tocaba */
+function _jPendSemEscanear(){
+  try{
+    const hoyIso=_jIso(new Date());
+    let desde=localStorage.getItem('jrv_pend_sem_desde');
+    if(!desde){ desde=hoyIso; localStorage.setItem('jrv_pend_sem_desde',desde); }
+    const dn={lunes:0,martes:1,miercoles:2,jueves:3,viernes:4,sabado:5,domingo:6};
+    const lunes=_jLunes(0), fechaDe=i=>{ const d=new Date(lunes); d.setDate(lunes.getDate()+i); return _jIso(d); };
+    const iniSem=fechaDe(0), finSem=fechaDe(6);
+    const g=_jPendSemGet(); let cambio=false;
+    getClientes().forEach(c=>{
+      if(!c || !c.diaSemana || c.volado || (c.saldo||0)<=0 || dn[_jNorm(c.diaSemana)]===undefined) return;
+      const i=dn[_jNorm(c.diaSemana)], F=fechaDe(i);
+      if(F>=hoyIso || F<desde) return;                       // el día de hoy todavía no termina
+      if((c.fechaCreado||'0000').substring(0,10)>F) return;
+      if(g.some(e=>e.cid===c.id && e.fecha===F)) return;     // ya estaba anotado (o ya lo quitaste)
+      const cuota=c.cuotaSugerida||0; if(cuota<=0) return;
+      const tot=(c.pagos||[]).filter(x=>{const f=String(x.fecha||'').substring(0,10); return f>=iniSem && f<=finSem;}).reduce((a,x)=>a+(x.monto||0),0);
+      if(tot>=cuota) return;
+      g.push({cid:c.id,nombre:c.nombre,fecha:F,dia:_J_DIAS_L[i].toLowerCase(),cuota}); cambio=true;
+    });
+    if(cambio) _jPendSemSet(g);
+  }catch(e){}
+}
+setTimeout(_jPendSemEscanear,6000); setInterval(_jPendSemEscanear,10*60*1000);
 function _jRevisarSemanales(t){
   const dn={lunes:0,martes:1,miercoles:2,jueves:3,viernes:4,sabado:5,domingo:6};
   const off=/semana (pasada|anterior)/.test(t)?-1:0;
@@ -11327,8 +11378,8 @@ function _jRevisarSemanales(t){
   const iniSem=fechaDe(0), finSem=fechaDe(6);
   const sem=getClientes().filter(c=>c && c.diaSemana && !c.volado && dn[_jNorm(c.diaSemana)]!==undefined);
   const lista=(a)=>a.length===1?a[0]:a.slice(0,-1).join(', ')+' y '+a[a.length-1];
-  let r='🔎 Ya reviso, jefe…\n\n📅 Semanales '+(off?'de la semana pasada':'de esta semana')+':\n';
-  const pendientes=[]; let hay=false;
+  let r='🔎 Ya reviso, jefe…\n';
+  const nuevos=[]; let hay=false;
   for(let i=0;i<7;i++){
     if(dias.length && dias.indexOf(i)<0) continue;
     const F=fechaDe(i); if(F>hoyIso) continue;
@@ -11336,26 +11387,32 @@ function _jRevisarSemanales(t){
       ((c.saldo||0)>0 || (c.pagos||[]).some(x=>String(x.fecha||'').substring(0,10)===F)));
     if(!del.length) continue; hay=true;
     const dia=_J_DIAS_L[i].toLowerCase(), esHoy=(F===hoyIso);
-    const completos=[], incompletos=[], nopagaron=[];
+    const lin=[];
     del.forEach(c=>{
       const cuota=c.cuotaSugerida||0;
       const pg=(c.pagos||[]).filter(x=>String(x.fecha||'').substring(0,10)>=iniSem && String(x.fecha||'').substring(0,10)<=finSem);
       const dado=pg.filter(x=>x.fecha===F).reduce((a,x)=>a+(x.monto||0),0);
       const total=pg.reduce((a,x)=>a+(x.monto||0),0);
-      if(dado>0 && dado>=cuota){ completos.push(c.nombre+' '+_jFm(dado)); return; }
-      if(total<cuota) pendientes.push(c.nombre+(dado>0?' (le falta '+_jFm(cuota-total)+')':''));
-      if(dado>0) incompletos.push(c.nombre+' solo dio '+_jFm(dado)+' de '+_jFm(cuota));
-      else nopagaron.push(c.nombre+(total>0?' (pagó '+_jFm(total)+' otro día)':''));
+      const otro=(total>dado)?' (pagó '+_jFm(total-dado)+' otro día)':'';
+      if(dado>0 && dado>=cuota){ lin.push('✅ '+c.nombre+' dio '+_jFm(dado)+' (la cuota era de '+_jFm(cuota)+').'); return; }
+      if(dado>0){
+        lin.push('⚠️ '+c.nombre+' dio '+_jFm(dado)+' y la cuota era de '+_jFm(cuota)+', quedó debiendo '+_jFm(cuota-dado)+'.'+otro);
+      } else {
+        lin.push((esHoy?'⏳ ':'❌ ')+c.nombre+(esHoy?' todavía no ha dado, la cuota es de ':' no dio, tenía que dar ')+_jFm(cuota)+'.'+otro);
+      }
+      if(!esHoy && total<cuota) nuevos.push({cid:c.id,nombre:c.nombre,fecha:F,dia:dia,cuota:cuota});
     });
-    r+='\n'+(esHoy?'🔔 ':'📅 ')+'El día '+dia+' tienes '+del.length+' semanal'+(del.length>1?'es':'')+': '+lista(del.map(c=>c.nombre))+'.\n';
-    if(completos.length) r+='   ✅ Pagaron: '+completos.join('; ')+'.\n';
-    if(incompletos.length) r+='   ⚠️ Incompleto: '+incompletos.join('; ')+'.\n';
-    if(nopagaron.length) r+='   ❌ '+(esHoy?'Todavía no han pagado: ':'No pagaron: ')+nopagaron.join('; ')+'.\n';
+    r+='\n📅 '+(esHoy?'Hoy ':'El ')+dia+' tenías '+del.length+' semanal'+(del.length>1?'es':'')+' ('+lista(del.map(c=>c.nombre))+'):\n'+lin.join('\n')+'\n';
   }
   if(!hay) return '🔎 Ya reviso, jefe…\n\nNo encontré clientes semanales para revisar en esos días.';
-  r+='\n';
-  if(pendientes.length) r+='⏳ Tienes pago pendiente de semanales ('+pendientes.length+'): '+lista(pendientes)+'.';
-  else r+='🎉 No tienes pagos pendientes de semanales, todos están al día.';
+  if(nuevos.length){
+    const g=_jPendSemGet().filter(e=>!nuevos.some(n=>n.cid===e.cid && n.fecha===e.fecha));
+    _jPendSemSet(g.concat(nuevos));
+    const pend=_jPendSemVigentes();
+    r+='\n📝 Ya los anoté en tus notas, jefe. Pendientes del pago de semanales ('+pend.length+'): '+lista(pend.map(e=>e.nombre+' '+_jFm(e.cuota)))+'.\nCuando quieras dime "muéstrame la nota".';
+  } else {
+    r+='\n🎉 Ninguno quedó pendiente de lo que ya les tocaba.';
+  }
   return r;
 }
 function _jSemanalesDe(fechaObj, etiqueta){
@@ -11369,7 +11426,7 @@ function _jSemanalesDe(fechaObj, etiqueta){
     tot+=(c.cuotaSugerida||0); const pg = esHoy?pagoDe(c):0; cob+=pg;
     return '• '+c.nombre+' — cuota '+_jFm(c.cuotaSugerida||0)+' (saldo '+_jFm(c.saldo||0)+')'+(esHoy?(pg>0?' ✅ pagó '+_jFm(pg):' ⏳ falta'):'');
   });
-  return '🔎 Ya reviso, jefe…\n\n📅 Semanales para '+etiqueta+', '+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+' ('+lista.length+' clientes):\n'+filas.join('\n')+'\n\n💰 Cuota esperada: '+_jFm(tot)+'.'+(esHoy?' Cobrado: '+_jFm(cob)+'.':'');
+  return '🔎 Ya reviso, jefe…\n\n📅 Semanales para '+etiqueta+', '+_J_DIAS_L[(wd+6)%7]+' '+_jDiaCorto(F)+' ('+lista.length+' clientes):\n'+filas.join('\n')+'\n\n💰 Cuota esperada: '+_jFm(tot)+'.'+(esHoy?' Cobrado: '+_jFm(cob)+'.':'')+'\n\n👉 Para ver quién pagó ese día dime: "quién no dio ese día".';
 }
 
 /* ============================================================
@@ -11811,6 +11868,7 @@ function _jPanelManualIntent(texto,t){
 function _jConsultas(texto, t){
   { const _pm=_jPanelManualIntent(texto,t); if(_pm) return _pm; }
   { const _nl=_jNotaLibreIntent(texto,t); if(_nl) return _nl; }
+  { const _qp=_jQuienPagoIntent(texto,t); if(_qp) return _qp; }
   if(/^\s*(por favor |jarvis )?(guarda|guardar|guardalo|guardala|guarda y limpia|guardar y limpiar|guarda el dia|guarda la liquidacion|guarda las cuentas|guarda el cierre)\s*(el dia|la liquidacion|las cuentas|y limpia\w*|ya|por favor)?\s*$/.test(t)) return _jGuardarDia();
   { const _rp=_jReporteIntent(texto,t); if(_rp) return _rp; }
   { const _cp=_jCorregirPerdida(texto,t); if(_cp) return _cp; }
@@ -11949,9 +12007,11 @@ function _jNotaLibreAnotar(txt){
   return '📝 Listo jefe, anoté: "'+txt+'".\nCuando la quieras ver dime "muéstrame las notas".';
 }
 function _jNotasLibresListar(){
-  const l=_jNotasLibres();
-  if(!l.length) return '📝 No tienes ninguna nota guardada, jefe. Para anotar una dime: "nota: hoy toca ir a las 12 donde Juan".';
-  return '📝 Tus notas, jefe ('+l.length+'):\n\n'+l.map((n,i)=>(i+1)+'. '+n.txt+'\n    🕒 '+_jNotaLibreFecha(n.ts)).join('\n\n')+'\n\nPara quitar una dime "borra la nota 2" o "borra todas las notas".';
+  _jPendSemEscanear();
+  const l=_jNotasLibres(), ps=_jPendSemTexto();
+  if(!l.length && !ps) return '📝 No tienes ninguna nota guardada, jefe. Para anotar una dime: "nota: hoy toca ir a las 12 donde Juan".';
+  if(!l.length) return ps+'\nPara quitarlos dime "borra los pendientes".';
+  return (ps?ps+'\n':'')+'📝 Tus notas, jefe ('+l.length+'):\n\n'+l.map((n,i)=>(i+1)+'. '+n.txt+'\n    🕒 '+_jNotaLibreFecha(n.ts)).join('\n\n')+'\n\nPara quitar una dime "borra la nota 2" o "borra todas las notas".';
 }
 function _jNotaLibreIntent(texto,t){
   if(/\bgastos?\b/.test(t)) return null;
@@ -11960,12 +12020,14 @@ function _jNotaLibreIntent(texto,t){
   const rg=/^\s*(?:toma\s+nota|nueva\s+nota|an[oó]ta(?:me)?\s+(?:una\s+|esta\s+|la\s+)?nota|an[oó]ta(?:me)?\s+(?:esto|que)|ap[uú]nta(?:me)?\s+(?:una\s+|esta\s+)?nota|ap[uú]nta(?:me)?\s+(?:esto|que)|gu[aá]rda(?:me)?\s+(?:esta\s+|la\s+|una\s+)?nota|nota\s*[:\-])\s*[:,\-]?\s*([\s\S]+)$/i;
   const mg=texto.match(rg);
   if(mg) return _jNotaLibreAnotar(mg[1]);
+  if(/\b(borr\w*|elimin\w*|quit\w*|limpi\w*|vaci\w*)\b/.test(t) && /\bpendientes\b/.test(t) && !/\b(renov\w*|renovacion\w*)\b/.test(t) && (/\bsemanal/.test(t) || !_jPendGet().length) && _jPendSemGet().length){ _jPendSemSet([]); return '🗑️ Listo jefe, borré los pendientes de semanales de las notas.'; }
   if(!/\bnotas?\b/.test(t)) return null;
   if(_jBuscar(texto).length) return null; // "la nota de Juan" es otra cosa (nota del cliente)
   if(/\b(borr\w*|elimin\w*|quit\w*|limpi\w*|vaci\w*)\b/.test(t)){
     const l=_jNotasLibres();
+    if(!l.length && /pendiente/.test(t)){ _jPendSemSet([]); return '🗑️ Listo jefe, borré los pendientes de semanales de las notas.'; }
     if(!l.length) return '📝 No tienes notas guardadas, jefe.';
-    if(/\b(todas|todo|todos)\b/.test(t)){ _jNotasLibresSet([]); return '🗑️ Listo jefe, borré todas las notas.'; }
+    if(/\b(todas|todo|todos)\b/.test(t)){ _jNotasLibresSet([]); _jPendSemSet([]); return '🗑️ Listo jefe, borré todas las notas (y los pendientes de semanales).'; }
     const n=t.match(/\b(\d{1,2})\b/);
     if(n && +n[1]>=1 && +n[1]<=l.length){ const q=l.splice(+n[1]-1,1)[0]; _jNotasLibresSet(l); return '🗑️ Listo jefe, borré la nota: "'+q.txt+'".'; }
     if(l.length===1){ _jNotasLibresSet([]); return '🗑️ Listo jefe, borré la nota: "'+l[0].txt+'".'; }
@@ -11973,6 +12035,36 @@ function _jNotaLibreIntent(texto,t){
   }
   if(/\b(muestr\w*|mostr\w*|ver|veo|dame|dime|lee\w*|cuales|que dice|que tengo|mis|revisa\w*|abre)\b/.test(t) || /^\s*(las |mis )?notas?\s*$/.test(t)) return _jNotasLibresListar();
   return null;
+}
+function _jQuienPagoIntent(texto,t){
+  const diasN=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+  const dm=diasN.filter(k=>new RegExp('\\b'+k+'s?\\b').test(t));
+  if(/\bsemanal/.test(t) && dm.length) window._jSemCtx={dias:dm,ts:Date.now()};
+  if(/\bsemanal/.test(t) && dm.length && !/\b(proxim\w*|siguiente|que viene|manana|toca|tocan|le toca)\b/.test(t)){
+    const hoyI=(new Date().getDay()+6)%7;
+    if(dm.every(k=>diasN.indexOf(k)<=hoyI)) return _jRevisarSemanales(t);
+  }
+  const pregunta=/\b(quien|quienes|cuales|que clientes|cuantos|que semanales)\b/.test(t);
+  const verbo=/\b(pago|pagaron|dio|dieron|metio|metieron|plata|cuota|cuotas|ingreso|ingresaron|cobr\w*)\b/.test(t);
+  if(!pregunta || !verbo) return null;
+  if(/\b(renov|gasto|pendient|nota|volad|cancel\w*|debe|deben|atrasad\w*|mora)\b/.test(t)) return null;
+  const ctx=window._jSemCtx && Date.now()-window._jSemCtx.ts<20*60*1000 ? window._jSemCtx : null;
+  const ese=/\b(ese dia|esos dias|ese mismo dia|ese|esos)\b/.test(t);
+  if((/\bsemanal/.test(t) && !dm.length && !/semana/.test(t) && !ese) ) return null;
+  if(ctx && !dm.length && (ese || (/\bno\b/.test(t) && !/\b(hoy|ayer|anteayer)\b/.test(t)))) return _jRevisarSemanales('semanales '+ctx.dias.join(' '));
+  if(/\bsemanal/.test(t)) return _jRevisarSemanales(t);
+  if(/\bno\b/.test(t)){
+    return '🤔 ¿De cuáles quieres saber quién NO pagó, jefe? Para los semanales dime: "revisa los semanales del martes" o "semanales que no dieron esta semana". Para ver quién sí pagó dime: "quién pagó hoy".';
+  }
+  const F=_jParseFechaReporte(t)||_jIso(new Date());
+  const filas=[]; let tot=0, n=0;
+  getClientes().forEach(c=>{
+    const v=(c.pagos||[]).filter(x=>String(x.fecha||'').substring(0,10)===F).reduce((a,x)=>a+(x.monto||0),0);
+    if(v>0){ filas.push('• '+c.nombre+': '+_jFm(v)); tot+=v; n++; }
+  });
+  const dia=F===_jIso(new Date())?'hoy':'el '+_jDiaNombre(F);
+  if(!n) return '🔎 Ya reviso, jefe… '+dia+' no aparece ningún pago registrado.';
+  return '🔎 Ya reviso, jefe…\n\n✅ Pagaron '+dia+' ('+n+' cliente'+(n>1?'s':'')+'):\n'+filas.join('\n')+'\n\n💰 Total: '+_jFm(tot)+'.';
 }
 function _jGuardarDia(){
   let d; try{ d=getDatos(); }catch(e){ d={}; }
