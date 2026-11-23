@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v161">
+<meta name="app-version" content="2026-11-23 v164">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1373,7 +1373,7 @@ button[onclick="exportarDatos()"]{
     <button class="ftipo-chip" data-f="diario" onclick="setFiltroTipo('diario')">☀️ Diarios<b id="ft-diario">0</b></button>
     <button class="ftipo-chip" data-f="semanal" onclick="setFiltroTipo('semanal')">📅 Semanales<b id="ft-semanal">0</b></button>
     <button class="ftipo-chip" data-f="hoy" onclick="setFiltroTipo('hoy')">🔔 Hoy<b id="ft-hoy">0</b></button>
-    <button class="ftipo-chip" data-f="volado" onclick="setFiltroTipo('volado')">🏃 Voladas<b id="ft-volado">0</b></button>
+    <button class="ftipo-chip" data-f="volado" onclick="setFiltroTipo('volado')">🛑 Cartones parados<b id="ft-volado">0</b></button>
   </div>
   <!-- Resumen rápido clientes -->
   <div style="margin:10px 14px 0;background:white;border-radius:14px;padding:12px 14px;border:1px solid #e8ccf5">
@@ -5099,7 +5099,7 @@ function renderClientes(){
 
         <!-- ══ VOLADO ══ -->
         <button onclick="marcarVolado('${c.id}')" style="width:100%;padding:7px;margin-bottom:5px;background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#c2410c;border:1.5px solid #fdba74;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-          <span style="font-size:12px">🏃</span> Marcar como volado (se fue sin pagar)
+          <span style="font-size:12px">🏃</span> Marcar como cartón parado (se fue sin pagar)
         </button>
 
         <!-- ══ HISTORIAL ══ -->
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v161';
+const APP_VERSION = '2026-11-23 v164';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -8325,7 +8325,7 @@ function imprimirReporteDia(fechaOpt, conCuotasOpt){
         doc.setFont('helvetica','normal'); doc.setFontSize(o.size || 7);
         const wN = doc.getTextWidth(String(vals[1]));
         doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
-        doc.text('VOLADO', margin+1+cols[0].w+wN+2, y+5);
+        doc.text('PARADO', margin+1+cols[0].w+wN+2, y+5);
       }
       y += rowH;
       lineas.push(y);
@@ -8366,7 +8366,7 @@ function imprimirReporteDia(fechaOpt, conCuotasOpt){
       if(f.vol){
         const wN = doc.getTextWidth(f.nombre);
         doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
-        doc.text('VOLADO', cx+wN+2, y+3.8);
+        doc.text('PARADO', cx+wN+2, y+3.8);
       }
       doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
       doc.text('C.C. '+(f.cedula||'-')+'   |   Tel. '+(f.tel||'-'), cx, y+7.2);
@@ -8764,7 +8764,7 @@ function generarPDFRuta(fechaOpt){
           if(f.vol){
             const wN=doc.getTextWidth(txt);
             doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(200,0,0);
-            doc.text('VOLADO', cx+wN+2, y+3.8);
+            doc.text('PARADO', cx+wN+2, y+3.8);
           }
           if(f.cedula||f.tel){
             doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(90,90,90);
@@ -11460,7 +11460,7 @@ function _jFichaCompleta(c){
   L.push('Teléfono: '+(c.tel||c.telefono||c.celular||'no tiene')); L.push('Dirección: '+(c.dir||c.direccion||'no tiene'));
   L.push('Tipo: '+(c.tipo||'')+(c.diaSemana?' (cobra los '+c.diaSemana+')':'')); L.push('Cuota: '+f(c.cuotaSugerida));
   L.push('Préstamo actual: '+f(c.prestamo)+' | Capital entregado: '+f(c.capital)+' | Saldo que debe: '+f(c.saldo));
-  if(c.volado) L.push('ESTÁ VOLADO. Deuda perdida: '+f(c.saldoPerdido)+(c.fechaVolado?' desde '+c.fechaVolado:''));
+  if(c.volado) L.push('ES CARTÓN PARADO. Deuda perdida: '+f(c.saldoPerdido)+(c.fechaVolado?' desde '+c.fechaVolado:''));
   if(c.fechaCreado) L.push('Ingresó: '+String(c.fechaCreado).substring(0,10));
   if(c.papeleriaCreacion) L.push('Papelería al crear: '+f(c.papeleriaCreacion));
   L.push('Renovaciones: '+(c.renovaciones||0)+(c.fechaRenovacion?' (última '+String(c.fechaRenovacion).substring(0,10)+')':''));
@@ -11710,6 +11710,20 @@ function _jActualizarDiaPasado(fecha){
   }catch(e){ return ''; }
 }
 function _jRegistrarPagoJ(c, monto, fechaPago){
+  /* Anti-duplicado: si ya le ingresaste cuota a ese cliente ese día, avisa y pregunta antes de meter otra */
+  if(!window._jDupOK){
+    try{
+      const _fd=fechaPago||getFechaActiva();
+      const _cc=getClientes().find(x=>x.id===c.id);
+      const _ya=((_cc&&_cc.pagos)||[]).filter(p=>p.fecha===_fd);
+      if(_ya.length){
+        const _tot=_ya.reduce((a,p)=>a+(p.monto||0),0);
+        window._jAcc={tipo:'pagoDup',paso:'si',ts:Date.now(),cid:c.id,monto:monto,fecha:fechaPago||null};
+        const _cuando=(_fd===_jIso(new Date()))?'hoy':'el '+_jDiaNombre(_fd);
+        return '⚠️ Jefe, ya le ingresaste '+_jFm(_tot)+' a '+c.nombre+' '+_cuando+(_ya.length>1?' ('+_ya.length+' cuotas)':'')+'. ¿Le meto otra de '+_jFm(monto)+'? Dime sí o no.';
+      }
+    }catch(e){}
+  }
   /* Manos libres: antes de guardar un pago, Jarvis pide confirmación por voz */
   if(((window._jML && window._jML.on) || window._jIA) && !window._jPagoOK){
     window._jAcc={tipo:'pagoConf',paso:'si',ts:Date.now(),cid:c.id,monto:monto,fecha:fechaPago||null};
@@ -11729,7 +11743,7 @@ function _jRegistrarPagoJ(c, monto, fechaPago){
     try{ renderClientes(); }catch(e){}
     const _dp=fechaPago?_jActualizarDiaPasado(fechaPago):'';
     const pagTot=(cv.pagos||[]).reduce((a,x)=>a+(x.monto||0),0);
-    return '✅ Listo jefe, registré la cuota de '+_jFm(monto)+' a '+cv.nombre+(fechaPago?' con fecha del '+_jDiaNombre(fechaPago):'')+' (está volado).\n'+(salda?'🎉 Pagó toda la deuda que había perdido y quedó cancelado.':'🏃 Todavía te debe '+_jFm(cv.saldoPerdido)+' de lo que perdiste. Lleva pagado '+_jFm(pagTot)+' desde que voló.')+_dp+'\n(Se ve en la pestaña Voladas, en "Alcanzó a pagar".)';
+    return '✅ Listo jefe, registré la cuota de '+_jFm(monto)+' a '+cv.nombre+(fechaPago?' con fecha del '+_jDiaNombre(fechaPago):'')+' (cartón parado).\n'+(salda?'🎉 Pagó toda la deuda que había perdido y quedó cancelado.':'🏃 Todavía te debe '+_jFm(cv.saldoPerdido)+' de lo que perdiste. Lleva pagado '+_jFm(pagTot)+' desde que voló.')+_dp+'\n(Se ve en la pestaña Cartones parados, en "Alcanzó a pagar".)';
   }
   const antes=clientes[idx].saldo||0;
   clientes[idx]._snapshotAntesCancelar={saldo:clientes[idx].saldo,pagos:JSON.parse(JSON.stringify(clientes[idx].pagos||[]))};
@@ -11891,7 +11905,7 @@ function _jInfoCuotas(c){
   if(!pagos.length) r+='Todavía no ha pagado ninguna cuota.\n';
   else r+='Lleva '+pagos.length+' cuota'+(pagos.length===1?'':'s')+' pagada'+(pagos.length===1?'':'s')+', en total '+_jFm(tot)+':\n'+pagos.map((p,i)=>(i+1)+'. '+_jFechaBonita(p.fecha)+' — '+_jFm(p.monto)).join('\n')+'\n';
   const falt=(c.cuotaSugerida>0&&c.saldo>0)?Math.ceil(c.saldo/c.cuotaSugerida):0;
-  r+= c.volado ? '\n🏃 Está volado. Deuda por recuperar: '+_jFm(c.saldoPerdido||0)+'.' : '\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
+  r+= c.volado ? '\n🛑 Es cartón parado. Deuda por recuperar: '+_jFm(c.saldoPerdido||0)+'.' : '\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
   if(c.cuotaSugerida && !c.volado) r+=' Cuota: '+_jFm(c.cuotaSugerida)+(falt?' (le faltan unas '+falt+' cuotas)':'')+'.';
   return r;
 }
@@ -11909,7 +11923,7 @@ function _jInfoFicha(c){
   r+='• Tipo: '+_jTipoCli(c)+'\n• Teléfono: '+(c.tel||c.telefono||c.celular||'no tiene')+'\n• Dirección: '+(c.dir||c.direccion||'no tiene')+'\n';
   r+='• Préstamos: '+_jPrestamosDe(c)+' — actual '+_jFm(c.prestamo)+'\n• Cuota: '+_jFm(c.cuotaSugerida||0)+'\n• Cuotas pagadas: '+pagos.length+'\n';
   if(ult) r+='• Último pago: '+_jFechaBonita(ult.fecha)+' de '+_jFm(ult.monto)+'\n';
-  if(c.volado) r+='• 🏃 Está volado. Deuda perdida: '+_jFm(c.saldoPerdido)+'\n';
+  if(c.volado) r+='• 🛑 Es cartón parado. Deuda perdida: '+_jFm(c.saldoPerdido)+'\n';
   if(c.nota) r+='• Nota: '+c.nota+'\n';
   r+='\n💰 Saldo que debe: '+_jFm(c.saldo||0)+'.';
   return r;
@@ -11938,7 +11952,7 @@ function _jClienteIntent(texto,t){
 function _jInfoCancelo(c){
   const pg=(c.pagos||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
   const hist=(c.historialRenovaciones||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
-  if(c.volado) return '🏃 '+c.nombre+' está volado, no ha cancelado. Todavía te debe '+_jFm(c.saldoPerdido||0)+' de lo que perdiste.';
+  if(c.volado) return '🏃 '+c.nombre+' es cartón parado, no ha cancelado. Todavía te debe '+_jFm(c.saldoPerdido||0)+' de lo que perdiste.';
   if((c.saldo||0)<=0 && pg.length){
     const F=pg[0].fecha, delDia=pg.filter(x=>x.fecha===F), tot=delDia.reduce((a,x)=>a+(x.monto||0),0);
     const totPrest=pg.reduce((a,x)=>a+(x.monto||0),0);
@@ -12004,19 +12018,31 @@ function _jParseFechaReporte(t){
   }
   return null;
 }
-function _jReporteEjecutar(fecha, conCuotas){
+/* modo: 'todos' = todos los clientes y marcados los que dieron (como el PDF Ruta) · 'pagaron' = solo los que dieron · 'resumen' = sin cuotas */
+function _jReporteModo(t, def){
+  if(/\bsolo (los |las )?(que )?(dier\w+|pag\w+|cuotas? ingresadas?)|\blos que (dier\w+|pag\w+)\b|\bsolo cuotas\b/.test(t)) return 'pagaron';
+  if(/\bsin (las )?cuotas?\b|solo (el )?resumen|resumid\w*|sin detalle/.test(t)) return 'resumen';
+  if(/\bcon (todas )?(las )?cuotas?\b|todos (los )?clientes|completo|completa|detallad\w*|\bruta\b|\btodos\b|\btodas\b/.test(t)) return 'todos';
+  return def===undefined?null:def;
+}
+function _jReporteEjecutar(fecha, modo){
   window._jAcc=null;
-  try{ imprimirReporteDia(fecha, conCuotas); }catch(e){ return '❌ No pude generar el reporte: '+e.message; }
-  return '🖨️ Listo jefe, estoy generando el reporte del '+_jDiaNombre(fecha)+' '+(conCuotas?'con todas las cuotas de ese día':'sin cuotas (solo el resumen)')+'.\nSe descarga como PDF. Si quieres otro día o sin/con cuotas, dime "imprime un reporte".';
+  if(modo===true) modo='todos'; if(modo===false) modo='resumen';
+  try{
+    if(modo==='todos') generarPDFRuta(fecha);
+    else imprimirReporteDia(fecha, modo==='pagaron');
+  }catch(e){ return '❌ No pude generar el reporte: '+e.message; }
+  const q={todos:'con todos los clientes (los que dieron salen con su cuota)',pagaron:'solo con los clientes que dieron cuota',resumen:'sin cuotas (solo el resumen)'}[modo];
+  return '🖨️ Listo jefe, estoy generando el reporte del '+_jDiaNombre(fecha)+' '+q+'.\nSe descarga como PDF.';
 }
 function _jReporteIntent(texto,t){
   if(!/\breporte\b/.test(t) || !/\b(imprim\w*|saca\w*|genera\w*|descarg\w*|dame|hazme|haz|quiero|necesito|pasame|manda\w*)\b/.test(t)) return null;
   if(/gasto|cliente|semanal|prestado|renov/.test(t.replace(/reporte del dia/,''))) { if(!/\bdia\b|hoy|ayer|lunes|martes|miercoles|jueves|viernes|sabado|domingo/.test(t)) return null; }
   const fecha=_jParseFechaReporte(t);
-  const sin=/\bsin (las )?cuotas?\b|solo (el )?resumen|resumido|sin detalle/.test(t), con=/\bcon (todas )?(las )?cuotas?\b|detallad\w*|completo/.test(t);
-  if(fecha && (sin||con)) return _jReporteEjecutar(fecha, !sin);
-  if(fecha){ window._jAcc={tipo:'reporte',paso:'cuotas',ts:Date.now(),d:{fecha}}; return '📄 Perfecto jefe, el reporte del '+_jDiaNombre(fecha)+'. ¿La quiere con todas las cuotas de ese día o sin cuotas (solo el resumen)?'; }
-  window._jAcc={tipo:'reporte',paso:'fecha',ts:Date.now(),d:{conCuotas:sin?false:(con?true:null)}};
+  const modo0=_jReporteModo(t,null);
+  if(fecha && modo0) return _jReporteEjecutar(fecha, modo0);
+  if(fecha){ window._jAcc={tipo:'reporte',paso:'cuotas',ts:Date.now(),d:{fecha}}; return '📄 Perfecto jefe, el reporte del '+_jDiaNombre(fecha)+'. ¿Con todos los clientes (los que dieron salen marcados), solo los que dieron cuota, o solo el resumen?'; }
+  window._jAcc={tipo:'reporte',paso:'fecha',ts:Date.now(),d:{modo:modo0}};
   return '🖨️ Claro jefe. ¿De hoy o de qué día? Me lo puedes decir por nombre ("este martes", "ayer") o por número ("el 17", "17 de noviembre").';
 }
 function _jPanelManual(mostrar){
@@ -12041,17 +12067,25 @@ function _jRapidoIntent(texto,t){
   if(/^\s*(jarvis )?(muchas )?gracias( jarvis| jefe)?\s*$/.test(t)) return 'A la orden, jefe.';
   if(/^\s*(jarvis )?(hola|buenas|buenos dias|buenas tardes|buenas noches|que mas|quiubo|epa)( jarvis)?\s*$/.test(t)) return 'Aquí estoy, jefe. ¿Qué necesitas?';
   if(/\b(resumen|como va|como vamos|como estoy|como voy)\b.*\b(dia|hoy)\b/.test(t) && !fecha && !/semana|pleno|cliente/.test(t)){ try{ return _orbeRespuestaLocal('como va el dia', _orbeRecolectarStats()); }catch(e){} }
+  if(/\b(cartones? parad[oa]s?|carton parad[oa]s?|volad[oa]s?)\b/.test(t) && /\b(pag\w*|cuota\w*|ingres\w*|dier\w+|dio)\b/.test(t) && !/corrig|cambi|borr/.test(t)){
+    const hoyI=_jIso(new Date()); const sc=(typeof _jPrestamosScope==='function')?_jPrestamosScope(t):null; const fs=sc?sc.fechas.filter(F=>F<=hoyI):[hoyI];
+    const out=[]; getClientes().filter(c=>c.volado).forEach(c=>{ (c.pagos||[]).filter(p=>fs.indexOf(p.fecha)>=0).forEach(p=>out.push({n:c.nombre,F:p.fecha,v:p.monto||0})); });
+    const lab=(!sc||(fs.length===1&&fs[0]===hoyI))?'hoy':(sc.semana?'esta semana':'en ese período');
+    if(!out.length) return '📭 No le has ingresado cuota a ningún cartón parado '+lab+'.';
+    out.sort((a,b)=>a.F.localeCompare(b.F));
+    return '💵 Cuotas a cartones parados '+lab+' ('+out.length+', total '+_jFm(out.reduce((a,x)=>a+x.v,0))+'):\n'+out.map(x=>'• '+x.n+' — '+_jFm(x.v)+(fs.length>1?' ('+_jDiaNombre(x.F)+')':'')).join('\n');
+  }
   if(!sinCli() || fecha) return null;
   let S=null; try{ S=_orbeRecolectarStats(); }catch(e){ return null; }
   const cl=getClientes();
   if(/\b(cuanto|que)\b.*\b(cobr\w*|recaud\w*)\b|\b(cobrado|recaudado)\b.*\bhoy\b/.test(t) && !/prestad|gast/.test(t)) return '📥 Cobrado hoy: '+_jFm(S.cobradoHoy||0)+'.';
   if(/\bpleno\b|\bcomo voy\b/.test(t) && !/plenos/.test(t) && !/corrig|cambi|borr/.test(t)){ try{ return _orbeRespuestaLocal('como va el dia', S); }catch(e){ return '💰 Pleno de hoy: '+_jFm(S.pleno||0)+'.'; } }
   if(/\b(cartera)\b|\bcuanto (me )?(deben|debe la gente)( en total)?\b|\btotal (que )?(me )?deben\b/.test(t)) return '📚 Cartera total: '+_jFm(S.totalCartera||0)+' en '+(S.cuentaActivos||0)+' clientes activos.';
-  if(/\bvolad[oa]s?\b/.test(t) && /\b(cuanto|cuantos|quienes|quien|lista|cuales|tengo|hay)\b/.test(t) && !/corrig|cambi/.test(t)){
+  if(/\b(cartones? parad[oa]s?|carton parad[oa]s?|volad[oa]s?)\b/.test(t) && /\b(cuanto|cuantos|quienes|quien|lista|cuales|tengo|hay|muestr\w*|dame)\b/.test(t) && !/corrig|cambi/.test(t)){
     const v=cl.filter(c=>c.volado).sort((a,b)=>(b.saldoPerdido||0)-(a.saldoPerdido||0));
-    if(!v.length) return 'No tienes clientes volados, jefe.';
+    if(!v.length) return 'No tienes cartones parados, jefe.';
     const tot=v.reduce((a,c)=>a+(c.saldoPerdido||0),0);
-    return '🕊️ Volados ('+v.length+', en total '+_jFm(tot)+'):\n'+v.slice(0,15).map(c=>'• '+c.nombre+' — '+_jFm(c.saldoPerdido||0)).join('\n')+(v.length>15?'\n… y '+(v.length-15)+' más.':'');
+    return '🛑 Cartones parados ('+v.length+', en total '+_jFm(tot)+'):\n'+v.slice(0,15).map(c=>'• '+c.nombre+' — '+_jFm(c.saldoPerdido||0)).join('\n')+(v.length>15?'\n… y '+(v.length-15)+' más.':'');
   }
   if(/\b(quien|quienes)\b.*\b(debe|deben)\b.*\b(mas|mucho)\b|\bmayor(es)? deudor(es)?\b|\bque mas (me )?debe\b/.test(t)){
     const v=cl.filter(c=>!c.volado && (c.saldo||0)>0).sort((a,b)=>(b.saldo||0)-(a.saldo||0)).slice(0,5);
@@ -12238,6 +12272,7 @@ function _jNotaLibreIntent(texto,t){
   return null;
 }
 function _jQuienPagoIntent(texto,t){
+  if(/\b(cartones? parad[oa]s?|carton parad[oa]s?)\b/.test(t)) return null;
   const diasN=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
   const dm=diasN.filter(k=>new RegExp('\\b'+k+'s?\\b').test(t));
   if(/\bsemanal/.test(t) && dm.length) window._jSemCtx={dias:dm,ts:Date.now()};
@@ -12439,6 +12474,15 @@ function _jAcciones(texto){
     const sc=_jPrestamosScope(t); window._jAcc=null;
     if(sc) return _jPrestamosResponder(sc);
   }
+  if(window._jAcc && window._jAcc.tipo==='pagoDup'){
+    const A=window._jAcc; window._jAcc=null;
+    if(/\b(si|dale|claro|ok|meteselo|metela|otra|confirmo|hazlo|igual)\b/.test(t) && !/\bno\b/.test(t)){
+      const cc=_jCliente(A.cid); if(!cc) return 'No encontré al cliente, jefe.';
+      window._jDupOK=true; window._jPagoOK=true;
+      try{ return _jRegistrarPagoJ(cc,A.monto,A.fecha); } finally{ window._jDupOK=false; window._jPagoOK=false; }
+    }
+    if(/\b(no|cancela\w*|olvidalo|nada|para|ya)\b/.test(t)) return 'Listo jefe, no registré nada. 👍';
+  }
   if(window._jAcc && window._jAcc.tipo==='pagoConf'){
     const A=window._jAcc; window._jAcc=null;
     if(/\b(si|dale|confirmo|confirmado|ok|hazlo|claro|correcto|registralo|registra)\b/.test(t) && !/\bno\b/.test(t)){
@@ -12473,14 +12517,16 @@ function _jAcciones(texto){
       if(A0.paso==='fecha'){
         const f=_jParseFechaReporte(t);
         if(!f){ if(A0.intentos>=1){ window._jAcc=null; return _jAcciones(texto); } A0.intentos=(A0.intentos||0)+1; return 'No te entendí el día, jefe. Dime por ejemplo "hoy", "ayer", "este martes" o "el 17".'; }
-        const sin=/\bsin\b|solo (el )?resumen/.test(t), con=/\bcon (todas )?(las )?cuotas?\b/.test(t);
-        if(sin||con||A0.d.conCuotas!==null) return _jReporteEjecutar(f, sin?false:(con?true:A0.d.conCuotas));
+        const m1=_jReporteModo(t, A0.d.modo||null);
+        if(m1) return _jReporteEjecutar(f, m1);
         A0.d.fecha=f; A0.paso='cuotas';
-        return '📄 Perfecto jefe, el reporte del '+_jDiaNombre(f)+'. ¿La quiere con todas las cuotas de ese día o sin cuotas (solo el resumen)?';
+        return '📄 Perfecto jefe, el reporte del '+_jDiaNombre(f)+'. ¿Con todos los clientes (los que dieron salen marcados), solo los que dieron cuota, o solo el resumen?';
       }
       if(A0.paso==='cuotas'){
-        if(/\bsin\b|solo (el )?resumen|resumid|no\b/.test(t)) return _jReporteEjecutar(A0.d.fecha,false);
-        if(/\bcon\b|todas|cuotas|si\b|sii|dale|completa|detall/.test(t)) return _jReporteEjecutar(A0.d.fecha,true);
+        const m2=_jReporteModo(t,null);
+        if(m2) return _jReporteEjecutar(A0.d.fecha,m2);
+        if(/\bsin\b|\bno\b/.test(t)) return _jReporteEjecutar(A0.d.fecha,'resumen');
+        if(/\bcon\b|cuotas|\bsi\b|sii|dale|ok|listo/.test(t)) return _jReporteEjecutar(A0.d.fecha,'todos');
         window._jAcc=null; return _jAcciones(texto);
       }
     }
@@ -12589,6 +12635,10 @@ function _jEmpezar(tipo, c, d){
     const pagos = (c.pagos||[]);
     const deHoy = pagos.filter(p=>p.fecha===hoy);
     let p, intro;
+    if(deHoy.length>1){
+      window._jAcc = {tipo:'borrar', paso:'cual', ts:Date.now(), id:c.id, d:{fecha:hoy}};
+      return '🔎 Jefe, '+c.nombre+' dio '+deHoy.length+' cuotas hoy (en total '+_jFm(deHoy.reduce((s,x)=>s+(x.monto||0),0))+'):\n'+deHoy.map((x,i)=>(i+1)+') '+_jFm(x.monto)).join('\n')+'\n¿Cuál borro? Dime el número o el valor (o "todas").';
+    }
     if(deHoy.length){
       p = deHoy[0];
       const tot = deHoy.reduce((s,x)=>s+(x.monto||0),0);
@@ -12653,6 +12703,38 @@ function _jPaso(texto){
 
   // ---- borrar cuota ----
   if(A.tipo==='borrar'){
+    const _lst=((c&&c.pagos)||[]).filter(p=>p.fecha===A.d.fecha);
+    /* elegir cuál de las cuotas del día */
+    if(A.paso==='cual'){
+      if(!_lst.length){ window._jAcc=null; return 'Jefe, ese día no hay cuotas para borrar.'; }
+      if(/\b(todas|todos|las dos|ambas)\b/.test(t)){
+        A.paso='confirmarTodas'; A.d.monto=null;
+        return '¿Borro las '+_lst.length+' cuotas ('+_lst.map(x=>_jFm(x.monto)).join(' + ')+') de '+c.nombre+'? (sí / no)';
+      }
+      let pick=null; const n=_jNum(texto);
+      if(n!==null){ pick=_lst.find(x=>x.monto===n)||null; if(!pick && n>=1 && n<=_lst.length) pick=_lst[n-1]; }
+      if(!pick && /\b(primera|primer|ultima|ultimo|de arriba)\b/.test(t)) pick=_lst[0];
+      if(!pick && /\b(segunda|otra|anterior)\b/.test(t)) pick=_lst[1]||null;
+      if(!pick){
+        if(t.split(/\s+/).length>=4){ window._jAcc=null; return _jAcciones(texto); }
+        return 'No te entendí, jefe. Dime el número (1, 2…) o el valor de la cuota que borro:\n'+_lst.map((x,i)=>(i+1)+') '+_jFm(x.monto)).join('\n');
+      }
+      A.paso='confirmar'; A.d.monto=pick.monto;
+      return '¿Borro la cuota de '+_jFm(pick.monto)+' de '+c.nombre+'? (sí / no)';
+    }
+    if(A.paso==='confirmarTodas'){
+      if(_jSi(texto)){
+        const cl=getClientes(), i=cl.findIndex(x=>x.id===A.id); const quitadas=(cl[i].pagos||[]).filter(p=>p.fecha===A.d.fecha);
+        const tot=quitadas.reduce((s,x)=>s+(x.monto||0),0);
+        cl[i].pagos=(cl[i].pagos||[]).filter(p=>p.fecha!==A.d.fecha);
+        if(cl[i].volado) cl[i].saldoPerdido=(cl[i].saldoPerdido||0)+tot; else cl[i].saldo=(cl[i].saldo||0)+tot;
+        saveClientes(cl); _jRefrescar(A.id); window._jAcc=null;
+        return '✅ Listo jefe, borré las '+quitadas.length+' cuotas ('+_jFm(tot)+') de '+cl[i].nombre+'.\nAhora debe '+_jFm(cl[i].volado?cl[i].saldoPerdido:cl[i].saldo)+'.';
+      }
+      window._jAcc=null; return 'Listo jefe, no borré nada. 👍';
+    }
+    /* en la confirmación, si dice "no, la de 30", cambia a esa cuota */
+    { const n2=_jNum(texto); if(n2!==null && n2!==A.d.monto){ const otra=_lst.find(x=>x.monto===n2); if(otra){ A.d.monto=n2; return '¿Entonces borro la cuota de '+_jFm(n2)+' de '+c.nombre+'? (sí / no)'; } } }
     if(_jSi(texto)){
       const cl = getClientes(), i = cl.findIndex(x=>x.id===A.id);
       const pagos = cl[i].pagos||[];
@@ -12850,7 +12932,7 @@ const _J_CATALOGO_IA = [
  'teléfono de NOMBRE   /   dirección de NOMBRE   /   dime todo de NOMBRE   /   cuánto debe NOMBRE   /   qué día pagó NOMBRE',
  'recuérdame mañana a las 9 am ir a cobrarle a NOMBRE   /   mis recordatorios',
  'oculta el panel manual   (cerrar acceso)   /   dame acceso al panel manual   (abrir)',
- 'corrige la deuda de NOMBRE a 200   (cliente volado)'
+ 'corrige la deuda de NOMBRE a 200   (cartón parado)'
 ];
 async function _jInterpretarIA(texto){
   let key=''; try{ key=localStorage.getItem('orb_claude_key')||''; }catch(e){}
@@ -13224,7 +13306,7 @@ function _jRespuestaPagoDia(c, pregunta, f, fechaForzada){
     if(enSem.length){ t2+='\n📅 Pero esa semana sí pagó: '+enSem.map(function(p){return f(p.monto)+' el '+_jEtiqueta(p.fecha);}).join(', ')+'.'; }
   }
   if(ult) t2+='\n⏱️ Último pago: '+_jEtiqueta(ult.fecha)+' — '+f(ult.monto)+'.';
-  if(c.volado) t2+='\n🏃 Ojo: está marcado como volado.';
+  if(c.volado) t2+='\n🛑 Ojo: es cartón parado.';
   return t2;
 }
 
@@ -15825,10 +15907,10 @@ function marcarVolado(id){
   var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
   var _pagT=(c.pagos||[]).reduce(function(a,x){return a+(x.monto||0);},0), _deb=(c.prestamo||0)-_pagT, _av='';
   if(c.prestamo>0 && !(c.renovaciones>0) && _deb>=0 && _deb!==(c.saldo||0)) _av='\n\n⚠️ OJO: según el préstamo ('+m(c.prestamo)+') y lo pagado ('+m(_pagT)+') debería deber '+m(_deb)+', pero el saldo dice '+m(c.saldo||0)+'. Cancela y corrígelo antes (dile a Jarvis: "corrige el saldo de '+c.nombre+' a '+_deb+'").';
-  if(!confirm('¿Marcar a '+c.nombre+' como VOLADO?\n\nPerdiste: '+m(c.saldo||0)+_av+'\nSale de tus clientes activos pero queda guardado en 🏃 Voladas y lo puedes devolver cuando quieras.')) return;
+  if(!confirm('¿Marcar a '+c.nombre+' como CARTÓN PARADO?\n\nPerdiste: '+m(c.saldo||0)+_av+'\nSale de tus clientes activos pero queda guardado en 🛑 Cartones parados y lo puedes devolver cuando quieras.')) return;
   c.saldoPerdido=c.saldo||0; c.saldo=0; c.volado=true; c.fechaVolado=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
   saveClientes(cs); renderClientes();
-  try{ showToast('🏃 '+c.nombre+' marcado como volado'); }catch(e){}
+  try{ showToast('🏃 '+c.nombre+' marcado como cartón parado'); }catch(e){}
 }
 function registrarCuotaVolada(id){
   var inp=document.getElementById('vcuota-'+id); var monto=parseFloat(inp&&inp.value)||0;
@@ -15857,19 +15939,30 @@ function renderVoladas(busq){
   var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
   var l=(getClientes()||[]).filter(function(c){return c&&c.volado&&(!busq||(c.nombre||'').toLowerCase().indexOf(busq)>=0||(c.cedula||'').indexOf(busq)>=0);});
   var perdido=l.reduce(function(a,c){return a+(c.saldoPerdido||0);},0);
-  if(!l.length){ el.innerHTML='<div style="text-align:center;padding:30px 16px;color:#94a3b8;font-weight:800;font-size:13px">🏃 No tienes clientes voladas.<br>Para marcar una, abre el cliente y toca "Marcar como volado".</div>'; return; }
-  el.innerHTML='<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:900;color:#c2410c">🏃 '+l.length+' volada'+(l.length===1?'':'s')+' · Total perdido: '+m(perdido)+'</div>'
+  var _fx=(typeof getFechaActiva==='function')?getFechaActiva():fechaHoy();
+  var _hoy=function(c){return (c.pagos||[]).filter(function(p){return p.fecha===_fx;}).reduce(function(a,p){return a+(p.monto||0);},0);};
+  l.sort(function(a,b){return (_hoy(b)>0?1:0)-(_hoy(a)>0?1:0);});
+  var _pg=l.filter(function(c){return _hoy(c)>0;});
+  var _fxl=(_fx===fechaHoy())?'Hoy':_fx.split('-').reverse().slice(0,2).join('/');
+  var _banner=_pg.length
+    ?'<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:800;color:#15803d;line-height:1.6">💵 '+_fxl+' le ingresaste cuota a '+_pg.length+(_pg.length===1?' cartón':' cartones')+' parado'+(_pg.length===1?'':'s')+' · Total: '+m(_pg.reduce(function(a,c){return a+_hoy(c);},0))+'<br>'+_pg.map(function(c){return '• '+(c.nombre||'')+' — '+m(_hoy(c));}).join('<br>')+'</div>'
+    :'<div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:800;color:#64748b">💵 '+_fxl+' no le has ingresado cuota a ningún cartón parado.</div>';
+  if(!l.length){ el.innerHTML='<div style="text-align:center;padding:30px 16px;color:#94a3b8;font-weight:800;font-size:13px">🛑 No tienes cartones parados.<br>Para marcar uno, abre el cliente y toca "Marcar como cartón parado".</div>'; return; }
+  el.innerHTML=_banner+'<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:900;color:#c2410c">🛑 '+l.length+(l.length===1?' cartón':' cartones')+' parado'+(l.length===1?'':'s')+' · Total perdido: '+m(perdido)+'</div>'
   +l.map(function(c){
     var pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
     var f=(c.fechaVolado||'').split('-').reverse().join('/');
-    return '<div style="background:white;border:1.5px solid #fed7aa;border-radius:16px;padding:12px;margin-bottom:10px">'
+    var _h=_hoy(c); var _ult=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
+    return '<div style="background:'+(_h>0?'#f0fdf4':'white')+';border:'+(_h>0?'2px solid #22c55e':'1.5px solid #fed7aa')+';border-radius:16px;padding:12px;margin-bottom:10px">'
+     +(_h>0?'<div style="display:inline-block;background:#16a34a;color:#fff;border-radius:10px;padding:3px 10px;font-size:11px;font-weight:900;margin-bottom:6px">✅ '+_fxl+' pagó '+m(_h)+'</div>':'')
      +'<div style="display:flex;align-items:center;gap:10px"><div style="display:flex;gap:6px;flex-shrink:0">'
      +(c.tieneFotoCliente?'<div class="foto-av" style="width:54px;height:54px;font-size:22px" data-fid="'+c.id+'" data-ftipo="cliente" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">👤</div>':'')
      +(c.tieneFotoCasa?'<div class="foto-av" style="width:54px;height:54px;font-size:22px;border-radius:14px" data-fid="'+c.id+'" data-ftipo="casa" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">🏠</div>':'')
      +'</div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:15px;font-weight:900;color:#1a1a2e">'+(c.nombre||'')+'</div><div style="font-size:11px;font-weight:900;color:#c2410c;white-space:nowrap">🏃 '+f+'</div></div></div></div>'
      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-top:6px;line-height:1.5">'
      +(c.cedula?'🪪 '+c.cedula+'<br>':'')+(c.tel?'📞 '+c.tel+'<br>':'')+(c.dir?'📍 '+c.dir+'<br>':'')
-     +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))+'</div>'
+     +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))
+     +(_ult?'<br>💵 Última cuota: '+_ult.fecha.split('-').reverse().join('/')+' · '+m(_ult.monto||0):'')+'</div>'
      +'<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div>'
      +'<div style="flex:1;background:#f0fdf4;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#16a34a">Alcanzó a pagar<br><span style="font-size:15px">'+m(pag)+'</span></div></div>'
      +'<div style="display:flex;gap:8px;margin-top:8px"><input type="number" id="vcuota-'+c.id+'" inputmode="numeric" placeholder="Cuota que pagó" autocomplete="off" style="flex:1;min-width:0;border:2px solid #fed7aa;border-radius:12px;padding:10px 12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;outline:none"><button onclick="registrarCuotaVolada(\''+c.id+'\')" style="padding:10px 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">💵 Cuota</button></div>'
