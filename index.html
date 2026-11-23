@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v164">
+<meta name="app-version" content="2026-11-23 v165">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v164';
+const APP_VERSION = '2026-11-23 v165';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -15948,25 +15948,36 @@ function renderVoladas(busq){
     ?'<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:800;color:#15803d;line-height:1.6">💵 '+_fxl+' le ingresaste cuota a '+_pg.length+(_pg.length===1?' cartón':' cartones')+' parado'+(_pg.length===1?'':'s')+' · Total: '+m(_pg.reduce(function(a,c){return a+_hoy(c);},0))+'<br>'+_pg.map(function(c){return '• '+(c.nombre||'')+' — '+m(_hoy(c));}).join('<br>')+'</div>'
     :'<div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:800;color:#64748b">💵 '+_fxl+' no le has ingresado cuota a ningún cartón parado.</div>';
   if(!l.length){ el.innerHTML='<div style="text-align:center;padding:30px 16px;color:#94a3b8;font-weight:800;font-size:13px">🛑 No tienes cartones parados.<br>Para marcar uno, abre el cliente y toca "Marcar como cartón parado".</div>'; return; }
+  var F=function(iso){return (iso||'').split('-').reverse().join('/');};
+  el.classList.remove('compacta');
   el.innerHTML=_banner+'<div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:900;color:#c2410c">🛑 '+l.length+(l.length===1?' cartón':' cartones')+' parado'+(l.length===1?'':'s')+' · Total perdido: '+m(perdido)+'</div>'
-  +l.map(function(c){
-    var pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
-    var f=(c.fechaVolado||'').split('-').reverse().join('/');
-    var _h=_hoy(c); var _ult=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
-    return '<div style="background:'+(_h>0?'#f0fdf4':'white')+';border:'+(_h>0?'2px solid #22c55e':'1.5px solid #fed7aa')+';border-radius:16px;padding:12px;margin-bottom:10px">'
-     +(_h>0?'<div style="display:inline-block;background:#16a34a;color:#fff;border-radius:10px;padding:3px 10px;font-size:11px;font-weight:900;margin-bottom:6px">✅ '+_fxl+' pagó '+m(_h)+'</div>':'')
-     +'<div style="display:flex;align-items:center;gap:10px"><div style="display:flex;gap:6px;flex-shrink:0">'
-     +(c.tieneFotoCliente?'<div class="foto-av" style="width:54px;height:54px;font-size:22px" data-fid="'+c.id+'" data-ftipo="cliente" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">👤</div>':'')
-     +(c.tieneFotoCasa?'<div class="foto-av" style="width:54px;height:54px;font-size:22px;border-radius:14px" data-fid="'+c.id+'" data-ftipo="casa" onclick="event.stopPropagation();verFotosCliente(\''+c.id+'\')">🏠</div>':'')
-     +'</div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:15px;font-weight:900;color:#1a1a2e">'+(c.nombre||'')+'</div><div style="font-size:11px;font-weight:900;color:#c2410c;white-space:nowrap">🏃 '+f+'</div></div></div></div>'
-     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-top:6px;line-height:1.5">'
-     +(c.cedula?'🪪 '+c.cedula+'<br>':'')+(c.tel?'📞 '+c.tel+'<br>':'')+(c.dir?'📍 '+c.dir+'<br>':'')
-     +'Tipo: '+(c.tipo==='diario'?'Diario':'Semanal'+(c.diaSemana?' ('+c.diaSemana+')':''))
-     +(_ult?'<br>💵 Última cuota: '+_ult.fecha.split('-').reverse().join('/')+' · '+m(_ult.monto||0):'')+'</div>'
-     +'<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div>'
-     +'<div style="flex:1;background:#f0fdf4;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#16a34a">Alcanzó a pagar<br><span style="font-size:15px">'+m(pag)+'</span></div></div>'
-     +'<div style="display:flex;gap:8px;margin-top:8px"><input type="number" id="vcuota-'+c.id+'" inputmode="numeric" placeholder="Cuota que pagó" autocomplete="off" style="flex:1;min-width:0;border:2px solid #fed7aa;border-radius:12px;padding:10px 12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;outline:none"><button onclick="registrarCuotaVolada(\''+c.id+'\')" style="padding:10px 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">💵 Cuota</button></div>'
-     +'<button onclick="restaurarVolado(\''+c.id+'\')" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:12px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">↩️ Devolver a clientes activos</button></div>';
+  +l.map(function(c,i){
+    var id=c.id, h=_hoy(c), pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
+    var ult=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
+    var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+(c.diaSemana?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1):'');
+    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
+    return '<div class="pcard" id="card-'+id+'" style="border-radius:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border:'+(h>0?'2px solid #22c55e':'1.5px solid #e4e4f0')+';overflow:hidden;background:'+(h>0?'#f0fdf4':'white')+'">'
+     +'<div class="cc2" style="display:block;padding:7px 9px 2px">'
+       +'<div class="cc2-top" onclick="toggleBody(\''+id+'\')"><div class="cc2-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto
+       +'<div class="cc2-nom">'+(c.nombre||'')+'<small>'+(c.cedula?'<span style="white-space:nowrap">🪪 '+c.cedula+'</span> ':'')+(c.tel?'<span style="white-space:nowrap">📱 '+c.tel+'</span>':'')+'</small></div>'
+       +'<div class="cc2-ic" onclick="event.stopPropagation()"><button onclick="verAbonosCliente(\''+id+'\')" style="background:#7c3aed">📋</button><button onclick="compartirClienteWA(\''+id+'\')" style="background:#22c55e">💬</button></div></div>'
+       +'<div class="cc2-info" onclick="toggleBody(\''+id+'\')">'+tipo+' · <span style="color:#c2410c">🛑 Parado desde '+F(c.fechaVolado)+'</span>'+(ult?' · <span style="color:#065f46">Últ '+m(ult.monto||0)+'</span>':'')+'</div>'
+       +'<div class="cc2-num2" onclick="toggleBody(\''+id+'\')"><span>PERDIDO <b style="color:#ef4444">'+m(c.saldoPerdido||0)+'</b></span><span>Pagó <b style="color:#16a34a">'+m(pag)+'</b></span><span>'+_fxl+' <b style="color:'+(h>0?'#fff;background:#16a34a':'#9ca3af')+';border-radius:8px;padding:0 5px">'+(h>0?m(h):'—')+'</b></span></div>'
+     +'</div>'
+     +'<div style="display:flex;gap:6px;align-items:center;padding:6px 10px 8px">'
+       +'<input type="text" inputmode="numeric" pattern="[0-9]*" id="vcuota-'+id+'" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Cuota" onkeydown="if(event.key===\'Enter\'){event.preventDefault();registrarCuotaVolada(\''+id+'\');}" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')" style="width:120px;flex:none;border:2px solid #e5e7eb;border-radius:10px;padding:8px;font-size:15px;font-weight:800;font-family:Nunito,sans-serif;text-align:center;outline:none;color:#1a1a2e">'
+       +'<button onclick="registrarCuotaVolada(\''+id+'\')" style="flex:1;padding:9px 8px;border:none;border-radius:16px;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#00c853,#00e676);color:white"><span style="font-size:15px">💵</span> Cuota</button>'
+     +'</div>'
+     +'<div class="pbody" id="cbody-'+id+'" style="display:none;padding:0 10px 10px">'
+       +(c.dir?'<div class="cliente-dir">📍 '+c.dir+'</div>':'')
+       +(c.nota?'<div style="background:#fefce8;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px;margin:0 0 6px;font-size:12px;font-weight:700;color:#92400e;line-height:1.4">📝 '+c.nota+'</div>':'')
+       +'<div style="display:flex;gap:8px;margin-bottom:6px"><div style="flex:1;background:#fef2f2;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#dc2626">Perdiste<br><span style="font-size:15px">'+m(c.saldoPerdido||0)+'</span></div><div style="flex:1;background:#f0fdf4;border-radius:10px;padding:6px 8px;font-size:11px;font-weight:900;color:#16a34a">Alcanzó a pagar<br><span style="font-size:15px">'+m(pag)+'</span></div></div>'
+       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">'
+         +'<button onclick="(function(){var c=getClientes().find(function(x){return x.id===\''+id+'\';});if(c&&c.tel)window.location.href=\'tel:\'+c.tel;else showToast(\'⚠️ Sin teléfono\');})()" style="padding:7px 3px;border:1.5px solid #bbf7d0;border-radius:14px;font-family:Nunito,sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:#f0fdf4;color:#16a34a">📞 Llamar</button>'
+         +'<button onclick="abrirFotosCliente(\''+id+'\')" style="padding:7px 3px;border:1.5px solid #d8b4fe;border-radius:14px;font-family:Nunito,sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:#faf5ff;color:#7c3aed">📷 Fotos</button></div>'
+       +'<button onclick="verCancelados(\''+id+'\')" style="width:100%;padding:7px;margin-bottom:5px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a;border:1.5px solid #86efac;border-radius:14px;font-family:Nunito,sans-serif;font-size:11px;font-weight:900;cursor:pointer">📜 Ver cancelados y renovaciones</button>'
+       +'<button onclick="restaurarVolado(\''+id+'\')" style="width:100%;padding:9px;border:none;border-radius:14px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:Nunito,sans-serif;font-size:13px;font-weight:900;cursor:pointer">↩️ Devolver a clientes activos</button>'
+     +'</div></div>';
   }).join('');
   try{ hidratarFotosTarjetas(); }catch(e){}
 }
