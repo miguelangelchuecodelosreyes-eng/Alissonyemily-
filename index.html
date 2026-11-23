@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-22 v150">
+<meta name="app-version" content="2026-11-22 v151">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6068,7 +6068,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-22 v150';
+const APP_VERSION = '2026-11-22 v151';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -10785,6 +10785,84 @@ function _jrvBarObservar(){
     }catch(e){}
   }, 300);
 }
+/* ---------- 🎤 Hablarle a Jarvis ---------- */
+function _jMicUI(on){
+  try{
+    document.querySelectorAll('.jb-mic,.orb-mic').forEach(b=>b.classList.toggle('escuchando',!!on));
+    const M=window._jMic||{};
+    ['jrv-bar-input','orb-input'].forEach(id=>{ const i=document.getElementById(id); if(!i) return;
+      if(on){ if(i.dataset.ph===undefined) i.dataset.ph=i.placeholder; i.placeholder='🎙️ Te escucho, jefe… (toca el micrófono para terminar)'; }
+      else if(i.dataset.ph!==undefined){ i.placeholder=i.dataset.ph; delete i.dataset.ph; } });
+    const h=document.getElementById('jrv-bar-hint'); if(h && on) h.textContent='🎙️ Te escucho, jefe…';
+  }catch(e){}
+}
+function _jMicAviso(msg){
+  try{ if(window._jrvModo==='completo' && typeof _orbeMostrarMsg==='function') _orbeMostrarMsg('ai','⚠️ '+msg); else _jrvBarTexto('⚠️ '+msg,''); }catch(e){ try{ alert(msg); }catch(e2){} }
+}
+function _jMicFin(){ const M=window._jMic=window._jMic||{}; M.activo=false; _jMicUI(false); }
+function _jMicParar(){ const M=window._jMic||{}; try{ if(M.rec) M.rec.stop(); }catch(e){} }
+function jarvisMicToggle(modo){
+  const M=window._jMic=window._jMic||{};
+  if(M.activo){ _jMicParar(); return; }
+  try{ jrvBarCallar(); }catch(e){}
+  M.modo=modo; M.inp=document.getElementById(modo==='bar'?'jrv-bar-input':'orb-input');
+  M.enviar=(modo==='bar')?jrvBarEnviar:orbIAEnviarMensaje; M.activo=true; M.ts=Date.now();
+  if(M.inp) M.inp.value='';
+  _jMicUI(true);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR && !M.sinSR) _jMicSR(SR); else _jMicWhisper();
+}
+function _jMicSR(SR){
+  const M=window._jMic; let fin='', fallo=null, r;
+  try{ r=new SR(); }catch(e){ M.sinSR=true; return _jMicWhisper(); }
+  M.rec=r; r.lang='es-CO'; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
+  r.onresult=function(e){ let t='',f=''; for(let i=e.resultIndex;i<e.results.length;i++){ const x=e.results[i]; if(x.isFinal) f+=x[0].transcript; else t+=x[0].transcript; } if(f) fin+=f; if(M.inp) M.inp.value=(fin+t).trim(); };
+  r.onerror=function(e){ fallo=e&&e.error; };
+  r.onend=function(){
+    if(!M.activo) return;
+    const txt=((M.inp&&M.inp.value)||'').trim();
+    if(fallo && fallo!=='no-speech' && fallo!=='aborted' && !txt){
+      if(fallo==='not-allowed'||fallo==='service-not-allowed'){ _jMicFin(); _jMicAviso('No me dieron permiso para usar el micrófono. Actívalo en los permisos del navegador o de la app.'); return; }
+      M.sinSR=true; return _jMicWhisper();
+    }
+    _jMicFin();
+    if(txt) M.enviar(); else _jMicAviso('No te escuché, jefe. Toca el micrófono y háblame otra vez.');
+  };
+  try{ r.start(); }catch(e){ M.sinSR=true; _jMicWhisper(); }
+}
+async function _jMicWhisper(){
+  const M=window._jMic; let key=''; try{ key=localStorage.getItem('orb_claude_key')||''; }catch(e){}
+  if(!/^gsk_/.test(key)){ _jMicFin(); _jMicAviso('Para hablarme en este celular necesito la llave de Groq (el botón 🔑 de Jarvis).'); return; }
+  let stream; try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e){ _jMicFin(); _jMicAviso('No me dieron permiso para usar el micrófono. Actívalo en los permisos del navegador o de la app.'); return; }
+  const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  let rec; try{ rec=new MediaRecorder(stream, mime?{mimeType:mime}:undefined); }catch(e){ try{stream.getTracks().forEach(t=>t.stop());}catch(e2){} _jMicFin(); _jMicAviso('Este celular no deja grabar audio desde la app.'); return; }
+  M.rec=rec; const chunks=[]; let ac,timer,hablo=false,ultimoVoz=Date.now();
+  rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+  try{
+    ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaStreamSource(stream), an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Uint8Array(an.fftSize);
+    timer=setInterval(function(){ an.getByteTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; s+=v*v; } const rms=Math.sqrt(s/buf.length);
+      if(rms>0.04){ hablo=true; ultimoVoz=Date.now(); }
+      if((hablo&&Date.now()-ultimoVoz>1500)||Date.now()-M.ts>20000){ try{ rec.stop(); }catch(e){} } },150);
+  }catch(e){}
+  rec.onstop=async function(){
+    clearInterval(timer); try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ ac&&ac.close(); }catch(e){}
+    if(!M.activo) return;
+    const blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'});
+    if(blob.size<1500 || !hablo){ _jMicFin(); _jMicAviso('No te escuché, jefe. Toca el micrófono y háblame otra vez.'); return; }
+    try{ if(M.inp) M.inp.placeholder='✍️ Escribiendo lo que dijiste…'; }catch(e){}
+    try{
+      const fd=new FormData(); const ext=/mp4/.test(blob.type)?'m4a':(/ogg/.test(blob.type)?'ogg':'webm');
+      fd.append('file',blob,'voz.'+ext); fd.append('model','whisper-large-v3-turbo'); fd.append('language','es'); fd.append('temperature','0');
+      fd.append('prompt','Cobranza: clientes, cuotas, semanales, volados, neki, pleno, liquidación, préstamo, Jarvis.');
+      const r=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+key},body:fd});
+      const j=await r.json(); _jMicFin();
+      const txt=((j&&j.text)||'').trim();
+      if(!r.ok||!txt){ _jMicAviso('No pude entender el audio'+((j&&j.error&&j.error.message)?': '+j.error.message:'')+'.'); return; }
+      if(M.inp) M.inp.value=txt; M.enviar();
+    }catch(e){ _jMicFin(); _jMicAviso('Sin internet o falló el micrófono, jefe.'); }
+  };
+  rec.start();
+}
 function jrvBarEnviar(){
   try{
     const bi=document.getElementById('jrv-bar-input'), oi=document.getElementById('orb-input');
@@ -13393,6 +13471,10 @@ window.orbIANuevoChat = orbIANuevoChat;
 <div id="pleno-fab" onclick="abrirOrbeIA()">
   <div class="pfab-burbuja" id="pfab-burbuja">
     <div class="pfab-shine"></div>
+    <svg class="pfo pfo1" viewBox="0 0 140 140" aria-hidden="true"><g fill="none" stroke="#ffb300"><ellipse cx="70" cy="70" rx="64" ry="64" stroke-width="1" stroke-dasharray="2 5" opacity=".9"/><ellipse cx="70" cy="70" rx="62" ry="22" stroke-width="1.8" transform="rotate(20 70 70)"/><ellipse cx="70" cy="70" rx="62" ry="34" stroke-width="1.2" stroke-dasharray="14 5 2 5" transform="rotate(75 70 70)"/><ellipse cx="70" cy="70" rx="58" ry="46" stroke-width="1" transform="rotate(130 70 70)" opacity=".85"/></g></svg>
+    <svg class="pfo pfo2" viewBox="0 0 140 140" aria-hidden="true"><g fill="none" stroke="#ffd54f"><ellipse cx="70" cy="70" rx="60" ry="14" stroke-width="2.2" stroke-dasharray="30 8 4 8" transform="rotate(-35 70 70)"/><ellipse cx="70" cy="70" rx="52" ry="40" stroke-width="1.4" stroke-dasharray="1 3" transform="rotate(50 70 70)"/><ellipse cx="70" cy="70" rx="46" ry="24" stroke-width="1.6" stroke-dasharray="22 10" transform="rotate(100 70 70)"/></g></svg>
+    <svg class="pfo pfo3" viewBox="0 0 140 140" aria-hidden="true"><circle cx="70" cy="70" r="40" fill="none" stroke="#fff3c4" stroke-width="2" stroke-dasharray="18 70 4 40" stroke-linecap="round"/></svg>
+    <i class="pfo-tw" style="left:14%;top:28%"></i><i class="pfo-tw" style="left:80%;top:21%;animation-delay:.5s"></i><i class="pfo-tw" style="left:71%;top:80%;animation-delay:1s"></i>
     <div class="pfab-dot"></div>
     <div class="pfab-label">◈ IA</div>
     <div class="pfab-monto" id="pfab-monto">$0</div>
@@ -13416,6 +13498,7 @@ window.orbIANuevoChat = orbIANuevoChat;
   </div>
   <form class="jb-row" onsubmit="event.preventDefault(); jrvBarEnviar();">
     <input type="text" id="jrv-bar-input" placeholder="Escríbele a Jarvis…" autocomplete="off" enterkeyhint="send">
+    <button class="jb-mic" type="button" aria-label="Hablarle a Jarvis" onclick="jarvisMicToggle('bar')">🎤</button>
     <button class="jb-send" type="submit" aria-label="Enviar">➤</button>
     <button class="jb-full" type="button" onclick="jarvisModoCompleto()">⤢ Completo</button>
   </form>
@@ -13470,6 +13553,7 @@ window.orbIANuevoChat = orbIANuevoChat;
 
     <form class="orb-input-row" onsubmit="event.preventDefault(); orbIAEnviarMensaje();">
       <input type="text" id="orb-input" placeholder="Habla con Jarvis…" autocomplete="off">
+      <button type="button" class="orb-mic" aria-label="Hablarle a Jarvis" onclick="jarvisMicToggle('full')">🎤</button>
       <button type="submit" class="orb-send" aria-label="Enviar" id="jrv-send-btn">➤</button>
     </form>
     <div class="jrv-voice-bar" id="jrv-voice-bar">
@@ -15318,6 +15402,25 @@ function lupaResumenCliente(id){
   0%{box-shadow:0 0 9px rgba(34,211,238,.6),0 0 0 0 rgba(0,230,118,.9)}
   60%{box-shadow:0 0 22px rgba(0,230,118,.9),0 0 0 14px rgba(0,230,118,0)}
   100%{box-shadow:0 0 9px rgba(34,211,238,.6),0 0 0 0 rgba(0,230,118,0)}}
+/* ◈ ORBE IA DORADO — fondo 100% transparente: solo órbitas de luz */
+#pleno-fab .pfab-burbuja{width:84px !important;height:84px !important;background:none !important;border:none !important;box-shadow:none !important;animation:none !important;overflow:visible !important}
+#pleno-fab .pfab-burbuja::before,#pleno-fab .pfab-burbuja::after{display:none !important}
+#pleno-fab .pfab-shine{display:none !important}
+.pfo{position:absolute;left:-8px;top:-8px;width:100px;height:100px;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px #ff9800)}
+.pfo1{animation:pfo-sp 16s linear infinite}.pfo2{animation:pfo-sp 23s linear infinite reverse}.pfo3{animation:pfo-sp 9s linear infinite}
+@keyframes pfo-sp{to{transform:rotate(360deg)}}
+.pfo-tw{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff3c4;box-shadow:0 0 8px #ffb300;pointer-events:none;animation:pfo-tw 1.6s ease-in-out infinite}
+@keyframes pfo-tw{0%,100%{opacity:.2}50%{opacity:1}}
+#pleno-fab .pfab-label{color:#b45309 !important;font-size:7px !important;text-shadow:0 0 5px #fff,0 0 3px #fff !important}
+#pleno-fab .pfab-monto{font-size:14px !important;max-width:70px !important;color:#4a2000 !important;text-shadow:0 0 8px #fff,0 0 4px #fff,0 0 12px #ffb300 !important}
+#pleno-fab .pfab-hoy{color:#7c2d00 !important;background:rgba(255,255,255,.88) !important;border:none !important;box-shadow:0 0 6px rgba(255,179,0,.6) !important;margin-top:2px !important}
+#pleno-fab .pfab-dot{top:6px !important;right:6px !important}
+#pleno-fab .pfab-burbuja.flash{animation:pfab-flash3 .6s ease !important}
+@keyframes pfab-flash3{0%{filter:drop-shadow(0 0 0 rgba(0,230,118,0))}40%{filter:drop-shadow(0 0 14px rgba(0,230,118,.95))}100%{filter:drop-shadow(0 0 0 rgba(0,230,118,0))}}
+/* 🎤 micrófono */
+.jb-mic,.orb-mic{flex:0 0 40px;width:40px;height:40px;min-width:40px;border-radius:50%;border:1px solid rgba(34,211,238,.6);background:rgba(2,6,23,.6);color:#67e8f9;font-size:17px;cursor:pointer;padding:0;box-sizing:border-box}
+.jb-mic.escuchando,.orb-mic.escuchando{background:#ef4444;color:#fff;border-color:#fecaca;animation:mic-pulso 1s ease-in-out infinite}
+@keyframes mic-pulso{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
 </style>
 
 <style>
