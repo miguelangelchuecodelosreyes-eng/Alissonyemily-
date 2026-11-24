@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v170">
+<meta name="app-version" content="2026-11-23 v172">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v170';
+const APP_VERSION = '2026-11-23 v172';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -10821,11 +10821,9 @@ async function jarvisManosLibres(){
   if(L.on){ _jMLApagar(true); return; }
   L.on=true; L.silencios=0; L.seq++; _jMLBtns(true); L.dicho=''; L.estricto=true;
   try{ _jBtnAuriArmar(); }catch(e){}
-  try{ if(!L.keep && navigator.mediaDevices) L.keep=await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e){}
   try{ const ok=await _jMLHayAuri(); L.estricto=(ok!==true); if(ok===false){ try{ showToast('🎧 No detecto audífonos. Conéctalos o Jarvis se va a escuchar a sí mismo.'); }catch(e){} } }catch(e){}
   try{ if(navigator.wakeLock) L.lock=await navigator.wakeLock.request('screen'); }catch(e){}
-  _jMLHablar('Modo manos libres activado. Dime, jefe.');
-  _jMLCuandoCalle(function(){ _jMLEscuchar(); });
+  _jMLHablar('Listo jefe. Toca el botón del audífono cuando quieras hablarme.');
 }
 function _jMLApagar(hablar){
   const L=window._jML; L.on=false; L.seq++; _jMLBtns(false);
@@ -10934,10 +10932,8 @@ function _jMLEscuchar(){
 }
 function _jMLSilencio(){
   const L=window._jML; if(!L.on) return;
-  L.silencios++;
-  if(_jMLHabla()){ setTimeout(_jMLEscuchar,300); return; } /* callado porque Jarvis está hablando: no cuenta */
-  if(L.silencios>=4){ _jMLApagar(false); _jMLHablar('No te escucho, jefe. Apago el manos libres. Toca el audífono cuando me necesites.'); return; }
-  setTimeout(_jMLEscuchar,500);
+  L.silencios=0; L.reposo=true;
+  try{ _jMicUI(false); }catch(e){}
 }
 function _jMLAlEnviar(orig){
   const L=window._jML, M=window._jMic||{}; let t=((M.inp&&M.inp.value)||'').trim();
@@ -10948,10 +10944,10 @@ function _jMLAlEnviar(orig){
   L.silencios=0;
   t=t.replace(/^\s*(oye\s+)?jarvis[\s,.:;-]*/i,'').trim();
   if(L.estricto) t=t.replace(/^\s*dime(\s+jefe)?[\s,.:;-]+(?=\S)/i,'').trim();
-  if(!t || _jMLEsEco(t)){ if(M.inp) M.inp.value=''; setTimeout(_jMLEscuchar,L.estricto?1200:300); return; }
+  if(!t || _jMLEsEco(t)){ if(M.inp) M.inp.value=''; return; }
   if(M.inp) M.inp.value=t;
   orig();
-  if(L.estricto) _jMLCuandoCalle(function(){ setTimeout(_jMLEscuchar,900); }); else _jMLCuandoListo(function(){ _jMLEscuchar(); });
+  /* el mic NO se vuelve a prender solo: solo con el botón del audífono */
 }
 function _jMicFin(){ const M=window._jMic=window._jMic||{}; window._jMicT=Date.now(); M.activo=false; _jMicUI(false); }
 function _jMicParar(){ const M=window._jMic||{}; try{ if(M.rec) M.rec.stop(); }catch(e){} }
