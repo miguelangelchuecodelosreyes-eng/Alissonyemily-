@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v169">
+<meta name="app-version" content="2026-11-23 v170">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v169';
+const APP_VERSION = '2026-11-23 v170';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -10892,7 +10892,7 @@ function _jBtnAuriArmar(){
       let bin=''; b.forEach(x=>bin+=String.fromCharCode(x));
       A.audio=new Audio('data:audio/wav;base64,'+btoa(bin)); A.audio.loop=true; A.audio.volume=0.01;
     }
-    A.audio.play().catch(()=>{});
+    A.t0=Date.now(); A.audio.play().catch(()=>{});
     if('mediaSession' in navigator){
       const ms=navigator.mediaSession;
       try{ ms.metadata=new MediaMetadata({title:'Jarvis',artist:'Toca para hablarle'}); ms.playbackState='playing'; }catch(e){}
@@ -10909,6 +10909,8 @@ function _jBtnAuriReal(){
   const L=window._jML||{}, M=window._jMic||{}, t=Date.now();
   if(M.activo) return false;
   if(t-(window._jMicT||0)<4000) return false;
+  if(t-(window._jTtsT||0)<3500) return false;
+  if(t-((window._jAuri&&window._jAuri.t0)||0)<3000) return false;
   try{ if(_jMLHabla0() && t-(L.iniHablo||0)<3000) return false; }catch(e){}
   return true;
 }
@@ -14466,6 +14468,7 @@ function _jDineroHablado(txt){
 }
 function _jarvisHablar(texto,_ya){
   if(!texto) return;
+  window._jTtsT=Date.now();
   /* manos libres con audífonos: el audio se cambia de modo al abrir el mic y se comía el inicio; esperamos un poquito */
   if(!_ya && window._jML && window._jML.on){ setTimeout(function(){ _jarvisHablar(texto,true); },850); return; }
   texto = _jDineroHablado(texto);
