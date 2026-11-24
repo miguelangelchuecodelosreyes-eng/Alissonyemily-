@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v165">
+<meta name="app-version" content="2026-11-23 v167">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2754,24 +2754,32 @@ function enfocarBuscadorCliente(){
 }
 
 function lupaIrACliente(id){
-  const modal=document.getElementById('lupa-modal');
-  if(modal) modal.remove();
-  const barraArriba=document.getElementById('buscar-cliente');
-  const _habiaFiltro = !!(barraArriba && barraArriba.value);
-  if(barraArriba && _habiaFiltro){ barraArriba.value=''; if(typeof debouncedRenderClientes==='function') debouncedRenderClientes(); }
+  const modal=document.getElementById('lupa-modal'); if(modal) modal.remove();
+  const c=(getClientes()||[]).find(x=>x.id===id); if(!c) return;
+  if(!c.volado && !(c.saldo>0)){ try{ showToast('✅ '+c.nombre+' no tiene saldo (está cancelado). Míralo en 📋 Detalles'); }catch(e){} return; }
+  let cambio=false;
+  const pant=document.getElementById('pantalla-clientes');
+  if(pant && !pant.classList.contains('activa')){ irA('clientes'); cambio=true; }
+  const barra=document.getElementById('buscar-cliente');
+  if(barra && barra.value){ barra.value=''; cambio=true; }
+  if(c.volado){ if(window._filtroTipo!=='volado'){ window._filtroTipo='volado'; cambio=true; } }
+  else {
+    let ok=true; try{ if(typeof filtroTipoOK==='function') ok=filtroTipoOK(c); }catch(e){}
+    if(!ok || window._filtroTipo==='volado'){ window._filtroTipo='todos'; window._filtroDia=''; cambio=true; }
+  }
+  if(cambio){ try{ renderClientes(); }catch(e){} }
   setTimeout(()=>{
     const el=document.getElementById('card-'+id)||document.querySelector('[data-cliente-id="'+id+'"]');
-    if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid #a855f7'; setTimeout(()=>el.style.outline='',1500); }
-    // Abrir el panel del cliente y enfocar el campo de cuota para ingresar el pago
-    setTimeout(()=>{
-      const cbody=document.getElementById('cbody-'+id);
-      if(cbody && (cbody.style.display==='none'||!cbody.style.display) && typeof toggleBody==='function'){
-        toggleBody(id);
-      }
-      const inp=document.getElementById('cuota-input-'+id);
-      if(inp){ inp.focus(); try{ inp.click(); }catch(e){} }
-    },_habiaFiltro?350:120);
-  },_habiaFiltro?80:0);
+    if(!el){ try{ showToast('⚠️ No encontré la tarjeta de '+c.nombre); }catch(e){} return; }
+    const cbody=document.getElementById('cbody-'+id);
+    if(cbody && (cbody.style.display==='none'||!cbody.style.display)) cbody.style.display='block';
+    el.style.scrollMarginTop='90px'; const ir=()=>{ try{ el.scrollIntoView({behavior:'auto',block:(el.offsetHeight>innerHeight*0.7?'start':'center')}); }catch(e){} };
+    ir();
+    el.style.outline='3px solid #a855f7'; setTimeout(()=>el.style.outline='',1800);
+    const inp=document.getElementById(c.volado?('vcuota-'+id):('cuota-input-'+id));
+    setTimeout(()=>{ ir(); if(inp){ try{ inp.focus({preventScroll:true}); }catch(e){ inp.focus(); } } },180);
+    setTimeout(ir,600);
+  },60);
 }
 
 
@@ -4028,6 +4036,7 @@ function guardarCliente(){
       if((cAntes.dir||'') !== nuevoDir) cambios.push(`📍 Dirección: "${cAntes.dir||'—'}" → "${nuevoDir||'—'}"`);
       if((cAntes.capital||0) !== capital && capital > 0) cambios.push(`💰 Capital: ${fmt(cAntes.capital||0)} → ${fmt(capital)}`);
       if((cAntes.tipo||'') !== nuevoTipo) cambios.push(`📅 Tipo: "${cAntes.tipo||'—'}" → "${nuevoTipo}"`);
+      { const _dN=(document.getElementById('mc-dia-semana')?.value||''); if((cAntes.diaSemana||'') !== _dN) cambios.push(`🗓️ Día de cobro: "${cAntes.diaSemana||'—'}" → "${_dN||'—'}"`); }
       if((cAntes.cuotaSugerida||0) !== nuevaCuota && nuevaCuota > 0) cambios.push(`💵 Cuota: ${fmt(cAntes.cuotaSugerida||0)} → ${fmt(nuevaCuota)}`);
       if((cAntes.nota||'') !== nuevaNota) cambios.push(`📝 Nota: "${cAntes.nota||'—'}" → "${nuevaNota||'—'}"`);
       { const _ft=window._fotosTemp||{};
@@ -6068,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v165';
+const APP_VERSION = '2026-11-23 v167';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -10806,11 +10815,13 @@ function _jMicAviso(msg){
 /* ---------- 🎧 Modo manos libres (manejando con audífonos) ---------- */
 window._jML={on:false,silencios:0,lock:null,seq:0};
 function _jMLBtns(on){ document.querySelectorAll('.jb-ml,.orb-ml').forEach(b=>b.classList.toggle('ml-on',!!on)); }
-function _jMLHablar(t){ try{ if(typeof _jarvisHablar==='function') _jarvisHablar(t); }catch(e){} }
+function _jMLHablar(t){ try{ window._jML.dicho=((window._jML.dicho||'')+' '+t).slice(-1500); }catch(e){} try{ if(typeof _jarvisHablar==='function') _jarvisHablar(t); }catch(e){} }
 async function jarvisManosLibres(){
   const L=window._jML;
   if(L.on){ _jMLApagar(true); return; }
-  L.on=true; L.silencios=0; L.seq++; _jMLBtns(true);
+  L.on=true; L.silencios=0; L.seq++; _jMLBtns(true); L.dicho=''; L.estricto=true;
+  try{ _jBtnAuriArmar(); }catch(e){}
+  try{ const ok=await _jMLHayAuri(); L.estricto=(ok!==true); if(ok===false){ try{ showToast('🎧 No detecto audífonos. Conéctalos o Jarvis se va a escuchar a sí mismo.'); }catch(e){} } }catch(e){}
   try{ if(navigator.wakeLock) L.lock=await navigator.wakeLock.request('screen'); }catch(e){}
   _jMLHablar('Modo manos libres activado. Dime, jefe.');
   _jMLCuandoCalle(function(){ _jMLEscuchar(); });
@@ -10819,9 +10830,10 @@ function _jMLApagar(hablar){
   const L=window._jML; L.on=false; L.seq++; _jMLBtns(false);
   try{ if(L.lock){ L.lock.release(); L.lock=null; } }catch(e){}
   try{ if(window._jMic&&window._jMic.activo){ window._jMic.activo=false; _jMicParar(); _jMicUI(false);} }catch(e){}
-  if(hablar){ _jMLHablar('Listo jefe, manos libres apagado.'); try{ _jMicAviso('Manos libres apagado.'); }catch(e){} }
+  if(hablar){ try{ _jBtnAuriDesarmar(); }catch(e){} _jMLHablar('Listo jefe, manos libres apagado.'); try{ _jMicAviso('Manos libres apagado.'); }catch(e){} }
 }
-function _jMLHabla(){ try{ return (typeof _jrvHablando!=='undefined' && !!_jrvHablando) || !!window._jrvHablando || !!(window.speechSynthesis && window.speechSynthesis.speaking); }catch(e){ return false; } }
+function _jMLHabla(){ try{ const h=_jMLHabla0(); if(h) window._jML.ultHablo=Date.now(); return h; }catch(e){ return false; } }
+function _jMLHabla0(){ try{ return (typeof _jrvHablando!=='undefined' && !!_jrvHablando) || !!window._jrvHablando || !!(window.speechSynthesis && window.speechSynthesis.speaking); }catch(e){ return false; } }
 function _jMLCargando(){ try{ return (typeof _orbChatLoading!=='undefined') && _orbChatLoading; }catch(e){ return false; } }
 /* espera a que Jarvis termine de contestar y de hablar, y luego llama cb */
 function _jMLCuandoCalle(cb){
@@ -10843,6 +10855,62 @@ function _jMLCuandoListo(cb){
     if(!L.on||id!==L.seq){ clearInterval(iv); return; }
     if((!_jMLCargando() && Date.now()-t0>700) || Date.now()-t0>70000){ clearInterval(iv); cb(); }
   },250);
+}
+/* ¿hay audífonos? true / false / null (no se sabe) */
+async function _jMLHayAuri(){
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices) return null;
+    let d=await navigator.mediaDevices.enumerateDevices();
+    if(!d.some(x=>x.label)){ try{ const st=await navigator.mediaDevices.getUserMedia({audio:true}); st.getTracks().forEach(t=>t.stop()); d=await navigator.mediaDevices.enumerateDevices(); }catch(e){} }
+    const L=d.filter(x=>x.label); if(!L.length) return null;
+    return L.some(x=>/bluetooth|headset|headphone|earphone|earbud|airpod|buds|auricular|aud[ií]fono|wired|usb|a2dp|hands-?free/i.test(x.label) && !/speakerphone|altavoz/i.test(x.label));
+  }catch(e){ return null; }
+}
+/* ¿lo que oí es Jarvis hablando (eco)? */
+function _jMLEsEco(t){
+  const L=window._jML; const nz=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  const w=nz(t).split(' ').filter(Boolean); if(!w.length) return false;
+  const ref=' '+nz((L.dicho||'')+' '+(window._jUltResp||''))+' ';
+  const hit=w.filter(x=>ref.indexOf(' '+x+' ')>=0).length;
+  const reciente=L.ultHablo && Date.now()-L.ultHablo<1500;
+  if(w.length>=2 && hit/w.length>=0.8) return true;
+  if(reciente && hit/w.length>=0.5) return true;
+  if(reciente && w.length<=2 && /^(dime|jefe|dime jefe|listo|activado|manos libres)$/.test(w.join(' '))) return true;
+  return false;
+}
+/* botón del audífono (play/pausa/siguiente) → hablar con Jarvis */
+function _jBtnAuriArmar(){
+  try{
+    const A=window._jAuri=window._jAuri||{};
+    if(!A.audio){
+      const n=8000, b=new Uint8Array(44+n), dv=new DataView(b.buffer);
+      const w=(o,s)=>{ for(let i=0;i<s.length;i++) b[o+i]=s.charCodeAt(i); };
+      w(0,'RIFF'); dv.setUint32(4,36+n,true); w(8,'WAVE'); w(12,'fmt '); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true); dv.setUint32(24,8000,true); dv.setUint32(28,8000,true); dv.setUint16(32,1,true); dv.setUint16(34,8,true); w(36,'data'); dv.setUint32(40,n,true);
+      for(let i=0;i<n;i++) b[44+i]=128;
+      let bin=''; b.forEach(x=>bin+=String.fromCharCode(x));
+      A.audio=new Audio('data:audio/wav;base64,'+btoa(bin)); A.audio.loop=true; A.audio.volume=0.01;
+    }
+    A.audio.play().catch(()=>{});
+    if('mediaSession' in navigator){
+      const ms=navigator.mediaSession;
+      try{ ms.metadata=new MediaMetadata({title:'Jarvis',artist:'Toca para hablarle'}); ms.playbackState='playing'; }catch(e){}
+      const h=function(){ _jBtnAuriPulso(); try{ ms.playbackState='playing'; A.audio.play().catch(()=>{}); }catch(e){} };
+      ['play','pause','nexttrack','previoustrack','stop'].forEach(a=>{ try{ ms.setActionHandler(a,h); }catch(e){} });
+    }
+  }catch(e){}
+}
+function _jBtnAuriDesarmar(){
+  try{ const A=window._jAuri; if(A&&A.audio) A.audio.pause(); if('mediaSession' in navigator){ ['play','pause','nexttrack','previoustrack','stop'].forEach(a=>{ try{ navigator.mediaSession.setActionHandler(a,null); }catch(e){} }); navigator.mediaSession.playbackState='none'; } }catch(e){}
+}
+function _jBtnAuriPulso(){
+  const L=window._jML, M=window._jMic||{};
+  if(Date.now()-(window._jAuriT||0)<700) return; window._jAuriT=Date.now();
+  if(!L.on){ jarvisManosLibres(); return; }
+  /* ya activo: corta a Jarvis si habla y se pone a escuchar */
+  try{ if(typeof jrvBarCallar==='function') jrvBarCallar(); }catch(e){}
+  try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+  L.silencios=0;
+  if(!M.activo) setTimeout(_jMLEscuchar,250);
 }
 function _jMLEscuchar(){
   const L=window._jML; if(!L.on) return;
@@ -10867,10 +10935,11 @@ function _jMLAlEnviar(orig){
   }
   L.silencios=0;
   t=t.replace(/^\s*(oye\s+)?jarvis[\s,.:;-]*/i,'').trim();
-  if(!t){ setTimeout(_jMLEscuchar,300); return; }
+  if(L.estricto) t=t.replace(/^\s*dime(\s+jefe)?[\s,.:;-]+(?=\S)/i,'').trim();
+  if(!t || _jMLEsEco(t)){ if(M.inp) M.inp.value=''; setTimeout(_jMLEscuchar,L.estricto?1200:300); return; }
   if(M.inp) M.inp.value=t;
   orig();
-  _jMLCuandoListo(function(){ _jMLEscuchar(); });
+  if(L.estricto) _jMLCuandoCalle(function(){ setTimeout(_jMLEscuchar,900); }); else _jMLCuandoListo(function(){ _jMLEscuchar(); });
 }
 function _jMicFin(){ const M=window._jMic=window._jMic||{}; M.activo=false; _jMicUI(false); }
 function _jMicParar(){ const M=window._jMic||{}; try{ if(M.rec) M.rec.stop(); }catch(e){} }
@@ -10892,7 +10961,7 @@ function _jMicSR(SR){
   try{ r=new SR(); }catch(e){ M.sinSR=true; return _jMicWhisper(); }
   M.rec=r; r.lang='es-CO'; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
   r.onresult=function(e){ let t='',f=''; for(let i=e.resultIndex;i<e.results.length;i++){ const x=e.results[i]; if(x.isFinal) f+=x[0].transcript; else t+=x[0].transcript; } if(f) fin+=f; if(M.inp) M.inp.value=(fin+t).trim();
-    if(window._jML && window._jML.on && (fin+t).trim().length>=2 && _jMLHabla()){ try{ jrvBarCallar(); }catch(e){} } };
+    if(window._jML && window._jML.on && !window._jML.estricto && (fin+t).trim().length>=2 && _jMLHabla()){ try{ jrvBarCallar(); }catch(e){} } };
   r.onerror=function(e){ fallo=e&&e.error; };
   r.onend=function(){
     if(!M.activo) return;
@@ -15144,7 +15213,9 @@ function proximaFechaCobro(c){
     function render(){
       const box = document.getElementById('lupa-results'); if(!box) return;
       const q = queryActual.trim().toLowerCase();
-      let lista = q ? clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||((c.cedula||c.id||'')+'').toLowerCase().includes(q)) : clientes;
+      const _nz=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const _toks=_nz(q).split(/\s+/).filter(Boolean);
+      let lista = _toks.length ? clientes.filter(c=>{ const h=_nz(c.nombre)+' '+_nz((c.cedula||'')+' '+(c.tel||'')); return _toks.every(w=>h.indexOf(w)>=0); }) : clientes;
       lista = aplicarFiltro(lista);
       renderRec();
       if(!lista.length){
@@ -15179,7 +15250,7 @@ function proximaFechaCobro(c){
     });
     const inp = document.getElementById('lupa-input');
     if(inp){
-      inp.addEventListener('input', ()=>{ queryActual = inp.value; render(); });
+      ['input','keyup','change','compositionend'].forEach(ev=>inp.addEventListener(ev, ()=>{ if(queryActual!==inp.value){ queryActual = inp.value; render(); } }));
       setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 120);
     }
     render();
@@ -15908,6 +15979,7 @@ function marcarVolado(id){
   var _pagT=(c.pagos||[]).reduce(function(a,x){return a+(x.monto||0);},0), _deb=(c.prestamo||0)-_pagT, _av='';
   if(c.prestamo>0 && !(c.renovaciones>0) && _deb>=0 && _deb!==(c.saldo||0)) _av='\n\n⚠️ OJO: según el préstamo ('+m(c.prestamo)+') y lo pagado ('+m(_pagT)+') debería deber '+m(_deb)+', pero el saldo dice '+m(c.saldo||0)+'. Cancela y corrígelo antes (dile a Jarvis: "corrige el saldo de '+c.nombre+' a '+_deb+'").';
   if(!confirm('¿Marcar a '+c.nombre+' como CARTÓN PARADO?\n\nPerdiste: '+m(c.saldo||0)+_av+'\nSale de tus clientes activos pero queda guardado en 🛑 Cartones parados y lo puedes devolver cuando quieras.')) return;
+  { const _i=cs.indexOf(c); c.volPrev=(cs[_i-1]&&cs[_i-1].id)||null; c.volNext=(cs[_i+1]&&cs[_i+1].id)||null; c.volIdx=_i; }
   c.saldoPerdido=c.saldo||0; c.saldo=0; c.volado=true; c.fechaVolado=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
   saveClientes(cs); renderClientes();
   try{ showToast('🏃 '+c.nombre+' marcado como cartón parado'); }catch(e){}
@@ -15931,6 +16003,17 @@ function restaurarVolado(id){
   var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
   if(!confirm('¿Devolver a '+c.nombre+' a clientes activos?\nVolverá a deber '+((typeof fmt==='function')?fmt(c.saldoPerdido||0):c.saldoPerdido))) return;
   c.saldo=c.saldoPerdido||0; c.volado=false; delete c.fechaVolado; delete c.saldoPerdido;
+  try{
+    if(c.volIdx!=null || c.volNext || c.volPrev){
+      const arr=cs.filter(x=>x!==c);
+      let pos=-1;
+      const nx=c.volNext&&arr.findIndex(x=>x.id===c.volNext && !x.volado);
+      const pv=c.volPrev&&arr.findIndex(x=>x.id===c.volPrev && !x.volado);
+      if(nx>=0) pos=nx; else if(pv>=0) pos=pv+1; else if(c.volIdx!=null) pos=Math.min(c.volIdx,arr.length);
+      if(pos>=0){ arr.splice(pos,0,c); cs.length=0; arr.forEach(x=>cs.push(x)); }
+    }
+  }catch(e){}
+  delete c.volPrev; delete c.volNext; delete c.volIdx;
   saveClientes(cs); window._filtroTipo='todos'; renderClientes();
 }
 function renderVoladas(busq){
