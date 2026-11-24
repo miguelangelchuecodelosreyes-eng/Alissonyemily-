@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v172">
+<meta name="app-version" content="2026-11-23 v174">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v172';
+const APP_VERSION = '2026-11-23 v174';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -12438,13 +12438,13 @@ function _jNuevosIntent(texto,t){
     if(fechas ? !fechas.has(F) : (F<desde||F>hasta)) return;
     const h=(c.historialRenovaciones||[]).slice().sort((a,b)=>(a.numRenovacion||0)-(b.numRenovacion||0));
     const cap=h.length?(h[0].capitalCiclo||0):(c.capital||0);
-    lista.push({id:c.id,n:c.nombre,F,v:cap});
+    lista.push({id:c.id,n:c.nombre,F,v:cap,tp:(c.tipo==='diario'?'diario':('semanal'+(c.diaSemana?' ('+String(c.diaSemana).toLowerCase()+')':'')))});
   });
   lista.sort((a,b)=>a.F.localeCompare(b.F));
   if(!lista.length){ window._jAcc=null; return '📭 No metiste clientes nuevos '+(etiqueta==='hoy'?'hoy':(etiqueta==='esos días'?'en esos días':etiqueta))+', jefe.'; }
   const MAXV=25;
   let r='🆕 Jefe, '+(etiqueta==='hoy'?'hoy':etiqueta)+' metiste '+lista.length+' cliente'+(lista.length>1?'s':'')+' nuevo'+(lista.length>1?'s':'')+':\n\n'
-    +lista.slice(0,MAXV).map(x=>'• '+_jDiaNombre(x.F)+': '+x.n+(x.v?' de '+_jFm(x.v):'')).join('\n')+(lista.length>MAXV?'\n… y '+(lista.length-MAXV)+' más.':'');
+    +lista.slice(0,MAXV).map(x=>'• '+_jDiaNombre(x.F)+': '+x.n+(x.v?' de '+_jFm(x.v):'')+' — '+x.tp).join('\n')+(lista.length>MAXV?'\n… y '+(lista.length-MAXV)+' más.':'');
   if(lista.length<=6){
     window._jAcc={tipo:'nuevosDetalle',paso:'si',ts:Date.now(),ids:lista.map(x=>x.id)};
     r+='\n\n¿Quieres los detalles de '+(lista.length>1?'esos '+lista.length+' clientes':'ese cliente')+'?';
