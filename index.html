@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-25 v192">
+<meta name="app-version" content="2026-11-25 v193">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-25 v192';
+const APP_VERSION = '2026-11-25 v193';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -17038,12 +17038,22 @@ function _semFechaDeDia(d){
 }
 function _semFilasDia(d,lista,m){
   var F=_semFechaDeDia(d), hoy=String(getFechaActiva()||'').slice(0,10), fut=F&&F>hoy;
-  var pagoEn=function(c){ return (c.pagos||[]).filter(function(p){return String(p.fecha||'').slice(0,10)===F;}).reduce(function(a,p){return a+(p.monto||0);},0); };
+  var L0=_semFechaDeDia('lunes'), D0=_semFechaDeDia('domingo');
+  var NDIA=['dom','lun','mar','mié','jue','vie','sáb'];
+  var corta=function(f){var q=f.split('-'); var dt=new Date(+q[0],+q[1]-1,+q[2]); return NDIA[dt.getDay()]+' '+(+q[2]);};
+  var semana=function(c){ var o={},tot=0; (c.pagos||[]).forEach(function(p){var f=String(p.fecha||'').slice(0,10); if(f>=L0&&f<=D0){ o[f]=(o[f]||0)+(p.monto||0); tot+=(p.monto||0);} }); return {por:o,tot:tot}; };
   var dio=0, cuantos=0, esp=0;
   var filas=lista.map(function(c){
-    var cu=c.cuotaSugerida||0, p=F?pagoEn(c):0; esp+=cu;
+    var cu=c.cuotaSugerida||0, w=F?semana(c):{por:{},tot:0}; esp+=cu;
     var ic,txt,col,bg;
-    if(p>0){ dio+=p; cuantos++; if(p>=cu){ ic='✅'; col='#15803d'; bg='#ecfdf5'; txt='dio '+m(p); } else { ic='🟡'; col='#b45309'; bg='#fffbeb'; txt='dio '+m(p)+' de '+m(cu); } }
+    if(w.tot>0){
+      dio+=w.tot; cuantos++;
+      var fechas=Object.keys(w.por).sort();
+      var partes=fechas.map(function(f){ return m(w.por[f])+(f===F?'':' el '+corta(f)); });
+      var otro=fechas.some(function(f){return f!==F;});
+      if(w.tot>=cu){ ic=otro?'🔁':'✅'; col='#15803d'; bg='#ecfdf5'; txt='dio '+partes.join(' + '); }
+      else { ic='🟡'; col='#b45309'; bg='#fffbeb'; txt='dio '+partes.join(' + ')+' de '+m(cu); }
+    }
     else if(fut){ ic='📅'; col='#64748b'; bg='transparent'; txt='cuota '+m(cu); }
     else { ic='⏳'; col='#b91c1c'; bg='#fef2f2'; txt='no dio · cuota '+m(cu); }
     return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:#334155;padding:4px 6px;margin:2px 0;border-radius:8px;background:'+bg+'"><span>'+ic+' '+_nomCorto(c.nombre)+'</span><span style="color:'+col+';text-align:right">'+txt+' <span style="color:#94a3b8;font-weight:700">· debe '+m(c.saldo||0)+'</span></span></div>';
@@ -17051,8 +17061,9 @@ function _semFilasDia(d,lista,m){
   var enc='';
   if(F){
     var ql=F.split('-'), et=_DIAS_LBL[d]+' '+(+ql[2]);
-    enc=fut? '<div style="font-size:11px;font-weight:900;color:#64748b;padding:2px 0 4px">📅 '+et+' · aún no llega · cuota esperada '+m(esp)+'</div>'
-            : '<div style="font-size:11px;font-weight:900;color:#4c1d95;padding:2px 0 4px">💰 '+et+' · dieron '+cuantos+' de '+lista.length+' · '+m(dio)+' de '+m(esp)+'</div>';
+    enc=(fut&&!cuantos)? '<div style="font-size:11px;font-weight:900;color:#64748b;padding:2px 0 4px">📅 '+et+' · aún no llega · cuota esperada '+m(esp)+'</div>'
+            : '<div style="font-size:11px;font-weight:900;color:#4c1d95;padding:2px 0 4px">💰 '+et+' · dieron '+cuantos+' de '+lista.length+' esta semana · '+m(dio)+' de '+m(esp)+'</div>'
+            +'<div style="font-size:10px;font-weight:700;color:#94a3b8;padding:0 0 4px">🔁 = pagó otro día de la semana</div>';
   }
   return enc+filas;
 }
