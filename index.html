@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v186">
+<meta name="app-version" content="2026-11-23 v187">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v186';
+const APP_VERSION = '2026-11-23 v187';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -12866,6 +12866,7 @@ function _jDatosIntent(texto,t){
   else if(campo==='dir'){ const pals=_jNorm(cc.nombre).split(/\s+/).filter(w=>w.length>=3); const tsn=texto.split(/\s+/).filter(w=>pals.indexOf(_jNorm(w))<0).join(' '); const m=/(?:direcci[oó]n|barrio|dir)\s*(?:de\s+)?(?:a|en|:|es|por)\s+(.{4,})$/i.exec(tsn); if(!m) return null; v=m[1].trim().replace(/^(a|en|por|es)\s+/i,''); ant=cc.dir||'—'; cc.dir=v; txt='la dirección de '+cc.nombre+' → '+v; }
   else if(campo==='tipo'){ v=/\bsemanal\b/.test(t)?'semanal':'diario'; if(cc.tipo===v) return '👍 '+cc.nombre+' ya es '+v+', jefe.'; ant=cc.tipo; cc.tipo=v; if(v==='diario') cc.diaSemana=''; else { const dd=_jDiaEn(t); if(dd) cc.diaSemana=dd; } txt=cc.nombre+' ahora es '+v+(v==='semanal'&&cc.diaSemana?' ('+cc.diaSemana+')':''); }
   saveClientes(cl); _jRefrescar(cc.id); window._jUltCli={id:cc.id,ts:Date.now()};
+  if(campo==='tipo' && v==='semanal' && !cc.diaSemana){ window._jAcc={tipo:'diaPara',paso:'dia',ts:Date.now(),id:cc.id}; return '✅ Listo jefe, '+cc.nombre+' ahora es semanal. 🗓️ ¿Qué día de la semana cobra? (lunes, martes, miércoles…)'; }
   return '✅ Listo jefe, cambié '+txt+' (antes: '+ant+').';
 }
 
@@ -12932,6 +12933,7 @@ function _jDiaTrabajoIntent(texto,t){
   }
   if(!/\b(trabaj\w*|vamos a (trabajar|cobrar)|cobremos|cobrar el dia|cambia\w* (el )?dia|pon\w* (el )?dia|dia de trabajo)\b/.test(t)) return null;
   if(/\b(semanales?|reporte|pdf|imprim\w*|renov\w*|prestamo|cliente|plenos?)\b/.test(t) && !/\bdia de trabajo\b/.test(t)) return null;
+  if(!/\bdia de trabajo\b/.test(t)){ try{ if(_jBuscar(texto).length) return null; }catch(e){} if(/\b(cambiale|ponle|pasalo|pasala|dejalo|dejala)\b/.test(t)) return null; }
   let f=null; try{ f=_jParseFechaReporte(t.replace(/\b(trabajemos|trabajar|trabaja|trabajamos|vamos a|cobremos|cambia\w*|pon\w*|dia de trabajo|el dia|dia|al|a|para|con|el)\b/g,' ')); }catch(e){}
   if(!f && /\bayer\b/.test(t)) f=_jIso(new Date(Date.now()-86400000));
   if(!f) return '🤔 ¿Qué día quieres trabajar, jefe? Dime "ayer", "el lunes" o "el 17".';
@@ -13361,6 +13363,13 @@ function _jAccionesPre(texto){
       window._jAcc=null;
     }
     if(window._jAcc && window._jAcc.tipo==='nuevoCli' && Date.now()-window._jAcc.ts<15*60*1000){ const r0=_jNuevoCliPaso(texto,t); if(r0) return r0; }
+    if(window._jAcc && window._jAcc.tipo==='diaPara' && Date.now()-window._jAcc.ts<15*60*1000){
+      const A=window._jAcc; const dd=_jDiaEn(t);
+      if(dd){ window._jAcc=null; const cl=getClientes(), i=cl.findIndex(x=>x.id===A.id); if(i>=0){ cl[i].diaSemana=dd; saveClientes(cl); _jRefrescar(A.id); return '✅ Listo jefe, '+cl[i].nombre+' cobra los '+dd+'.'; } }
+      if(/^(no|nada|cancela\w*|despues|luego)\b/.test(t)){ window._jAcc=null; return 'Listo jefe, lo dejé sin día por ahora. 👍'; }
+      if(t.split(' ').length<=3) return '🤔 Dime el día de la semana, jefe (lunes, martes, miércoles…).';
+      window._jAcc=null;
+    }
     if(window._jAcc && window._jAcc.tipo==='voladoConf' && Date.now()-window._jAcc.ts<15*60*1000){ const r1=_jVoladoPaso(texto,t); if(r1) return r1; }
     let x=_jSilencioIntent(texto,t); if(x){ window._jAcc=null; return x; }
     x=_jRutaIntent(texto,t); if(x){ window._jAcc=null; return x; }
