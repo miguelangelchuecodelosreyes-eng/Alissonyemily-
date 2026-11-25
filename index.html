@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v174">
+<meta name="app-version" content="2026-11-23 v186">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v174';
+const APP_VERSION = '2026-11-23 v186';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11802,7 +11802,7 @@ function _jRegistrarPagoJ(c, monto, fechaPago){
     }catch(e){}
   }
   /* Manos libres: antes de guardar un pago, Jarvis pide confirmación por voz */
-  if(((window._jML && window._jML.on) || window._jIA) && !window._jPagoOK){
+  if(((window._jML && window._jML.on && !_jSilencioOn()) || window._jIA) && !window._jPagoOK){
     window._jAcc={tipo:'pagoConf',paso:'si',ts:Date.now(),cid:c.id,monto:monto,fecha:fechaPago||null};
     return '🎧 ¿Confirmas '+_jFm(monto)+' a '+c.nombre+(fechaPago?' del '+_jDiaNombre(fechaPago):'')+'? Di sí para registrar o no para cancelar.';
   }
@@ -11836,6 +11836,7 @@ function _jRegistrarPagoJ(c, monto, fechaPago){
   try{ recalcularCuentas(); }catch(e){}
   try{ if(!refrescarUnaCard(c.id)) renderClientes(); }catch(e){}
   const nuevo=act?act.saldo:0;
+  window._jUltPago={id:c.id,fecha:(fechaPago||getFechaActiva()),monto:monto,ts:Date.now()};
   const _dp=fechaPago?_jActualizarDiaPasado(fechaPago):'';
   const _fp = fechaPago ? ' con fecha del '+_jDiaNombre(fechaPago) : '';
   return '✅ Listo jefe, registré el pago de '+_jFm(monto)+' a '+c.nombre+_fp+'.\n'+(nuevo>0?'Le queda un saldo de '+_jFm(nuevo)+'.':'🎉 Ya terminó de pagar, quedó cancelado.')+_dp;
@@ -11880,64 +11881,151 @@ function _jPagoCliente(texto,t){
 }
 function jarvisTablero(){
   const old=document.getElementById('jrv-tablero'); if(old){ old.remove(); return; }
-  // [emoji, título, [[texto mostrado, texto que se escribe, enviar directo?]]]
+  /* [emoji, título, [[qué hace, frase de ejemplo, ¿enviar directo? (1=sí, 0=la completas tú)]]] */
   const C=[
-   ['🧠','Háblale normal',[
-     ['Con la llave de Groq entiende frases sueltas','Anótale veinte lucas a doña Rosa',0],
-     ['Los pagos que entiende la IA siempre piden tu “sí”','Quiénes no pagaron ayer',1]]],
-   ['⚡','Símbolos rápidos',[
-     ['.  (punto) → renovación pendiente','.Juan Pérez',0],
-     ["'  (comilla) → guardar un gasto sin ingresarlo","'5 arroz de pollo",0]]],
-   ['👤','Datos de un cliente',[
-     ['Teléfono, dirección, saldo, pagos, cuota…','Teléfono de ',0],
-     ['Cualquier dato de cualquier cliente','Dime todo de ',0]]],
+   ['💵','Pagos y cuotas',[
+     ['Registrar un pago con valor','Métele 30 a Eduardo',0],
+     ['Registrar la cuota sugerida','Métele la cuota a ',0],
+     ['Solo nombre y valor también sirve','20 Carlos Bravo',0],
+     ['Pago de otro día','Métele 30 a Eduardo de ayer',0],
+     ['Al cliente que sigue en la lista','Ingrésale 15 al que viene',0],
+     ['Al que está después de otro','Ingrésale la cuota al cliente que sigue después de ',0],
+     ['Varias órdenes en una sola frase','Métele 30 a Eduardo, 20 a Carlos y anota 5 de gasto de gasolina',0],
+     ['Borrar la cuota de un cliente','Borra la cuota de ',0],
+     ['Deshacer el último pago','Deshaz lo último',1],
+     ['Si ya le ingresaste cuota hoy, Jarvis te avisa y pregunta antes de meter otra','',0]]],
+   ['🆕','Clientes nuevos',[
+     ['Crear un cliente nuevo por voz','Mete un cliente nuevo Carlos Pérez 500 diario cuota 25',0],
+     ['O paso a paso (te va preguntando)','Crea un cliente nuevo',1],
+     ['Ver los nuevos de la semana, de qué tipo y de cuánto','Muéstrame los clientes nuevos',1]]],
    ['🔁','Renovaciones',[
      ['Renovar a un cliente','Renueva a ',0],
+     ['Quién puede renovar (guiado)','Quién puede renovar',1],
+     ['Dejar un cliente pendiente de renovar','.Juan Pérez',0],
      ['Resumen de las pendientes','Dame el resumen de las renovaciones pendientes',1],
      ['Quitar una pendiente','Borra renovación pendiente',1]]],
-   ['💵','Pagos y cuotas',[
-     ['Registrar la cuota de un cliente','Métele la cuota a ',0],
-     ['Registrar un pago con valor','Métele 60 a ',0],
-     ['Borrar la cuota de un cliente','Borra la cuota de ',0]]],
+   ['🛑','Cartones parados',[
+     ['Marcar un cliente como cartón parado','Marca a  como cartón parado',0],
+     ['Devolverlo a clientes activos (vuelve a su puesto)','Devuelve a  a clientes activos',0],
+     ['Abrir la lista de cartones parados','Llévame a cartones parados',1],
+     ['Cuántos hay y cuánto perdiste','Cuántos cartones parados tengo',1]]],
+   ['✏️','Cambiar datos de un cliente',[
+     ['Cambiar la cuota','Cámbiale la cuota a  a 45',0],
+     ['Cambiar el día de cobro','Pásalo para los miércoles',0],
+     ['Pasarlo a semanal o diario','Pon a  semanal los jueves',0],
+     ['Cambiar teléfono','Ponle a  el teléfono 3001234567',0],
+     ['Cambiar cédula o dirección','Cámbiale la dirección a  a Calle 5 #10-20',0],
+     ['Mover un cliente en la lista','Pon a  antes de ',0],
+     ['Mandarlo de primero o de último','Pon a  de último',0]]],
+   ['📝','Notas',[
+     ['Nota en la ficha de un cliente','Anótale a  que se mudó de barrio',0],
+     ['Ver la nota de un cliente','Qué nota tiene ',0],
+     ['Nota libre (para ti)','Nota: hoy toca ir a las 12 donde ',0],
+     ['Ver mis notas','Muéstrame las notas',1],
+     ['Borrar una nota','Borra la nota 1',0]]],
+   ['👤','Datos de un cliente',[
+     ['Teléfono, dirección, saldo, cuota…','Teléfono de ',0],
+     ['Todo sobre un cliente','Dime todo de ',0],
+     ['Cuánto debe','Cuánto debe ',0],
+     ['Cómo ha pagado (línea de tiempo)','Cómo ha pagado  este mes',0],
+     ['Otros períodos','Cómo ha pagado  esta semana',0],
+     ['Qué día pagó','Qué día pagó ',0],
+     ['Abrir su ficha','Abre la ficha de ',0]]],
+   ['📊','Preguntas sobre tus datos',[
+     ['Cuánto tienes en la calle','Cuánto tengo en la calle',1],
+     ['Los que más te deben','Los 5 que más me deben',1],
+     ['Contar clientes por deuda','Cuántos clientes deben más de 500',1],
+     ['Quiénes no han pagado','Quiénes no han pagado hoy',1],
+     ['Cuánto cobraste','Cuánto cobré esta semana',1],
+     ['Cuántos diarios / semanales','Cuántos semanales tengo',1],
+     ['Atrasados','Quiénes están atrasados',1],
+     ['Cualquier otra pregunta sobre la cartera (con la llave de Groq)','Qué cliente me ha pagado más',0]]],
+   ['📅','Semanales, préstamos y nuevos',[
+     ['Semanales de hoy / mañana / un día','Semanales de hoy',1],
+     ['Quién no pagó ese día','Quién no pagó los semanales del martes',1],
+     ['Préstamos de hoy o de la semana, día por día','Préstamos de esta semana',1],
+     ['Cuánto llevo prestado y la meta','Cuánto llevo prestado',1],
+     ['Resumen de la semana','Resumen de la semana',1],
+     ['Resumen de los plenos','Resumen de los plenos',1]]],
    ['🧾','Liquidar y cuentas',[
+     ['Cómo vas hoy (pleno)','Cómo voy hoy',1],
+     ['Cuentas de un día','Cuentas del día 17',0],
      ['Liquidar el día','Liquida',1],
-     ['Corregir neki o efectivo','Corrige neki ',0]]],
+     ['Guardar el día ya liquidado','Guarda',1],
+     ['Corregir neki o efectivo','Corrige neki ',0],
+     ['Abrir / cerrar el panel manual','Dame acceso al panel manual',1]]],
    ['💸','Gastos',[
      ['Ver los gastos de hoy','Gastos de hoy',1],
+     ['Anotar un gasto directo al sistema','Anota gasto 3.000 jugo',0],
+     ['Guardar un gasto sin ingresarlo (comilla adelante)',"'5 arroz de pollo",0],
      ['Ingresar un gasto anotado','Ingresa el gasto de ',0],
-     ['Borrar un gasto','Borra un gasto',1],
-     ['Anotar gasto directo al sistema','Anota gasto 3.000 jugo',0]]],
-   ['📝','Notas y guardar el día',[
-     ['Anotar una nota','Nota: hoy toca ir a las 12 donde ',0],
-     ['Ver mis notas','Muéstrame las notas',1],
-     ['Borrar una nota','Borra la nota 1',0],
-     ['Guardar el día después de liquidar','Guarda',1]]],
-   ['📅','Semanales y préstamos',[
-     ['Semanales de hoy','Semanales de hoy',1],
-     ['Semanales de mañana','Semanales de mañana',1],
-     ['Cuánto llevo prestado y la meta','Cuánto llevo prestado',1]]],
+     ['Borrar un gasto','Borra un gasto',1]]],
+   ['📄','Reportes',[
+     ['PDF del día (te pregunta: todos, solo los que pagaron o resumen)','Imprime el reporte de ayer',1],
+     ['Con todos los clientes marcados','Imprime el reporte con cuota',1]]],
+   ['📆','Día de trabajo y pantallas',[
+     ['Trabajar un día anterior','Trabajemos el día de ayer',1],
+     ['Volver a hoy','Vuelve a hoy',1],
+     ['Abrir pantallas','Llévame a detalles',1],
+     ['También préstamos, cuentas, gastos, ajustes, semanales, diarios','Llévame a semanales',1]]],
+   ['🧠','Apodos',[
+     ['Enseñarle un apodo','El de la tienda es ',0],
+     ['O así','A  le digo la flaca',0],
+     ['Usarlo','Métele 10 al de la tienda',0],
+     ['Ver o borrar apodos','Qué apodos tienes',1]]],
+   ['📦','Copias de seguridad',[
+     ['Hacer una copia ahora (se guarda sola una al día)','Haz una copia de seguridad',1],
+     ['Ver las copias que hay','Qué copias tengo',1],
+     ['Devolver todo como estaba (pide confirmación)','Restaura la copia de ayer',0]]],
    ['⏰','Recordatorios',[
      ['Avisarte con hora (suena y habla)','Recuérdame mañana a las 9 am ir a cobrarle a ',0],
      ['Ver mis recordatorios','Mis recordatorios',1]]],
-   ['🎙️','Voz',[
-     ['Cambiar la voz (en la web)','Cambia la voz',1]]]
+   ['🎙️','Voz, audífonos y silencio',[
+     ['🎤 Hablarle: toca el micrófono y habla','',0],
+     ['🎧 Manos libres: con audífonos, el botón del audífono abre el micrófono','',0],
+     ['Que ejecute sin hablar (solo una línea y vibración)','Modo silencioso',1],
+     ['Volver a la voz','Habla otra vez',1],
+     ['Que repita lo último','Repite',1],
+     ['Para cortarlo en manos libres di: para, ya, chao o termina','',0]]],
+   ['🚶','Extras',[
+     ['Modo ruta: te lleva cliente por cliente (dices el monto, "la cuota" o "no pagó")','Arranca la ruta',1],
+     ['Terminar la ruta y ver el resumen','Para la ruta',1],
+     ['Si no entiende una orden, te dice qué entendió y qué le falta','',0],
+     ['Con la llave de Groq entiende frases sueltas (los pagos así piden tu "sí")','Anótale veinte lucas a doña Rosa',0]]]
   ];
-  const NO=['Crear clientes o préstamos nuevos (eso se hace en la app, con el botón +)','Marcar un cliente como volado ni cambiar sus fotos','Enviar mensajes de WhatsApp o llamar','Avisarte con recordatorios si la app está cerrada (solo suena si está abierta)','Pasar las notas con \' ni los recordatorios a otro celular (quedan en ese celular)','Borrar clientes'];
+  const NO=['Llamar ni mandar WhatsApp','Guardar fotos por voz','Avisarte de recordatorios con la app cerrada','Escucharte en segundo plano o salir como burbuja sobre otras apps (eso pide una app de Android hecha aparte)','Cambiar la voz del celular dentro de la APK (en la APK habla con la voz del teléfono)'];
   const esc=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const nz=x=>String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const ov=document.createElement('div'); ov.id='jrv-tablero';
-  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(8,6,28,.96);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 40px;font-family:Nunito,sans-serif;color:#e9e7ff';
-  ov.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:18px;font-weight:900">📋 Qué puede hacer Jarvis</div><button onclick="document.getElementById(\'jrv-tablero\').remove()" style="border:none;background:#3b2f7a;color:#fff;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:900">✕ Cerrar</button></div>'
-   +'<div style="font-size:12px;color:#a9a3d8;margin-bottom:12px;font-weight:700">Toca un ejemplo y se escribe en el chat. Si falta el nombre del cliente, lo completas tú y lo envías.</div>'
-   +C.map((g,gi)=>'<div style="background:#17123f;border:1.5px solid #3b2f7a;border-radius:16px;padding:11px 12px;margin-bottom:10px"><div style="font-size:14px;font-weight:900;margin-bottom:7px">'+g[0]+' '+g[1]+'</div>'
-      +g[2].map((it,ii)=>'<div class="jt-it" data-g="'+gi+'" data-i="'+ii+'" style="background:#241b5c;border-radius:12px;padding:9px 11px;margin-top:6px;font-size:13px;font-weight:700;cursor:pointer;line-height:1.3">'+esc(it[0])+'<div style="font-size:11px;color:#8fd3ff;margin-top:2px;font-weight:800">“'+esc(it[1].trim())+'”</div></div>').join('')+'</div>').join('')
-   +'<div style="background:#3a1620;border:1.5px solid #7f2c3f;border-radius:16px;padding:11px 12px"><div style="font-size:14px;font-weight:900;margin-bottom:6px">🚫 Lo que NO puede hacer</div>'+NO.map(x=>'<div style="font-size:12.5px;font-weight:700;margin-top:5px;line-height:1.35">• '+esc(x)+'</div>').join('')+'</div>';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(8,6,28,.97);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 40px;font-family:Nunito,sans-serif;color:#e9e7ff';
+  ov.innerHTML='<div style="position:sticky;top:-14px;z-index:2;background:rgba(8,6,28,.97);margin:-14px -14px 8px;padding:14px 14px 8px">'
+   +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:18px;font-weight:900">📖 Libro de Jarvis</div><button id="jt-x" style="background:#2b2266;color:#fff;border:0;border-radius:12px;width:36px;height:36px;font-size:18px;cursor:pointer">✕</button></div>'
+   +'<input id="jt-q" type="search" placeholder="🔍 Busca: pagos, notas, renovar, copia…" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 13px;border-radius:14px;border:2px solid #4c3fa8;background:#17123f;color:#fff;font-size:15px;font-weight:700;outline:none;font-family:inherit">'
+   +'<div style="font-size:11.5px;color:#a9a3d8;margin-top:6px;font-weight:700">Toca una frase y se escribe en el chat. Si tiene espacios vacíos, pon el nombre del cliente y envía.</div></div>'
+   +'<div id="jt-lista"></div>'
+   +'<div id="jt-no" style="background:#3a1620;border:1.5px solid #7f2c3f;border-radius:16px;padding:11px 12px;margin-top:6px"><div style="font-size:14px;font-weight:900;margin-bottom:6px">🚫 Lo que NO puede hacer (todavía)</div>'+NO.map(x=>'<div style="font-size:12.5px;font-weight:700;margin-top:4px;line-height:1.35">• '+esc(x)+'</div>').join('')+'</div>';
   document.body.appendChild(ov);
-  ov.querySelectorAll('.jt-it').forEach(el=>el.addEventListener('click',()=>{
-    const it=C[+el.dataset.g][2][+el.dataset.i]; ov.remove();
+  const lista=ov.querySelector('#jt-lista');
+  function pintar(q){
+    const w=nz(q).split(/\s+/).filter(Boolean); let hay=0;
+    lista.innerHTML=C.map((g,gi)=>{
+      const its=g[2].map((it,ii)=>({it,ii})).filter(o=>!w.length||w.every(x=>nz(g[1]+' '+o.it[0]+' '+o.it[1]).indexOf(x)>=0));
+      if(!its.length) return ''; hay++;
+      return '<div style="background:#17123f;border:1.5px solid #3b2f7a;border-radius:16px;padding:11px 12px;margin-bottom:10px"><div style="font-size:14px;font-weight:900;margin-bottom:7px">'+g[0]+' '+esc(g[1])+'</div>'
+        +its.map(o=>'<div class="jt-it" data-g="'+gi+'" data-i="'+o.ii+'" style="background:#241b5c;border-radius:12px;padding:9px 11px;margin-top:6px;font-size:13px;font-weight:700;'+(o.it[1]?'cursor:pointer;':'')+'line-height:1.3">'+esc(o.it[0])+(o.it[1]?'<div style="font-size:11.5px;color:#7dd3fc;margin-top:3px;font-weight:800">“'+esc(o.it[1])+'”</div>':'')+'</div>').join('')+'</div>';
+    }).join('')||'<div style="padding:18px;text-align:center;font-size:14px;font-weight:800;color:#c4b5fd">🤔 No encontré eso. Prueba con otra palabra (pagos, cliente, nota, copia, gasto…).</div>';
+    ov.querySelector('#jt-no').style.display=w.length&&!hay?'none':(w.length?'none':'block');
+  }
+  pintar('');
+  ov.querySelector('#jt-q').addEventListener('input',e=>pintar(e.target.value));
+  ov.querySelector('#jt-x').addEventListener('click',()=>ov.remove());
+  lista.addEventListener('click',ev=>{
+    const el=ev.target.closest('.jt-it'); if(!el) return;
+    const it=C[+el.dataset.g][2][+el.dataset.i]; if(!it[1]) return; ov.remove();
     const inp=document.getElementById('orb-input'); if(!inp) return;
     inp.value=it[1];
     if(it[2]) orbIAEnviarMensaje(); else { try{ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); }catch(e){} }
-  }));
+  });
 }
 function _jAyuda(){
   return '❓ Esto puedo hacer, jefe:\n\n'
@@ -12523,7 +12611,788 @@ function _jGuardarDia(){
   window._jAcc=null;
   return '✅ Listo jefe, guardé las cuentas del '+fechaBonita(d.fecha)+' y limpié base, papelería, neki y gasto.\n📌 Quedó guardado: entradas '+_jFm(d.totalEntradas||0)+', salidas '+_jFm(d.totalSalidas||0)+', resultado '+_jFm(d.resultado||0)+'.\n(Las cuotas de los clientes no se borran.)';
 }
+/* ── "al que viene / el que sigue después de Carmona": resuelve el cliente siguiente de la lista y lo cobra ── */
+function _jSiguienteDe(c){
+  const act=(getClientes()||[]).filter(x=>x&&x.saldo>0&&!x.volado);
+  const i=act.findIndex(x=>x.id===c.id);
+  return i>=0 ? (act[i+1]||null) : null;
+}
+function _jSiguienteIntent(texto){
+  const n=_jNorm(texto).replace(/\s+/g,' ').trim();
+  if(!/\b(met\w*|ingres\w*|cobr\w*|pon\w*|abon\w*|anot\w*|registr\w*|aplic\w*|agreg\w*|sum\w*)\b/.test(n)) return null;
+  const P=/\b(?:(?:a|al)\s+)?(?:(?:la|el|ese|esa)\s+)?(?:(?:cliente|clienta)\s+)?(?:que\s+)?(?:(?:viene|sigue|siguiente)(?:\s+(?:inmediatamente|justo))?(?:\s+(?:despues|luego|abajo|debajo|detras)(?:\s+(?:de|del))?)?|(?:esta|queda|va|esta ubicad[oa]|esta puest[oa])\s+(?:inmediatamente\s+|justo\s+)?(?:despues|luego|abajo|debajo|detras)(?:\s+(?:de|del))?|de abajo)\b/;
+  const mm=P.exec(n); if(!mm) return null;
+  if(/\bsiguiente\b/.test(mm[0]) && !/\b(a|al|la|el)\s+(cliente\s+)?siguiente\b|\bque sigue\b/.test(n)) return null;
+  const rest=(n.slice(0,mm.index)+' '+n.slice(mm.index+mm[0].length)).replace(/\s+/g,' ').trim();
+  let ref=null;
+  const cand=_jBuscar(rest).filter(x=>x.saldo>0&&!x.volado);
+  if(cand.length>1) return {err:'🤔 ¿Después de cuál, jefe?\n'+_jListaElegir(cand)+'\nDímelo con nombre y apellido.'};
+  if(cand.length===1) ref=cand[0];
+  else if(window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000) ref=_jCliente(window._jUltCli.id);
+  if(!ref) return {err:'🤔 ¿Después de cuál cliente, jefe? Dime el nombre, por ejemplo: "ingresa 15 al que sigue después de Eduardo".'};
+  const sig=_jSiguienteDe(ref);
+  if(!sig) return {err:'📭 '+ref.nombre+' es el último de la lista, jefe. No hay cliente después de él.'};
+  const palsRef=_jNorm(ref.nombre).split(/\s+/).filter(w=>w.length>=3);
+  let resto=rest.split(' ').filter(w=>!palsRef.includes(w)).join(' ');
+  resto=resto.replace(/\b(a|al|de|del|la|el)\s*$/,'').trim();
+  return {texto:resto+' a '+sig.nombre, pre:'👉 Jefe, el cliente que sigue después de '+ref.nombre+' es '+sig.nombre+'. ', sig:sig};
+}
+/* ══════════ MODO SILENCIOSO · MODO RUTA · DESHACER ══════════ */
+function _jSilencioOn(){ try{ return localStorage.getItem('jrv_silencio')==='1'; }catch(e){ return false; } }
+function _jSilencioSet(on){
+  try{ if(on){ localStorage.setItem('jrv_silencio','1'); localStorage.setItem('jrv_voz_off','1'); try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} } else { localStorage.removeItem('jrv_silencio'); localStorage.removeItem('jrv_voz_off'); } }catch(e){}
+}
+function _jVibrar(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||40); }catch(e){} }
+function _jRutaLista(){
+  const F=getFechaActiva(), dh=_diaDeFecha(F);
+  const todos=(getClientes()||[]).filter(c=>c&&c.saldo>0&&!c.volado&&(c.tipo==='diario'||(_esSem(c)&&_diaDeCliente(c)===dh)));
+  const ya=todos.filter(c=>(c.pagos||[]).some(p=>p.fecha===F));
+  const pend=todos.filter(c=>!(c.pagos||[]).some(p=>p.fecha===F));
+  return {pend,ya};
+}
+function _jRutaCliente(R){ return _jCliente(R.ids[R.i]); }
+function _jRutaSiguiente(R){
+  while(R.i<R.ids.length){ const c=_jRutaCliente(R); if(c && c.saldo>0 && !c.volado) break; R.i++; }
+  if(R.i>=R.ids.length) return _jRutaResumen(true);
+  const c=_jRutaCliente(R);
+  return '➡️ '+(R.i+1)+'/'+R.ids.length+' · '+c.nombre+' · cuota '+_jFm(c.cuotaSugerida||0)+' · debe '+_jFm(c.saldo||0);
+}
+function _jRutaResumen(terminada){
+  const R=window._jRuta; window._jRuta=null; if(!R) return '';
+  const falt=R.ids.length-R.i;
+  let r=(terminada?'🏁 Terminaste la ruta, jefe.':'🏁 Ruta cerrada.')+'\n💵 Cobraste '+_jFm(R.cobrado)+' a '+R.pagaron.length+' cliente'+(R.pagaron.length===1?'':'s')+'.';
+  if(R.saltados.length) r+='\n❌ Sin pagar ('+R.saltados.length+'): '+R.saltados.slice(0,12).join(', ')+(R.saltados.length>12?'…':'');
+  if(!terminada && falt>0) r+='\n⏳ Faltaron '+falt+' por visitar.';
+  return r;
+}
+function _jRutaIntent(texto,t){
+  if(!window._jRuta && /\b(para|parar|termina\w*|cierra\w*|cerrar|acaba\w*)\b/.test(t) && /\b(la )?ruta\b/.test(t) && !/pdf|reporte|imprim/.test(t)) return '🚶 No hay ninguna ruta abierta, jefe.';
+  if(/\b(arranc\w*|empiez\w*|inici\w*|comienz\w*|vamos con|abre|activa|prende)\b/.test(t) && /\bruta\b/.test(t) && !/\bpdf|reporte|imprim/.test(t)){
+    const L=_jRutaLista();
+    if(!L.pend.length) return '📭 No hay clientes por cobrar en la ruta de hoy, jefe.';
+    window._jAcc=null;
+    window._jRuta={ids:L.pend.map(c=>c.id),i:0,cobrado:0,pagaron:[],saltados:[],ts:Date.now()};
+    return '🚶 Ruta lista: '+L.pend.length+' por cobrar'+(L.ya.length?' ('+L.ya.length+' ya pagaron hoy)':'')+'. Dime el monto, "la cuota", "no pagó" o "para".\n\n'+_jRutaSiguiente(window._jRuta);
+  }
+  return null;
+}
+function _jRutaResponder(texto,t){
+  const R=window._jRuta; if(!R) return null;
+  if(Date.now()-R.ts>3*3600*1000){ window._jRuta=null; return null; }
+  const w=t.split(/\s+/).filter(Boolean);
+  if(/^(jarvis )?(para|parar|termina\w*|terminar|salir|sal|fin|detente|cierra\w*|cerrar|ya|ya no|acabar|acabemos)( la ruta| ruta)?$/.test(t)||/\b(termina|cierra|cerrar|parar|para) (la )?ruta\b/.test(t)) return _jRutaResumen(false);
+  const c=_jRutaCliente(R); if(!c){ return _jRutaResumen(true); }
+  R.ts=Date.now();
+  if(/^(no|no pago|no dio|no dieron|no pagaron|no tiene|nada|cero|salta\w*|saltalo|pasa|pasalo|siguiente|el otro|despues|manana|mañana|no estaba|no esta)\b/.test(t) && w.length<=5 && !/\d/.test(t)){
+    R.saltados.push(_jNomCortoR(c)); R.i++; _jVibrar(25);
+    return '❌ '+_jNomCortoR(c)+' sin pagar.\n'+_jRutaSiguiente(R);
+  }
+  if(/^(atras|anterior|regresa\w*|devuelve\w*|vuelve)\b/.test(t)){ R.i=Math.max(0,R.i-1); return _jRutaSiguiente(R); }
+  let monto=null;
+  if(/^(si|sí|pago|pagó|la cuota|cuota|lo mismo|normal|completa|completo|ok|dale|listo|su cuota|pago la cuota|pago normal)\b/.test(t) && !/\d/.test(t)) monto=c.cuotaSugerida||0;
+  else if(w.length<=4 && /\d/.test(t) && !_jBuscar(texto).length) monto=_jNum(texto.replace(/\bmil\b/ig,''));
+  if(monto===null || !(monto>0)){
+    if(w.length>=3 || _jBuscar(texto).length) return null; /* es otra orden: sigue el flujo normal */
+    return '🤔 No te entendí, jefe. Para '+_jNomCortoR(c)+': dime el monto, "la cuota", "no pagó" o "para".';
+  }
+  const dupOld=window._jDupOK, okOld=window._jPagoOK; window._jDupOK=true; window._jPagoOK=true;
+  let r; try{ r=_jRegistrarPagoJ(c,monto); }finally{ window._jDupOK=dupOld; window._jPagoOK=okOld; }
+  if(typeof r!=='string' || !/^✅/.test(r)) return r;
+  R.cobrado+=monto; R.pagaron.push(c.nombre); R.i++; _jVibrar(40);
+  return '✅ '+_jNomCortoR(c)+' '+_jFm(monto)+'\n'+_jRutaSiguiente(R);
+}
+function _jNomCortoR(c){ const p=String(c.nombre||'').trim().split(/\s+/); const r=[p[0]]; for(let i=1;i<p.length&&r.length<2;i++){ if(!/^(de|del|la|las|los|y)$/i.test(p[i])) r.push(p[i]); } return r.join(' '); }
+function _jDeshacerIntent(texto,t){
+  if(!( /\bdeshaz\w*|\bdeshacer\b/.test(t) || (/\b(borr\w*|anul\w*|quit\w*|elimin\w*)\b/.test(t) && /\b(ultim[oa]s?|que acabo de)\b/.test(t) && /\b(pago|cuota|abono)\b/.test(t)) )) return null;
+  if(/\b(gasto|nota|renov\w*|prestamo)\b/.test(t)) return null;
+  const u=window._jUltPago;
+  if(!u || Date.now()-u.ts>2*3600*1000) return '↩️ No tengo ningún pago reciente para deshacer, jefe. Dime "borra la cuota de [cliente]".';
+  const cs=getClientes(), i=cs.findIndex(x=>x.id===u.id); if(i<0){ window._jUltPago=null; return 'No encontré al cliente, jefe.'; }
+  const c=cs[i], j=(c.pagos||[]).findIndex(p=>p.fecha===u.fecha && p.monto===u.monto);
+  if(j<0){ window._jUltPago=null; return '↩️ Ese pago ya no está, jefe.'; }
+  c.pagos.splice(j,1); c.saldo=(c.saldo||0)+u.monto; saveClientes(cs); window._jUltPago=null;
+  try{ if(window._jRuta){ const R=window._jRuta; R.cobrado=Math.max(0,R.cobrado-u.monto); R.pagaron=R.pagaron.filter(n=>n!==c.nombre); } }catch(e){}
+  _jRefrescar(c.id);
+  return '↩️ Deshecho: quité '+_jFm(u.monto)+' de '+c.nombre+'. Vuelve a deber '+_jFm(c.saldo)+'.';
+}
+function _jSilencioIntent(texto,t){
+  if(/\b(quita\w*|sal\w*|desactiva\w*|apaga\w*|cancela\w*) (de )?(el |del )?(modo )?(silencio\w*)|\bhabla\w* otra vez\b|\bvuelve a hablar\b|\bcon voz\b|\bactiva\w* (la |tu )?voz\b/.test(t) && !/gasto|cliente/.test(t)){ _jSilencioSet(false); return '🔊 Listo jefe, vuelvo a hablar.'; }
+  if(/\bmodo silencio\w*\b|\b(activa\w*|pon\w*|prende\w*) (el )?silencio\b|\bno hables\b|\bsin voz\b|\bejecuta\w* sin hablar\b|\bcallate\b|\bhazlo en silencio\b/.test(t) && !/gasto|cliente/.test(t)){ _jSilencioSet(true); return '🤫 Modo silencioso. Ejecuto lo que me pidas sin hablar: solo una línea y una vibración. Di "habla otra vez" para volver a la voz.'; }
+  return null;
+}
+/* ══════════ 🛠️ MÁS ACCIONES: crear cliente, parar/devolver cartón, cambiar datos, mover, notas, día de trabajo, abrir pantallas, preguntas sobre tus datos ══════════ */
+const _J_DIAS_N=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+function _jDiaEn(t){ const q=_jNorm(t); const d=_J_DIAS_N.find(x=>new RegExp('\\b'+x+'s?\\b').test(q)); return d?(d==='miercoles'?'miércoles':(d==='sabado'?'sábado':d)):null; }
+function _jUnoSolo(texto,quitar){
+  /* busca UN cliente en el texto (opcionalmente sin cierto trozo); devuelve {c} / {err} */
+  let tx=texto; if(quitar) tx=tx.replace(quitar,' ');
+  const m=_jBuscar(tx);
+  if(m.length===1) return {c:m[0]};
+  if(m.length>1) return {err:'🤔 Hay varios parecidos, jefe:\n'+_jListaElegir(m)+'\nDime el nombre completo.'};
+  return {};
+}
+function _jSinNombre(texto,c){ const pals=_jNorm(c.nombre).split(/\s+/).filter(w=>w.length>=3); return _jNorm(texto).split(' ').filter(w=>pals.indexOf(w)<0).join(' '); }
+
+/* ---- 1) CREAR CLIENTE NUEVO POR VOZ ---- */
+function _jNuevoCliParse(texto){
+  const d={}; let tx=String(texto);
+  let m;
+  if((m=/cuota(?:\s+(?:de|sugerida))?\s*\$?\s*(\d+(?:[.,]\d+)?)/i.exec(tx))){ d.cuota=_jNum(m[1]); tx=tx.replace(m[0],' '); }
+  if((m=/(?:cedula|cédula|c\.?c\.?)\s*[:#]?\s*(\d{5,})/i.exec(tx))){ d.cedula=m[1]; tx=tx.replace(m[0],' '); }
+  if((m=/(?:telefono|teléfono|tel|celular|cel)\s*[:#]?\s*(\d[\d ]{6,})/i.exec(tx))){ d.tel=m[1].replace(/\s/g,''); tx=tx.replace(m[0],' '); }
+  if((m=/papeler[ií]a\s*(?:de)?\s*\$?\s*(\d+(?:[.,]\d+)?)/i.exec(tx))){ d.pap=_jNum(m[1]); tx=tx.replace(m[0],' '); }
+  const dia=_jDiaEn(tx); if(dia){ d.dia=dia; tx=tx.replace(new RegExp('(?:los\\s+|el\\s+|cobra\\w*\\s+|para\\s+)*'+dia.replace('é','[eé]').replace('á','[aá]')+'s?','i'),' '); }
+  if(/\bdiari[oa]s?\b/i.test(tx)){ d.tipo='diario'; tx=tx.replace(/\bdiari[oa]s?\b/i,' '); }
+  else if(/\bsemanal(es)?\b/i.test(tx)||dia){ d.tipo='semanal'; tx=tx.replace(/\bsemanal(es)?\b/i,' '); }
+  const mc=/(?:capital|prestamo|préstamo)\s*(?:de)?\s*\$?\s*(\d+(?:[.,]\d+)?)/i.exec(tx);
+  if(mc){ d.capital=_jNum(mc[1]); tx=tx.replace(mc[0],' '); }
+  const mi=/^\s*(?:\S+\s+)*?(?:cliente|clienta)(?:\s+(?:nuevo|nueva))?\s*[:,]?\s*(.*)$/i.exec(tx);
+  let resto=mi?mi[1]:tx;
+  const toks=resto.replace(/[,;]/g,' ').split(/\s+/).filter(Boolean); const nom=[];
+  for(let i=0;i<toks.length;i++){ if(/^\$?\d/.test(toks[i])||/^(con|por|y|el|la|los|que|se|llama|llamado|llamada)$/i.test(toks[i]) && !nom.length) { if(/^\$?\d/.test(toks[i])) break; else continue; } if(/^\$?\d/.test(toks[i])) break; nom.push(toks[i]); }
+  while(nom.length && /^(de|del|con|por|para|a)$/i.test(nom[nom.length-1])) nom.pop();
+  if(nom.length) d.nombre=nom.join(' ').toUpperCase();
+  if(d.capital==null){ const mn=/(?:^|\s)\$?(\d+(?:[.,]\d+)?)(?:\s*mil)?(?=\s|$)/.exec(resto.replace(nom.join(' '),' ')); if(mn) d.capital=_jNum(mn[1]); }
+  return d;
+}
+function _jNuevoCliIntent(texto,t){
+  if(/\b(clientes|clientas)\b|muestr\w*|cuant\w*|quien\w*|dame|dime|cuales/.test(t)) return null;
+  if(/\b(pago|abono|cobr\w*|despues|sigue|viene|siguiente|abajo|antes)\b/.test(t)) return null;
+  const nuevo=/\b(cliente|clienta) nuev[oa]\b|\bnuev[oa] (cliente|clienta)\b/.test(t);
+  if(!nuevo && /\bcuota\b/.test(t)) return null;
+  if(nuevo && !/^(jarvis )?(met\w*|crea\w*|agrega\w*|registr\w*|ingres\w*|anota\w*|apunta\w*|abre|quiero|vamos a|necesito)/.test(t)) return null;
+  const crea=/\b(crea\w*|crear|agrega\w*|registr\w*)\b.*\b(un|una|el|la)?\s*(cliente|clienta)\b/.test(t);
+  if(!nuevo && !crea) return null;
+  const d=_jNuevoCliParse(texto);
+  window._jAcc={tipo:'nuevoCli',paso:'',ts:Date.now(),d:d};
+  return _jNuevoCliSiguiente();
+}
+function _jNuevoCliSiguiente(){
+  const A=window._jAcc, d=A.d; A.ts=Date.now();
+  if(!d.nombre){ A.paso='nombre'; return '🆕 Vamos a crear un cliente nuevo, jefe. ¿Cómo se llama?'; }
+  if(!(d.capital>0)){ A.paso='capital'; return '💰 ¿De cuánto es el préstamo de '+d.nombre+'? (el valor que le entregas, por ejemplo 500)'; }
+  if(!d.tipo){ A.paso='tipo'; return '📅 ¿'+d.nombre+' paga diario o semanal?'; }
+  if(d.tipo==='semanal' && !d.dia){ A.paso='dia'; return '🗓️ ¿Qué día de la semana paga '+d.nombre+'?'; }
+  if(!(d.cuota>0)){ A.paso='cuota'; return '💳 ¿De cuánto es la cuota de '+d.nombre+'?'; }
+  const p=calcPrestamo(d.capital);
+  const dup=(getClientes()||[]).find(c=>_jNorm(c.nombre)===_jNorm(d.nombre) && !c.volado && c.saldo>0);
+  A.paso='confirmar';
+  return '📋 Nuevo cliente:\n👤 '+d.nombre+'\n💰 Préstamo '+_jFm(d.capital)+' + '+getPorcentaje()+'% = a cobrar '+_jFm(p.total)+'\n📅 '+(d.tipo==='semanal'?'Semanal (los '+d.dia+')':'Diario')+' · cuota '+_jFm(d.cuota)
+    +(d.cedula?'\n🪪 '+d.cedula:'')+(d.tel?'\n📱 '+d.tel:'')+(d.pap?'\n🧾 Papelería '+_jFm(d.pap):'')
+    +(dup?'\n⚠️ Ojo: ya tienes un cliente activo con ese nombre (debe '+_jFm(dup.saldo)+').':'')+'\n\n¿Lo guardo? Dime sí o no.';
+}
+function _jNuevoCliPaso(texto,t){
+  const A=window._jAcc; if(!A||A.tipo!=='nuevoCli') return null;
+  if(/^(no|cancela\w*|olvidalo|nada|dejalo|ya no)\b/.test(t) && A.paso!=='nombre'){ window._jAcc=null; return 'Listo jefe, no creé nada. 👍'; }
+  if(/^(cancela\w*|olvidalo|dejalo)\b/.test(t)){ window._jAcc=null; return 'Listo jefe, no creé nada. 👍'; }
+  const d=A.d;
+  if(A.paso==='nombre'){ const n=texto.replace(/[0-9$]/g,'').trim().toUpperCase(); if(n.length<3) return '🤔 Dime el nombre del cliente, jefe.'; d.nombre=n; }
+  else if(A.paso==='capital'){ const n=_jNum(texto.replace(/\bmil\b/ig,'')); if(!(n>0)) return '🤔 Dime el valor en números, jefe (por ejemplo 500).'; d.capital=n; }
+  else if(A.paso==='tipo'){ if(/diari/.test(t)) d.tipo='diario'; else if(/seman/.test(t)||_jDiaEn(t)){ d.tipo='semanal'; const dd=_jDiaEn(t); if(dd) d.dia=dd; } else return '🤔 ¿Diario o semanal, jefe?'; }
+  else if(A.paso==='dia'){ const dd=_jDiaEn(t); if(!dd) return '🤔 Dime el día (lunes, martes, miércoles…).'; d.dia=dd; }
+  else if(A.paso==='cuota'){ const n=_jNum(texto.replace(/\bmil\b/ig,'')); if(!(n>0)) return '🤔 Dime la cuota en números, jefe.'; d.cuota=n; }
+  else if(A.paso==='confirmar'){
+    if(/\b(si|dale|claro|ok|listo|guardalo|guarda|crealo|confirmo|hazlo|igual)\b/.test(t) && !/\bno\b/.test(t)){
+      const c=_jCrearClienteJ(d); window._jAcc=null; return c; }
+    if(/\bno\b/.test(t)){ window._jAcc=null; return 'Listo jefe, no creé nada. 👍'; }
+    return '🤔 ¿Lo guardo? Dime sí o no.';
+  }
+  return _jNuevoCliSiguiente();
+}
+function _jCrearClienteJ(d){
+  const p=calcPrestamo(d.capital), clientes=getClientes();
+  const nuevo={id:Date.now().toString(),nombre:d.nombre,cedula:d.cedula||'',tel:d.tel||'',dir:'',capital:d.capital,interes:p.interes,prestamo:p.total,pctInteres:getPorcentaje(),
+    tipo:d.tipo,diaSemana:d.tipo==='semanal'?(d.dia||''):'',cuotaSugerida:d.cuota,saldo:p.total,pagos:[],fechaCreado:getFechaActiva(),renovaciones:0,papeleriaCreacion:d.pap||0,nota:''};
+  if(d.pap>0){ try{ const key='papeleria_nuevos_'+getFechaActiva(); let l=[]; try{ l=JSON.parse(lsGet(key)||'[]'); }catch(e){} l.push({cliente:d.nombre,valor:d.pap,fecha:getFechaActiva()}); lsSet(key,JSON.stringify(l)); }catch(e){} }
+  clientes.push(nuevo); saveClientes(clientes);
+  window._datosHoy=null; try{ recalcularCuentas(); }catch(e){} try{ renderClientes(); }catch(e){}
+  window._jUltCli={id:nuevo.id,ts:Date.now()};
+  return '✅ Listo jefe, creé a '+nuevo.nombre+': préstamo '+_jFm(d.capital)+', a cobrar '+_jFm(p.total)+', '+(d.tipo==='semanal'?'semanal los '+d.dia:'diario')+', cuota '+_jFm(d.cuota)+'.\nQuedó al final de tu lista.';
+}
+
+/* ---- 2) PARAR / DEVOLVER CARTÓN ---- */
+function _jVoladoIntent(texto,t){
+  const parar=/\b(marca\w*|pasa\w*|pon\w*|manda\w*|declara\w*)\b.*\b(carton(es)? parado|volad[oa]|volo)\b|\b(carton parado|se (volo|fue sin pagar|desaparecio))\b|\bvolo\b|\bse me volo\b|\bparalo\b|\bparar a\b/.test(t) && !/\b(devuelve\w*|restaur\w*|saca\w*|regres\w*|volvio|reactiva\w*)\b/.test(t);
+  const volver=/\b(devuelve\w*|restaur\w*|saca\w*|regres\w*|reactiva\w*|vuelve\w*|pasa\w*|manda\w*|pon\w*)\b.*\b(activos?|clientes activos|de cartones parados|de volad\w*|del carton parado)\b|\b(volvio|regreso|reaparecio|aparecio)\b/.test(t);
+  if(!parar && !volver) return null;
+  if(/\b(cuant\w*|quien\w*|lista|muestr\w*|cuales)\b/.test(t)) return null;
+  const r=_jUnoSolo(texto); if(r.err) return r.err;
+  let c=r.c; if(!c && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000) c=_jCliente(window._jUltCli.id);
+  if(!c) return '🤔 ¿A cuál cliente, jefe? Dime el nombre.';
+  if(volver && !parar){
+    if(!c.volado) return '👍 '+c.nombre+' ya está en clientes activos, jefe.';
+    window._jAcc={tipo:'voladoConf',paso:'si',ts:Date.now(),id:c.id,accion:'volver'};
+    return '🔄 ¿Devuelvo a '+c.nombre+' a clientes activos? Volverá a deber '+_jFm(c.saldoPerdido||0)+' y queda en su puesto de la lista. Dime sí o no.';
+  }
+  if(c.volado) return '🛑 '+c.nombre+' ya es cartón parado, jefe (debe '+_jFm(c.saldoPerdido||0)+').';
+  if(!(c.saldo>0)) return '🤔 '+c.nombre+' no tiene saldo, jefe, no hay nada que perder.';
+  window._jAcc={tipo:'voladoConf',paso:'si',ts:Date.now(),id:c.id,accion:'parar'};
+  return '🛑 ¿Marco a '+c.nombre+' como cartón parado? Perdiste '+_jFm(c.saldo||0)+'. Sale de tus clientes activos pero queda guardado y lo puedes devolver. Dime sí o no.';
+}
+function _jVoladoPaso(texto,t){
+  const A=window._jAcc; if(!A||A.tipo!=='voladoConf') return null; window._jAcc=null;
+  if(/\b(si|dale|claro|ok|confirmo|hazlo|listo)\b/.test(t) && !/\bno\b/.test(t)){
+    const c=_jCliente(A.id); if(!c) return 'No encontré al cliente, jefe.';
+    if(A.accion==='parar'){ marcarVolado(A.id,true); return '🛑 Listo jefe, '+c.nombre+' quedó como cartón parado. Perdiste '+_jFm((_jCliente(A.id)||{}).saldoPerdido||0)+'. Para devolverlo dime "devuelve a '+c.nombre.split(' ')[0]+' a clientes activos".'; }
+    restaurarVolado(A.id,true); const n=_jCliente(A.id)||c; return '🔄 Listo jefe, '+n.nombre+' volvió a clientes activos y debe '+_jFm(n.saldo||0)+'. Quedó en su puesto de la lista.';
+  }
+  return 'Listo jefe, no cambié nada. 👍';
+}
+
+/* ---- 3) CAMBIAR DATOS EN UNA SOLA FRASE ---- */
+function _jDatosIntent(texto,t){
+  const verbo=/\b(cambi\w*|pon\w*|actualiz\w*|edit\w*|ajust\w*|corrig\w*|pasa\w*|dej\w*|modific\w*|cobr\w*)\b/.test(t);
+  if(!verbo) return null;
+  if(/\b(saldo|deuda|debe|perdid\w*|prestamo|gasto|neki|efectivo|renov\w*|cuota de hoy|pago|abono)\b/.test(t) && !/\bcuota\b.*\b(a|en|por)\b/.test(t)) return null;
+  let campo=null;
+  if(/\bcuota\b/.test(t)) campo='cuota';
+  else if(/\b(dia|dias|miercoles|lunes|martes|jueves|viernes|sabado|domingo)\b/.test(t)) campo='dia';
+  else if(/\b(telefono|celular|numero|cel|tel)\b/.test(t)) campo='tel';
+  else if(/\b(cedula|cc)\b/.test(t)) campo='cedula';
+  else if(/\b(direccion|barrio|dir)\b/.test(t)) campo='dir';
+  else if(/\b(semanal|diario)\b/.test(t) && /\b(a|en|como|para)\b/.test(t)) campo='tipo';
+  if(!campo) return null;
+  if(/\bcuant\w*|\bcual\w*|\bque\b|\bquien\w*/.test(t)) return null;
+  const r=_jUnoSolo(texto); if(r.err) return r.err;
+  let c=r.c; if(!c && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000) c=_jCliente(window._jUltCli.id);
+  if(!c) return null;
+  const sobra=_jSinNombre(texto,c);
+  let v=null, ant='', txt='';
+  const cl=getClientes(), i=cl.findIndex(x=>x.id===c.id), cc=cl[i];
+  if(campo==='cuota'){ const m=/(?:^|\s)(\d+(?:[.,]\d+)?)(?=\s|$)/.exec(sobra.replace(/\bmil\b/g,'')); if(!m) return null; v=_jNum(m[1]); if(!(v>0)) return null; ant=_jFm(cc.cuotaSugerida||0); cc.cuotaSugerida=v; txt='la cuota de '+cc.nombre+' → '+_jFm(v); }
+  else if(campo==='dia'){ v=_jDiaEn(t); if(!v) return null; ant=cc.diaSemana||'sin día'; cc.diaSemana=v; if(cc.tipo!=='semanal'){ cc.tipo='semanal'; } txt='el día de cobro de '+cc.nombre+' → '+v; }
+  else if(campo==='tel'){ const m=/(\d[\d ]{6,})/.exec(texto); if(!m) return null; v=m[1].replace(/\s/g,''); ant=cc.tel||'—'; cc.tel=v; txt='el teléfono de '+cc.nombre+' → '+v; }
+  else if(campo==='cedula'){ const m=/(\d{5,})/.exec(texto.replace(/\s/g,'')); if(!m) return null; v=m[1]; ant=cc.cedula||'—'; cc.cedula=v; txt='la cédula de '+cc.nombre+' → '+v; }
+  else if(campo==='dir'){ const pals=_jNorm(cc.nombre).split(/\s+/).filter(w=>w.length>=3); const tsn=texto.split(/\s+/).filter(w=>pals.indexOf(_jNorm(w))<0).join(' '); const m=/(?:direcci[oó]n|barrio|dir)\s*(?:de\s+)?(?:a|en|:|es|por)\s+(.{4,})$/i.exec(tsn); if(!m) return null; v=m[1].trim().replace(/^(a|en|por|es)\s+/i,''); ant=cc.dir||'—'; cc.dir=v; txt='la dirección de '+cc.nombre+' → '+v; }
+  else if(campo==='tipo'){ v=/\bsemanal\b/.test(t)?'semanal':'diario'; if(cc.tipo===v) return '👍 '+cc.nombre+' ya es '+v+', jefe.'; ant=cc.tipo; cc.tipo=v; if(v==='diario') cc.diaSemana=''; else { const dd=_jDiaEn(t); if(dd) cc.diaSemana=dd; } txt=cc.nombre+' ahora es '+v+(v==='semanal'&&cc.diaSemana?' ('+cc.diaSemana+')':''); }
+  saveClientes(cl); _jRefrescar(cc.id); window._jUltCli={id:cc.id,ts:Date.now()};
+  return '✅ Listo jefe, cambié '+txt+' (antes: '+ant+').';
+}
+
+/* ---- 4) MOVER UN CLIENTE EN LA LISTA ---- */
+function _jMoverIntent(texto,t){
+  if(!/\b(mueve\w*|pon\w*|pasa\w*|coloca\w*|ubica\w*|sube\w*|baja\w*|manda\w*|lleva\w*|deja\w*)\b/.test(t)) return null;
+  const dir=/\b(antes de|despues de|debajo de|abajo de|encima de|arriba de|detras de|delante de)\b/.exec(t);
+  const extremo=/\b(de primero|primero|al inicio|al principio|de ultimo|ultimo|al final|de ultima)\b/.test(t) && /\b(lista|cliente|primero|ultimo|inicio|principio|final)\b/.test(t);
+  if(!dir && !(extremo && !/\b(pagos?|cuota|dia|prestamo|cuentas?)\b/.test(t))) return null;
+  if(/\b(cuota|pago|abono|saldo|neki|gasto)\b/.test(t)) return null;
+  if(dir){
+    const k=_jNorm(texto).indexOf(dir[0]); const izq=_jNorm(texto).slice(0,k), der=_jNorm(texto).slice(k+dir[0].length);
+    const a=_jBuscar(izq), b=_jBuscar(der);
+    if(a.length>1) return '🤔 ¿A cuál muevo, jefe?\n'+_jListaElegir(a);
+    if(b.length>1) return '🤔 ¿Junto a cuál, jefe?\n'+_jListaElegir(b);
+    let X=a[0]; if(!X && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000) X=_jCliente(window._jUltCli.id);
+    const Y=b[0];
+    if(!X||!Y) return '🤔 Dime los dos nombres, jefe. Por ejemplo: "pon a Eduardo después de Carmona".';
+    if(X.id===Y.id) return '🤔 Es el mismo cliente, jefe.';
+    const antes=/antes de|encima de|arriba de|delante de/.test(dir[0]);
+    const cs=getClientes(), xi=cs.findIndex(c=>c.id===X.id); const xc=cs.splice(xi,1)[0];
+    const yi=cs.findIndex(c=>c.id===Y.id); cs.splice(antes?yi:yi+1,0,xc); saveClientes(cs);
+    try{ renderClientes(); }catch(e){} window._jUltCli={id:X.id,ts:Date.now()};
+    return '✅ Listo jefe, '+X.nombre+' quedó '+(antes?'antes':'después')+' de '+Y.nombre+' en la lista.';
+  }
+  const r=_jUnoSolo(texto); if(r.err) return r.err;
+  let X=r.c; if(!X && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000) X=_jCliente(window._jUltCli.id);
+  if(!X) return null;
+  const primero=/\b(primero|inicio|principio)\b/.test(t);
+  const cs=getClientes(), xi=cs.findIndex(c=>c.id===X.id); const xc=cs.splice(xi,1)[0];
+  if(primero) cs.unshift(xc); else cs.push(xc); saveClientes(cs);
+  try{ renderClientes(); }catch(e){} window._jUltCli={id:X.id,ts:Date.now()};
+  return '✅ Listo jefe, '+X.nombre+' quedó '+(primero?'de primero':'de último')+' en la lista.';
+}
+
+/* ---- 5) NOTAS POR CLIENTE ---- */
+function _jNotaCliIntent(texto,t){
+  const escribe=/\b(anotale|apuntale|ponle (una )?nota|agregale (una )?nota|dejale (una )?nota|nota para|nota a|nota de)\b/.test(t) || (/\b(anota|apunta)\b/.test(t) && /\b(a|para) \w+/.test(t) && /\bque\b/.test(t));
+  const lee=/\b(que nota|cual nota|notas? (tiene|de)|lee\w* (la |las )?notas?|ver (la |las )?notas?|muestr\w* (la |las )?notas?)\b/.test(t);
+  if(!escribe && !lee) return null;
+  if(/^\s*(mis |las |la )?notas?\s*$/.test(t)) return null;
+  const r=_jUnoSolo(texto); if(r.err) return r.err;
+  let c=r.c; if(!c) return null;
+  if(lee && !/\bque\b.*\b(se mudo|dijo|esta|va|pidio)\b/.test(t) && !/[:]/.test(texto) && !/\b(anotale|apuntale|ponle|agregale|dejale)\b/.test(t)){
+    return c.nota?'📝 Nota de '+c.nombre+': '+c.nota:'📝 '+c.nombre+' no tiene notas, jefe.';
+  }
+  let cuerpo=null, m;
+  if((m=/:\s*(.+)$/.exec(texto))) cuerpo=m[1];
+  else if((m=/\bque\s+(.+)$/i.exec(texto))) cuerpo=m[1];
+  else { const ult=_jNorm(c.nombre).split(' ').filter(w=>w.length>=3).pop(); const q=new RegExp('('+ult+')\\s+(.{3,})$','i'); const mm=q.exec(_jNorm(texto)); if(mm) cuerpo=texto.slice(texto.toLowerCase().lastIndexOf(mm[2].slice(0,6))); }
+  if(!cuerpo || cuerpo.trim().length<2) return '🤔 ¿Qué le anoto a '+c.nombre+', jefe? Dime: "anótale a '+c.nombre.split(' ')[0]+' que se mudó".';
+  cuerpo=cuerpo.trim().replace(/^./,x=>x.toUpperCase());
+  const cl=getClientes(), i=cl.findIndex(x=>x.id===c.id), f=new Date(); const sello=f.getDate()+'/'+(f.getMonth()+1);
+  cl[i].nota=(cl[i].nota?cl[i].nota+' · ':'')+'['+sello+'] '+cuerpo; saveClientes(cl); _jRefrescar(c.id); window._jUltCli={id:c.id,ts:Date.now()};
+  return '📝 Listo jefe, le anoté a '+c.nombre+': "'+cuerpo+'".';
+}
+
+/* ---- 6) CAMBIAR EL DÍA DE TRABAJO ---- */
+function _jDiaTrabajoIntent(texto,t){
+  if(/\b(vuelve|regresa|volvamos|regresemos|volver|regresar)\b.*\b(a )?(hoy|el dia de hoy|hoy mismo)\b|\bdia de hoy\b.*\b(vuelve|regresa)\b/.test(t)){
+    setFechaActiva(fechaHoy()); window._editandoDiaAnterior=false;
+    try{ const i=document.getElementById('det-filtro-fecha'); if(i) i.value=fechaHoy(); }catch(e){} try{ renderClientes(); }catch(e){}
+    return '📅 Listo jefe, volvimos a trabajar hoy.';
+  }
+  if(!/\b(trabaj\w*|vamos a (trabajar|cobrar)|cobremos|cobrar el dia|cambia\w* (el )?dia|pon\w* (el )?dia|dia de trabajo)\b/.test(t)) return null;
+  if(/\b(semanales?|reporte|pdf|imprim\w*|renov\w*|prestamo|cliente|plenos?)\b/.test(t) && !/\bdia de trabajo\b/.test(t)) return null;
+  let f=null; try{ f=_jParseFechaReporte(t.replace(/\b(trabajemos|trabajar|trabaja|trabajamos|vamos a|cobremos|cambia\w*|pon\w*|dia de trabajo|el dia|dia|al|a|para|con|el)\b/g,' ')); }catch(e){}
+  if(!f && /\bayer\b/.test(t)) f=_jIso(new Date(Date.now()-86400000));
+  if(!f) return '🤔 ¿Qué día quieres trabajar, jefe? Dime "ayer", "el lunes" o "el 17".';
+  if(f>_jIso(new Date())) return '📅 Ese día todavía no llega, jefe.';
+  setFechaActiva(f); window._editandoDiaAnterior=(f!==fechaHoy());
+  try{ const i=document.getElementById('det-filtro-fecha'); if(i) i.value=f; }catch(e){} try{ renderClientes(); }catch(e){}
+  return '📅 Listo jefe, ahora trabajamos el '+_jDiaNombre(f)+'. Lo que cobres queda con esa fecha. Para volver dime "vuelve a hoy".';
+}
+
+/* ---- 8) ABRIR PANTALLAS ---- */
+function _jAbrirIntent(texto,t){
+  let m=/^(?:jarvis )?(?:llevame|abre|abreme|abrir|ve|ir|vamos|entra|entrar|muestrame|cambia|pasa|ponme)(?: a| al| a la| la| el| en)?(?: pantalla| seccion| pestana| ventana)?(?: de| del)? ?(clientes|detalles|prestamos|cuentas|gastos?|ajustes|configuracion|cartones parados|carton parado|volad[oa]s|semanales|diarios|todos los clientes|inicio)\s*$/.exec(t);
+  if(m){
+    const w=m[1];
+    if(/ajustes|configuracion/.test(w)){ irA('ajustes'); return '⚙️ Te abro Ajustes (te va a pedir tu clave).'; }
+    if(/detalles/.test(w)){ irA('detalles'); return '📋 Listo jefe, estás en Detalles.'; }
+    if(/prestamos/.test(w)){ irA('prestamos'); return '💸 Listo jefe, estás en Préstamos.'; }
+    if(/cuentas/.test(w)){ irA('cuentas'); return '💰 Listo jefe, estás en Cuentas.'; }
+    if(/gasto/.test(w)){ irA('gastos'); return '🧾 Listo jefe, estás en Gastos.'; }
+    irA('clientes');
+    if(/carton|volad/.test(w)){ setFiltroTipo('volado'); return '🛑 Listo jefe, estás en Cartones parados.'; }
+    if(/semanales/.test(w)){ setFiltroTipo('semanal'); return '📅 Listo jefe, te muestro los semanales.'; }
+    if(/diarios/.test(w)){ setFiltroTipo('diario'); return '☀️ Listo jefe, te muestro los diarios.'; }
+    setFiltroTipo('todos'); return '👥 Listo jefe, estás en Clientes.';
+  }
+  m=/^(?:jarvis )?(?:abre|abreme|abrir|muestrame|ensenme|ensename|ve a|llevame a)(?: la)? (?:ficha|pantalla|perfil|datos|informacion|info) (?:de |del )?(.+)$/.exec(t);
+  if(m){ const r=_jUnoSolo(m[1]); if(r.err) return r.err; if(r.c){ try{ lupaResumenCliente(r.c.id); }catch(e){} return '📂 Te abro la ficha de '+r.c.nombre+'.'; } }
+  return null;
+}
+
+/* ---- 7) PREGUNTAS SOBRE TUS DATOS (el cálculo lo hace el código, no la IA) ---- */
+function _jDatosCalc(c){
+  const pagos=c.pagos||[]; const pag=pagos.reduce((a,p)=>a+(p.monto||0),0);
+  const ult=pagos.map(p=>String(p.fecha).slice(0,10)).sort().pop()||'';
+  let at=0; try{ at=calcularAtraso(c)||0; }catch(e){}
+  return {saldo:c.volado?(c.saldoPerdido||0):(c.saldo||0),prestamo:c.prestamo||0,capital:c.capital||0,cuota:c.cuotaSugerida||0,pagado:pag,atraso:at,nprest:_jPrestamosDe(c),npagos:pagos.length,ultimo:ult};
+}
+function _jDatosEjecutar(sp){
+  if(!sp||typeof sp!=='object') return null;
+  const cs=(getClientes()||[]).filter(c=>c&&c.nombre);
+  const F=sp.filtros||{}; const estado=F.estado||'activo';
+  let L=cs.filter(c=>estado==='todos'?true:(estado==='volado'?!!c.volado:(estado==='cancelado'?(!c.volado&&!(c.saldo>0)):(!c.volado&&c.saldo>0))));
+  if(F.tipo==='diario'||F.tipo==='semanal') L=L.filter(c=>F.tipo==='diario'?c.tipo==='diario':c.tipo!=='diario');
+  if(F.dia) L=L.filter(c=>_sinAc(c.diaSemana)===_sinAc(F.dia));
+  const num=function(v){ const n=parseFloat(v); return isNaN(n)?null:n; };
+  const cmp=function(campo,mayor,menor){ const a=num(F[mayor]), b=num(F[menor]); if(a!==null) L=L.filter(c=>_jDatosCalc(c)[campo]>a); if(b!==null) L=L.filter(c=>_jDatosCalc(c)[campo]<b); };
+  cmp('saldo','saldo_mayor','saldo_menor'); cmp('prestamo','prestamo_mayor','prestamo_menor'); cmp('cuota','cuota_mayor','cuota_menor'); cmp('atraso','atraso_mayor','atraso_menor'); cmp('pagado','pagado_mayor','pagado_menor');
+  const enP=function(c,p){ return (c.pagos||[]).some(x=>{ const f=String(x.fecha).slice(0,10); return f>=p.desde&&f<=p.hasta; }); };
+  const okP=p=>p&&/^\d{4}-\d\d-\d\d$/.test(p.desde||'')&&/^\d{4}-\d\d-\d\d$/.test(p.hasta||'');
+  if(okP(F.sinPago)) L=L.filter(c=>!enP(c,F.sinPago));
+  if(okP(F.conPago)) L=L.filter(c=>enP(c,F.conPago));
+  if(F.nombre) L=L.filter(c=>_jNorm(c.nombre).indexOf(_jNorm(F.nombre))>=0);
+  const per=okP(sp.periodo)?sp.periodo:null;
+  const val=function(c){ const d=_jDatosCalc(c); const campo=sp.campo||'saldo';
+    if(campo==='cobrado'&&per) return (c.pagos||[]).filter(x=>{ const f=String(x.fecha).slice(0,10); return f>=per.desde&&f<=per.hasta; }).reduce((a,x)=>a+(x.monto||0),0);
+    return d[campo]!==undefined?d[campo]:0; };
+  const lbl={saldo:'debe',prestamo:'préstamo',capital:'capital',cuota:'cuota',pagado:'ha pagado',atraso:'días de atraso',nprest:'préstamos',npagos:'cuotas pagadas',cobrado:'cobrado',ultimo:'último pago'};
+  const campo=sp.campo||'saldo';
+  const fm=v=>(campo==='atraso'||campo==='nprest'||campo==='npagos')?String(v):_jFm(v);
+  const perTxt=per?(' del '+_jDiaNombre(per.desde)+(per.desde!==per.hasta?' al '+_jDiaNombre(per.hasta):'')):'';
+  const nom=c=>c.nombre;
+  const op=sp.op||'count'; const lim=Math.max(1,Math.min(parseInt(sp.limite,10)||5,25));
+  if(op==='count') return '📊 '+L.length+' cliente'+(L.length===1?'':'s')+(estado==='volado'?' (cartones parados)':'')+'.'+(L.length&&L.length<=15?'\n'+L.map(c=>'• '+nom(c)).join('\n'):'');
+  if(op==='sum'){ const tot=L.reduce((a,c)=>a+(val(c)||0),0); const nn=(campo==='cobrado')?L.filter(c=>val(c)>0).length:L.length; return '📊 '+(campo==='cobrado'?'Cobrado':(campo==='saldo'?'Total que te deben':'Total '+(lbl[campo]||campo)))+perTxt+': '+fm(tot)+' ('+nn+' cliente'+(nn===1?'':'s')+').'; }
+  if(op==='avg'){ if(!L.length) return '📊 No hay clientes con ese filtro.'; const tot=L.reduce((a,c)=>a+(val(c)||0),0); return '📊 Promedio '+(lbl[campo]||campo)+perTxt+': '+fm(Math.round(tot/L.length*10)/10)+' ('+L.length+' clientes).'; }
+  if(op==='top'||op==='list'){
+    const desc=(sp.orden||'desc')!=='asc'; const ord=L.map(c=>({c:c,v:val(c)})).sort((a,b)=>desc?b.v-a.v:a.v-b.v);
+    const sel=op==='top'?ord.slice(0,lim):ord.slice(0,25);
+    if(!sel.length) return '📊 No hay clientes con ese filtro, jefe.';
+    return '📊 '+(op==='top'?'Los '+sel.length+(desc?' con más ':' con menos ')+(lbl[campo]||campo):'Clientes ('+L.length+')')+perTxt+':\n'+sel.map((x,i)=>(i+1)+'. '+nom(x.c)+(campo!=='ultimo'||true?' — '+(campo==='ultimo'?(_jDatosCalc(x.c).ultimo||'sin pagos'):fm(x.v)):'')).join('\n')+(op==='list'&&L.length>25?'\n… y '+(L.length-25)+' más.':'');
+  }
+  return null;
+}
+function _jDatosReglas(texto){
+  const t=_jNorm(texto).trim(); const hoy=_jIso(new Date()); let m;
+  const P=_jHistPeriodo(t);
+  const hayPer=/\b(hoy|ayer|esta semana|semana pasada|este mes|mes pasado|ultim\w+ \w+ (dias?|semanas?|meses))\b/.test(t);
+  if(/\bcuanto (tengo|hay|me deben|esta) (en la calle|prestado|en deudas?)|\btotal de deudas\b|\bcuanto me deben\b|\bmi cartera\b|\bcuanta plata tengo en la calle\b/.test(t)) return _jDatosEjecutar({op:'sum',campo:'saldo'});
+  if((m=/\bcuant\w+ cliente\w* (deben|tienen saldo|me deben) (mas|menos) de \$?\s*(\d+(?:[.,]\d+)?)/.exec(t))) return _jDatosEjecutar({op:'count',filtros:{[m[2]==='mas'?'saldo_mayor':'saldo_menor']:_jNum(m[3])}});
+  if((m=/\bcuant\w+ (diarios|semanales)\b/.exec(t))) return _jDatosEjecutar({op:'count',filtros:{tipo:m[1]==='diarios'?'diario':'semanal'}});
+  if(/\bcuantos clientes (tengo|hay|activos tengo)\b/.test(t)) return _jDatosEjecutar({op:'count'});
+  if(/\bcuant\w+ (carton|cartones)( parados?)?\b|\bcuanto (he )?perdido\b|\bcuanto perdi\b/.test(t)){ const L=(getClientes()||[]).filter(c=>c&&c.volado); const tot=L.reduce((a,c)=>a+(c.saldoPerdido||0),0); return '🛑 Tienes '+L.length+' cartones parados y perdiste '+_jFm(tot)+' en total.'; }
+  if((m=/\b(?:los |las )?(\d+|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (?:clientes )?(?:que )?mas (?:me )?(deben|han pagado|pagan)\b/.exec(t))){
+    const n={dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10}[m[1]]||parseInt(m[1],10);
+    return _jDatosEjecutar({op:'top',campo:m[2]==='deben'?'saldo':'pagado',limite:n});
+  }
+  if(/\b(cliente|quien) (que )?(mas|el que mas) (me )?(ha )?(pagado|dado|paga|deben|debe)\b|\bquien me ha pagado mas\b|\bquien me debe mas\b/.test(t)) return _jDatosEjecutar({op:'top',campo:/deb/.test(t)?'saldo':'pagado',limite:1});
+  if(/\bquienes? no (han |ha )?pagad\w+|\bquienes? no (pagaron|pago|dieron|dio)\b|\bclientes? sin pagar\b/.test(t)){ const p=hayPer?P:{d:hoy,h:hoy,txt:'hoy'}; return _jDatosEjecutar({op:'list',campo:'saldo',filtros:{sinPago:{desde:p.d,hasta:p.h}}}); }
+  if(/\bcuanto (he )?(cobrado|cobre|recaude|recaudado|entro|me entro|llevo cobrado)\b/.test(t)){ const p=hayPer?P:{d:hoy,h:hoy}; return _jDatosEjecutar({op:'sum',campo:'cobrado',filtros:{estado:'todos'},periodo:{desde:p.d,hasta:p.h}}); }
+  if(/\bclientes? (con )?(mas )?atras\w+|\bquienes? (estan|van) atrasad\w+/.test(t)) return _jDatosEjecutar({op:'top',campo:'atraso',limite:10,filtros:{atraso_mayor:0}});
+  return null;
+}
+async function _jDatosIA(texto){
+  /* la IA solo traduce la pregunta a un filtro; los números los calcula _jDatosEjecutar con tus datos reales */
+  let key=''; try{ key=localStorage.getItem('orb_claude_key')||''; }catch(e){}
+  if(key.indexOf('gsk_')!==0) return null;
+  const t=_jNorm(texto);
+  if(!/\b(cuant\w*|quien\w*|quienes|cual\w*|que clientes?|lista\w*|dime|muestr\w*|dame|top|promedio|total|suma\w*|mas|menos|mayor|menor)\b/.test(t)) return null;
+  if(!/\b(clientes?|deben|debe|pagaron|pagan|pagado|cobr\w*|prestamos?|saldo|cuotas?|atras\w*|semanales|diarios|cartones|calle|cartera)\b/.test(t)) return null;
+  const hoy=new Date(), hIso=_jIso(hoy);
+  const sis='Traduces preguntas sobre una cartera de préstamos a un JSON de consulta. NO respondes la pregunta, solo devuelves el JSON.\n'
+   +'Hoy es '+hIso+' ('+['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy.getDay()]+'). Los montos de la app están en MILES de pesos: "500 mil" o "500.000" → 500; "1 millón" → 1000.\n'
+   +'Formato: {"consulta":{"op":"count|sum|avg|top|list","campo":"saldo|prestamo|capital|cuota|pagado|atraso|nprest|npagos|cobrado|ultimo","filtros":{...},"orden":"desc|asc","limite":5,"periodo":{"desde":"AAAA-MM-DD","hasta":"AAAA-MM-DD"}}}\n'
+   +'filtros posibles: estado("activo" por defecto|"volado"=cartón parado|"cancelado"|"todos"), tipo("diario"|"semanal"), dia("lunes"…), saldo_mayor, saldo_menor, prestamo_mayor, prestamo_menor, cuota_mayor, cuota_menor, atraso_mayor (días), pagado_mayor, pagado_menor, sinPago{"desde","hasta"} (clientes que NO pagaron en ese rango), conPago{"desde","hasta"}, nombre.\n'
+   +'campo "cobrado" suma lo cobrado en "periodo" (usa estado "todos"). "pagado" es lo que ha pagado en total.\n'
+   +'Si NO es una pregunta sobre los datos de la cartera (charla, consejos, órdenes), responde {"consulta":null}.\nResponde SOLO JSON.';
+  for(const modelo of ['llama-3.3-70b-versatile','llama-3.1-8b-instant']){
+    try{
+      const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),9000);
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json','Authorization':'Bearer '+key.trim()},
+        body:JSON.stringify({model:modelo,temperature:0,max_tokens:300,response_format:{type:'json_object'},messages:[{role:'system',content:sis},{role:'user',content:texto}]})});
+      clearTimeout(to); if(!r.ok) continue;
+      const d=await r.json(); const raw=d&&d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+      const j=JSON.parse(String(raw||'{}')); if(!j||!j.consulta) return null;
+      const res=_jDatosEjecutar(j.consulta); return res||null;
+    }catch(e){}
+  }
+  return null;
+}
+
+/* ---- 9) AYUDA CUANDO NO ENTIENDO ---- */
+function _jAyudaNoEntiendo(texto){
+  const t=_jNorm(texto);
+  if(!/\b(met\w*|ingres\w*|cobr\w*|ponle|anot\w*|borr\w*|elimin\w*|quit\w*|cambi\w*|renov\w*|abon\w*|registr\w*|mueve\w*|marc\w*|crea\w*|agrega\w*|abre|llevame|devuelve\w*|corrig\w*|actualiz\w*|edit\w*|apunt\w*)\b/.test(t)) return null;
+  const c=_jBuscar(texto); const num=/\d/.test(t);
+  if(c.length>=1&&c.length<=3){ const n=c[0].nombre.split(' ')[0]; return '🤔 Entendí que hablas de '+c.map(x=>x.nombre).join(' o ')+', pero no me quedó claro qué quieres hacer. Puedes decirme por ejemplo:\n• "métele 30 a '+n+'"\n• "cuánto debe '+n+'"\n• "cómo ha pagado '+n+' este mes"\n• "anótale a '+n+' que …"\n• "cámbiale la cuota a '+n+' a 30"\n• "renueva a '+n+'"'; }
+  if(num) return '🤔 Entendí un valor, pero no sé a cuál cliente se lo aplico, jefe. Dime el nombre. Por ejemplo: "métele 30 a Eduardo".';
+  return '🤔 No te entendí bien, jefe. ¿Qué quieres hacer: un pago, una nota, cambiar un dato, mover un cliente, parar un cartón, abrir una pantalla…? Dímelo con el nombre del cliente. Por ejemplo: "anótale a Eduardo que se mudó".';
+}
+
+/* ══════════ 📦 COPIA DE SEGURIDAD AUTOMÁTICA (guarda una copia al día en el celular, últimos 10 días) ══════════ */
+const _BK={db:null};
+function _bkAbrir(){ return new Promise(function(res,rej){ if(_BK.db) return res(_BK.db); try{ const r=indexedDB.open('jrv_bk',1); r.onupgradeneeded=function(){ r.result.createObjectStore('snaps'); }; r.onsuccess=function(){ _BK.db=r.result; res(r.result); }; r.onerror=function(){ rej(r.error); }; }catch(e){ rej(e); } }); }
+function _bkPut(k,v){ return _bkAbrir().then(function(db){ return new Promise(function(res,rej){ const tx=db.transaction('snaps','readwrite'); tx.objectStore('snaps').put(v,k); tx.oncomplete=res; tx.onerror=function(){ rej(tx.error); }; }); }); }
+function _bkGet(k){ return _bkAbrir().then(function(db){ return new Promise(function(res,rej){ const rq=db.transaction('snaps','readonly').objectStore('snaps').get(k); rq.onsuccess=function(){ res(rq.result); }; rq.onerror=function(){ rej(rq.error); }; }); }); }
+function _bkDel(k){ return _bkAbrir().then(function(db){ return new Promise(function(res){ const tx=db.transaction('snaps','readwrite'); tx.objectStore('snaps').delete(k); tx.oncomplete=res; tx.onerror=res; }); }); }
+function _bkIdx(){ try{ return JSON.parse(localStorage.getItem('jrv_bk_idx')||'[]')||[]; }catch(e){ return []; } }
+function _bkIdxSet(a){ try{ localStorage.setItem('jrv_bk_idx',JSON.stringify(a)); }catch(e){} }
+function _bkConstruir(){
+  const keys={}; let n=0;
+  try{
+    ['clientes_v1','hist_v3','historial_cedulas_v1','porcentaje_interes'].forEach(function(k){ const v=localStorage.getItem(k); if(v!==null) keys[k]=v; });
+    for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && /^(sup_manual_|papeleria_renovaciones_|gastos_dia_)/.test(k)) keys[k]=localStorage.getItem(k); }
+    n=(JSON.parse(keys.clientes_v1||'[]')||[]).length;
+  }catch(e){}
+  return {version:1,ts:Date.now(),n:n,keys:keys};
+}
+function _bkGuardar(tipo){
+  const snap=_bkConstruir(); if(!snap.n && tipo!=='pre') return null;
+  const hoy=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
+  const k=(tipo==='pre')?('pre_'+Date.now()):hoy;
+  let idx=_bkIdx().filter(function(x){ return x.k!==k; });
+  idx.push({k:k,ts:snap.ts,n:snap.n,tipo:tipo||'dia'});
+  const dias=idx.filter(function(x){ return x.tipo!=='pre'; }).sort(function(a,b){ return b.ts-a.ts; });
+  const pres=idx.filter(function(x){ return x.tipo==='pre'; }).sort(function(a,b){ return b.ts-a.ts; });
+  const quitar=dias.slice(10).concat(pres.slice(3));
+  quitar.forEach(function(x){ _bkDel(x.k); });
+  idx=idx.filter(function(x){ return quitar.indexOf(x)<0; });
+  _bkIdxSet(idx);
+  _bkPut(k,snap).catch(function(){ _bkIdxSet(_bkIdx().filter(function(x){ return x.k!==k; })); });
+  return {k:k,n:snap.n,ts:snap.ts};
+}
+function _bkAuto(){
+  try{
+    const snap=_bkConstruir(); if(!snap.n) return;
+    const idx=_bkIdx().filter(function(x){ return x.tipo!=='pre'; }).sort(function(a,b){ return b.ts-a.ts; });
+    const hoy=(typeof fechaHoy==='function')?fechaHoy():'';
+    const ult=idx[0];
+    if(ult && ult.n>=10 && snap.n<ult.n*0.85 && ult.n-snap.n>=5){
+      if(localStorage.getItem('jrv_bk_alerta')!==String(snap.n)){
+        localStorage.setItem('jrv_bk_alerta',String(snap.n));
+        try{ showToast('⚠️ Ojo: ahora tienes '+snap.n+' clientes y en la última copia había '+ult.n+'. Si fue un error dile a Jarvis "restaura la copia de ayer".'); }catch(e){}
+      }
+      return; /* no pisa la copia buena */
+    }
+    const deHoy=idx.find(function(x){ return x.k===hoy; });
+    if(deHoy && Date.now()-deHoy.ts<3*3600*1000) return;
+    _bkGuardar('dia');
+  }catch(e){}
+}
+setTimeout(_bkAuto,15000); setInterval(_bkAuto,20*60*1000);
+function _bkHora(ts){ const d=new Date(ts); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h>=12?'p. m.':'a. m.'; h=h%12||12; return h+':'+m+' '+ap; }
+function _bkEtiqueta(x){
+  const hoy=fechaHoy(); const ay=_jIso(new Date(Date.now()-86400000));
+  const f=String(x.k).slice(0,10);
+  if(x.tipo==='pre') return 'antes de restaurar ('+_bkHora(x.ts)+')';
+  return (f===hoy?'hoy':(f===ay?'ayer':_jDiaNombre(f)))+' · '+_bkHora(x.ts);
+}
+function _bkIntent(texto,t){
+  if(!/\b(copias?|respaldos?|backups?)\b/.test(t)) return null;
+  if(/\b(restaur\w*|recuper\w*|devuelve\w*|vuelve\w* a|regresa\w*|carga\w*|pon\w*)\b/.test(t) && /\b(copia|respaldo|backup)\b/.test(t)){
+    const idx=_bkIdx().filter(function(x){ return x.tipo!=='pre'; }).sort(function(a,b){ return b.ts-a.ts; });
+    if(!idx.length) return '📦 Todavía no tengo copias guardadas, jefe.';
+    let hoy=fechaHoy(), objetivo=null;
+    if(/\bayer\b/.test(t)) objetivo=_jIso(new Date(Date.now()-86400000));
+    else if(/\banteayer|antier\b/.test(t)) objetivo=_jIso(new Date(Date.now()-2*86400000));
+    else if(/\bhoy\b/.test(t)) objetivo=hoy;
+    else { const mh=/hace (\d+|un|dos|tres|cuatro|cinco)\s*dias?/.exec(t); if(mh){ const nn={un:1,dos:2,tres:3,cuatro:4,cinco:5}[mh[1]]||parseInt(mh[1],10); objetivo=_jIso(new Date(Date.now()-nn*86400000)); } else { const sc=_jParseFechaReporte?_jParseFechaReporte(t):null; if(sc) objetivo=sc; } }
+    let elegida=objetivo?idx.find(function(x){ return String(x.k)===objetivo; }):null;
+    if(!elegida && !objetivo) elegida=idx[0];
+    if(!elegida) return '📦 No tengo copia de ese día, jefe. Las que tengo:\n'+idx.map(function(x){ return '• '+_bkEtiqueta(x)+' — '+x.n+' clientes'; }).join('\n');
+    window._jAcc={tipo:'bkRestaurar',paso:'si',ts:Date.now(),k:elegida.k};
+    return '⚠️ Jefe, voy a devolver TODO como estaba en la copia de '+_bkEtiqueta(elegida)+' ('+elegida.n+' clientes). Lo de ahora se guarda aparte por si acaso. ¿Seguro? Dime sí o no.';
+  }
+  if(/\b(haz|hacer|crea\w*|guarda\w*|saca\w*|genera\w*|dame|toma\w*)\b/.test(t)){
+    const r=_bkGuardar('dia');
+    if(!r) return '⚠️ No encontré clientes para guardar, jefe. No hice la copia.';
+    try{ localStorage.removeItem('jrv_bk_alerta'); }catch(e){}
+    return '✅ Listo jefe, guardé la copia de seguridad de hoy ('+r.n+' clientes). Si la quieres también en tu archivo, toca el botón Backup.';
+  }
+  if(/\b(cuando|ultima|ultimo|tengo|cuantas|cuales|que|lista|ver|hay|mis)\b/.test(t)){
+    const idx=_bkIdx().sort(function(a,b){ return b.ts-a.ts; });
+    if(!idx.length) return '📦 Todavía no tengo copias guardadas, jefe. Dime "haz una copia de seguridad".';
+    return '📦 Copias en tu celular, jefe (se guarda una al día, las últimas 10):\n'+idx.map(function(x){ return '• '+_bkEtiqueta(x)+' — '+x.n+' clientes'; }).join('\n')+'\n\nPara devolver una dime: "restaura la copia de ayer".';
+  }
+  return null;
+}
+function _bkRestaurarAhora(k){
+  _bkGet(k).then(function(snap){
+    if(!snap||!snap.keys) throw new Error('vacia');
+    _bkGuardar('pre');
+    Object.keys(snap.keys).forEach(function(kk){ if(kk==='clientes_v1'){ try{ saveClientes(JSON.parse(snap.keys[kk])); }catch(e){ lsSet(kk,snap.keys[kk]); } } else lsSet(kk,snap.keys[kk]); });
+    try{ showToast('✅ Copia restaurada. Reiniciando…'); }catch(e){}
+    setTimeout(function(){ location.reload(); },1800);
+  }).catch(function(){ try{ showToast('⚠️ No pude leer esa copia.'); }catch(e){} });
+}
+
+/* ══════════ 🔁 RENOVACIONES GUIADAS ══════════ */
+function _jRenCandidatos(){
+  const out=[];
+  (getClientes()||[]).forEach(function(c){
+    if(!c||c.volado||!(c.saldo>0)||!(c.prestamo>0)) return;
+    const pagado=(c.prestamo-c.saldo)/c.prestamo; let atraso=0; try{ atraso=calcularAtraso(c)||0; }catch(e){}
+    const falt=(c.cuotaSugerida>0)?Math.ceil(c.saldo/c.cuotaSugerida):null;
+    out.push({c:c,pagado:pagado,atraso:atraso,falt:falt});
+  });
+  const listos=out.filter(function(x){ return x.pagado>=0.7 && x.atraso<=2; }).sort(function(a,b){ return b.pagado-a.pagado; });
+  const casi=out.filter(function(x){ return x.pagado>=0.5 && x.pagado<0.7 && x.atraso<=2; }).sort(function(a,b){ return b.pagado-a.pagado; });
+  return {listos:listos,casi:casi};
+}
+function _jRenLinea(x,i){
+  const c=x.c, nPrest=_jPrestamosDe(c), cap=c.capital||c.prestamo;
+  return (i+1)+'. '+c.nombre+' — debe '+_jFm(c.saldo)+(x.falt?' (falta'+(x.falt===1?' ~1 cuota':'n ~'+x.falt+' cuotas')+')':'')+' · pagó '+Math.round(x.pagado*100)+'%'+(x.atraso>0?' · ⏰ '+x.atraso+' d. atraso':' · al día')+' · '+(nPrest>1?nPrest+' préstamos':'1er préstamo')+' · sugerido '+_jFm(cap);
+}
+function _jRenGuiaIntent(texto,t){
+  if(!( /\b(quien\w*|a quien\w*|cuales|clientes?)\b/.test(t) && /\b(puede\w*|pueden|toca\w*|listos?|para|se le puede|conviene\w*|deber\w*)\b/.test(t) && /\brenov\w*\b/.test(t)) && !/\brenovaciones (sugerid\w*|guiad\w*|que (toca|puedo))|\bguiame (en )?(las )?renovaciones\b|\bque renovaciones\b/.test(t)) return null;
+  if(/\b(deshac\w*|borr\w*|pendient\w*)\b/.test(t)) return null;
+  const R=_jRenCandidatos();
+  if(!R.listos.length && !R.casi.length) return '🔁 Jefe, ahora mismo no hay clientes cerca de terminar y al día para renovar.';
+  const todos=R.listos.slice(0,8).concat(R.casi.slice(0,4));
+  window._jAcc={tipo:'renGuia',paso:'cual',ts:Date.now(),ids:todos.map(function(x){ return x.c.id; })};
+  let r='🔁 Renovaciones sugeridas, jefe:\n';
+  if(R.listos.length) r+='\n✅ LISTOS (pagaron 70% o más y van al día):\n'+R.listos.slice(0,8).map(function(x,i){ return _jRenLinea(x,i); }).join('\n');
+  if(R.casi.length) r+='\n\n🟡 CASI (entre 50% y 70%):\n'+R.casi.slice(0,4).map(function(x,i){ return _jRenLinea(x,R.listos.slice(0,8).length+i); }).join('\n');
+  return r+'\n\nDime el número o el nombre y empiezo la renovación.';
+}
+function _jRenGuiaPaso(texto,t){
+  const A=window._jAcc; if(!A||A.tipo!=='renGuia') return null;
+  if(/^(no|nada|ninguno|ninguna|cancela\w*|olvidalo|despues|luego|ya)\b/.test(t)){ window._jAcc=null; return 'Listo jefe. 👍'; }
+  let c=null; const n=_jNum(texto);
+  if(/^\s*(el |la )?(\d{1,2})\s*$/.test(t) || /\b(numero|el|la) (\d{1,2})\b/.test(t)){ const mm=/(\d{1,2})/.exec(t); const i=parseInt(mm[1],10)-1; if(A.ids[i]) c=_jCliente(A.ids[i]); }
+  else if(/\bprimer\w*\b/.test(t)) c=_jCliente(A.ids[0]);
+  if(!c){ const m=_jBuscar(texto).filter(function(x){ return A.ids.indexOf(x.id)>=0; }); if(m.length===1) c=m[0]; }
+  if(!c) return null;
+  window._jAcc=null;
+  const cap=c.capital||c.prestamo;
+  return '💡 Sugerido para '+c.nombre+': '+_jFm(cap)+' (lo mismo que tenía).\n'+_jEmpezar('renovar',c,{});
+}
+
+/* ══════════ 🕘 HISTORIAL POR VOZ ("cómo ha pagado Eduardo este mes") ══════════ */
+function _jHistPeriodo(t){
+  const hoy=new Date(); hoy.setHours(12,0,0,0); const iso=_jIso;
+  const ini=function(d){ return iso(d); };
+  let m;
+  if(/\besta semana\b/.test(t)){ const l=_jLunes(0); return {d:iso(l),h:iso(hoy),txt:'esta semana'}; }
+  if(/\bsemana (pasada|anterior)\b/.test(t)){ const l=_jLunes(-1); const f=new Date(l); f.setDate(l.getDate()+6); return {d:iso(l),h:iso(f),txt:'la semana pasada'}; }
+  if(/\bmes (pasado|anterior)\b/.test(t)){ const a=new Date(hoy.getFullYear(),hoy.getMonth()-1,1,12), b=new Date(hoy.getFullYear(),hoy.getMonth(),0,12); return {d:iso(a),h:iso(b),txt:'el mes pasado'}; }
+  if(/\beste mes\b/.test(t)){ return {d:iso(new Date(hoy.getFullYear(),hoy.getMonth(),1,12)),h:iso(hoy),txt:'este mes'}; }
+  if((m=/\bultim\w* (\d+|dos|tres|cuatro|cinco|seis|siete|diez|quince) (dias?|semanas?|meses|mes)\b/.exec(t))){
+    const nn={dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,diez:10,quince:15}[m[1]]||parseInt(m[1],10);
+    const mult=/semana/.test(m[2])?7:(/mes/.test(m[2])?30:1); const a=new Date(hoy); a.setDate(a.getDate()-nn*mult+1);
+    return {d:iso(a),h:iso(hoy),txt:'los últimos '+m[1]+' '+m[2]};
+  }
+  const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  for(let i=0;i<12;i++){ if(new RegExp('\\b(de |en |del )?'+meses[i]+'\\b').test(t)){ const y=hoy.getFullYear()-(i>hoy.getMonth()?1:0); return {d:iso(new Date(y,i,1,12)),h:iso(new Date(y,i+1,0,12)),txt:'en '+meses[i]}; } }
+  if(/\bhoy\b/.test(t)) return {d:iso(hoy),h:iso(hoy),txt:'hoy'};
+  const a=new Date(hoy); a.setDate(a.getDate()-29); return {d:iso(a),h:iso(hoy),txt:'los últimos 30 días'};
+}
+function _jHistIntent(texto,t){
+  if(!(/\bcomo (ha|va|viene|esta|me ha|a)\s*(estado )?(pagando|pagado|pago)\b|\bhistorial de pagos\b|\blinea de tiempo\b|\bcomo (le )?(va|ha ido) (con|a)\b.*\b(pagos?|cuotas?)\b|\bque tal (paga|ha pagado)\b|\bhistoria de (pagos|cuotas)\b|\bcomo paga\b/.test(t))) return null;
+  let m=_jBuscar(texto);
+  if(!m.length && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000){ const c0=_jCliente(window._jUltCli.id); if(c0) m=[c0]; }
+  if(!m.length) return '🤔 ¿De cuál cliente, jefe? Dime el nombre, por ejemplo: "cómo ha pagado Eduardo este mes".';
+  if(m.length>1) return '🤔 Hay varios, jefe:\n'+_jListaElegir(m)+'\nDime el nombre completo.';
+  const c=m[0]; window._jUltCli={id:c.id,ts:Date.now()};
+  const per=_jHistPeriodo(t), hoyIso=_jIso(new Date());
+  const inicioC=String(c.fechaRenovacion||c.fechaCreado||'').slice(0,10);
+  let d0=per.d; if(inicioC && inicioC>d0) d0=inicioC; let h0=per.h>hoyIso?hoyIso:per.h;
+  const pagos=(c.pagos||[]).filter(function(p){ const f=String(p.fecha).slice(0,10); return f>=d0 && f<=h0; });
+  const porDia={}; pagos.forEach(function(p){ const f=String(p.fecha).slice(0,10); porDia[f]=(porDia[f]||0)+(p.monto||0); });
+  const total=pagos.reduce(function(a,p){ return a+(p.monto||0); },0);
+  const dd=['dom','lun','mar','mié','jue','vie','sáb'];
+  const corto=function(f){ const d=new Date(f+'T12:00:00'); return dd[d.getDay()]+' '+d.getDate(); };
+  let r='🕘 '+c.nombre+' — '+(c.tipo==='diario'?'diario':'semanal'+(c.diaSemana?' ('+String(c.diaSemana).toLowerCase()+')':''))+', '+per.txt+':\n';
+  if(d0>h0) return r+'Todavía no había empezado ese préstamo en ese período.';
+  if(c.tipo==='diario'){
+    const lineas=[]; let sin=[]; let paso=0, dias=0;
+    const flush=function(){ if(sin.length){ lineas.push('⚠️ '+(sin.length===1?corto(sin[0])+': sin pago':sin.length+' días sin pagar ('+corto(sin[0])+' al '+corto(sin[sin.length-1])+')')); sin=[]; } };
+    for(let d=new Date(d0+'T12:00:00'); _jIso(d)<=h0; d.setDate(d.getDate()+1)){
+      const f=_jIso(d); if(d.getDay()===0 && !porDia[f]) continue; dias++;
+      if(porDia[f]){ flush(); paso++; lineas.push('✅ '+corto(f)+': '+_jFm(porDia[f])); } else sin.push(f);
+    }
+    flush();
+    r+='Pagó '+paso+' de '+dias+' días · en total '+_jFm(total)+'.\n\n'+(lineas.length>18?lineas.slice(-18).join('\n')+'\n(te muestro los últimos 18 renglones)':lineas.join('\n'));
+  } else {
+    const fs=Object.keys(porDia).sort();
+    r+=(fs.length?'Pagó '+fs.length+' vez'+(fs.length===1?'':'ces')+' · en total '+_jFm(total)+'.\n\n'+fs.map(function(f){ return '✅ '+corto(f)+': '+_jFm(porDia[f]); }).join('\n'):'No pagó nada en ese período.');
+    let atras=0; try{ atras=calcularAtraso(c)||0; }catch(e){}
+    if(atras>0) r+='\n\n⏰ Ahora mismo va '+atras+' día'+(atras===1?'':'s')+' atrasado.';
+  }
+  r+='\n\n💰 Debe '+_jFm(c.saldo||0)+(c.cuotaSugerida?' · cuota '+_jFm(c.cuotaSugerida):'')+'.';
+  return r;
+}
+
+/* ══════════ APODOS (Jarvis aprende cómo les dices a tus clientes) ══════════ */
+function _jAliasGet(){ try{ return JSON.parse(localStorage.getItem('jrv_alias')||'{}')||{}; }catch(e){ return {}; } }
+function _jAliasSet(o){ try{ localStorage.setItem('jrv_alias',JSON.stringify(o)); }catch(e){} }
+function _jAliasRegex(al){
+  const m={a:'[aáàä]',e:'[eéèë]',i:'[iíìï]',o:'[oóòö]',u:'[uúùü]',n:'[nñ]'};
+  const p=al.split('').map(ch=>m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('').replace(/\s+/g,'\\s+');
+  return new RegExp('(?:\\b(a la|al|a el|el|la|los|las)\\s+)?(?<![\\p{L}\\d])'+p+'(?![\\p{L}\\d])','iu');
+}
+function _jAliasAplicar(texto){
+  const A=_jAliasGet(); const ks=Object.keys(A).sort((x,y)=>y.length-x.length); if(!ks.length) return texto;
+  let out=texto;
+  ks.forEach(k=>{
+    const c=_jCliente(A[k]); if(!c) return;
+    const re=_jAliasRegex(k);
+    out=out.replace(re,function(m,art){ const a=_jNorm(art||''); return (a==='al'||a==='a la'||a==='a el')?'a '+c.nombre:c.nombre; });
+  });
+  return out;
+}
+function _jAliasIntent(texto,t){
+  let m;
+  if((m=/^(?:jarvis )?(?:olvida|borra|quita|elimina)\w* (?:el )?apodo (?:de |del )?(?:el |la )?(.+)$/.exec(t))){
+    const A=_jAliasGet(), k=m[1].trim(); const key=Object.keys(A).find(x=>x===k||x.indexOf(k)>=0);
+    if(!key) return '🤔 No tengo ese apodo, jefe. Dime "qué apodos tienes".';
+    const c=_jCliente(A[key]); delete A[key]; _jAliasSet(A); return '🧽 Listo jefe, olvidé "'+key+'"'+(c?' ('+c.nombre+')':'')+'.';
+  }
+  if(/\b(que|cuales|mis|ver|lista de) apodos\b|\bapodos que (tienes|sabes)\b|\blista de apodos\b/.test(t)){
+    const A=_jAliasGet(), ks=Object.keys(A).filter(k=>_jCliente(A[k]));
+    return ks.length?'🧠 Apodos que sé, jefe:\n'+ks.map(k=>'• "'+k+'" = '+_jCliente(A[k]).nombre).join('\n'):'🧠 Todavía no me has enseñado apodos. Dime por ejemplo: "el de la tienda es Miguel Chueco".';
+  }
+  let alias=null, nom=null;
+  if((m=/^(?:jarvis )?(?:aprende|recuerda|acuerdate|apunta|anota)\w* (?:que )?(?:(?:el|la|los|las|al) )?(.{2,40}?) (?:es|son|se llama|es el cliente|es la clienta) (?:el cliente |la clienta |el |la )?(.{3,})$/.exec(t))){ alias=m[1]; nom=m[2]; }
+  else if((m=/^(?:a |al )?(.{3,}?) (?:le digo|le decimos|le dicen|lo llamo|la llamo|se le dice|lo conocen como|la conocen como|le puse de apodo|le pongo de apodo)(?: de)? (?:el |la )?(.{2,40})$/.exec(t))){ nom=m[1]; alias=m[2]; }
+  else if((m=/^((?:el|la|al) (?:de|del|que|con|cliente de) .{2,40}?|(?:el|la) [a-z]{3,15}) (?:es|son) (?:el cliente |la clienta |el |la )?(.{3,})$/.exec(t))){
+    alias=m[1].replace(/^(el|la|al) /,''); nom=m[2];
+    if(/\b(viene|sigue|siguiente|ultim\w*|primer\w*|nuev\w*|cliente|clienta|mejor|peor|total|saldo|pleno|dia|dias|semana|mes|cuota|pago|gasto|resumen|reporte)\b/.test(alias)) return null;
+  }
+  if(!alias||!nom) return null;
+  alias=alias.replace(/^(el|la|los|las|al) /,'').trim();
+  if(alias.length<3 || _jBuscar(alias).length) return null;
+  const c=_jBuscar(nom);
+  if(c.length===0) return null;
+  if(c.length>1) return '🤔 ¿A cuál cliente le pongo "'+alias+'", jefe?\n'+_jListaElegir(c)+'\nDímelo con nombre y apellido.';
+  const A=_jAliasGet(); A[alias]=c[0].id; _jAliasSet(A);
+  return '🧠 Aprendido, jefe: "'+alias+'" es '+c[0].nombre+'. Ya lo puedes usar en cualquier orden.';
+}
+
+/* ══════════ VARIAS ÓRDENES EN UNA FRASE ══════════ */
+function _jMultiPartir(texto){
+  if(!/^\s*[\p{L}\d$]/u.test(texto)) return null;
+  if(window._jAcc && Date.now()-window._jAcc.ts<15*60*1000) return null;
+  const piezas=texto.split(/\s*(?:(?<!\d),|,(?!\d)|;|\s+y luego\s+|\s+luego\s+|\s+despu[eé]s\s+|\s+tambi[eé]n\s+|\s+adem[aá]s\s+|\s+y (?=(?:m[eé]t\w*|ingres\w*|ponle|pon|cobr\w*|anot\w*|registr\w*|abon\w*|apunt\w*|dime|dame|muestr\w*|cu[aá]nto|borra\w*|anula\w*|deshaz\w*|guarda\w*|imprim\w*|\$?\d)))\s*/i).filter(x=>x&&x.trim());
+  if(piezas.length<2) return null;
+  const ACT=/^(?:y\s+)?(?:met\w*|ingres\w*|ponle|pon|cobr\w*|anot\w*|registr\w*|abon\w*|apunt\w*|dime|dame|muestr\w*|cu[aá]nto|cu[aá]ntos|borra\w*|anula\w*|deshaz\w*|guarda\w*|imprim\w*|sum\w*|rest\w*)\b/i;
+  const VP=/^(met\w*|ingres\w*|ponle|pon|cobr\w*|abon\w*|registr\w*)\b/i;
+  const segs=[];
+  piezas.forEach((p,i)=>{
+    p=p.trim().replace(/^(?:y\s+)?(?:luego|despu[eé]s|tambi[eé]n|adem[aá]s)\s+/i,'').replace(/^y\s+(?=\S)/i,'');
+    if(!segs.length){ segs.push(p); return; }
+    if(ACT.test(_jNorm(p))){ segs.push(p); return; }
+    if(/^\$?\d/.test(p) && VP.test(_jNorm(segs[segs.length-1]))){ segs.push(_jNorm(segs[segs.length-1]).match(VP)[1]+' '+p); return; }
+    segs[segs.length-1]+=' '+p; /* sigue hablando de lo mismo (ej. nombre con "y") */
+  });
+  const cmd=segs.filter(sg=>ACT.test(_jNorm(sg))||/^\$?\d/.test(sg));
+  return (segs.length>=2 && cmd.length>=2)?segs:null;
+}
+function _jMultiEjecutar(segs){
+  const out=[]; let pausa=null;
+  for(let i=0;i<segs.length;i++){
+    let r; try{ r=_jAcciones1(segs[i]); }catch(e){ r='⚠️ No pude con esta: '+segs[i]; }
+    if(r===null||r===undefined){ out.push((i+1)+') 🤔 No entendí: "'+segs[i]+'"'); continue; }
+    if(typeof r!=='string') r=String(r);
+    out.push((i+1)+') '+(/^✅/.test(r)?r.split('\n')[0]:r.replace(/\n{2,}/g,'\n')));
+    if(window._jAcc && Date.now()-window._jAcc.ts<60000){ pausa=segs.slice(i+1); break; }
+  }
+  let res='🧩 '+(pausa===null?'Hice '+segs.length+' cosas, jefe:':'Voy por partes, jefe:')+'\n'+out.join('\n');
+  if(pausa && pausa.length) res+='\n\n⏸️ Respóndeme eso y después dime lo que falta: '+pausa.join(' · ');
+  _jVibrar(40);
+  return res;
+}
 function _jAcciones(texto){
+  try{ const tt=_jNorm(texto).trim(); const al=_jAliasIntent(texto,tt); if(al){ window._jAcc=null; return al; } }catch(e){ console.error(e); }
+  try{ texto=_jAliasAplicar(texto); }catch(e){}
+  try{ if(!_jSiguienteIntentRapido(texto)||true){ const segs=_jMultiPartir(texto); if(segs){ const r=_jMultiEjecutar(segs); return r; } } }catch(e){ console.error(e); }
+  return _jAcciones1(texto);
+}
+function _jAcciones1(texto){
+  const r=_jAccionesPre(texto);
+  if(typeof r==='string' && _jSilencioOn() && /^✅/.test(r) && !window._jRuta){ _jVibrar(40); return r.split('\n')[0]; }
+  return r;
+}
+function _jAccionesPre(texto){
+  try{ const _m=_jBuscar(texto); if(_m.length===1 && !_jSiguienteIntentRapido(texto)) window._jUltCli={id:_m[0].id,ts:Date.now()}; }catch(e){}
+  const t=_jNorm(texto).trim();
+  try{
+    if(window._jAcc && window._jAcc.tipo==='bkRestaurar' && Date.now()-window._jAcc.ts<15*60*1000){
+      const A=window._jAcc; window._jAcc=null;
+      if(/\b(si|dale|claro|ok|confirmo|hazlo|restaura\w*)\b/.test(t) && !/\bno\b/.test(t)){ _bkRestaurarAhora(A.k); return '⏳ Restaurando la copia… la app se reinicia sola en un momento.'; }
+      return 'Listo jefe, no toqué nada. 👍';
+    }
+    if(window._jAcc && window._jAcc.tipo==='renGuia' && Date.now()-window._jAcc.ts<15*60*1000){
+      const rg=_jRenGuiaPaso(texto,t); if(rg) return rg;
+      if(/^(no|nada|ninguno|ninguna|cancela\w*|olvidalo|despues|luego|ya)\b/.test(t)){ window._jAcc=null; return 'Listo jefe. 👍'; }
+      window._jAcc=null;
+    }
+    if(window._jAcc && window._jAcc.tipo==='nuevoCli' && Date.now()-window._jAcc.ts<15*60*1000){ const r0=_jNuevoCliPaso(texto,t); if(r0) return r0; }
+    if(window._jAcc && window._jAcc.tipo==='voladoConf' && Date.now()-window._jAcc.ts<15*60*1000){ const r1=_jVoladoPaso(texto,t); if(r1) return r1; }
+    let x=_jSilencioIntent(texto,t); if(x){ window._jAcc=null; return x; }
+    x=_jRutaIntent(texto,t); if(x){ window._jAcc=null; return x; }
+    x=_jDeshacerIntent(texto,t); if(x){ window._jAcc=null; return x; }
+    x=_bkIntent(texto,t); if(x) return x;
+    x=_jRenGuiaIntent(texto,t); if(x) return x;
+    x=_jHistIntent(texto,t); if(x){ window._jAcc=null; return x; }
+    if(!(window._jAcc && Date.now()-window._jAcc.ts<15*60*1000)){
+      x=_jAbrirIntent(texto,t); if(x) return x;
+      x=_jDiaTrabajoIntent(texto,t); if(x) return x;
+      x=_jNuevoCliIntent(texto,t); if(x) return x;
+      x=_jVoladoIntent(texto,t); if(x) return x;
+      x=_jMoverIntent(texto,t); if(x) return x;
+      x=_jNotaCliIntent(texto,t); if(x) return x;
+      x=_jDatosIntent(texto,t); if(x) return x;
+    }
+    if(window._jRuta && !(window._jAcc && Date.now()-window._jAcc.ts<15*60*1000)){ x=_jRutaResponder(texto,t); if(x) return x; }
+  }catch(e){ console.error(e); }
+  let sg=null; try{ sg=_jSiguienteIntent(texto); }catch(e){ sg=null; }
+  if(sg){
+    if(sg.err){ window._jAcc=null; return sg.err; }
+    window._jUltCli={id:sg.sig.id,ts:Date.now()};
+    const r=_jAccionesBase(sg.texto);
+    return (typeof r==='string') ? sg.pre+'\n'+r : r;
+  }
+  const rb=_jAccionesBase(texto);
+  if(rb!==null && rb!==undefined) return rb;
+  try{ const rd=_jDatosReglas(texto); if(rd) return rd; }catch(e){ console.error(e); }
+  return rb;
+}
+function _jSiguienteIntentRapido(texto){ const n=_jNorm(texto); return /\b(viene|sigue|siguiente|de abajo)\b|\b(despues|luego|abajo|debajo|detras)\b/.test(n); }
+function _jAccionesBase(texto){
   const t = _jNorm(texto).trim();
   { const _nl0 = /^\s*["“”]/.test(texto) ? _jNotaLibreIntent(texto,t) : null; if(_nl0){ window._jAcc=null; return _nl0; } }
   // Atajo: si el mensaje empieza con un punto, son nombres para renovación pendiente (.Miguel angel chueco .Juan Barreto)
@@ -12553,7 +13422,7 @@ function _jAcciones(texto){
   }
   if(window._jAcc && window._jAcc.tipo==='pagoDup'){
     const A=window._jAcc; window._jAcc=null;
-    if(/\b(si|dale|claro|ok|meteselo|metela|otra|confirmo|hazlo|igual)\b/.test(t) && !/\bno\b/.test(t)){
+    if(/\b(si|dale|claro|ok|meteselo|metela|otra cuota|otra de|confirmo|hazlo|igual)\b/.test(t) && !/\bno\b/.test(t)){
       const cc=_jCliente(A.cid); if(!cc) return 'No encontré al cliente, jefe.';
       window._jDupOK=true; window._jPagoOK=true;
       try{ return _jRegistrarPagoJ(cc,A.monto,A.fecha); } finally{ window._jDupOK=false; window._jPagoOK=false; }
@@ -13083,6 +13952,8 @@ async function orbIAEnviarMensaje(){
       }
     }catch(e){ window._jIA=false; }
   }
+  if(!_acc){ try{ const _dq=await _jDatosIA(texto); if(_dq) _acc=_dq; }catch(e){} }
+  if(!_acc){ try{ const _ay=_jAyudaNoEntiendo(texto); if(_ay) _acc=_ay; }catch(e){} }
   try {
     if(_acc) respuesta = _acc;
     else {
@@ -13981,7 +14852,7 @@ window.orbIANuevoChat = orbIANuevoChat;
         <h3 style="font-family:'Orbitron','Nunito',sans-serif;letter-spacing:3px;background:linear-gradient(90deg,#00d4ff,#0066ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">J.A.R.V.I.S.</h3>
         <div class="orb-sub" id="orb-conn-status">◈ Sistema activo · acceso completo</div>
       </div>
-      <button class="orb-btn ghost orb-btn-mini" onclick="jarvisTablero()" title="¿Qué puede hacer Jarvis?">📋</button>
+      <button class="orb-btn ghost orb-btn-mini" onclick="jarvisTablero()" title="Libro de Jarvis: qué puede hacer y cómo decírselo">📖</button>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-btn" onclick="jarvisVozToggle()" title="Voz de Jarvis (encender / apagar / probar)">🔊</button>
       <button class="orb-btn ghost orb-btn-mini" id="orb-voz-cambiar" onclick="_orbeMostrarMsg('ai', jarvisCambiarVoz(), false)" title="Cambiar la voz de Jarvis (web)">🎙️</button>
       <button class="orb-btn ghost orb-btn-mini" onclick="orbIAConfigKey()" title="Configurar Claude">🔑</button>
@@ -14004,7 +14875,7 @@ window.orbIANuevoChat = orbIANuevoChat;
 
     <div class="orb-quick" id="orb-quick">
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cuánto debo entregar hoy?')">🏦 ¿Cuánto entrego?</button>
-      <button class="orb-chip" onclick="jarvisTablero()">📋 ¿Qué puede hacer?</button>
+      <button class="orb-chip" onclick="jarvisTablero()">📖 Libro de Jarvis</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('¿Cómo voy hoy?')">⚡ Estado del día</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de esta semana')">💸 Gastos de la semana</button>
       <button class="orb-chip" onclick="orbIAEnviarRapido('Dame los gastos de la semana pasada')">💸 Gastos semana pasada</button>
@@ -15984,12 +16855,12 @@ function renderPanelSemanas(){
 function actualizarHintDia(id){ var h=document.getElementById('mc-dia-hint'); if(h) h.style.display='none'; }
 
 /* ══════════ VOLADAS: se fueron sin pagar (quedan registradas, se pueden devolver) ══════════ */
-function marcarVolado(id){
+function marcarVolado(id,_sc){
   var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
   var m=function(n){return (typeof fmt==='function')?fmt(n):('$'+n);};
   var _pagT=(c.pagos||[]).reduce(function(a,x){return a+(x.monto||0);},0), _deb=(c.prestamo||0)-_pagT, _av='';
   if(c.prestamo>0 && !(c.renovaciones>0) && _deb>=0 && _deb!==(c.saldo||0)) _av='\n\n⚠️ OJO: según el préstamo ('+m(c.prestamo)+') y lo pagado ('+m(_pagT)+') debería deber '+m(_deb)+', pero el saldo dice '+m(c.saldo||0)+'. Cancela y corrígelo antes (dile a Jarvis: "corrige el saldo de '+c.nombre+' a '+_deb+'").';
-  if(!confirm('¿Marcar a '+c.nombre+' como CARTÓN PARADO?\n\nPerdiste: '+m(c.saldo||0)+_av+'\nSale de tus clientes activos pero queda guardado en 🛑 Cartones parados y lo puedes devolver cuando quieras.')) return;
+  if(!_sc && !confirm('¿Marcar a '+c.nombre+' como CARTÓN PARADO?\n\nPerdiste: '+m(c.saldo||0)+_av+'\nSale de tus clientes activos pero queda guardado en 🛑 Cartones parados y lo puedes devolver cuando quieras.')) return;
   { const _i=cs.indexOf(c); c.volPrev=(cs[_i-1]&&cs[_i-1].id)||null; c.volNext=(cs[_i+1]&&cs[_i+1].id)||null; c.volIdx=_i; }
   c.saldoPerdido=c.saldo||0; c.saldo=0; c.volado=true; c.fechaVolado=(typeof fechaHoy==='function')?fechaHoy():new Date().toISOString().slice(0,10);
   saveClientes(cs); renderClientes();
@@ -16010,9 +16881,9 @@ function registrarCuotaVolada(id){
   renderClientes();
   showToast(salda?'✅ '+c.nombre+' pagó todo. Quedó cancelado':'✅ Cuota de '+fmt(monto)+' registrada a '+c.nombre);
 }
-function restaurarVolado(id){
+function restaurarVolado(id,_sc){
   var cs=getClientes(), c=cs.find(function(x){return x.id===id;}); if(!c) return;
-  if(!confirm('¿Devolver a '+c.nombre+' a clientes activos?\nVolverá a deber '+((typeof fmt==='function')?fmt(c.saldoPerdido||0):c.saldoPerdido))) return;
+  if(!_sc && !confirm('¿Devolver a '+c.nombre+' a clientes activos?\nVolverá a deber '+((typeof fmt==='function')?fmt(c.saldoPerdido||0):c.saldoPerdido))) return;
   c.saldo=c.saldoPerdido||0; c.volado=false; delete c.fechaVolado; delete c.saldoPerdido;
   try{
     if(c.volIdx!=null || c.volNext || c.volPrev){
