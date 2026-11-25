@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v187">
+<meta name="app-version" content="2026-11-23 v189">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v187';
+const APP_VERSION = '2026-11-23 v189';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11049,7 +11049,8 @@ function _orbePintarStats(){ try {
   const status = document.getElementById('orb-conn-status');
   if(status){
     let key=''; try{ key = localStorage.getItem('orb_claude_key')||''; } catch(e){}
-    status.textContent = key ? (key.indexOf('gsk_')===0?'Groq':'Claude')+' conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 (Groq o Claude)';
+    const _K=_jAgKeys();
+    status.textContent = (_K.groq||_K.ant) ? ((_K.groq&&_K.ant)?'Groq + Claude':(_K.ant?'Claude':'Groq'))+' conectado · análisis en vivo' : 'Modo local · agrega clave 🔑 (Groq o Claude)';
   }
 } catch(e){ console.error("stats error:",e); } }
 
@@ -11072,10 +11073,14 @@ function orbIAGuardarKey(){
   if (k.toLowerCase()==='quitar voz') { try{ localStorage.removeItem('jrv_gemini_key'); }catch(e){} inp.value=''; if(typeof showToast==='function') showToast('Voz Gemini quitada'); return; }
   if (k && !/^(gsk_|sk-ant)/.test(k)) { if(typeof showToast==='function') showToast('⚠️ Clave no reconocida: Groq empieza por gsk_ y Gemini por AIza o AQ.'); return; }
   try {
-    if (k) localStorage.setItem('orb_claude_key', k);
-    else   localStorage.removeItem('orb_claude_key');
+    if (k && k.indexOf('sk-ant')===0) {
+      localStorage.setItem('orb_ant_key', k);
+      const _g=localStorage.getItem('orb_claude_key')||'';
+      if(_g.indexOf('gsk_')!==0) localStorage.setItem('orb_claude_key', k); /* si no hay Groq, el chat usa Claude como antes */
+    } else if (k) localStorage.setItem('orb_claude_key', k);
+    else { localStorage.removeItem('orb_claude_key'); localStorage.removeItem('orb_ant_key'); }
   } catch(e){}
-  if(typeof showToast==='function') showToast(k ? (k.indexOf('gsk_')===0?'✅ Groq conectado':'✅ Claude conectado') : '🗑️ Clave borrada');
+  if(typeof showToast==='function') showToast(k ? (k.indexOf('gsk_')===0?'✅ Groq conectado':'✅ Claude conectado') + (function(){ const K=_jAgKeys(); return (K.groq&&K.ant)?' · las dos llaves listas':''; })() : '🗑️ Claves borradas');
   document.getElementById('orb-key-config').style.display = 'none';
   _orbePintarStats();
 }
@@ -11987,6 +11992,13 @@ function jarvisTablero(){
      ['Volver a la voz','Habla otra vez',1],
      ['Que repita lo último','Repite',1],
      ['Para cortarlo en manos libres di: para, ya, chao o termina','',0]]],
+   ['🤖','Jarvis Agente (la IA hace lo que le pidas)',[
+     ['Háblale como a una persona: usa tus llaves para entender cualquier frase y hacerlo','A los semanales del jueves que no han pagado ponles una nota de que los visite mañana',0],
+     ['Que trabajen las dos juntas (automático, es lo normal con las dos llaves)','Usa las dos',1],
+     ['Usar solo Claude (más listo, de pago)','Usa Claude',1],
+     ['Usar solo Groq (gratis, menos listo)','Usa Groq',1],
+     ['Ver con cuál está trabajando','Con qué IA estás trabajando',1],
+     ['Apagarlo o prenderlo','Apaga el agente',1]]],
    ['🚶','Extras',[
      ['Modo ruta: te lleva cliente por cliente (dices el monto, "la cuota" o "no pagó")','Arranca la ruta',1],
      ['Terminar la ruta y ver el resumen','Para la ruta',1],
@@ -13064,6 +13076,162 @@ function _jAyudaNoEntiendo(texto){
   return '🤔 No te entendí bien, jefe. ¿Qué quieres hacer: un pago, una nota, cambiar un dato, mover un cliente, parar un cartón, abrir una pantalla…? Dímelo con el nombre del cliente. Por ejemplo: "anótale a Eduardo que se mudó".';
 }
 
+/* ══════════ 🤖 JARVIS AGENTE: la IA (Claude o Groq) usa las herramientas del sistema para hacer lo que le pidas ══════════
+   La IA NO toca los datos directo: llama a las mismas órdenes que ya existen (con sus confirmaciones),
+   así que borrar, parar, renovar y los pagos de la IA siguen pidiendo tu "sí". */
+function _jAgKeys(){
+  let g='',a='';
+  try{ const k=localStorage.getItem('orb_claude_key')||''; if(k.indexOf('gsk_')===0) g=k; else if(k.indexOf('sk-ant')===0) a=k; }catch(e){}
+  try{ const k2=localStorage.getItem('orb_ant_key')||''; if(k2.indexOf('sk-ant')===0) a=k2; }catch(e){}
+  return {groq:g,ant:a};
+}
+function _jAgOn(){ try{ return localStorage.getItem('jrv_agente')!=='0'; }catch(e){ return true; } }
+function _jAgProv(){
+  const K=_jAgKeys(); let pref=''; try{ pref=localStorage.getItem('jrv_agente_prov')||''; }catch(e){}
+  if(pref==='groq' && K.groq) return 'groq';
+  if(pref==='claude' && K.ant) return 'claude';
+  if(K.ant && K.groq) return 'auto';
+  if(K.ant) return 'claude'; if(K.groq) return 'groq'; return null;
+}
+/* Automático: lo que MODIFICA o es enredado va a Claude; preguntas y consultas simples a Groq. Si una falla, prueba la otra. */
+function _jAgOrden(texto){
+  const p=_jAgProv(); if(p!=='auto') return p?[p]:[];
+  const t=_jNorm(texto);
+  const accion=/\b(met\w*|ingres\w*|cobr\w*|ponle|pon|pasa\w*|cambi\w*|borr\w*|elimin\w*|anot\w*|apunt\w*|renov\w*|mueve\w*|marc\w*|crea\w*|agrega\w*|devuelve\w*|liquid\w*|guarda\w*|corrig\w*|abon\w*|registr\w*|restaur\w*|par[ae]\w*|actualiz\w*)\b/.test(t);
+  const enredado=t.split(' ').length>14 || /,| y .* y /.test(t) || /\b(a los|a las|todos|todas|cada)\b/.test(t);
+  return (accion||enredado)?['claude','groq']:['groq','claude'];
+}
+const _J_AG_COMANDOS = [
+ 'métele 30 a NOMBRE   /   métele la cuota a NOMBRE   /   métele 30 a NOMBRE de ayer   (pagos; la IA siempre pide confirmación del usuario)',
+ 'borra la cuota de NOMBRE   /   deshaz lo último',
+ 'renueva a NOMBRE   /   quién puede renovar',
+ 'marca a NOMBRE como cartón parado   /   devuelve a NOMBRE a clientes activos',
+ 'cámbiale la cuota a NOMBRE a 45   /   pásalo para los miércoles   /   pon a NOMBRE semanal los jueves   /   ponle a NOMBRE el teléfono 3001234567   /   cámbiale la dirección a NOMBRE a CALLE',
+ 'pon a NOMBRE antes de OTRO   /   pon a NOMBRE después de OTRO   /   pon a NOMBRE de último   /   pon a NOMBRE de primero',
+ 'anótale a NOMBRE que TEXTO   /   qué nota tiene NOMBRE   /   nota: TEXTO   /   muéstrame las notas',
+ 'mete un cliente nuevo NOMBRE 500 diario cuota 25   (crea un cliente; siempre pide confirmación)',
+ 'anota gasto 3000 jugo   /   gastos de hoy   /   borra un gasto',
+ 'liquida   /   guarda   /   corrige neki 500   /   corrige efectivo 300',
+ 'semanales de hoy   /   semanales de mañana   /   préstamos de esta semana   /   resumen de la semana   /   cuentas del día 17   /   quién pagó hoy   /   cómo ha pagado NOMBRE este mes   /   muéstrame los clientes nuevos',
+ 'imprime el reporte de ayer',
+ 'trabajemos el día de ayer   /   vuelve a hoy   /   llévame a detalles   /   abre la ficha de NOMBRE',
+ 'haz una copia de seguridad   /   qué copias tengo   /   restaura la copia de ayer',
+ 'recuérdame mañana a las 9 am ir a cobrarle a NOMBRE   /   mis recordatorios',
+ 'el de la tienda es NOMBRE   (enseñar un apodo)   /   qué apodos tienes'
+];
+function _jAgHerramientas(){
+  return [
+   {name:'buscar_clientes',description:'Busca clientes por nombre, apellido, cédula o teléfono. Devuelve id, nombre completo, tipo, día, saldo, cuota y estado. Úsala SIEMPRE antes de una orden para obtener el nombre completo exacto.',schema:{type:'object',properties:{texto:{type:'string'}},required:['texto']}},
+   {name:'ficha_cliente',description:'Ficha completa de un cliente: datos, préstamo, pagos, renovaciones, notas.',schema:{type:'object',properties:{id:{type:'string'}},required:['id']}},
+   {name:'consultar_datos',description:'Calcula números reales de la cartera (nunca los inventes). op: count|sum|avg|top|list. campo: saldo|prestamo|capital|cuota|pagado|atraso|nprest|npagos|cobrado|ultimo. filtros: estado(activo|volado|cancelado|todos), tipo(diario|semanal), dia, saldo_mayor, saldo_menor, prestamo_mayor, prestamo_menor, cuota_mayor, cuota_menor, atraso_mayor, pagado_mayor, pagado_menor, sinPago{desde,hasta}, conPago{desde,hasta}, nombre. Montos en MILES de pesos. periodo{desde,hasta} (AAAA-MM-DD) para cobrado.',schema:{type:'object',properties:{op:{type:'string'},campo:{type:'string'},filtros:{type:'object'},orden:{type:'string'},limite:{type:'number'},periodo:{type:'object'}},required:['op']}},
+   {name:'resumen_negocio',description:'Resumen del día: pleno, cobrado hoy, cartera total, atrasados.',schema:{type:'object',properties:{}}},
+   {name:'ejecutar_orden',description:'Ejecuta UNA orden del sistema con la frase exacta del catálogo (con el nombre COMPLETO del cliente). Sirve para pagos, notas, cambiar datos, mover, renovar, parar cartón, gastos, reportes, copias, cambiar de pantalla, etc. Si responde con una pregunta o confirmación, el usuario debe contestarla: no hagas más órdenes y pásale la pregunta.',schema:{type:'object',properties:{orden:{type:'string'}},required:['orden']}}
+  ];
+}
+function _jAgEjecutar(nombre,args,ctx){
+  try{
+    if(nombre==='buscar_clientes'){
+      const m=(_jBuscar(String(args.texto||''))||[]).slice(0,8);
+      if(!m.length) return 'Sin resultados.';
+      return JSON.stringify(m.map(c=>({id:c.id,nombre:c.nombre,tipo:c.tipo||'',dia:c.diaSemana||'',saldo:c.volado?(c.saldoPerdido||0):(c.saldo||0),cuota:c.cuotaSugerida||0,estado:c.volado?'cartón parado':(c.saldo>0?'activo':'cancelado')})));
+    }
+    if(nombre==='ficha_cliente'){ const c=_jCliente(String(args.id||'')); return c?String(_jFichaCompleta(c)).slice(0,2500):'No existe ese id.'; }
+    if(nombre==='consultar_datos'){ return _jDatosEjecutar(args)||'No pude calcular eso.'; }
+    if(nombre==='resumen_negocio'){ return JSON.stringify(_orbeRecolectarStats()).slice(0,1500); }
+    if(nombre==='ejecutar_orden'){
+      if(ctx.pendiente) return 'ESPERA: ya hay una pregunta pendiente para el usuario. No ejecutes más órdenes; pregúntale eso al usuario.';
+      const orden=String(args.orden||'').trim(); if(!orden) return 'Orden vacía.';
+      window._jIA=true; let r; try{ r=_jAcciones(orden); }catch(e){ r='Error: '+e.message; window._jAcc=null; } window._jIA=false;
+      ctx.ordenes.push(orden);
+      if(window._jAcc && Date.now()-window._jAcc.ts<60000) ctx.pendiente=true;
+      return (r===null||r===undefined)?'El sistema no entendió esa orden. Reformúlala con la frase del catálogo.':String(r).slice(0,1800)+(ctx.pendiente?'\n[Queda esperando respuesta del usuario]':'');
+    }
+  }catch(e){ return 'Error: '+e.message; }
+  return 'Herramienta desconocida.';
+}
+async function _jAgente(texto){
+  if(!_jAgOn()) return null;
+  const orden=_jAgOrden(texto);
+  for(const pv of orden){
+    window._jAgErr=false;
+    const r=await _jAgenteRun(texto,pv);
+    if(r) return r;
+    if(!window._jAgErr) break;
+  }
+  return null;
+}
+async function _jAgenteRun(texto,prov){
+  if(!prov||!_jAgOn()) return null;
+  if(/^\s*["'’‘´`.]/.test(texto)) return null;
+  const K=_jAgKeys(), H=_jAgHerramientas(), ctx={pendiente:false,ordenes:[]};
+  const hoy=new Date(), dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const sis='Eres JARVIS, el asistente del cobrador de la app "Alisson & Emily" (Colombia). Hablas español informal y le dices "jefe". Respondes SOLO lo necesario, corto, sin relleno ni frases como "dime si necesitas algo".\n'
+   +'Hoy es '+dias[hoy.getDay()]+' '+_jIso(hoy)+'. Fecha de trabajo activa: '+getFechaActiva()+'. Los montos de la app están en MILES de pesos ("30" = 30 mil; "20 lucas" = 20; "1 millón" = 1000).\n'
+   +'Tú NO inventas números ni datos: los obtienes con las herramientas. Para hacer cualquier cosa usas ejecutar_orden con una frase del catálogo y el nombre COMPLETO del cliente (búscalo antes con buscar_clientes si no lo tienes exacto).\n'
+   +'CATÁLOGO de órdenes:\n'+_J_AG_COMANDOS.map(x=>'- '+x).join('\n')+'\n'
+   +'Reglas: (1) Si el cliente es ambiguo o falta un dato (monto, nombre, día), PREGUNTA corto. (2) Si ejecutar_orden devuelve una pregunta o pide confirmar, pásasela al usuario tal cual y no hagas más. (3) Varias órdenes: hazlas una por una. (4) Si es charla o consejo, responde natural y breve sin herramientas. (5) Nunca digas que hiciste algo si la herramienta no lo confirmó. (6) Si no se puede hacer con las herramientas, dilo claro.';
+  let hist=[]; try{ hist=_orbeCargarChat().filter(m=>!String(m.content||'').startsWith('⚠️')).slice(-7).map(m=>({role:m.role==='user'?'user':'assistant',content:String(m.content||'').slice(0,900)})); }catch(e){}
+  while(hist.length && hist[0].role!=='user') hist.shift();
+  if(!hist.length || hist[hist.length-1].role!=='user' || hist[hist.length-1].content.slice(0,200)!==texto.slice(0,200)) hist.push({role:'user',content:texto});
+  const t0=Date.now();
+  try{
+    let final=null;
+    if(prov==='claude'){
+      const modelos=[]; try{ const m=localStorage.getItem('jrv_ant_model'); if(m) modelos.push(m); }catch(e){}
+      ['claude-haiku-5-5','claude-sonnet-5-5','claude-3-5-haiku-latest'].forEach(m=>{ if(modelos.indexOf(m)<0) modelos.push(m); });
+      const tools=H.map(h=>({name:h.name,description:h.description,input_schema:h.schema}));
+      let msgs=hist.map(m=>({role:m.role,content:m.content})); let modelo=null;
+      for(let it=0;it<7;it++){
+        if(Date.now()-t0>40000) break;
+        let r=null, ok=false;
+        for(const m of (modelo?[modelo]:modelos)){
+          const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),20000);
+          try{ r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json','x-api-key':K.ant.trim(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:m,max_tokens:900,system:sis,tools:tools,messages:msgs})}); }catch(e){ r=null; }
+          clearTimeout(to);
+          if(r && r.ok){ modelo=m; ok=true; try{ localStorage.setItem('jrv_ant_model',m); }catch(e){} break; }
+          if(r && (r.status===401||r.status===403)) throw new Error('clave Claude no válida');
+        }
+        if(!ok) throw new Error('Claude no respondió');
+        const d=await r.json(); const blocks=d.content||[];
+        const usos=blocks.filter(b=>b.type==='tool_use');
+        if(!usos.length || d.stop_reason!=='tool_use'){ final=blocks.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim(); break; }
+        msgs.push({role:'assistant',content:blocks});
+        msgs.push({role:'user',content:usos.map(u=>({type:'tool_result',tool_use_id:u.id,content:String(_jAgEjecutar(u.name,u.input||{},ctx))}))});
+      }
+    } else {
+      const tools=H.map(h=>({type:'function',function:{name:h.name,description:h.description,parameters:h.schema}}));
+      let msgs=[{role:'system',content:sis}].concat(hist);
+      for(let it=0;it<7;it++){
+        if(Date.now()-t0>40000) break;
+        let r=null;
+        for(const m of ['llama-3.3-70b-versatile']){
+          const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),20000);
+          try{ r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json','Authorization':'Bearer '+K.groq.trim()},body:JSON.stringify({model:m,temperature:0.2,max_tokens:700,tools:tools,tool_choice:'auto',messages:msgs})}); }catch(e){ r=null; }
+          clearTimeout(to);
+        }
+        if(!r||!r.ok) throw new Error('Groq '+(r?r.status:'sin respuesta'));
+        const d=await r.json(); const msg=d.choices&&d.choices[0]&&d.choices[0].message; if(!msg) throw new Error('Groq vacío');
+        if(!msg.tool_calls||!msg.tool_calls.length){ final=String(msg.content||'').trim(); break; }
+        msgs.push({role:'assistant',content:msg.content||'',tool_calls:msg.tool_calls});
+        msg.tool_calls.forEach(tc=>{ let a={}; try{ a=JSON.parse(tc.function.arguments||'{}'); }catch(e){} msgs.push({role:'tool',tool_call_id:tc.id,content:String(_jAgEjecutar(tc.function.name,a,ctx))}); });
+      }
+    }
+    try{ const L=JSON.parse(localStorage.getItem('jrv_agente_log')||'[]'); L.push({ts:Date.now(),q:texto.slice(0,160),o:ctx.ordenes,p:prov}); localStorage.setItem('jrv_agente_log',JSON.stringify(L.slice(-40))); }catch(e){}
+    if(final) return final;
+    if(ctx.ordenes.length) return '✅ Hice lo que pude, jefe. Revisa que quedó bien.';
+    return null;
+  }catch(e){ console.warn('agente',e); window._jAgErr=true; try{ window._jIA=false; }catch(x){} return null; }
+}
+function _jAgenteIntent(texto,t){
+  if(/\b(apaga\w*|desactiva\w*|quita\w*|sin)\b.*\b(el )?agente\b/.test(t)){ try{ localStorage.setItem('jrv_agente','0'); }catch(e){} return '🤖 Agente apagado, jefe. Vuelvo a entender solo las frases que ya me sabía.'; }
+  if(/\b(prende\w*|activa\w*|enciende\w*|pon\w*)\b.*\b(el )?agente\b/.test(t)){ try{ localStorage.setItem('jrv_agente','1'); }catch(e){} const p=_jAgProv(); return p?'🤖 Agente prendido con '+(p==='claude'?'Claude':'Groq')+'. Ya puedes decirme cualquier cosa.':'🤖 Prendido, pero me falta una llave: toca 🔑 y pega la de Claude (sk-ant…) o la de Groq (gsk_…).'; }
+  if(/\b(usa|usar|cambia\w* a|pasa\w* a|ponte con|trabaja con)\b.*\b(claude)\b/.test(t)){ if(!_jAgKeys().ant) return '🔑 No tengo tu llave de Claude, jefe. Toca 🔑 y pégala (empieza por sk-ant).'; try{ localStorage.setItem('jrv_agente_prov','claude'); }catch(e){} return '🤖 Listo jefe, el agente usa Claude.'; }
+  if(/\b(usa|usar|cambia\w* a|pasa\w* a|ponte con|trabaja con)\b.*\b(groq|llama)\b/.test(t)){ if(!_jAgKeys().groq) return '🔑 No tengo tu llave de Groq, jefe. Toca 🔑 y pégala (empieza por gsk_).'; try{ localStorage.setItem('jrv_agente_prov','groq'); }catch(e){} return '🤖 Listo jefe, el agente usa Groq (Llama).'; }
+  if(/\b(las dos|ambas|automatic\w*|juntas|combina\w*)\b/.test(t) && /\b(usa|usar|trabaja\w*|pon\w*|modo)\b/.test(t) && !/\b(gasto|cliente)\b/.test(t)){ try{ localStorage.removeItem('jrv_agente_prov'); }catch(e){} const K=_jAgKeys(); return (K.groq&&K.ant)?'🤖 Listo jefe, modo automático: Groq para consultas y preguntas simples, Claude para lo que cambia datos o es enredado. Si una falla, uso la otra.':'🤖 Para el modo automático necesito las dos llaves, jefe. Toca 🔑 y pega la de Claude (sk-ant…) y la de Groq (gsk_…).'; }
+  if(/\b(con que|que ia|cual ia|que modelo)\b.*\b(agente|trabajas|usas|estas)\b|\bestado del agente\b/.test(t)){ const p=_jAgProv(); return '🤖 Agente '+(_jAgOn()?'prendido':'apagado')+' · '+(p==='auto'?'modo automático (Groq para consultas, Claude para acciones, y si una falla uso la otra)':(p==='claude'?'usando Claude':(p==='groq'?'usando Groq (Llama)':'sin llave: falta pegar una en 🔑')))+'.'; }
+  return null;
+}
+
 /* ══════════ 📦 COPIA DE SEGURIDAD AUTOMÁTICA (guarda una copia al día en el celular, últimos 10 días) ══════════ */
 const _BK={db:null};
 function _bkAbrir(){ return new Promise(function(res,rej){ if(_BK.db) return res(_BK.db); try{ const r=indexedDB.open('jrv_bk',1); r.onupgradeneeded=function(){ r.result.createObjectStore('snaps'); }; r.onsuccess=function(){ _BK.db=r.result; res(r.result); }; r.onerror=function(){ rej(r.error); }; }catch(e){ rej(e); } }); }
@@ -13374,6 +13542,7 @@ function _jAccionesPre(texto){
     let x=_jSilencioIntent(texto,t); if(x){ window._jAcc=null; return x; }
     x=_jRutaIntent(texto,t); if(x){ window._jAcc=null; return x; }
     x=_jDeshacerIntent(texto,t); if(x){ window._jAcc=null; return x; }
+    x=_jAgenteIntent(texto,t); if(x){ window._jAcc=null; return x; }
     x=_bkIntent(texto,t); if(x) return x;
     x=_jRenGuiaIntent(texto,t); if(x) return x;
     x=_jHistIntent(texto,t); if(x){ window._jAcc=null; return x; }
@@ -13949,6 +14118,7 @@ async function orbIAEnviarMensaje(){
   let respuesta = '';
   let _acc = null;
   try { _acc = _jAcciones(texto); } catch(e){ console.error('jarvis acciones', e); window._jAcc = null; }
+  if(!_acc){ try{ const _ag=await _jAgente(texto); if(_ag) _acc=_ag; }catch(e){ window._jIA=false; } }
   if(!_acc){
     try{
       const _cmd = await _jInterpretarIA(texto);
