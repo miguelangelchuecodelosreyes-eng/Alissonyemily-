@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v190">
+<meta name="app-version" content="2026-11-25 v192">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v190';
+const APP_VERSION = '2026-11-25 v192';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -12117,6 +12117,25 @@ function _jClienteIntent(texto,t){
   const pideSaldo=/\b(saldo|debe|deuda|queda|falta)\b/.test(t) && /\b(cuanto|cual|dime|saldo)\b/.test(t);
   const pideFicha=/\b(informacion|info|datos|ficha|resumen|todo (de|sobre)|como (esta|va)|cuentame|hablame)\b/.test(t);
   const pideCancel=/\bcancel\w*\b/.test(t) && /\b(cuando|que dia|que fecha|fecha|dia|con cuanto|cuanto|como|termino|acabo|ya)\b/.test(t);
+  const pideDar=/\b(cuanto|cuanta|que cuota)\b/.test(t) && /\b(dar|pagar|entregar|aportar|cuota|toca)\b/.test(t) && /\b(tiene que|tiene|debe|deberia|le toca|toca|va a|me|hoy|manana)\b/.test(t) && !/\b(ha|han|lleva|llevan)\b/.test(t);
+  if(pideDar){
+    let md=_jBuscar(texto);
+    if(!md.length && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000){ const c0=_jCliente(window._jUltCli.id); if(c0) md=[c0]; }
+    if(md.length && md.length<=3){
+      if(md.length===1) window._jUltCli={id:md[0].id,ts:Date.now()};
+      return md.map(c=>{
+        const cu=c.cuotaSugerida||0, sem=(c.tipo==='semanal');
+        if(c.volado) return '🏃 '+c.nombre+' es cartón parado, jefe. Ya no tiene cuota.';
+        if((c.saldo||0)<=0) return '🎉 '+c.nombre+' no debe nada, jefe. No tiene que dar nada.';
+        let r='💵 Jefe, '+c.nombre+' tiene que dar hoy '+_jFm(cu)+(sem?' (es semanal'+(c.diaSemana?', cobra los '+c.diaSemana:'')+')':' (es diario)')+'.';
+        const ya=(c.pagos||[]).filter(p=>p.fecha===getFechaActiva()).reduce((x,p)=>x+(p.monto||0),0);
+        if(ya>0) r+='\n✅ Hoy ya dio '+_jFm(ya)+'.';
+        let at=0; try{ at=calcularAtraso(c); }catch(e){}
+        if(at>0) r+='\n⏳ Además va atrasado '+at+' cuota'+(at>1?'s':'')+' (≈ '+_jFm(at*cu)+').';
+        return r;
+      }).join('\n\n');
+    }
+  }
   if(!(pideCuotas||pidePrest||pideSaldo||pideFicha||pideCancel)) return null;
   let m=_jBuscar(texto);
   if(!m.length && window._jUltCli && Date.now()-window._jUltCli.ts<20*60*1000){ const c0=_jCliente(window._jUltCli.id); if(c0) m=[c0]; }
@@ -17009,6 +17028,34 @@ function _diaMasLibre(r){
   return best;
 }
 
+
+/* Semanales por día: quién dio y cuánto en la fecha de ese día (semana de la fecha activa) */
+function _semFechaDeDia(d){
+  var ix=_DIAS_ORD.indexOf(d); if(ix<0) return '';
+  var q=String(getFechaActiva()||'').slice(0,10).split('-'); var b=new Date(+q[0],+q[1]-1,+q[2]); if(isNaN(b)) b=new Date();
+  var off=(b.getDay()+6)%7; b.setDate(b.getDate()-off+ix);
+  return b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');
+}
+function _semFilasDia(d,lista,m){
+  var F=_semFechaDeDia(d), hoy=String(getFechaActiva()||'').slice(0,10), fut=F&&F>hoy;
+  var pagoEn=function(c){ return (c.pagos||[]).filter(function(p){return String(p.fecha||'').slice(0,10)===F;}).reduce(function(a,p){return a+(p.monto||0);},0); };
+  var dio=0, cuantos=0, esp=0;
+  var filas=lista.map(function(c){
+    var cu=c.cuotaSugerida||0, p=F?pagoEn(c):0; esp+=cu;
+    var ic,txt,col,bg;
+    if(p>0){ dio+=p; cuantos++; if(p>=cu){ ic='✅'; col='#15803d'; bg='#ecfdf5'; txt='dio '+m(p); } else { ic='🟡'; col='#b45309'; bg='#fffbeb'; txt='dio '+m(p)+' de '+m(cu); } }
+    else if(fut){ ic='📅'; col='#64748b'; bg='transparent'; txt='cuota '+m(cu); }
+    else { ic='⏳'; col='#b91c1c'; bg='#fef2f2'; txt='no dio · cuota '+m(cu); }
+    return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:#334155;padding:4px 6px;margin:2px 0;border-radius:8px;background:'+bg+'"><span>'+ic+' '+_nomCorto(c.nombre)+'</span><span style="color:'+col+';text-align:right">'+txt+' <span style="color:#94a3b8;font-weight:700">· debe '+m(c.saldo||0)+'</span></span></div>';
+  }).join('');
+  var enc='';
+  if(F){
+    var ql=F.split('-'), et=_DIAS_LBL[d]+' '+(+ql[2]);
+    enc=fut? '<div style="font-size:11px;font-weight:900;color:#64748b;padding:2px 0 4px">📅 '+et+' · aún no llega · cuota esperada '+m(esp)+'</div>'
+            : '<div style="font-size:11px;font-weight:900;color:#4c1d95;padding:2px 0 4px">💰 '+et+' · dieron '+cuantos+' de '+lista.length+' · '+m(dio)+' de '+m(esp)+'</div>';
+  }
+  return enc+filas;
+}
 function renderPanelSemanas(){
   var box=document.getElementById('panel-semanas'); if(!box) return;
   if(window._filtroTipo!=='semanal'){ box.style.display='none'; return; }
@@ -17022,9 +17069,7 @@ function renderPanelSemanas(){
       +'<div style="display:flex;justify-content:space-between;align-items:center;width:100%"><div class="nom" style="font-size:14px">'+lbl+'</div>'
       +'<div style="font-size:14px;font-weight:900;color:'+(x.n?'#7c3aed':'#94a3b8')+'">'+txt+' <span style="font-size:11px;color:#94a3b8">'+(sel?'▲':'▼')+'</span></div></div>';
     if(sel){
-      h+= x.n? '<div style="width:100%;border-top:1px dashed #d8b4fe;padding-top:6px">'+x.lista.map(function(c){
-            return '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#334155;padding:3px 0"><span>'+_nomCorto(c.nombre)+'</span><span style="color:#7c3aed">'+m(c.cuotaSugerida||0)+' · debe '+m(c.saldo||0)+'</span></div>';
-          }).join('')+'</div>'
+      h+= x.n? '<div style="width:100%;border-top:1px dashed #d8b4fe;padding-top:6px">'+_semFilasDia(d,x.lista,m)+'</div>'
         : '<div style="width:100%;font-size:12px;font-weight:800;color:#94a3b8">No hay semanales este día</div>';
     }
     return h+'</div>';
