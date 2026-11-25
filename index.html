@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-23 v189">
+<meta name="app-version" content="2026-11-23 v190">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-23 v189';
+const APP_VERSION = '2026-11-23 v190';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -11054,35 +11054,38 @@ function _orbePintarStats(){ try {
   }
 } catch(e){ console.error("stats error:",e); } }
 
+function _jKeyEstadoTxt(){
+  const K=_jAgKeys(); let gem=false; try{ gem=!!localStorage.getItem('jrv_gemini_key'); }catch(e){}
+  return 'Groq '+(K.groq?'✅':'❌')+'  ·  Claude '+(K.ant?'✅':'❌')+'  ·  Voz Gemini '+(gem?'✅':'—');
+}
 function orbIAConfigKey(){
   const box = document.getElementById('orb-key-config');
   const inp = document.getElementById('orb-key-input');
   if(!box) return;
   box.style.display = box.style.display === 'none' || !box.style.display ? 'block' : 'none';
-  try { if(inp) inp.value = localStorage.getItem('orb_claude_key') || ''; } catch(e){}
+  if(inp) inp.value='';
+  const e=document.getElementById('orb-key-estado'); if(e) e.textContent=_jKeyEstadoTxt();
 }
 function orbIAGuardarKey(){
   const inp = document.getElementById('orb-key-input');
   if(!inp) return;
-  const k = (inp.value||'').trim();
-  if (k && /^(AIza|AQ\.)/.test(k)) { // clave de Gemini: solo para la VOZ de Jarvis
-    try{ localStorage.setItem('jrv_gemini_key', k); }catch(e){}
-    inp.value=''; if(typeof showToast==='function') showToast('🔊 Voz de Jarvis conectada (Gemini)');
-    document.getElementById('orb-key-config').style.display = 'none'; return;
-  }
-  if (k.toLowerCase()==='quitar voz') { try{ localStorage.removeItem('jrv_gemini_key'); }catch(e){} inp.value=''; if(typeof showToast==='function') showToast('Voz Gemini quitada'); return; }
-  if (k && !/^(gsk_|sk-ant)/.test(k)) { if(typeof showToast==='function') showToast('⚠️ Clave no reconocida: Groq empieza por gsk_ y Gemini por AIza o AQ.'); return; }
-  try {
-    if (k && k.indexOf('sk-ant')===0) {
-      localStorage.setItem('orb_ant_key', k);
-      const _g=localStorage.getItem('orb_claude_key')||'';
-      if(_g.indexOf('gsk_')!==0) localStorage.setItem('orb_claude_key', k); /* si no hay Groq, el chat usa Claude como antes */
-    } else if (k) localStorage.setItem('orb_claude_key', k);
-    else { localStorage.removeItem('orb_claude_key'); localStorage.removeItem('orb_ant_key'); }
-  } catch(e){}
-  if(typeof showToast==='function') showToast(k ? (k.indexOf('gsk_')===0?'✅ Groq conectado':'✅ Claude conectado') + (function(){ const K=_jAgKeys(); return (K.groq&&K.ant)?' · las dos llaves listas':''; })() : '🗑️ Claves borradas');
-  document.getElementById('orb-key-config').style.display = 'none';
-  _orbePintarStats();
+  const raw = (inp.value||'').trim();
+  const T=(m)=>{ if(typeof showToast==='function') showToast(m); };
+  const fin=()=>{ inp.value=''; const e=document.getElementById('orb-key-estado'); if(e) e.textContent=_jKeyEstadoTxt(); try{ _orbePintarStats(); }catch(x){} };
+  if(!raw){ T('Pega una clave primero (gsk_…, sk-ant-… o AIza…)'); return; }
+  const low=raw.toLowerCase();
+  if(low==='quitar voz'){ try{ localStorage.removeItem('jrv_gemini_key'); }catch(e){} T('Voz Gemini quitada'); fin(); return; }
+  if(low==='borrar'){ try{ localStorage.removeItem('orb_claude_key'); localStorage.removeItem('orb_ant_key'); }catch(e){} T('🗑️ Claves de Groq y Claude borradas'); fin(); return; }
+  const mg=/gsk_[A-Za-z0-9]{20,}/.exec(raw), ma=/sk-ant-[A-Za-z0-9_\-]{20,}/.exec(raw), mm=/(AIza[A-Za-z0-9_\-]{20,}|AQ\.[A-Za-z0-9_\-]{20,})/.exec(raw);
+  const ok=[];
+  try{
+    if(mg){ localStorage.setItem('orb_claude_key',mg[0]); ok.push('Groq'); }
+    if(ma){ localStorage.setItem('orb_ant_key',ma[0]); const g=localStorage.getItem('orb_claude_key')||''; if(g.indexOf('gsk_')!==0) localStorage.setItem('orb_claude_key',ma[0]); ok.push('Claude'); }
+    if(mm){ localStorage.setItem('jrv_gemini_key',mm[1]); ok.push('voz Gemini'); }
+  }catch(e){}
+  if(!ok.length){ T('⚠️ No reconocí esa clave. Groq empieza por gsk_, Claude por sk-ant- y Gemini por AIza o AQ.'); return; }
+  T('✅ Guardado: '+ok.join(' + ')+(function(){ const K=_jAgKeys(); return (K.groq&&K.ant)?' · las dos listas, modo automático':''; })());
+  fin();
 }
 
 // ════════════ CHAT ════════════
@@ -15040,9 +15043,10 @@ window.orbIANuevoChat = orbIANuevoChat;
     </div>
 
     <div id="orb-key-config" style="display:none">
-      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega tu clave de Groq (gsk_…) para el chat, o la de Gemini (AIza… o AQ.…) para que Jarvis hable. Se guarda solo en este dispositivo.</div>
+      <div style="font-size:11px;opacity:.85;margin-bottom:4px">Pega una clave y toca Guardar: Groq (gsk_…), Claude (sk-ant-…) o Gemini para la voz (AIza… / AQ.…). Cada una se guarda aparte, solo en este dispositivo. Para borrar todo escribe: borrar</div>
+      <div id="orb-key-estado" style="font-size:12px;font-weight:800;margin-bottom:6px"></div>
       <div class="orb-key-row">
-        <input type="password" id="orb-key-input" placeholder="gsk_... o AQ./AIza..." autocomplete="off">
+        <input type="text" id="orb-key-input" placeholder="gsk_… / sk-ant-… / AIza…" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button class="orb-btn" style="flex:0 0 auto;padding:9px 14px" onclick="orbIAGuardarKey()">Guardar</button>
       </div>
       <div style="font-size:10px;opacity:.6;margin-top:6px">Sin clave, el asistente responde con análisis local inteligente.</div>
