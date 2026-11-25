@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-25 v194">
+<meta name="app-version" content="2026-11-25 v197">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6077,7 +6077,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-25 v194';
+const APP_VERSION = '2026-11-25 v197';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -12446,12 +12446,13 @@ function _jNotasLibresListar(modo){
   _jPendSemEscanear();
   const l=_jNotasLibres(), ps=_jPendSemTexto();
   if(modo==='pend') return ps ? ps+'\nPara ver las notas que tú anotas dime "mis notas". Para quitar estos dime "borra los pendientes".' : '🎉 Jefe, no tienes semanales pendientes por pagar en las notas.\nPara ver las notas que tú anotas dime "mis notas".';
+  if(!l.length) return '📝 No tienes ninguna nota tuya guardada, jefe. Para anotar una dime: "nota: hoy toca ir a las 12 donde Juan".'+(ps?'\nPara ver los semanales pendientes dime "notas".':'');
+  return '📝 Tus notas, jefe ('+l.length+'):\n\n'+l.map((n,i)=>(i+1)+'. '+n.txt+'\n    🕒 '+_jNotaLibreFecha(n.ts)).join('\n\n')+'\n\nPara quitar una dime "borra la nota 2" o "borra todas las notas".';
+}
+function _jNotasClientesListar(){
   const nc=_jNotasClientes();
-  if(!l.length && !nc.length) return '📝 No tienes ninguna nota tuya guardada, jefe. Para anotar una dime: "nota: hoy toca ir a las 12 donde Juan".'+(ps?'\nPara ver los semanales pendientes dime "notas".':'');
-  let r='📝 Tus notas, jefe ('+(l.length+nc.length)+'):\n\n';
-  r+=l.map((n,i)=>(i+1)+'. '+n.txt+'\n    🕒 '+_jNotaLibreFecha(n.ts)).join('\n\n');
-  if(nc.length) r+=(l.length?'\n\n':'')+'👤 Notas de clientes:\n\n'+nc.map((c,j)=>(l.length+j+1)+'. '+c.nombre+': '+c.nota).join('\n\n');
-  return r+'\n\nPara quitar una dime "borra la nota 2", "borra la nota de '+(nc.length?nc[0].nombre.split(' ')[0]:'Juan')+'" o "borra todas las notas".';
+  if(!nc.length) return '📝 Ningún cliente tiene nota, jefe.';
+  return '👤 Notas de clientes ('+nc.length+'):\n\n'+nc.map(c=>'• '+c.nombre+': '+c.nota).join('\n\n')+'\n\nPara quitar una dime "borra la nota de Juan".';
 }
 function _jNotaLibreIntent(texto,t){
   if(/\bgastos?\b/.test(t)) return null;
@@ -12462,14 +12463,14 @@ function _jNotaLibreIntent(texto,t){
   if(mg) return _jNotaLibreAnotar(mg[1]);
   if(/\b(borr\w*|elimin\w*|quit\w*|limpi\w*|vaci\w*)\b/.test(t) && /\bpendientes\b/.test(t) && !/\b(renov\w*|renovacion\w*)\b/.test(t) && (/\bsemanal/.test(t) || !_jPendGet().length) && _jPendSemGet().length){ _jPendSemSet([]); return '🗑️ Listo jefe, borré los pendientes de semanales de las notas.'; }
   if(!/\bnotas?\b/.test(t)) return null;
+  if(/\bnotas? de (los |mis )?clientes\b|\bnotas? (que tienen|de las tarjetas|de detalles)\b/.test(t) && !/\b(borr\w*|elimin\w*|quit\w*)\b/.test(t)) return _jNotasClientesListar();
   if(_jBuscar(texto).length) return null; // "la nota de Juan" es otra cosa (nota del cliente)
   if(/\b(borr\w*|elimin\w*|quit\w*|limpi\w*|vaci\w*)\b/.test(t)){
-    const l=_jNotasLibres(), nc=_jNotasClientes();
+    const l=_jNotasLibres(), nc=[];
     if(!l.length && !nc.length && /pendiente/.test(t)){ _jPendSemSet([]); return '🗑️ Listo jefe, borré los pendientes de semanales de las notas.'; }
     if(!l.length && !nc.length) return '📝 No tienes notas guardadas, jefe.';
-    if(/\b(todas|todo|todos)\b/.test(t)){ _jNotasLibresSet([]); _jPendSemSet([]); if(nc.length){ const cl=getClientes(); cl.forEach(c=>{ if(c&&c.nota) c.nota=''; }); saveClientes(cl); try{ renderClientes(); }catch(e){} } return '🗑️ Listo jefe, borré todas las notas (tuyas'+(nc.length?', las de '+nc.length+' cliente'+(nc.length>1?'s':''):'')+' y los pendientes de semanales).'; }
+    if(/\b(todas|todo|todos)\b/.test(t)){ _jNotasLibresSet([]); _jPendSemSet([]); return '🗑️ Listo jefe, borré todas tus notas (y los pendientes de semanales). Las notas de los clientes no las toqué.'; }
     const n=t.match(/\b(\d{1,2})\b/);
-    if(n && +n[1]>l.length && +n[1]<=l.length+nc.length){ const c0=nc[+n[1]-l.length-1], cl=getClientes(), i0=cl.findIndex(x=>x.id===c0.id), ant=cl[i0].nota; cl[i0].nota=''; saveClientes(cl); _jRefrescar(c0.id); return '🗑️ Listo jefe, borré la nota de '+c0.nombre+': "'+ant+'".'; }
     if(n && +n[1]>=1 && +n[1]<=l.length){ const q=l.splice(+n[1]-1,1)[0]; _jNotasLibresSet(l); return '🗑️ Listo jefe, borré la nota: "'+q.txt+'".'; }
     if(l.length===1 && !nc.length){ _jNotasLibresSet([]); return '🗑️ Listo jefe, borré la nota: "'+l[0].txt+'".'; }
     return _jNotasLibresListar('mias');
@@ -12947,9 +12948,10 @@ function _jMoverIntent(texto,t){
 }
 
 /* ---- 5) NOTAS POR CLIENTE ---- */
+function _jNotaItems(c){ return String((c&&c.nota)||'').split(' · ').map(x=>x.trim()).filter(Boolean); }
 function _jNotaCliIntent(texto,t){
-  const escribe=/\b(anotale|apuntale|ponle (una )?nota|agregale (una )?nota|dejale (una )?nota|nota para|nota a|nota de)\b/.test(t) || (/\b(anota|apunta)\b/.test(t) && /\b(a|para) \w+/.test(t) && /\bque\b/.test(t));
-  const lee=/\b(que nota|cual nota|notas? (tiene|de)|lee\w* (la |las )?notas?|ver (la |las )?notas?|muestr\w* (la |las )?notas?)\b/.test(t);
+  const escribe=/\b(anotale|apuntale|pon(te)?le (una )?nota|ponele (una )?nota|agregale (una )?nota|dejale (una )?nota|nota para|nota a|nota de)\b/.test(t) || (/\b(anota|apunta)\b/.test(t) && /\b(a|para) \w+/.test(t) && /\bque\b/.test(t));
+  const lee=/\b(tiene (alguna |algun )?notas?|hay (alguna |algun )?notas?|alguna nota|que nota|cual nota|notas? (tiene|de)|lee\w* (la |las )?notas?|ver (la |las )?notas?|muestr\w* (la |las )?notas?)\b/.test(t);
   const borra=/\b(borr\w*|elimin\w*|quit\w*|limpi\w*|vaci\w*)\b/.test(t) && /\bnotas?\b/.test(t);
   if(!escribe && !lee && !borra) return null;
   if(/^\s*(mis |las |la )?notas?\s*$/.test(t)) return null;
@@ -12957,25 +12959,50 @@ function _jNotaCliIntent(texto,t){
   const r=_jUnoSolo(texto); if(r.err) return r.err;
   let c=r.c; if(!c) return null;
   if(borra){
-    const cl0=getClientes(), i0=cl0.findIndex(x=>x.id===c.id), ant=cl0[i0].nota||'';
+    const cl0=getClientes(), i0=cl0.findIndex(x=>x.id===c.id), its=_jNotaItems(cl0[i0]);
     const L=_jNotasLibres(), pw=_jNorm(c.nombre).split(' ').filter(w=>w.length>=4);
     const lib=L.filter(n=>pw.some(w=>_jNorm(n.txt).includes(w)));
-    if(!ant && !lib.length) return '📝 '+c.nombre+' no tiene notas para borrar, jefe.';
-    let msg='🗑️ Listo jefe, borré';
-    if(ant){ cl0[i0].nota=''; saveClientes(cl0); _jRefrescar(c.id); msg+=' la nota de '+c.nombre+': "'+ant+'"'; }
-    if(lib.length && (!ant || /\b(todas|todo)\b/.test(t))){ _jNotasLibresSet(L.filter(n=>lib.indexOf(n)<0)); msg+=(ant?' y':'')+' '+lib.length+' nota'+(lib.length>1?'s':'')+' tuya'+(lib.length>1?'s':'')+' que la mencionaba'+(lib.length>1?'n':''); }
     window._jUltCli={id:c.id,ts:Date.now()};
-    return msg+'.';
+    if(!its.length){
+      if(!lib.length) return '📝 '+c.nombre+' no tiene notas para borrar, jefe.';
+      _jNotasLibresSet(L.filter(n=>lib.indexOf(n)<0)); return '🗑️ Listo jefe, borré '+lib.length+' nota'+(lib.length>1?'s':'')+' tuya'+(lib.length>1?'s':'')+' que mencionaba'+(lib.length>1?'n':'')+' a '+c.nombre+'.';
+    }
+    let idx=null, mn;
+    const ign0=new Set(['borra','borrar','borrame','borrale','elimina','eliminar','eliminale','quita','quitar','quitale','limpia','nota','notas','que','dice','dijo','con','del','las','los','una','esa','ese','por','favor','jefe','cliente'].concat(pw));
+    const ws0=t.split(/[^a-z0-9ñ]+/).filter(w=>w.length>=3 && !ign0.has(w) && !/^\d+$/.test(w));
+    if(/\b(todas|todo|todos)\b/.test(t)) idx='todas';
+    else if((mn=/\bnota\s*(?:numero\s*|#)?(\d{1,2})\b/.exec(t)) && +mn[1]>=1 && +mn[1]<=its.length) idx=[+mn[1]-1];
+    else if((mn=/\b(?:la|el|numero)\s+(\d{1,2})\b/.exec(t)) && +mn[1]>=1 && +mn[1]<=its.length) idx=[+mn[1]-1];
+    else if(its.length===1 && !(ws0.length && !its.some(x=>ws0.some(w=>_jNorm(x).includes(w))))) idx=[0];
+    else {
+      const ws=ws0;
+      const hit=its.map((x,k)=>ws.some(w=>_jNorm(x).includes(w))?k:-1).filter(k=>k>=0);
+      if(ws.length && hit.length) idx=hit;
+    }
+    const borrarIdx=(sel)=>{
+      const cl=getClientes(), ii=cl.findIndex(x=>x.id===c.id), all=_jNotaItems(cl[ii]);
+      if(sel==='todas') sel=all.map((_,k)=>k);
+      const quitadas=sel.map(k=>all[k]); const rest=all.filter((_,k)=>sel.indexOf(k)<0);
+      cl[ii].nota=rest.join(' · '); saveClientes(cl); _jRefrescar(c.id);
+      return '🗑️ Listo jefe, borré '+(quitadas.length>1?'estas notas':'la nota')+' de '+c.nombre+': '+quitadas.map(x=>'"'+x+'"').join(' y ')+'.'+(rest.length?'\n📝 Le quedan '+rest.length+': '+rest.map(x=>'"'+x+'"').join(' · '):'');
+    };
+    if(idx) return borrarIdx(idx);
+    window._jAcc={tipo:'borrarNotaCli',ts:Date.now(),id:c.id};
+    return '📝 '+c.nombre+' tiene '+its.length+' notas, jefe:\n'+its.map((x,k)=>(k+1)+'. '+x).join('\n')+'\n¿Cuál borro? Dime el número, o "todas".';
   }
   if(lee && !/\bque\b.*\b(se mudo|dijo|esta|va|pidio)\b/.test(t) && !/[:]/.test(texto) && !/\b(anotale|apuntale|ponle|agregale|dejale)\b/.test(t)){
     const pw2=_jNorm(c.nombre).split(' ').filter(w=>w.length>=4), lib2=_jNotasLibres().filter(n=>pw2.some(w=>_jNorm(n.txt).includes(w)));
     if(!c.nota && !lib2.length) return '📝 '+c.nombre+' no tiene notas, jefe.';
-    return (c.nota?'📝 Nota de '+c.nombre+': '+c.nota:'')+(lib2.length?(c.nota?'\n\n':'')+'📒 Notas tuyas que la mencionan:\n'+lib2.map(n=>'• '+n.txt).join('\n'):'')+'\n\nPara quitarla dime: "borra la nota de '+c.nombre.split(' ')[0]+'".';
+    const _it=_jNotaItems(c); return (c.nota?(_it.length>1?'📝 Notas de '+c.nombre+' ('+_it.length+'):\n'+_it.map((x,k)=>(k+1)+'. '+x).join('\n'):'📝 Nota de '+c.nombre+': '+c.nota):'')+(lib2.length?(c.nota?'\n\n':'')+'📒 Notas tuyas que la mencionan:\n'+lib2.map(n=>'• '+n.txt).join('\n'):'')+'\n\nPara quitar una dime: "borra la nota 2 de '+c.nombre.split(' ')[0]+'" (o "borra la nota de '+c.nombre.split(' ')[0]+'" y te pregunto cuál).';
   }
   let cuerpo=null, m;
   if((m=/:\s*(.+)$/.exec(texto))) cuerpo=m[1];
   else if((m=/\bque\s+(.+)$/i.exec(texto))) cuerpo=m[1];
-  else { const ult=_jNorm(c.nombre).split(' ').filter(w=>w.length>=3).pop(); const q=new RegExp('('+ult+')\\s+(.{3,})$','i'); const mm=q.exec(_jNorm(texto)); if(mm) cuerpo=texto.slice(texto.toLowerCase().lastIndexOf(mm[2].slice(0,6))); }
+  else {
+    const pals=_jNorm(c.nombre).split(' ').filter(w=>w.length>=3), tk=String(texto).trim().split(/\s+/);
+    let ult=-1; tk.forEach((w,i)=>{ if(pals.indexOf(_jNorm(w))>=0) ult=i; });
+    if(ult>=0 && ult<tk.length-1) cuerpo=tk.slice(ult+1).join(' ');
+  }
   if(!cuerpo || cuerpo.trim().length<2) return '🤔 ¿Qué le anoto a '+c.nombre+', jefe? Dime: "anótale a '+c.nombre.split(' ')[0]+' que se mudó".';
   cuerpo=cuerpo.trim().replace(/^./,x=>x.toUpperCase());
   const cl=getClientes(), i=cl.findIndex(x=>x.id===c.id), f=new Date(); const sello=f.getDate()+'/'+(f.getMonth()+1);
@@ -13576,6 +13603,15 @@ function _jAccionesPre(texto){
       const rg=_jRenGuiaPaso(texto,t); if(rg) return rg;
       if(/^(no|nada|ninguno|ninguna|cancela\w*|olvidalo|despues|luego|ya)\b/.test(t)){ window._jAcc=null; return 'Listo jefe. 👍'; }
       window._jAcc=null;
+    }
+    if(window._jAcc && window._jAcc.tipo==='borrarNotaCli' && Date.now()-window._jAcc.ts<10*60*1000){
+      const A=window._jAcc, cc=_jCliente(A.id), its=_jNotaItems(cc); let mn;
+      if(!cc||!its.length){ window._jAcc=null; }
+      else if(/\b(todas|todo|todos)\b/.test(t)){ window._jAcc=null; return _jNotaCliIntent('borra todas las notas de '+cc.nombre,'borra todas las notas de '+_jNorm(cc.nombre)); }
+      else if((mn=/^\s*(?:la |el |numero |#)?(\d{1,2})\s*$/.exec(t)) && +mn[1]>=1 && +mn[1]<=its.length){ window._jAcc=null; return _jNotaCliIntent('borra la nota '+mn[1]+' de '+cc.nombre,'borra la nota '+mn[1]+' de '+_jNorm(cc.nombre)); }
+      else if(/^(no|nada|cancela\w*|ninguna|olvidalo)\b/.test(t)){ window._jAcc=null; return 'Listo jefe, no borré nada. 👍'; }
+      else if(t.split(' ').length<=2) return '🤔 Dime el número de la nota (1 a '+its.length+') o "todas".';
+      else window._jAcc=null;
     }
     if(window._jAcc && window._jAcc.tipo==='elegirCli' && Date.now()-window._jAcc.ts<10*60*1000){
       const A=window._jAcc; let k=-1, mn;
