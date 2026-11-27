@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v215">
+<meta name="app-version" content="2026-11-27 v216">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6131,7 +6131,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v215';
+const APP_VERSION = '2026-11-27 v216';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -13584,16 +13584,19 @@ function _jAliasIntent(texto,t){
     const A=_jAliasGet(), ks=Object.keys(A).filter(k=>_jCliente(A[k]));
     return ks.length?'🧠 Apodos que sé, jefe:\n'+ks.map(k=>'• "'+k+'" = '+_jCliente(A[k]).nombre).join('\n'):'🧠 Todavía no me has enseñado apodos. Dime por ejemplo: "el de la tienda es Miguel Chueco".';
   }
-  let alias=null, nom=null;
+  let alias=null, nom=null, explicito=false;
   if((m=/^(?:jarvis )?(?:aprende|recuerda|acuerdate|apunta|anota)\w* (?:que )?(?:(?:el|la|los|las|al) )?(.{2,40}?) (?:es|son|se llama|es el cliente|es la clienta) (?:el cliente |la clienta |el |la )?(.{3,})$/.exec(t))){ alias=m[1]; nom=m[2]; }
-  else if((m=/^(?:a |al )?(.{3,}?) (?:le digo|le decimos|le dicen|lo llamo|la llamo|se le dice|lo conocen como|la conocen como|le puse de apodo|le pongo de apodo)(?: de)? (?:el |la )?(.{2,40})$/.exec(t))){ nom=m[1]; alias=m[2]; }
+  else if((m=/^(?:a |al )?(.{3,}?) (?:le digo|le decimos|le dicen|lo llamo|la llamo|se le dice|lo conocen como|la conocen como|le puse de apodo|le pongo de apodo)(?: de)? (?:el |la )?(.{2,40})$/.exec(t))){ nom=m[1]; alias=m[2]; explicito=true; }
   else if((m=/^((?:el|la|al) (?:de|del|que|con|cliente de) .{2,40}?|(?:el|la) [a-z]{3,15}) (?:es|son) (?:el cliente |la clienta |el |la )?(.{3,})$/.exec(t))){
     alias=m[1].replace(/^(el|la|al) /,''); nom=m[2];
     if(/\b(viene|sigue|siguiente|ultim\w*|primer\w*|nuev\w*|cliente|clienta|mejor|peor|total|saldo|pleno|dia|dias|semana|mes|cuota|pago|gasto|resumen|reporte)\b/.test(alias)) return null;
   }
   if(!alias||!nom) return null;
   alias=alias.replace(/^(el|la|los|las|al) /,'').trim();
-  if(alias.length<3 || _jBuscar(alias).length) return null;
+  if(alias.length<3) return null;
+  { const _ex=_jBuscar(alias); const _an=_jNorm(alias);
+    /* si el apodo se parece a un cliente real: solo lo bloqueo si es exactamente el nombre de un cliente (o no lo dijo con "le digo") */
+    if(_ex.length && (!explicito || _ex.some(function(x){ return _jNorm(x.nombre)===_an; }))) return null; }
   const c=_jBuscar(nom);
   if(c.length===0) return null;
   if(c.length>1) return '🤔 ¿A cuál cliente le pongo "'+alias+'", jefe?\n'+_jListaElegir(c)+'\nDímelo con nombre y apellido.';
