@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-25 v198">
+<meta name="app-version" content="2026-11-26 v204">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1392,6 +1392,7 @@ button[onclick="exportarDatos()"]{
       </div>
     </div>
   </div>
+  <div id="meta-dia-card" style="margin:10px 14px 0"></div>
   <!-- Botones PDF y Backup -->
   <div style="margin:10px 14px 0;display:flex;gap:8px">
     <button onclick="abrirImpresionRuta()" style="flex:1;padding:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
@@ -1404,6 +1405,7 @@ button[onclick="exportarDatos()"]{
 
   <div style="margin:8px 14px 0;display:flex;gap:8px">
     <button onclick="abrirNotasDia()" style="flex:1;padding:13px;background:linear-gradient(135deg,#f59e0b,#f97316);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(245,158,11,0.35)">📝 Notas <span id="notas-badge" style="display:none;background:white;color:#ea580c;border-radius:10px;padding:1px 8px;font-size:11px"></span></button>
+    <button onclick="abrirCobroWA()" style="flex:1;padding:13px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(34,197,94,0.35)">💬 Cobrar</button>
   </div>
   <div style="margin:8px 14px 0;display:flex;gap:8px">
     <button onclick="subirFotosANube()" style="flex:1;padding:10px;background:#f3e8ff;color:#6d28d9;border:2px solid #d9c8f5;border-radius:16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;cursor:pointer">☁️ Subir fotos a la nube</button>
@@ -1429,6 +1431,10 @@ button[onclick="exportarDatos()"]{
         <input type="number" id="input-base" placeholder="0" inputmode="numeric"
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
           oninput="recalcularCuentas()" autocomplete="off">
+      </div>
+      <div id="base-tipo-row" style="padding:3px 8px 5px;border-bottom:1px solid #f0f0f0;display:flex;gap:6px;align-items:center">
+        <button type="button" id="base-tipo-cobro" onclick="baseTipoSet('')" style="flex:1;padding:4px 2px;border-radius:10px;border:1.5px solid #d1d5db;background:#fff;color:#6b7280;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900">💵 De cobro</button>
+        <button type="button" id="base-tipo-prest" onclick="baseTipoSet('prestada')" style="flex:1;padding:4px 2px;border-radius:10px;border:1.5px solid #d1d5db;background:#fff;color:#6b7280;font-family:'Nunito',sans-serif;font-size:10px;font-weight:900">🤝 Prestada</button>
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;background:#e0fff0">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -1525,6 +1531,10 @@ button[onclick="exportarDatos()"]{
         </div>
         <div id="cuentas-gastos-lista" style="padding:4px 0">
           <div style="padding:8px 14px;font-size:12px;color:#666;font-weight:700">Sin gastos registrados</div>
+        </div>
+        <div id="cuentas-base-prestada" style="display:none;border-top:1px dashed rgba(255,255,255,0.15);padding:8px 14px;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:800;color:#c4b5fd">🤝 Base prestada</div><div style="font-size:10px;font-weight:700;color:#8b8fa3">Se devuelve · aparte, no suma en los gastos</div></div>
+          <div style="font-size:15px;font-weight:900;color:#c4b5fd" id="cuentas-base-prestada-val">$0</div>
         </div>
         <div id="caja-pleno" style="border-top:1px solid rgba(255,255,255,0.08);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
           <div style="font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8" id="pleno-label">PLENO</div>
@@ -2503,7 +2513,15 @@ button[onclick="exportarDatos()"]{
 
 <script>
 // ===== UTILS =====
-function fmt(n) { return '$' + Math.abs(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmt(n) {
+  /* Formato rápido de dinero ($1.234). toLocaleString era muy lento en el celular al dibujar muchas tarjetas. */
+  var a=Math.abs(n);
+  if(!isFinite(a)) return '$' + a.toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});
+  var r=Math.round(a), t=String(r);
+  if(r>=1e21) return '$' + a.toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});
+  if(t.length>3) t=t.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  return '$' + t;
+}
 function val(id) { return parseFloat(document.getElementById(id).value)||0; }
 function fechaHoy() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function _isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -4993,7 +5011,7 @@ function renderClientes(){
             <div style="min-width:24px;height:24px;flex-shrink:0;border-radius:50%;background:${(c.tipo||'diario')==='semanal'?'linear-gradient(135deg,#ef4444,#b91c1c)':'linear-gradient(135deg,#22c55e,#15803d)'};color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;">${numeroCliente+1}</div>
             ${(c.tieneFotoCliente||c.tieneFotoCasa)?`<div class="foto-av" data-fid="${c.id}" data-ftipo="${c.tieneFotoCliente?'cliente':'casa'}" onclick="event.stopPropagation();verFotosCliente('${c.id}')">${c.tieneFotoCliente?'👤':'🏠'}</div>`:''}
             <div>
-              <div style="font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.2;">👤 ${c.nombre}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">✅ RF</span>':''}${((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">🆕 NP</span>':''}</div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.2;">👤 ${c.nombre}${_semIc(c)}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">✅ RF</span>':''}${((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">🆕 NP</span>':''}</div>
               <div style="font-size:10px;color:#6366f1;font-weight:500;">${c.cedula?`🪪 ${c.cedula}&nbsp;&nbsp;`:''}${c.tel?`📱 ${c.tel}`:''}</div>
             </div>
           </div>
@@ -5096,10 +5114,11 @@ function renderClientes(){
         </div>`:`<div style="text-align:center;padding:8px;background:linear-gradient(135deg,#e8fff2,#d1fae5);border-radius:10px;color:#00aa44;font-weight:900;font-size:13px;border:2px solid #6ee7b7;">✅ Préstamo cancelado</div>`}
 
         <!-- ══ CONTACTO + ORDEN ══ -->
-        <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:5px;margin-bottom:5px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 34px 34px;gap:5px;margin-bottom:5px">
           <button onclick="(function(){const c=getClientes().find(x=>x.id==='${c.id}');if(c&&c.tel)window.location.href='tel:'+c.tel;else showToast('⚠️ Sin teléfono');})()" style="padding:6px 3px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#1a56db,#2563eb);color:white;box-shadow:0 1px 6px rgba(26,86,219,0.2);display:flex;align-items:center;justify-content:center;gap:4px">
             <span style="font-size:13px">📞</span> Llamar
           </button>
+          <button onclick="waCobro('${c.id}')" style="padding:6px 3px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;box-shadow:0 1px 6px rgba(34,197,94,0.25);display:flex;align-items:center;justify-content:center;gap:4px"><span style="font-size:13px">💬</span> Cobrar</button>
           <button onclick="moverCliente('${c.id}',-1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↑</button>
           <button onclick="moverCliente('${c.id}',1)" style="padding:6px;border:1.5px solid #e9d5ff;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#faf5ff;color:#9333ea;display:flex;align-items:center;justify-content:center">↓</button>
         </div>
@@ -5121,12 +5140,38 @@ function renderClientes(){
       </div>
     </div>`;
   };
-  el.innerHTML=clientes.map(_cardHTML).join('');
+  /* Dibujo por partes: las primeras tarjetas salen YA y el resto se dibuja enseguida, en pedacitos (la pantalla no se queda pegada) */
+  const _NP=24;
+  if(clientes.length>_NP+8 && _scrollY<300){
+    const _tok=window._rcTok=(window._rcTok||0)+1;
+    el.innerHTML=clientes.slice(0,_NP).map(_cardHTML).join('');
+    window._rcResto={tok:_tok,lista:clientes,desde:_NP,fn:_cardHTML,el:el};
+    setTimeout(_rcSiguiente,40);
+  } else {
+    window._rcTok=(window._rcTok||0)+1; window._rcResto=null;
+    el.innerHTML=clientes.map(_cardHTML).join('');
+  }
   window.scrollTo(0, _scrollY);
   if(typeof hidratarFotosTarjetas==='function') hidratarFotosTarjetas();
   setTimeout(initDrag, 50);
 }
-
+function _rcSiguiente(todo){
+  const R=window._rcResto; if(!R||R.tok!==window._rcTok||!R.el.isConnected){ if(R&&R.tok===window._rcTok) window._rcResto=null; return; }
+  const fin=todo?R.lista.length:Math.min(R.lista.length,R.desde+14);
+  const nuevos=[];
+  const tmp=document.createElement('div');
+  tmp.innerHTML=R.lista.slice(R.desde,fin).map((c,i)=>R.fn(c,R.desde+i)).join('');
+  while(tmp.firstElementChild){ nuevos.push(tmp.firstElementChild); R.el.appendChild(tmp.firstElementChild); }
+  R.desde=fin;
+  const ultimo=R.desde>=R.lista.length; if(ultimo) window._rcResto=null;
+  try{ if(typeof decorarCompacta==='function') decorarCompacta(); }catch(e){}
+  try{ if(typeof _semPintarTarjetas==='function') _semPintarTarjetas(); }catch(e){}
+  try{ if(typeof hidratarFotosTarjetas==='function') hidratarFotosTarjetas(); }catch(e){}
+  try{ initDrag(nuevos); }catch(e){}
+  if(!ultimo) setTimeout(_rcSiguiente,30);
+}
+function _flushClientes(){ if(window._rcResto) _rcSiguiente(true); }
+['scroll','touchstart','pointerdown','keydown'].forEach(function(ev){ window.addEventListener(ev,function(){ if(window._rcResto) _flushClientes(); },{passive:true,capture:true}); });
 // ===== CLAVE =====
 function abrirModalClave(){
   ['clave-actual','clave-nueva','clave-confirmar'].forEach(id=>document.getElementById(id).value='');
@@ -6080,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-25 v198';
+const APP_VERSION = '2026-11-26 v204';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -13244,6 +13289,7 @@ async function _jAgenteRun(texto,prov){
   const hoy=new Date(), dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   const sis='Eres JARVIS, el asistente del cobrador de la app "Alisson & Emily" (Colombia). Hablas español informal y le dices "jefe". Respondes SOLO lo necesario, corto, sin relleno ni frases como "dime si necesitas algo".\n'
    +'Hoy es '+dias[hoy.getDay()]+' '+_jIso(hoy)+'. Fecha de trabajo activa: '+getFechaActiva()+'. Los montos de la app están en MILES de pesos ("30" = 30 mil; "20 lucas" = 20; "1 millón" = 1000).\n'
+   +'DIALECTO colombiano y errores de voz/escritura: "cuando debe"/"cuanto debe" = CUÁNTO debe (saldo); "a dado" = ha dado; "lucas" = miles; "plata/billete/mono" = dinero; "parce/llave/mano" = relleno; "fiao" = fiado; "cuadre" = cuentas del día; "pa" = para; "q" = que. Si el mensaje es corto y sin cliente ("y cuánto debe", "y la cuota", "y ese?") se refiere al ÚLTIMO cliente de la charla. "Y Fulano" repite la pregunta anterior con ese cliente. Prefiere interpretar con sentido antes que preguntar.\n'
    +'Tú NO inventas números ni datos: los obtienes con las herramientas. Para hacer cualquier cosa usas ejecutar_orden con una frase del catálogo y el nombre COMPLETO del cliente (búscalo antes con buscar_clientes si no lo tienes exacto).\n'
    +'CATÁLOGO de órdenes:\n'+_J_AG_COMANDOS.map(x=>'- '+x).join('\n')+'\n'
    +'Reglas: (1) Si el cliente es ambiguo o falta un dato (monto, nombre, día), PREGUNTA corto. (2) Si ejecutar_orden devuelve una pregunta o pide confirmar, pásasela al usuario tal cual y no hagas más. (3) Varias órdenes: hazlas una por una. (4) Si es charla o consejo, responde natural y breve sin herramientas. (5) Nunca digas que hiciste algo si la herramienta no lo confirmó. (6) Si no se puede hacer con las herramientas, dilo claro.';
@@ -13653,6 +13699,7 @@ function _jAccionesPre(texto){
       x=_jVoladoIntent(texto,t); if(x) return x;
       x=_jMoverIntent(texto,t); if(x) return x;
       x=_jNotaCliIntent(texto,t); if(x) return x;
+      x=_jXIntent(texto,t); if(x) return x;
       x=_jDatosIntent(texto,t); if(x) return x;
     }
     if(window._jRuta && !(window._jAcc && Date.now()-window._jAcc.ts<15*60*1000)){ x=_jRutaResponder(texto,t); if(x) return x; }
@@ -14197,16 +14244,71 @@ async function _jInterpretarIA(texto){
   }
   return null;
 }
+
+/* ══════════ DIALECTO + CONTEXTO: entender cómo habla el jefe ══════════ */
+function _jDialecto(texto){
+  var t=String(texto||'');
+  // relleno al inicio / final
+  t=t.replace(/^\s*(?:(?:ey|hey|oye|oiga|mire|mija|mijo|parce|parcero|llave|mano|hermano|bro|socio|compa|veci|amigo|pilas|hagale|h[aá]gale)[\s,]+)+/i,'');
+  t=t.replace(/[\s,]+(?:por\s+favor|porfa|porfavor|plis|please|jefe|parce|llave)\s*[?!.]*\s*$/i,'');
+  // errores de voz / ortografía
+  t=t.replace(/\b(?:a|ah|ha)\s+(dado|pagado|abonado|cancelado|entregado)\b/gi,function(m,v){ return 'ha '+v; });
+  t=t.replace(/\b(dao|pagao|abonao|cancelao)\b/gi,function(m){ return {dao:'dado',pagao:'pagado',abonao:'abonado',cancelao:'cancelado'}[m.toLowerCase()]; });
+  t=t.replace(/\bk?uanto\b/gi,'cuánto').replace(/\bcuant[oa]{2,}\b/gi,'cuánto');
+  t=t.replace(/\bpq\b|\bxq\b|\bporq\b/gi,'porque').replace(/\bq\b/gi,'que').replace(/\bpa\b/gi,'para');
+  // "cuándo" mal dicho por "cuánto" (voz): cuando debe / cuando lleva / cuando ha dado ...
+  t=t.replace(/\bcu[aá]ndo\b(\s+(?:es\s+que\s+|es\s+q\s+|me\s+|nos\s+|le\s+)?)(debe|deben|deve|lleva|ha\s+dado|ha\s+pagado|ha\s+abonado|dio|queda|resta|falta|adeuda|tiene\s+pendiente)\b(\s+\S+)?/gi,function(m,mid,v,sig){
+    var sg=(sig||'').trim().toLowerCase();
+    if(/^(debe|deben|deve)$/i.test(v) && /^(pagar|dar|cancelar|abonar|la|cuota|ir)$/.test(sg)) return m; // "cuándo debe pagar" = fecha
+    return 'cuánto'+mid+v+(sig||'');
+  });
+  // frases equivalentes -> "cuánto debe" / "cuánto ha pagado"
+  t=t.replace(/\bcu[aá]nto\s+(?:es\s+que\s+|es\s+q\s+)?(?:[bv]iene|esta|está|anda|queda|quedo|quedó|sigue)\s+(?:debiendo|adeudando)\b/gi,'cuánto debe');
+  t=t.replace(/\bcu[aá]nto\s+(?:le\s+|me\s+)?(?:queda|resta|falta)\s+(?:por\s+pagar|para\s+(?:pagar|terminar|cancelar|acabar|salir)|de\s+deuda)\b/gi,'cuánto debe');
+  t=t.replace(/\bcu[aá]nto\s+(?:tiene|le\s+queda)\s+(?:pendiente|por\s+pagar)\b/gi,'cuánto debe');
+  t=t.replace(/\bcu[aá]nto\s+(?:me\s+)?adeuda\b/gi,'cuánto debe');
+  t=t.replace(/\bcu[aá]nto\s+(?:me\s+)?(?:lleva|ha)\s+(?:pagado|abonado|cancelado|entregado)\b/gi,'cuánto ha pagado');
+  t=t.replace(/\bcu[aá]nto\s+(?:me\s+)?(?:ha\s+dado|ha\s+entregado|lleva\s+dado)\b/gi,'cuánto ha pagado');
+  t=t.replace(/\bcu[aá]nto\s+lleva\b(?!\s+(?:atras|debiendo|sin|hoy|el\s|la\s|de\s|en\s))/gi,'cuánto ha pagado');
+  t=t.replace(/\bcu[aá]nto\s+(?:es\s+que\s+|es\s+q\s+)?(?:me\s+)?debe\b/gi,'cuánto debe');
+  // plata: lucas / palos
+  t=t.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:lucas?|lukas?)\b/gi,'$1 mil');
+  t=t.replace(/\buna\s+luca\b/gi,'1 mil').replace(/\bmedia\s+luca\b/gi,'500 pesos');
+  t=t.replace(/\b(\d+(?:[.,]\d+)?)\s*palos?\b/gi,function(m,n){ return String(Math.round(parseFloat(String(n).replace(',','.'))*1000)); });
+  t=t.replace(/\bun\s+palo\b/gi,'1000');
+  return t.trim()||String(texto||'');
+}
+function _jTemaDe(tn){
+  if(/\b(ha pagado|ha dado|ha abonado|ha cancelado|ha entregado|lleva pagado|abonado)\b/.test(tn)) return 'pagado';
+  if(/\b(debe|deben|saldo|queda|resta|pendiente|adeuda)\b/.test(tn) && /\bcuanto\b/.test(tn)) return 'debe';
+  if(/\b(tiene que dar|tiene que pagar|cuota|le toca)\b/.test(tn) && /\bcuanto\b/.test(tn)) return 'cuota';
+  if(/\b(atras\w*|cuantas cuotas)\b/.test(tn)) return 'atraso';
+  return '';
+}
+var _J_PLANTILLA={pagado:'cuánto ha pagado {n}',debe:'cuánto debe {n}',cuota:'cuánto tiene que dar {n} hoy',atraso:'cuántas cuotas atrasadas tiene {n}'};
+function _jPreparar(texto){
+  if(window._jAcc) return texto;                 // hay un diálogo abierto: no tocar
+  var t=_jDialecto(texto), tn=_jNorm(t);
+  // "y Fulano" / "y de Fulano" / "y el de Fulano": repite la pregunta anterior con otro cliente
+  var m=/^(?:y|e|pero|ya|y entonces|y de|y el de|y la de|y tambien|y el|y la)\s+(.+?)\s*[?!.]*$/.exec(tn), ctx=window._jCtxTema;
+  if(m && ctx && Date.now()-ctx.ts<10*60*1000 && m[1].split(' ').length<=6 && !/\b(cuanto|cuanta|cuando|que|quien|dame|dime|pon|ingresa|mete|borra|anota|debe|paga|dio)\b/.test(m[1])){
+    var cs=[]; try{ cs=_jBuscar(m[1]); }catch(e){}
+    if(cs.length===1 && _J_PLANTILLA[ctx.tema]){ t=_J_PLANTILLA[ctx.tema].replace('{n}',cs[0].nombre); tn=_jNorm(t); }
+  }
+  var tema=_jTemaDe(tn); if(tema) window._jCtxTema={tema:tema,ts:Date.now()};
+  return t;
+}
 async function orbIAEnviarMensaje(){
   if (_orbChatLoading) return;
   const inp = document.getElementById('orb-input');
   if(!inp) return;
-  const texto = (inp.value||'').trim();
-  if(!texto) return;
+  const textoOriginal = (inp.value||'').trim();
+  if(!textoOriginal) return;
+  const texto = (function(){ try{ return _jPreparar(textoOriginal); }catch(e){ return textoOriginal; } })();
   inp.value = '';
-  _orbeMostrarMsg('user', texto, true);
+  _orbeMostrarMsg('user', textoOriginal, true);
 
-  // Indicador de "escribiendo…"
+  // Indicador de "escribiendo…
   const cont = document.getElementById('orb-chat');
   const typing = document.createElement('div');
   typing.className = 'orb-msg ai typing';
@@ -17570,6 +17672,338 @@ function _ntGuardarEdicion(id){
 }
 document.addEventListener('DOMContentLoaded',function(){ setTimeout(_ntBadge,800); });
 setTimeout(_ntBadge,1500);
+</script>
+<script>
+/* ══════════ 🚦 SEMÁFORO · 🎯 META DEL DÍA · 💬 COBRO POR WHATSAPP ══════════ */
+function _xF(){ return String(getFechaActiva()||fechaHoy()).slice(0,10); }
+function _xActivos(){ return (getClientes()||[]).filter(function(c){return c&&c.saldo>0&&!c.cancelado;}); }
+function _xPagoHoy(c,F){ return (c.pagos||[]).filter(function(p){return String(p.fecha||'').slice(0,10)===F;}).reduce(function(a,p){return a+(p.monto||0);},0); }
+function _xEsperado(c,F){
+  if(!c||c.volado||!(c.saldo>0)||c.cancelado) return false;
+  var d=_diaDeFecha(F);
+  if(c.tipo==='semanal') return _diaDeCliente(c)===d;
+  return d!=='domingo';
+}
+function _xFaltan(F){ F=F||_xF(); return _xActivos().filter(function(c){return _xEsperado(c,F)&&_xPagoHoy(c,F)<=0;}); }
+function _xEsperadoTotal(F){ F=F||_xF(); return _xActivos().filter(function(c){return _xEsperado(c,F);}).reduce(function(a,c){return a+(c.cuotaSugerida||0);},0); }
+function _xCobrado(F){ F=F||_xF(); return (getClientes()||[]).reduce(function(a,c){return a+(c?_xPagoHoy(c,F):0);},0); }
+
+/* ── SEMÁFORO ── */
+function _semaforo(c){
+  if(c.volado) return {k:'negro',n:3,ic:'⚫',txt:'cartón parado'};
+  if(!(c.saldo>0)) return {k:'fin',n:-1,ic:'🏁',txt:'ya canceló'};
+  var sem=(c.tipo==='semanal'), at=0; try{ at=calcularAtraso(c)||0; }catch(e){}
+  var fs=(c.pagos||[]).map(function(p){return String(p.fecha||'').slice(0,10);}).filter(Boolean).sort();
+  var ult=fs.length?fs[fs.length-1]:String(c.fechaRenovacion||c.fechaCreado||'').slice(0,10), ds=0;
+  if(ult){ var q=ult.split('-'), t=new Date(+q[0],+q[1]-1,+q[2]), h=new Date(); ds=Math.max(0,Math.floor((new Date(h.getFullYear(),h.getMonth(),h.getDate())-t)/86400000)); }
+  var nA=sem?(at<=1?0:at<=3?1:2):(at<=2?0:at<=7?1:2);
+  var nD=sem?(ds<=10?0:ds<=21?1:2):(ds<=3?0:ds<=9?1:2);
+  var n=Math.max(nA,nD), K=['verde','amarillo','rojo'], I=['🟢','🟡','🔴'];
+  var txt=(at>0?'atrasado '+at+' cuota'+(at>1?'s':''):'al día')+' · '+(fs.length?'último pago hace '+ds+' día'+(ds===1?'':'s'):'nunca ha pagado');
+  return {k:K[n],n:n,ic:I[n],txt:txt,at:at,ds:ds};
+}
+function _semIc(c){ try{ var s=_semaforo(c); return (s.n>=0&&s.n<3)?' <span title="'+s.txt+'" style="font-size:11px">'+s.ic+'</span>':''; }catch(e){ return ''; } }
+function _semResumen(){
+  var L=_xActivos().filter(function(c){return !c.volado;}), r=[[],[],[]];
+  L.forEach(function(c){ var s=_semaforo(c); if(s.n>=0&&s.n<3) r[s.n].push({c:c,s:s}); });
+  return r;
+}
+
+/* ── WHATSAPP ── */
+function _waNum(tel){ var d=String(tel||'').replace(/\D/g,''); if(d.length===10) d='57'+d; return d; }
+function _waMsg(c){
+  var F=_xF(), cu=c.cuotaSugerida||0, at=0; try{ at=calcularAtraso(c)||0; }catch(e){}
+  var k=function(n){ return fmt((n||0)*1000); };
+  var t='Hola '+_nomCorto(c.nombre)+' 👋, te recuerdo que tu cuota de '+k(cu)+' está pendiente.';
+  if(at>1) t+=' Llevas '+at+' cuotas atrasadas.';
+  t+=' Tu saldo es '+k(c.saldo)+'. Quedo atento, gracias 🙏';
+  return t;
+}
+function waCobro(id){
+  var c=getClientes().find(function(x){return x.id===id;}); if(!c) return false;
+  if(!_waNum(c.tel)){ showToast('⚠️ '+c.nombre+' no tiene teléfono guardado'); return false; }
+  try{ var k='jrv_wa_'+_xF(), o=JSON.parse(localStorage.getItem(k)||'{}'); o[id]=Date.now(); localStorage.setItem(k,JSON.stringify(o)); }catch(e){}
+  window.location.href='https://api.whatsapp.com/send?phone='+_waNum(c.tel)+'&text='+encodeURIComponent(_waMsg(c));
+  return true;
+}
+var _waTab='faltan';
+function abrirCobroWA(){
+  var m=document.getElementById('cobro-wa-modal');
+  if(!m){ m=document.createElement('div'); m.id='cobro-wa-modal'; m.style.cssText='position:fixed;inset:0;z-index:99990;background:#f0fdf4;overflow-y:auto;font-family:Nunito,sans-serif;-webkit-overflow-scrolling:touch'; document.body.appendChild(m); }
+  m.style.display='block'; _waRender();
+}
+function _waCerrar(){ var m=document.getElementById('cobro-wa-modal'); if(m) m.style.display='none'; }
+function _waTabSet(t){ _waTab=t; _waRender(); }
+function _waRender(){
+  var m=document.getElementById('cobro-wa-modal'); if(!m) return;
+  var F=_xF(), env={}; try{ env=JSON.parse(localStorage.getItem('jrv_wa_'+F)||'{}'); }catch(e){}
+  var faltan=_xFaltan(F), atr=_xActivos().filter(function(c){ var a=0; try{a=calcularAtraso(c)||0;}catch(e){} return !c.volado&&a>=1; });
+  var L=(_waTab==='faltan'?faltan:atr).map(function(c){ var s=_semaforo(c); return {c:c,s:s}; }).sort(function(a,b){ return (b.s.n-a.s.n)||((b.s.at||0)-(a.s.at||0)); });
+  var tb=function(k,t,n){ var on=_waTab===k; return '<button onclick="_waTabSet(\''+k+'\')" style="flex:1;padding:11px 6px;border-radius:14px;border:2px solid '+(on?'#16a34a':'#bbf7d0')+';background:'+(on?'#16a34a':'white')+';color:'+(on?'white':'#166534')+';font-weight:900;font-size:13px;font-family:inherit">'+t+' ('+n+')</button>'; };
+  var h='<div style="background:linear-gradient(135deg,#22c55e,#16a34a);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.15)"><div style="font-size:18px;font-weight:900">💬 Cobrar por WhatsApp</div><button onclick="_waCerrar()" style="background:rgba(255,255,255,.25);color:white;border:none;border-radius:12px;padding:8px 14px;font-weight:900;font-size:14px;font-family:inherit">✕ Cerrar</button></div>';
+  h+='<div style="padding:14px 14px 40px;max-width:560px;margin:0 auto"><div style="display:flex;gap:8px;margin-bottom:10px">'+tb('faltan','Faltan hoy',faltan.length)+tb('atrasados','Atrasados',atr.length)+'</div>';
+  h+='<div style="font-size:11px;font-weight:800;color:#15803d;margin-bottom:10px">Toca 💬 y se abre WhatsApp con el mensaje ya escrito. Tú solo das enviar.</div>';
+  if(!L.length) h+='<div style="text-align:center;padding:30px 0;font-weight:900;color:#16a34a">🎉 No hay nadie en esta lista.</div>';
+  L.forEach(function(o){
+    var c=o.c, tel=!!_waNum(c.tel), ya=env[c.id];
+    h+='<div style="background:white;border:2px solid '+(ya?'#bbf7d0':'#e5e7eb')+';border-radius:16px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:900;color:#1f2937">'+o.s.ic+' '+_nomCorto(c.nombre)+'</div><div style="font-size:11px;font-weight:700;color:#6b7280">'+o.s.txt+' · cuota '+fmt(c.cuotaSugerida||0)+'</div>'+(ya?'<div style="font-size:11px;font-weight:900;color:#16a34a">✓ Ya le escribiste hoy</div>':'')+'</div>'+(tel?'<button onclick="waCobro(\''+c.id+'\')" style="border:none;border-radius:14px;background:'+(ya?'#86efac':'#22c55e')+';color:white;font-weight:900;font-size:14px;padding:12px 14px;font-family:inherit">💬 '+(ya?'Otra vez':'Enviar')+'</button>':'<div style="font-size:11px;font-weight:900;color:#9ca3af">📵 sin teléfono</div>')+'</div>';
+  });
+  m.innerHTML=h+'</div>';
+}
+
+/* ── META DEL DÍA ── */
+function _metaGet(F){ try{ var v=parseFloat(localStorage.getItem('jrv_meta_'+(F||_xF()))); return v>0?v:0; }catch(e){ return 0; } }
+function _metaSet(v,F){ try{ if(v>0) localStorage.setItem('jrv_meta_'+(F||_xF()),String(v)); else localStorage.removeItem('jrv_meta_'+(F||_xF())); }catch(e){} }
+function _metaPrioridad(){
+  var F=_xF(), falta=Math.max(0,_metaGet(F)-_xCobrado(F));
+  var P=_xFaltan(F).sort(function(a,b){ return (b.cuotaSugerida||0)-(a.cuotaSugerida||0); });
+  var acc=0, sel=[], llego=false;
+  for(var i=0;i<P.length;i++){ sel.push(P[i]); acc+=(P[i].cuotaSugerida||0); if(falta>0&&acc>=falta){ llego=true; break; } }
+  return {falta:falta,lista:falta>0?sel:[],suma:acc,llega:llego,total:P.reduce(function(a,c){return a+(c.cuotaSugerida||0);},0),pend:P.length};
+}
+function _metaTexto(){
+  var F=_xF(), meta=_metaGet(F), cob=_xCobrado(F), esp=_xEsperadoTotal(F);
+  if(!meta) return '🎯 Todavía no tienes meta para hoy, jefe. Según las cuotas, lo esperado hoy es '+fmt(esp)+'. Dime: "pon la meta de hoy en '+Math.round(esp)+'".';
+  var pc=Math.round(cob/meta*100);
+  if(cob>=meta) return '🎉 ¡Meta cumplida, jefe! Llevas '+fmt(cob)+' de '+fmt(meta)+' ('+pc+'%). Pasaste la meta por '+fmt(cob-meta)+'.';
+  var p=_metaPrioridad();
+  return '🎯 Meta de hoy: '+fmt(meta)+'\n💰 Llevas '+fmt(cob)+' ('+pc+'%)\n⏳ Te faltan '+fmt(meta-cob)+'\n'+(p.llega?'👉 Si te pagan '+p.lista.length+' de los que faltan, llegas a la meta. Dime "a quién cobro primero".':'⚠️ Aunque pagaran todos los que faltan hoy ('+p.pend+') sumarías '+fmt(p.total)+', y no alcanza la meta.');
+}
+function _metaQuienTexto(){
+  var F=_xF(), meta=_metaGet(F);
+  if(!meta) return _metaTexto();
+  var p=_metaPrioridad();
+  if(p.falta<=0) return '🎉 Ya cumpliste la meta de hoy, jefe.';
+  if(!p.lista.length) return '📭 Ya no queda nadie por cobrar hoy y te faltan '+fmt(p.falta)+' para la meta.';
+  return '🧭 Para llegar a la meta (te faltan '+fmt(p.falta)+') cobra primero a:\n'+p.lista.map(function(c,i){ var s=_semaforo(c); return (i+1)+'. '+s.ic+' '+_nomCorto(c.nombre)+' — '+fmt(c.cuotaSugerida||0); }).join('\n')+'\n'+(p.llega?'✅ Con estos '+p.lista.length+' sumas '+fmt(p.suma)+' y llegas.':'⚠️ Con todos sumas '+fmt(p.suma)+' y no alcanza.');
+}
+var _metaEdit=false, _metaVerQuien=false;
+function metaGuardar(usarEsp){
+  var v=usarEsp?_xEsperadoTotal():parseFloat((document.getElementById('meta-input')||{}).value);
+  if(!(v>0)){ showToast('Escribe cuánto quieres cobrar hoy'); return; }
+  _metaSet(Math.round(v)); _metaEdit=false; showToast('🎯 Meta de hoy: '+fmt(Math.round(v))); _metaRender();
+}
+function metaCambiar(){ _metaEdit=true; _metaRender(); }
+function metaQuitar(){ _metaSet(0); _metaEdit=false; _metaVerQuien=false; _metaRender(); }
+function metaQuien(){ _metaVerQuien=!_metaVerQuien; _metaRender(); }
+function _metaRender(){
+  var box=document.getElementById('meta-dia-card'); if(!box) return;
+  var F=_xF(), meta=_metaGet(F), cob=_xCobrado(F), esp=_xEsperadoTotal(F), h='';
+  var st='background:white;border:2px solid #fed7aa;border-radius:20px;padding:12px 14px;box-shadow:0 3px 10px rgba(249,115,22,.12)';
+  if(!meta||_metaEdit){
+    h='<div style="'+st+'"><div style="font-size:14px;font-weight:900;color:#c2410c">🎯 Meta de hoy</div><div style="font-size:11px;font-weight:700;color:#9a3412;margin:4px 0 8px">Según las cuotas, hoy se espera cobrar '+fmt(esp)+'. ¿Cuánto quieres cobrar tú?</div><div style="display:flex;gap:8px"><input id="meta-input" type="number" inputmode="decimal" value="'+(meta||'')+'" placeholder="Ej: '+Math.round(esp)+'" style="flex:1;min-width:0;border:2px solid #fed7aa;border-radius:12px;padding:10px;font-size:16px;font-family:inherit;font-weight:800;outline:none"><button onclick="metaGuardar()" style="border:none;border-radius:12px;background:#f97316;color:white;font-weight:900;padding:0 14px;font-family:inherit">Guardar</button></div><button onclick="metaGuardar(true)" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:12px;background:#ffedd5;color:#c2410c;font-weight:900;font-size:12px;font-family:inherit">Usar lo esperado ('+fmt(esp)+')</button>'+(meta?'<button onclick="metaQuitar()" style="width:100%;margin-top:6px;padding:8px;border:none;background:none;color:#9ca3af;font-weight:800;font-size:11px;font-family:inherit">Quitar la meta de hoy</button>':'')+'</div>';
+  } else {
+    var pc=Math.min(100,Math.round(cob/meta*100)), ok=cob>=meta, col=ok?'#16a34a':(pc>=60?'#f59e0b':'#f97316');
+    h='<div style="'+st+'"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:900;color:#c2410c">🎯 Meta de hoy: '+fmt(meta)+'</div><button onclick="metaCambiar()" style="border:none;background:#ffedd5;color:#c2410c;border-radius:10px;padding:5px 10px;font-weight:900;font-size:11px;font-family:inherit">✏️ Cambiar</button></div><div style="height:16px;background:#ffedd5;border-radius:10px;overflow:hidden;margin:8px 0 6px"><div style="height:100%;width:'+pc+'%;background:'+col+';border-radius:10px;transition:width .4s"></div></div><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:900"><span style="color:#16a34a">💰 '+fmt(cob)+' ('+Math.round(cob/meta*100)+'%)</span><span style="color:'+(ok?'#16a34a':'#c2410c')+'">'+(ok?'🎉 ¡Meta cumplida!':'⏳ Faltan '+fmt(meta-cob))+'</span></div>'+(ok?'':'<button onclick="metaQuien()" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:12px;background:#fff7ed;border:1.5px solid #fed7aa;color:#c2410c;font-weight:900;font-size:12px;font-family:inherit">🧭 '+(_metaVerQuien?'Ocultar':'¿A quién cobro primero?')+'</button>')+(_metaVerQuien&&!ok?'<div style="margin-top:8px;font-size:12px;font-weight:800;color:#7c2d12;white-space:pre-wrap;line-height:1.5">'+_metaQuienTexto().replace(/</g,'&lt;')+'</div>':'')+'</div>';
+  }
+  box.innerHTML=h;
+}
+function _semPintarTarjetas(){
+  var mapa={}; getClientes().forEach(function(c){ if(c) mapa[c.id]=c; });
+  document.querySelectorAll('#clientes-lista .cliente-card').forEach(function(card){
+    var c=mapa[card.id.replace('card-','')]; if(!c) return;
+    var ic=''; try{ var sm=_semaforo(c); ic=(sm.n>=0&&sm.n<3)?sm.ic:''; }catch(e){}
+    if(!ic) return;
+    ['.cc-nom','.cc2-nom'].forEach(function(sel){
+      var el=card.querySelector(sel); if(!el||el.querySelector('.sem-dot')) return;
+      var sp=document.createElement('span'); sp.className='sem-dot'; sp.textContent=ic+' '; sp.style.cssText='font-size:11px';
+      el.insertBefore(sp,el.firstChild);
+    });
+  });
+}
+(function(){ var rc=window.renderClientes; if(typeof rc==='function'){ window.renderClientes=renderClientes=function(){ var r=rc.apply(this,arguments); try{ _metaRender(); _semPintarTarjetas(); }catch(e){} return r; }; } })();
+setTimeout(function(){ try{ _metaRender(); }catch(e){} },1200);
+
+/* Antes de mover/abrir/buscar un cliente, termina de dibujar la lista (así nunca falta una tarjeta) */
+['navegarCliente','moverCliente','lupaIrACliente','toggleBody','abrirCardCompacta','pagarCuotaYAvanzar','marcarVolado','_jRefrescar','irA','buscarCliente','setFiltroTipo'].forEach(function(n){
+  var f=window[n]; if(typeof f==='function' && !f.__fl){ var w=function(){ try{ _flushClientes(); }catch(e){} return f.apply(this,arguments); }; w.__fl=1; try{ window[n]=w; }catch(e){} }
+});
+/* ── JARVIS ── */
+function _jXIntent(texto,t){
+  var c0;
+  // META
+  if(/\bmeta\b/.test(t) && !/\bmetale\b/.test(t)){
+    if(/(a quien|por quien|quien(es)? (me )?(falta|cobro|visito)|primero)/.test(t)) return _metaQuienTexto();
+    var n=_jNum(texto), pone=/\b(pon|pone|ponme|ponle|fija|fijame|cambia|cambiar|establece|mi meta (de hoy |del dia )?(es|sera)|la meta (de hoy |del dia )?(es|sera)|meta (de hoy |del dia )?(es|en|de))\b/.test(t)||/^\s*(mi |la )?meta\s+\d/.test(t);
+    if(pone && n>0){ _metaSet(Math.round(n)); try{ _metaRender(); }catch(e){} return '🎯 Listo jefe, tu meta de hoy es '+fmt(Math.round(n))+'. Llevas '+fmt(_xCobrado())+'.'; }
+    if(/(quita|quitar|borra|borrar|elimina)\b/.test(t)){ _metaSet(0); try{ _metaRender(); }catch(e){} return '🎯 Listo jefe, quité la meta de hoy.'; }
+    return _metaTexto();
+  }
+  if(/\b(a quien (cobro|visito|le cobro) primero|por quien empiezo|a quien visito primero)\b/.test(t)) return _metaQuienTexto();
+  // SEMÁFORO
+  if(/\bsemaforo\b|\bmal(os)? pagador(es)?\b|\bbuen(os)? pagador(es)?\b|\bclientes (rojos|en riesgo|amarillos|verdes)\b|\ba quien (le )?renuevo\b|\bquien(es)? (me )?paga(n)? (peor|mejor|mal|bien)\b|\bquienes? son los (peores|mejores)\b/.test(t)){
+    var R=_semResumen(), tot=R[0].length+R[1].length+R[2].length, lis=function(a,n){ return a.sort(function(x,y){return (y.s.at||0)-(x.s.at||0);}).slice(0,n).map(function(o){return '• '+_nomCorto(o.c.nombre)+' — '+o.s.txt;}).join('\n'); };
+    if(/buen(os)? pagador|mejor|renuevo|verdes/.test(t)){
+      var G=R[0].filter(function(o){return o.c.prestamo>0;}).sort(function(a,b){return (a.c.saldo/a.c.prestamo)-(b.c.saldo/b.c.prestamo);}).slice(0,8);
+      if(!G.length) return '🟢 No encuentro clientes verdes ahora mismo, jefe.';
+      return '🟢 Buenos pagadores (los que más cerca están de terminar):\n'+G.map(function(o){return '• '+_nomCorto(o.c.nombre)+' — debe '+fmt(o.c.saldo)+' ('+Math.round(o.c.saldo/o.c.prestamo*100)+'% por pagar)';}).join('\n')+'\n\n👉 Para renovar, dime "renovar a Juan".';
+    }
+    if(/mal(os)? pagador|peor|rojos|riesgo/.test(t)){
+      if(!R[2].length) return '🔴 No tienes clientes en rojo, jefe. 👏';
+      return '🔴 Clientes en rojo ('+R[2].length+'):\n'+lis(R[2],12)+(R[2].length>12?'\n… y '+(R[2].length-12)+' más.':'');
+    }
+    if(/amarillos/.test(t)) return '🟡 Clientes en amarillo ('+R[1].length+'):\n'+lis(R[1],12);
+    return '🚦 Semáforo de tus '+tot+' clientes:\n🟢 '+R[0].length+' puntuales · 🟡 '+R[1].length+' a veces se atrasan · 🔴 '+R[2].length+' en riesgo\n\n'+(R[2].length?'Los más atrasados:\n'+lis(R[2],5)+'\n\n':'')+'Pídeme "malos pagadores" o "buenos pagadores" para ver la lista.';
+  }
+  // CÓMO PAGA X
+  if(/\bcomo (paga|viene|va|es)\b|\bes buen(a)? pagador|\bes mal(a)? pagador/.test(t) && !/\bmeta\b/.test(t)){
+    var ms=_jBuscar(texto); if(ms.length===1){ c0=ms[0]; var s=_semaforo(c0); window._jUltCli={id:c0.id,ts:Date.now()}; return s.ic+' '+c0.nombre+': '+s.txt+'.'+(s.n===0?' Buen pagador.':s.n===1?' A veces se atrasa.':s.n===2?' Mal pagador, ojo.':''); }
+  }
+  // WHATSAPP
+  if(/\b(whats?app|wasap|watsap|guasap|wassap|mensaje de cobro|mensajito)\b/.test(t) || /\b(cobrale|escribele|mandale|enviale)\b.*\b(mensaje|cobro|whats\w*)\b/.test(t)){
+    var ms2=_jBuscar(texto);
+    if(ms2.length===1){
+      c0=ms2[0]; window._jUltCli={id:c0.id,ts:Date.now()};
+      if(!_waNum(c0.tel)) return '📵 '+c0.nombre+' no tiene teléfono guardado, jefe.';
+      setTimeout(function(){ waCobro(c0.id); },1500);
+      return '💬 Abriendo WhatsApp con el mensaje de cobro para '+c0.nombre+'… solo dale enviar.';
+    }
+    if(ms2.length>1) return null;
+    setTimeout(abrirCobroWA,800);
+    return '💬 Abriendo la lista para cobrar por WhatsApp, jefe.';
+  }
+  return null;
+}
+</script>
+<script>
+/* ══════════ 🗣️ DIALECTO + SEGUIMIENTO ("Y Adriana chona", "y cuánto debe") ══════════ */
+function _dAc(s){ return s.replace(/a/g,'[aáà]').replace(/e/g,'[eéè]').replace(/i/g,'[ií]').replace(/o/g,'[oó]').replace(/u/g,'[uúü]'); }
+var _D_REGLAS=(function(){
+  var R=[
+    // errores de escritura y habla
+    [/\b(cuando)\s+(a|ha)\s+(dado|pagado|abonado)\b/gi,'cuanto ha $3'],
+    [/\b(cuanto|cuanta|cuantos|cuantas)\s+a\s+(dado|pagado|abonado|entregado|aportado)\b/gi,'$1 ha $2'],
+    [/\b(a|ah)\s+(dado|pagado|abonado|entregado|aportado|cancelado)\b/gi,'ha $2'],
+    [/\bcuando\s+(debe|deben|adeuda|queda|resta|lleva|falta)\b(?!\s+(pagar|dar|entregar|cuota|el|la|los|las|hoy|manana|mañana|pasado|para|por|que))/gi,'cuanto $1'],
+    // sinónimos colombianos → frase estándar
+    [/\bcuanto\s+(me\s+)?(esta|estan)\s+debiendo\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(me\s+)?(adeuda|adeudan|deben|debe)\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(le\s+)?(resta|queda|falta)\s+(pa|para)\s+(terminar|cancelar|salir|acabar|pagar todo)\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(le\s+)?(resta|queda)\b/gi,'cuanto debe'],
+    [/\bque\s+(saldo|deuda)\s+(tiene|lleva)\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(tiene|lleva)\s+de\s+(deuda|saldo)\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(ha|han)\s+(aportado|abonado|metido|echado|soltado|consignado|cancelado|entregado|dado|puesto)\b/gi,'cuanto ha pagado'],
+    [/\bcuanto\s+(lleva|llevan)\s+(abonado|pagado|dado|aportado|cancelado|entregado)\b/gi,'cuanto ha pagado'],
+    [/\bcuanto\s+(va|van)\s+(pagando|abonando|aportando)\b/gi,'cuanto ha pagado'],
+    [/\bque\s+tanto\s+(ha|han)\s+(dado|pagado|abonado)\b/gi,'cuanto ha pagado'],
+    [/\bque\s+tanto\s+(debe|deben)\b/gi,'cuanto debe'],
+    // plata/jerga
+    [/\b(\d+(?:[.,]\d+)?)\s*(lucas?|lukas?)\b/gi,'$1 mil'],
+    [/\b(una|1)\s+(luca|luka)\b/gi,'1 mil'],
+    [/\b(\d+(?:[.,]\d+)?)\s*palos?\b/gi,'$1 millones'],
+    [/\bun\s+palo\b/gi,'1 millon'],
+    // contracciones y muletillas
+    [/\bpa'?\s+(que|cuando|donde|quien)\b/gi,'para $1'],
+    [/\bxq\b|\bporq\b/gi,'porque'],
+    [/\b(parce|parcero|mijo|mija|socio|hermano|amigo|bro|vale|mono|mona)\b[,]?/gi,''],
+    [/\b(oiga|oye|mire|venga|a\s+ver|haber|dime\s+pues|digame|hagale|necesito\s+saber|quiero\s+saber|quisiera\s+saber|me\s+puedes\s+decir|me\s+podrias\s+decir|me\s+regalas|me\s+colaboras\s+con)\b[,]?/gi,''],
+    [/\b(pues|pes|ps)\b[,]?\s*$/gi,''],
+    [/\bcuanto\s+(me\s+)?(tiene|tienen|lleva)\s+pendiente\b/gi,'cuanto debe'],
+    [/\bcuanto\s+(metio|puso|solto|dejo|echo|consigno|trajo)\b/gi,'cuanto ha pagado'],
+    [/\bcuanto\s+(me\s+)?(deben|debe|debo)\s+(en\s+total|en\s+la\s+calle|todos)\b/gi,'cuanto hay en la calle'],
+    [/\bquien(es)?\s+(se\s+me\s+ha|se\s+me\s+han|esta|estan|va|van|anda|andan|tengo|me\s+tienen)\s+atrasad\w+/gi,'quienes estan atrasados'],
+    [/\bquien(es)?\s+(esta|estan)\s+(en\s+)?(mora|retrasad\w+|demorad\w+)\b/gi,'quienes estan atrasados'],
+    [/\s{2,}/g,' ']
+  ];
+  return R.map(function(r){ return [new RegExp(_dAc(r[0].source),r[0].flags),r[1]]; });
+})();
+var _J_TEMAS=[
+  ['pagado',/\bcuanto\s+(ha|han)\s+(dado|pagado|abonado)\b|\bcuanto\s+(lleva|llevo)\s+(pagado|abonado)\b|\bcuanto\s+(a|ha)\s+(dado|pagado)\b/],
+  ['saldo', /\bcuanto\s+(le\s+)?(debe|deben|queda|falta|resta|adeuda)\b|\bsaldo\b/],
+  ['cuota', /\bcuanto\b.*\b(tiene\s+que\s+(dar|pagar)|le\s+toca\s+(dar|pagar)|debe\s+(dar|pagar)|cuota)\b|\bcuota\s+(de|del|para)\b/],
+  ['fecha', /\bcuando\s+(paga|le\s+toca|debe\s+pagar|vence|termina|toca|cobro)\b/]
+];
+function _jTemaDe(t){ for(var i=0;i<_J_TEMAS.length;i++){ if(_J_TEMAS[i][1].test(t)) return _J_TEMAS[i][0]; } return null; }
+function _jFraseTema(tema,c){
+  var n=c.nombre;
+  return tema==='pagado'?'cuanto ha pagado '+n : tema==='saldo'?'cuanto debe '+n : tema==='cuota'?'cuanto tiene que dar '+n+' hoy' : 'cuando paga '+n;
+}
+function _jPrepararTexto(texto){
+  var o=String(texto||''); if(!o.trim()) return texto;
+  if(/\b(nota|notas|anota\w*|apunta\w*|recuerd\w*|alias|apodo|llama(le|r)?)\b/i.test(o)) return texto;
+  var r=o; _D_REGLAS.forEach(function(x){ r=r.replace(x[0],x[1]); }); r=r.trim();
+  var t=_jNorm(r);
+  var tema=_jTemaDe(t), fresco=window._jTema && Date.now()-window._jTema.ts<8*60*1000;
+  var ult=(window._jUltCli && Date.now()-window._jUltCli.ts<10*60*1000)?_jCliente(window._jUltCli.id):null;
+  var global=/\b(en total|total|todos|todas|clientes|cartera|del dia|de hoy en|en la calle|en general|semanales|diarios)\b/.test(t);
+  if(tema){
+    var ms=_jBuscar(r);
+    if(ms.length===1){ window._jTema={tema:tema,ts:Date.now()}; window._jUltCli={id:ms[0].id,ts:Date.now()}; return r; }
+    if(ms.length===0 && ult && !global && t.split(' ').length<=7){ window._jTema={tema:tema,ts:Date.now()}; return r+' '+ult.nombre; }
+    return r;
+  }
+  if(fresco){
+    var rest=t.replace(/^(y|e|ahora|pero|y de|y del|y la|y el|que tal|y que tal|y con|y a|y en|y tambien|tambien)\s+/,'');
+    var conector=rest!==t, pal=rest.split(' ').filter(Boolean);
+    var verbos=/\b(pon|ponle|anota|borra|cobra|pago|pagar|mueve|crea|nuevo|abre|dame|dime|quien|cuanto|cuando|que|como|donde|cual|cuantos|cuantas|hoy|manana|semana|mes)\b/;
+    if(pal.length>=1 && pal.length<=5 && !verbos.test(rest)){
+      var ms2=_jBuscar(rest);
+      if(ms2.length===1){
+        var nt=_jNorm(ms2[0].nombre).split(' '), sub=pal.every(function(w){ return nt.some(function(x){ return x.indexOf(w)>=0||w.indexOf(x)>=0; }); });
+        if(conector||sub){ window._jUltCli={id:ms2[0].id,ts:Date.now()}; window._jTema.ts=Date.now(); return _jFraseTema(window._jTema.tema,ms2[0]); }
+      }
+    }
+  }
+  return r;
+}
+
+function _jDialIntent(texto,t){
+  var F=_xF(), esHoy=F===fechaHoy(), dia=esHoy?'hoy':'ese día';
+  var uno=function(){ var m=_jBuscar(texto); if(m.length===1) return m[0]; if(m.length>1) return m; var u=(window._jUltCli&&Date.now()-window._jUltCli.ts<10*60*1000)?_jCliente(window._jUltCli.id):null; return u||null; };
+  var marca=function(c){ window._jUltCli={id:c.id,ts:Date.now()}; };
+  // base prestada / de cobro
+  if(/\bbase\b/.test(t) && /\bprestad[ao]\b/.test(t) && !/\b(cuanto|cual)\b/.test(t)){ baseTipoSet('prestada'); return '🤝 Listo jefe, la base de '+dia+' quedó como **prestada**'+(parseFloat((document.getElementById('input-base')||{}).value)>0?' ('+fmt(parseFloat(document.getElementById('input-base').value))+'). Sale en el cuadro de gastos del día, en Cuentas.':'. Pon el valor de la base en Cuentas y saldrá en los gastos.'); }
+  if(/\bbase\b/.test(t) && /\b(de cobro|propia|mia|normal)\b/.test(t) && !/\b(cuanto|cual)\b/.test(t)){ baseTipoSet(''); return '💵 Listo jefe, la base de '+dia+' quedó como de cobro.'; }
+  // ¿quién falta por pagar hoy?
+  if(/\bquien(es)?\b.*\b(no\s+(me\s+)?(ha|han|hizo|hicieron)\s+(pagado|dado|abonado|metido)(\s+nada)?|falta(n)?|me\s+falta(n)?|sin\s+pagar|no\s+ha\s+pagado)\b|\bclientes\s+que\s+(faltan|no\s+han\s+pagado)\b|\ba\s+quien(es)?\s+(le\s+|les\s+)?(cobro|toca\s+cobrar|tengo\s+que\s+cobrar|visito|me\s+toca)\b|\bquienes?\s+(me\s+)?tocan?\s+hoy\b/.test(t) && !/\b(atrasad|semana|semanales|diarios)\b/.test(t)){
+    var L=_xFaltan(F).map(function(c){return {c:c,s:_semaforo(c)};}).sort(function(a,b){return (b.s.n-a.s.n)||((b.c.cuotaSugerida||0)-(a.c.cuotaSugerida||0));});
+    if(!L.length) return '🎉 Ya pagaron todos los que tocaban '+dia+', jefe.';
+    var tot=L.reduce(function(a,o){return a+(o.c.cuotaSugerida||0);},0);
+    return '⏳ Faltan por pagar '+dia+' ('+L.length+'), jefe — son '+fmt(tot)+' en cuotas:\n'+L.slice(0,15).map(function(o,i){return (i+1)+'. '+o.s.ic+' '+_nomCorto(o.c.nombre)+' — '+fmt(o.c.cuotaSugerida||0);}).join('\n')+(L.length>15?'\n… y '+(L.length-15)+' más.':'');
+  }
+  // ¿ya pagó? / ¿cuánto dio hoy?
+  if(/\bya\s+(me\s+)?(pago|dio|abono|metio|puso|trajo)\b|\b(pago|dio|abono|metio|puso)\s+(hoy|ya)\b|\bcuanto\s+(fue\s+lo\s+que\s+)?(dio|pago|abono|metio|puso)\b.*\bhoy\b|\bcuanto\s+(dio|pago|abono|metio|puso)\b/.test(t) && !/\b(en total|hemos|han|todos)\b/.test(t)){
+    var c=uno();
+    if(c && !Array.isArray(c)){
+      marca(c); var p=_xPagoHoy(c,F), cu=c.cuotaSugerida||0;
+      if(p>0) return '✅ Sí, '+c.nombre+' pagó '+dia+': '+fmt(p)+(p<cu?' (la cuota es '+fmt(cu)+', le faltó '+fmt(cu-p)+')':'')+'.';
+      return '⏳ Todavía no, '+c.nombre+' no ha pagado '+dia+'. Su cuota es '+fmt(cu)+'.';
+    }
+    if(Array.isArray(c)) return '🤔 Hay varios parecidos, jefe:\n'+_jListaElegir(c.slice(0,8))+'\nDime el nombre completo.';
+  }
+  // ¿ya terminó de pagar?
+  if(/\bya\s+(termino|acabo|salio|cancelo\s+(todo|el\s+prestamo|la\s+deuda)|pago\s+todo)\b/.test(t)){
+    var c2=uno();
+    if(c2 && !Array.isArray(c2)){ marca(c2); return c2.saldo>0?'⏳ Todavía no, '+c2.nombre+' debe '+fmt(c2.saldo)+' de un préstamo de '+fmt(c2.prestamo||0)+'.':'🎉 Sí, '+c2.nombre+' ya terminó de pagar.'; }
+  }
+  // teléfono
+  if(/\b(telefono|numero|celular|cel|contacto)\b/.test(t) && !/\b(cuota|cuotas|clientes|semana|dias|prestamo)\b/.test(t) || /\bcomo\s+(llamo|contacto|le\s+escribo)\b/.test(t)){
+    var c3=uno();
+    if(c3 && !Array.isArray(c3)){ marca(c3); var tel=String(c3.tel||'').trim(); return tel?'📞 '+c3.nombre+': '+tel+'\nSi quieres, dime "mándale mensaje de cobro a '+_nomCorto(c3.nombre).split(' ')[0]+'".':'📵 '+c3.nombre+' no tiene teléfono guardado, jefe.'; }
+  }
+  return null;
+}
+(function(){ var f=window._jAcciones; if(typeof f==='function' && !f.__dial){ var w=function(texto){ var t2=texto; try{ t2=_jPrepararTexto(texto); }catch(e){ t2=texto; }
+  try{ if(!(window._jAcc && window._jAcc.tipo) && !/\b(nota|notas|anota\w*|apunta\w*)\b/i.test(t2)){ var d=_jDialIntent(t2,_jNorm(t2)); if(d) return d; } }catch(e){}
+  return f.call(this,t2); }; w.__dial=1; window._jAcciones=w; } })();
+</script>
+<script>
+/* ══════════ 🤝 BASE: DE COBRO o PRESTADA (solo etiqueta por día; NO cambia ningún total ni dato guardado) ══════════ */
+function _baseTipoKey(){ return 'jrv_basetipo_'+String(getFechaActiva()||fechaHoy()).slice(0,10); }
+function baseTipoGet(){ try{ return localStorage.getItem(_baseTipoKey())==='prestada'?'prestada':''; }catch(e){ return ''; } }
+function baseTipoSet(t){ try{ if(t==='prestada') localStorage.setItem(_baseTipoKey(),'prestada'); else localStorage.removeItem(_baseTipoKey()); }catch(e){} _baseTipoRender(); if(typeof showToast==='function') showToast(t==='prestada'?'🤝 Base marcada como prestada':'💵 Base marcada como de cobro'); }
+function _baseTipoRender(){
+  var t=baseTipoGet(), b=document.getElementById('input-base'), v=b?(parseFloat(b.value)||0):0;
+  var c=document.getElementById('base-tipo-cobro'), p=document.getElementById('base-tipo-prest');
+  if(c&&p){
+    c.style.cssText+=';'+(t===''?'background:#dcfce7;border-color:#22c55e;color:#166534':'background:#fff;border-color:#d1d5db;color:#6b7280');
+    p.style.cssText+=';'+(t==='prestada'?'background:#ede9fe;border-color:#8b5cf6;color:#5b21b6':'background:#fff;border-color:#d1d5db;color:#6b7280');
+  }
+  var box=document.getElementById('cuentas-base-prestada'), val=document.getElementById('cuentas-base-prestada-val');
+  if(box){ box.style.display=(t==='prestada'&&v>0)?'flex':'none'; if(val) val.textContent=fmt(v); }
+}
+(function(){ var f=window.recalcularCuentas; if(typeof f==='function' && !f.__bt){ var w=function(){ var r=f.apply(this,arguments); try{ _baseTipoRender(); }catch(e){} return r; }; w.__bt=1; window.recalcularCuentas=w; } })();
+setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
 </script>
 </body>
 </html>
