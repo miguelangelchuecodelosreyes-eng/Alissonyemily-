@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-26 v207">
+<meta name="app-version" content="2026-11-27 v210">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6125,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-26 v207';
+const APP_VERSION = '2026-11-27 v210';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -17404,7 +17404,8 @@ function renderVoladas(busq){
 .cc-foto{width:38px !important;height:38px !important}
 .cc-foto-ph{width:38px;height:38px;flex-shrink:0}   /* sin foto: se deja el mismo espacio para que todos los nombres y cuotas queden en la misma linea */
 .cc-row{gap:7px !important}
-.cc-nom{font-size:13.5px;font-weight:900;color:#1a1a2e;line-height:1.15;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cc-nom{font-size:13.5px;font-weight:900;color:#1a1a2e;line-height:1.15;white-space:nowrap !important;word-break:keep-all;display:block;overflow:hidden;text-overflow:clip;-webkit-text-size-adjust:100%}
+.cc-mid{min-width:0;overflow:hidden}
 .cc-sub{font-size:11px;font-weight:700;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .cc-hoy{display:inline-block;background:linear-gradient(135deg,#22d3ee,#0891b2);color:#fff;font-size:12px;font-weight:900;letter-spacing:.2px;padding:2px 10px;border-radius:999px;margin-bottom:3px;box-shadow:0 2px 6px rgba(8,145,178,.4)}
 .cc-sal{text-align:center;flex-shrink:0;align-self:stretch}
@@ -17821,6 +17822,31 @@ setTimeout(function(){ try{ _metaRender(); }catch(e){} },1200);
 /* ── JARVIS ── */
 function _jXIntent(texto,t){
   var c0;
+  // SEMANALES QUE NO HAN DADO PLATA ESTA SEMANA
+  if(/semanal/.test(t) && /(no (han |ha |a )?(dado|dio|pagado|pago|abonado|abono|cumplido)|sin (dar|pagar|abonar)|no han (dado|pagado)|no dieron|faltan por (dar|pagar))/.test(t) && !/semana (pasada|anterior)/.test(t)){
+    var hoyD=new Date((getFechaActiva?getFechaActiva():fechaHoy())+'T00:00:00'); var dow=(hoyD.getDay()+6)%7; // lunes=0
+    var ini=new Date(hoyD); ini.setDate(ini.getDate()-dow);
+    var iso=function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+    var isoIni=iso(ini), isoHoy=iso(hoyD), NOM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var lin=[], hoyL=[];
+    getClientes().forEach(function(c){
+      if(!c||c.volado||(c.tipo||'')!=='semanal'||!(c.saldo>0)) return;
+      var dn=diaSemanaNombre2Num(c.diaSemana); if(dn===undefined) return;
+      var off=(dn+6)%7, dd=new Date(ini); dd.setDate(dd.getDate()+off); var fd=iso(dd);
+      if(fd>isoHoy) return;
+      var dio=(c.pagos||[]).filter(function(p){return p.fecha>=isoIni&&p.fecha<=isoHoy;}).reduce(function(a,p){return a+(p.monto||0);},0);
+      if(dio>0) return;
+      var it={n:c.nombre||'',d:NOM[dn],cu:c.cuotaSugerida||0};
+      if(fd===isoHoy) hoyL.push(it); else lin.push(it);
+    });
+    var L=function(it){ return '• '+it.n+' — el '+it.d+' tenía que dar '+(it.cu?fmt(it.cu):'su cuota')+' y no dio plata'; };
+    if(!lin.length&&!hoyL.length) return '✅ Jefe, todos los semanales que ya les tocaba esta semana han dado plata.';
+    var r='';
+    if(lin.length) r+='⚠️ Semanales que NO han dado plata esta semana ('+lin.length+'):\n'+lin.map(L).join('\n');
+    if(hoyL.length) r+=(r?'\n\n':'')+'📅 Les toca hoy y aún no dan ('+hoyL.length+'):\n'+hoyL.map(function(it){return '• '+it.n+' — hoy tiene que dar '+(it.cu?fmt(it.cu):'su cuota');}).join('\n');
+    return r;
+  }
+  var c0;
   // META
   if(/\bmeta\b/.test(t) && !/\bmetale\b/.test(t)){
     if(/(a quien|por quien|quien(es)? (me )?(falta|cobro|visito)|primero)/.test(t)) return _metaQuienTexto();
@@ -18026,6 +18052,19 @@ function _baseTipoRender(){
 }
 (function(){ var f=window.recalcularCuentas; if(typeof f==='function' && !f.__bt){ var w=function(){ var r=f.apply(this,arguments); try{ _baseTipoRender(); }catch(e){} return r; }; w.__bt=1; window.recalcularCuentas=w; } })();
 setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
+</script>
+<script>
+(function(){
+ function fit(){ try{ document.querySelectorAll('#clientes-lista .cc-nom').forEach(function(e){
+   if(!e.offsetParent) return;
+   e.style.fontSize=''; var fs=13.5; var w=e.clientWidth; if(!w) return;
+   e.style.whiteSpace='nowrap'; while(e.scrollWidth>w+1 && fs>7){ fs-=0.5; e.style.fontSize=fs+'px'; }
+ }); }catch(x){} }
+ var t=null; function pedir(){ clearTimeout(t); t=setTimeout(fit,120); setTimeout(fit,700); }
+ function iniciar(){ var L=document.getElementById('clientes-lista'); if(!L){ setTimeout(iniciar,500); return; }
+   new MutationObserver(pedir).observe(L,{childList:true,subtree:true}); window.addEventListener('resize',pedir); pedir(); }
+ iniciar();
+})();
 </script>
 </body>
 </html>
