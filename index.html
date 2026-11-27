@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-26 v205">
+<meta name="app-version" content="2026-11-26 v206">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -4976,9 +4976,9 @@ function renderClientes(){
     const pagadoHoy = (c.pagos||[]).filter(p=>p.fecha===hoy).reduce((s,p)=>s+p.monto,0);
     const atrasoColor = diasAtraso <= 0 ? '#00cc55' : diasAtraso <= 2 ? '#e07b00' : '#ff1111';
     const atrasoLabel = diasAtraso > 0
-      ? `⏰ ${diasAtraso} día${diasAtraso>1?'s':''} atrasado`
+      ? `⏰ ${diasAtraso}`
       : diasAtraso < 0
-        ? `⭐ ${Math.abs(diasAtraso)} día${Math.abs(diasAtraso)>1?'s':''} adelantado`
+        ? `⭐ -${Math.abs(diasAtraso)}`
         : `✅ Al día`;
     // Calcular número de días del préstamo (cuotas × días entre pagos)
     const nCuotas = cuotaDia > 0 ? Math.ceil(c.prestamo / cuotaDia) : 0;
@@ -6054,10 +6054,10 @@ function abrirDetalle(id, desde){
 
   const dAtrasoEl = document.getElementById('det-dias-atraso');
   if(diasAtraso > 0){
-    dAtrasoEl.textContent = diasAtraso + ' día' + (diasAtraso>1?'s':'') + ' atrasado';
+    dAtrasoEl.textContent = String(diasAtraso);
     dAtrasoEl.style.color = diasAtraso <= 2 ? '#e07b00' : '#ff1111';
   } else if(diasAtraso < 0){
-    dAtrasoEl.textContent = Math.abs(diasAtraso) + ' día' + (Math.abs(diasAtraso)>1?'s':'') + ' adelantado';
+    dAtrasoEl.textContent = '-' + Math.abs(diasAtraso);
     dAtrasoEl.style.color = '#00cc55';
   } else {
     dAtrasoEl.textContent = 'Al día ✅';
@@ -6125,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-26 v205';
+const APP_VERSION = '2026-11-26 v206';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -8268,7 +8268,7 @@ function imprimirReporteDia(fechaOpt, conCuotasOpt){
         let n = 0; const cur = new Date(ini+'T00:00:00'); cur.setDate(cur.getDate()+1);
         const fin = new Date(fecha+'T00:00:00');
         while(cur<=fin){ if(tp==='semanal'){ if(cur.getDay()===dObj) n++; } else { if(cur.getDay()!==0) n++; } cur.setDate(cur.getDate()+1); }
-        atraso = Math.max(0, n - cubiertas);
+        atraso = n - cubiertas;
       }
     }
     if(saldo <= 0){
@@ -8451,7 +8451,7 @@ function imprimirReporteDia(fechaOpt, conCuotasOpt){
       cx += cols[7].w;
       // ATRASO
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(180,0,0);
-      doc.text(f.atraso>0?String(f.atraso):'-', mid(8), y+5.9, {align:'center'});
+      doc.text(f.atraso!==0?String(f.atraso):'-', mid(8), y+5.9, {align:'center'});
       y += rhC;
       lineas.push(y);
     });
@@ -8802,7 +8802,7 @@ function generarPDFRuta(fechaOpt){
       const val={
         num:String(f.num), nom:f.nombre, saldo:fmtN(f.saldo),
         cuota:f.cuota>0?fmtN(f.cuota):'-', dio:f.mp>0?fmtN(f.mp):'-',
-        total:fmtN(f.total), tipo:f.tipo, atraso:f.atraso>0?String(f.atraso):'-', notas:''
+        total:fmtN(f.total), tipo:f.tipo, atraso:f.atraso!==0?String(f.atraso):'-', notas:''
       };
       let cx=ML+1;
       const yc=y+5.6;
@@ -17475,12 +17475,12 @@ function decorarCompacta(){
     var atr=0; try{ atr=calcularAtraso(c); }catch(e){}
     var col=pagoHoy>0?'#16a34a':(atr>2?'#dc2626':(atr>0?'#f59e0b':'#3b82f6'));
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+((c.diaSemana)?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1,3):'');
-    var atrTxt=atr>0?('⏰ '+atr+'d atraso'):(atr<0?('⭐ '+Math.abs(atr)+'d adel.'):'✅ al día');
+    var atrTxt=atr>0?('⏰ '+atr):(atr<0?('⭐ -'+Math.abs(atr)):'✅ al día');
     var accion='';
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
-    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div></div>'
+    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div>'+((c.prestamo>0)?'<div class="cc-prest" style="font-size:11px;font-weight:800;color:#7c3aed;margin-top:1px">💼 Préstamo '+fmt(c.capital>0&&c.capital!==c.prestamo?c.capital:c.prestamo)+(c.capital>0&&c.capital!==c.prestamo?' → '+fmt(c.prestamo):'')+'</div>':'')+'</div>'
       +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
@@ -17499,7 +17499,7 @@ function decorarDelgada(lista,cards){
     kids.forEach(function(k){ if(k.querySelector&&k.querySelector(':scope > .cuota-input')) k.classList.add('cc-inrow'); });
     var pagoHoy=(c.pagos||[]).filter(function(p){return p.fecha===hoy;}).reduce(function(a,p){return a+p.monto;},0);
     var atr=0; try{ atr=calcularAtraso(c); }catch(e){}
-    var atrTxt=atr>0?'<span style="color:#dc2626">⏰ '+atr+'d atraso</span>':(atr<0?'<span style="color:#16a34a">⭐ '+Math.abs(atr)+'d adelantado</span>':'<span style="color:#16a34a">✅ al día</span>');
+    var atrTxt=atr>0?'<span style="color:#dc2626">⏰ '+atr+'</span>':(atr<0?'<span style="color:#16a34a">⭐ -'+Math.abs(atr)+'</span>':'<span style="color:#16a34a">✅ al día</span>');
     var up=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+(c.diaSemana?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1):'');
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
