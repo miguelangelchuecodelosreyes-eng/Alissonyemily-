@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-26 v204">
+<meta name="app-version" content="2026-11-26 v205">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6125,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-26 v204';
+const APP_VERSION = '2026-11-26 v205';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -12301,7 +12301,7 @@ function _jPanelManualIntent(texto,t){
   if(!/\bpanel(es)?\b/.test(t)) return null;
   if(/\b(gasto|cliente|jarvis panel)\b/.test(t) && !/\bmanua\w*\b/.test(t)) return null;
   if(/\b(oculta\w*|esconde\w*|quita\w*|cierra\w*|cerrar|bloquea\w*|desactiva\w*)\b/.test(t)){ _jPanelManual(false); return '🔒 Listo, panel manual oculto.'; }
-  if(/\b(acceso|abre\w*|abrir|muestr\w*|ver|dame|activa\w*|quiero|necesito|pon\w*|habilita\w*|desbloquea\w*)\b/.test(t)){ _jPanelManual(true); return '🔓 Listo, panel manual abierto.'; }
+  if(/\b(acceso|abre\w*|abrir|muestr\w*|ver|dame|activa\w*|quiero|necesito|pon\w*|habilita\w*|desbloquea\w*)\b/.test(t)){ _jPanelManual(true); return '🔓 Listo jefe, te di acceso a TODO el panel: Clientes, Detalles, Préstamos, Cuentas, Gasto y Ajustes. Para esconderlo dime "oculta el panel".'; }
   return null;
 }
 /* Respuestas directas (sin IA) para lo que más se pregunta: totales, volados, deudores, voz, repetir… */
@@ -17947,7 +17947,29 @@ function _jPrepararTexto(texto){
   return r;
 }
 
+
+/* ── 🧭 "Dame acceso al panel de préstamos" = abre SOLO ese panel (la barra de pestañas sigue oculta).
+      "Dame acceso al panel" (sin nombre) = el panel manual que ya existía: muestra TODA la barra de pestañas. ── */
+function irPanel(k){
+  if(k==='notas'){ irA('clientes'); abrirNotasDia(); return; }
+  if(k==='cobrar'){ irA('clientes'); abrirCobroWA(); return; }
+  irA(k);
+}
+function _jPanelIntent(texto,t){
+  if(!/\b(panel|acceso|accesar|acceder)\b/.test(t)) return null;
+  if(/\b(cuanto|cuantos|quien|cual|como voy|meta|manual)\b/.test(t)) return null;
+  var tg=null;
+  if(/\bprestamos?\b/.test(t)) tg='prestamos'; else if(/\bdetalles?\b/.test(t)) tg='detalles'; else if(/\bcuentas?\b/.test(t)) tg='cuentas';
+  else if(/\bgastos?\b/.test(t)) tg='gastos'; else if(/\bajustes?|configuracion\b/.test(t)) tg='ajustes'; else if(/\bnotas?\b/.test(t)) tg='notas';
+  else if(/\b(whats?app|wasap|cobrar)\b/.test(t)) tg='cobrar'; else if(/\bclientes?\b/.test(t)) tg='clientes';
+  if(!tg) return null;
+  if(!/\b(dame|dime|quiero|abre|abreme|abrir|muestrame|ensename|dejame|ponme|entrar|entra|ir|ve|llevame|acceso|accesar|acceder|panel)\b/.test(t)) return null;
+  var N={clientes:['👥','Clientes'],prestamos:['💸','Préstamos'],detalles:['📋','Detalles'],cuentas:['💰','Cuentas'],gastos:['🧾','Gasto'],ajustes:['⚙️','Ajustes'],notas:['📝','Notas'],cobrar:['💬','Cobrar por WhatsApp']}[tg];
+  irPanel(tg);
+  return N[0]+' Listo jefe, te di acceso solo al panel de '+N[1]+(tg==='ajustes'?' (te va a pedir tu clave).':'.')+' Si quieres todos los paneles dime "dame acceso al panel".';
+}
 function _jDialIntent(texto,t){
+  var pn=_jPanelIntent(texto,t); if(pn) return pn;
   var F=_xF(), esHoy=F===fechaHoy(), dia=esHoy?'hoy':'ese día';
   var uno=function(){ var m=_jBuscar(texto); if(m.length===1) return m[0]; if(m.length>1) return m; var u=(window._jUltCli&&Date.now()-window._jUltCli.ts<10*60*1000)?_jCliente(window._jUltCli.id):null; return u||null; };
   var marca=function(c){ window._jUltCli={id:c.id,ts:Date.now()}; };
