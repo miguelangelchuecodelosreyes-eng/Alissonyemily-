@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v214">
+<meta name="app-version" content="2026-11-27 v215">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -4067,7 +4067,8 @@ function guardarCliente(){
       if((cAntes.nota||'') !== nuevaNota) cambios.push(`📝 Nota: "${cAntes.nota||'—'}" → "${nuevaNota||'—'}"`);
       { const _ft=window._fotosTemp||{};
         if(_ft.cliente!==undefined) cambios.push(_ft.cliente===null?'📷 Foto del cliente: quitada':'📷 Foto del cliente: nueva');
-        if(_ft.casa!==undefined) cambios.push(_ft.casa===null?'🏠 Foto de la casa: quitada':'🏠 Foto de la casa: nueva'); }
+        if(_ft.casa!==undefined) cambios.push(_ft.casa===null?'🏠 Foto de la casa: quitada':'🏠 Foto de la casa: nueva');
+        if(_ft.otra!==undefined) cambios.push(_ft.otra===null?'➕ Otra foto: quitada':'➕ Otra foto: nueva'); }
       if(posicionTipo && !posicionRefId){ showToast('⚠️ Elige el cliente de referencia en "¿Dónde va en la lista?"'); return; }
       if(posicionTipo && posicionRefId){
         const _rf=clientes.find(x=>x.id===posicionRefId);
@@ -6130,7 +6131,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v214';
+const APP_VERSION = '2026-11-27 v215';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -16966,7 +16967,7 @@ async function verFotosCliente(id){
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
   ov.innerHTML=`<div style="max-width:560px;margin:0 auto">
     <div style="color:white;font-size:18px;font-weight:900;margin-bottom:14px;font-family:'Nunito',sans-serif">👤 ${c.nombre}</div>
-    ${bloque('📷 Cliente',a)}${bloque('🏠 Casa',b)}${o?bloque('➕ Otra foto',o):''}
+    ${bloque('📷 Cliente',a)}${bloque('🏠 Casa',b)}${bloque('➕ Otra foto',o)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button onclick="document.getElementById('visor-fotos').remove();abrirModalCliente('${c.id}')" style="padding:13px;border:none;border-radius:16px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✏️ Cambiar fotos</button>
       <button onclick="document.getElementById('visor-fotos').remove()" style="padding:13px;border:2px solid rgba(255,255,255,.3);border-radius:16px;background:transparent;color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cerrar</button>
