@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-26 v206">
+<meta name="app-version" content="2026-11-26 v207">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6125,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-26 v206';
+const APP_VERSION = '2026-11-26 v207';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -17480,7 +17480,7 @@ function decorarCompacta(){
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
-    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div>'+((c.prestamo>0)?'<div class="cc-prest" style="font-size:11px;font-weight:800;color:#7c3aed;margin-top:1px">💼 Préstamo '+fmt(c.capital>0&&c.capital!==c.prestamo?c.capital:c.prestamo)+(c.capital>0&&c.capital!==c.prestamo?' → '+fmt(c.prestamo):'')+'</div>':'')+'</div>'
+    row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom">'+(c.nombre||'')+'</div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div>'+((c.prestamo>0)?'<div class="cc-prest" style="font-size:11px;font-weight:800;color:#7c3aed;margin-top:1px">'+fmt(c.capital>0&&c.capital!==c.prestamo?c.capital:c.prestamo)+(c.capital>0&&c.capital!==c.prestamo?' → '+fmt(c.prestamo):'')+'</div>':'')+'</div>'
       +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
