@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v213">
+<meta name="app-version" content="2026-11-27 v214">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -2257,9 +2257,14 @@ button[onclick="exportarDatos()"]{
           <div class="foto-box" id="mc-foto-box-casa" onclick="elegirFotoCliente('casa')"><span>🏠<br>Foto de la casa</span></div>
           <button type="button" class="foto-quitar" id="mc-foto-quitar-casa" onclick="quitarFotoCliente('casa')">✖ Quitar</button>
         </div>
+        <div>
+          <div class="foto-box" id="mc-foto-box-otra" onclick="elegirFotoCliente('otra')"><span>➕<br>Otra foto</span></div>
+          <button type="button" class="foto-quitar" id="mc-foto-quitar-otra" onclick="quitarFotoCliente('otra')">✖ Quitar</button>
+        </div>
       </div>
       <input type="file" accept="image/*" id="mc-file-cliente" style="display:none" onchange="procesarFotoCliente('cliente',this)">
       <input type="file" accept="image/*" id="mc-file-casa" style="display:none" onchange="procesarFotoCliente('casa',this)">
+      <input type="file" accept="image/*" id="mc-file-otra" style="display:none" onchange="procesarFotoCliente('otra',this)">
     </div>
     </div><!-- fin mc-campos-cliente -->
 
@@ -5009,7 +5014,7 @@ function renderClientes(){
           <!-- Número + Nombre -->
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="min-width:24px;height:24px;flex-shrink:0;border-radius:50%;background:${(c.tipo||'diario')==='semanal'?'linear-gradient(135deg,#ef4444,#b91c1c)':'linear-gradient(135deg,#22c55e,#15803d)'};color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;">${numeroCliente+1}</div>
-            ${(c.tieneFotoCliente||c.tieneFotoCasa)?`<div class="foto-av" data-fid="${c.id}" data-ftipo="${c.tieneFotoCliente?'cliente':'casa'}" onclick="event.stopPropagation();verFotosCliente('${c.id}')">${c.tieneFotoCliente?'👤':'🏠'}</div>`:''}
+            ${(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?`<div class="foto-av" data-fid="${c.id}" data-ftipo="${c.tieneFotoCliente?'cliente':(c.tieneFotoCasa?'casa':'otra')}" onclick="event.stopPropagation();verFotosCliente('${c.id}')">${c.tieneFotoCliente?'👤':'🏠'}</div>`:''}
             <div>
               <div style="font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.2;">👤 ${c.nombre}${_semIc(c)}${((c.fechaRenovacion||'').substring(0,10)===hoy||(c.historialRenovaciones||[]).some(r=>(r.fecha||r.fechaCreado||'').substring(0,10)===hoy))?' <span style="display:inline-block;background:linear-gradient(135deg,#00b894,#00cec9);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">✅ RF</span>':''}${((c.fechaCreado||'').substring(0,10)===hoy&&!(c.renovaciones>0))?' <span style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;font-size:9px;font-weight:900;border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:3px">🆕 NP</span>':''}</div>
               <div style="font-size:10px;color:#6366f1;font-weight:500;">${c.cedula?`🪪 ${c.cedula}&nbsp;&nbsp;`:''}${c.tel?`📱 ${c.tel}`:''}</div>
@@ -5125,7 +5130,7 @@ function renderClientes(){
 
         <!-- ══ FOTOS ══ -->
         <button onclick="abrirFotosCliente('${c.id}')" style="width:100%;padding:7px;margin-bottom:5px;background:linear-gradient(135deg,#faf5ff,#f3e8ff);color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:14px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
-          <span style="font-size:12px">📷</span> ${(c.tieneFotoCliente||c.tieneFotoCasa)?'Ver fotos del cliente':'Agregar fotos'}
+          <span style="font-size:12px">📷</span> ${(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?'Ver fotos del cliente':'Agregar fotos'}
         </button>
 
         <!-- ══ VOLADO ══ -->
@@ -6125,7 +6130,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v213';
+const APP_VERSION = '2026-11-27 v214';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -16791,7 +16796,7 @@ function _fotoBoxActualizar(tipo,src){
   } else {
     box.style.backgroundImage='';
     box.classList.remove('con-foto');
-    box.innerHTML = tipo==='cliente' ? '<span>📷<br>Foto del cliente</span>' : '<span>🏠<br>Foto de la casa</span>';
+    box.innerHTML = tipo==='cliente' ? '<span>📷<br>Foto del cliente</span>' : (tipo==='otra' ? '<span>➕<br>Otra foto</span>' : '<span>🏠<br>Foto de la casa</span>');
     if(btn) btn.style.display='none';
   }
 }
@@ -16819,15 +16824,17 @@ async function prepararFotosModal(id){
   window._fotosTemp = {};
   _fotoBoxActualizar('cliente',null);
   _fotoBoxActualizar('casa',null);
+  _fotoBoxActualizar('otra',null);
   if(!id) return;
-  const [a,b] = await Promise.all([FotosDB.get(id+'_cliente'), FotosDB.get(id+'_casa')]);
+  const [a,b,o] = await Promise.all([FotosDB.get(id+'_cliente'), FotosDB.get(id+'_casa'), FotosDB.get(id+'_otra')]);
   // solo si el usuario aún no tocó nada
   if(a && window._fotosTemp.cliente===undefined) _fotoBoxActualizar('cliente',a);
   if(b && window._fotosTemp.casa===undefined) _fotoBoxActualizar('casa',b);
+  if(o && window._fotosTemp.otra===undefined) _fotoBoxActualizar('otra',o);
 }
 function aplicarFotosA(cli){
   const t = window._fotosTemp || {};
-  [['cliente','tieneFotoCliente'],['casa','tieneFotoCasa']].forEach(([tipo,flag])=>{
+  [['cliente','tieneFotoCliente'],['casa','tieneFotoCasa'],['otra','tieneFotoOtra']].forEach(([tipo,flag])=>{
     if(t[tipo]===undefined) return;
     if(t[tipo]===null){ FotosDB.del(cli.id+'_'+tipo); cli[flag]=false; }
     else { FotosDB.set(cli.id+'_'+tipo,t[tipo]); cli[flag]=true; }
@@ -16888,7 +16895,7 @@ async function subirFotosANube(){
     const pend=[]; let total=0;
     for(const c of getClientes()){
       if(!c) continue;
-      for(const tipo of ['cliente','casa']){
+      for(const tipo of ['cliente','casa','otra']){
         const k=c.id+'_'+tipo, src=await FotosDB.get(k,true);
         if(src){ total++; if(!idx[k]) pend.push([k,src]); }
       }
@@ -16910,7 +16917,7 @@ async function exportarFotosClientes(){
     const fotos={}; let n=0;
     for(const c of getClientes()){
       if(!c) continue;
-      for(const tipo of ['cliente','casa']){
+      for(const tipo of ['cliente','casa','otra']){
         const src=await FotosDB.get(c.id+'_'+tipo);
         if(src){ fotos[c.id+'_'+tipo]=src; n++; }
       }
@@ -16930,8 +16937,8 @@ function importarFotosClientes(input){
       const ids=new Set(getClientes().map(c=>c.id));
       for(const k of Object.keys(fotos)){
         await FotosDB.set(k,fotos[k]); n++;
-        const id=k.replace(/_(cliente|casa)$/,''), tipo=k.endsWith('_casa')?'casa':'cliente';
-        if(ids.has(id)){ const cl=getClientes(); const i=cl.findIndex(x=>x.id===id); if(i>=0){ cl[i][tipo==='casa'?'tieneFotoCasa':'tieneFotoCliente']=true; saveClientes(cl); } }
+        const id=k.replace(/_(cliente|casa|otra)$/,''), tipo=k.endsWith('_casa')?'casa':(k.endsWith('_otra')?'otra':'cliente');
+        if(ids.has(id)){ const cl=getClientes(); const i=cl.findIndex(x=>x.id===id); if(i>=0){ cl[i][tipo==='casa'?'tieneFotoCasa':(tipo==='otra'?'tieneFotoOtra':'tieneFotoCliente')]=true; saveClientes(cl); } }
       }
       try{ renderClientes(); }catch(e){}
       try{ hidratarFotosTarjetas(); }catch(e){}
@@ -16944,14 +16951,14 @@ function importarFotosClientes(input){
 function abrirFotosCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
-  if(c.tieneFotoCliente||c.tieneFotoCasa) verFotosCliente(id);
+  if(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra) verFotosCliente(id);
   else { abrirModalCliente(id); showToast('📷 Agrega las fotos aquí'); }
 }
 async function verFotosCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
   const old=document.getElementById('visor-fotos'); if(old) old.remove();
-  const [a,b] = await Promise.all([FotosDB.get(id+'_cliente'), FotosDB.get(id+'_casa')]);
+  const [a,b,o] = await Promise.all([FotosDB.get(id+'_cliente'), FotosDB.get(id+'_casa'), FotosDB.get(id+'_otra')]);
   const bloque=(titulo,src)=>`<div style="margin-bottom:14px"><div style="color:#e9d5ff;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${titulo}</div>${src?`<div class="zf-wrap" style="overflow:hidden;border-radius:16px;background:#000;touch-action:pan-y"><img src="${src}" draggable="false" style="width:100%;max-height:60vh;object-fit:contain;display:block;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none"></div>`:`<div style="padding:26px;text-align:center;color:#a78bfa;font-weight:800;font-size:13px;border:2px dashed rgba(167,139,250,.4);border-radius:16px">Sin foto</div>`}</div>`;
   const ov=document.createElement('div');
   ov.id='visor-fotos';
@@ -16959,7 +16966,7 @@ async function verFotosCliente(id){
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
   ov.innerHTML=`<div style="max-width:560px;margin:0 auto">
     <div style="color:white;font-size:18px;font-weight:900;margin-bottom:14px;font-family:'Nunito',sans-serif">👤 ${c.nombre}</div>
-    ${bloque('📷 Cliente',a)}${bloque('🏠 Casa',b)}
+    ${bloque('📷 Cliente',a)}${bloque('🏠 Casa',b)}${o?bloque('➕ Otra foto',o):''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button onclick="document.getElementById('visor-fotos').remove();abrirModalCliente('${c.id}')" style="padding:13px;border:none;border-radius:16px;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">✏️ Cambiar fotos</button>
       <button onclick="document.getElementById('visor-fotos').remove()" style="padding:13px;border:2px solid rgba(255,255,255,.3);border-radius:16px;background:transparent;color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">Cerrar</button>
@@ -17354,7 +17361,7 @@ function renderVoladas(busq){
     var id=c.id, h=_hoy(c), pag=(c.pagos||[]).reduce(function(a,p){return a+(p.monto||0);},0);
     var ult=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+(c.diaSemana?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1):'');
-    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
+    var foto=(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':(c.tieneFotoCasa?'casa':'otra'))+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
     return '<div class="pcard" id="card-'+id+'" style="border-radius:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border:'+(h>0?'2px solid #22c55e':'1.5px solid #e4e4f0')+';overflow:hidden;background:'+(h>0?'#f0fdf4':'white')+'">'
      +'<div class="cc2" style="display:block;padding:7px 9px 2px">'
        +'<div class="cc2-top" onclick="toggleBody(\''+id+'\')"><div class="cc2-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto
@@ -17495,7 +17502,7 @@ function decorarCompacta(){
     var accion='';
     var row=document.createElement('div'); row.className='cc-row'; row.style.setProperty('--cc',col);
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
-    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
+    var foto=(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':(c.tieneFotoCasa?'casa':'otra'))+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
     row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom"><span class="nm" data-full="'+String(c.nombre||'').replace(/"/g,'&quot;')+'">'+(c.nombre||'')+'</span></div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div>'+((c.prestamo>0)?'<div class="cc-prest" style="font-size:11px;font-weight:800;color:#7c3aed;margin-top:1px">'+fmt(c.capital>0&&c.capital!==c.prestamo?c.capital:c.prestamo)+(c.capital>0&&c.capital!==c.prestamo?' → '+fmt(c.prestamo):'')+'</div>':'')+'</div>'
       +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
@@ -17518,7 +17525,7 @@ function decorarDelgada(lista,cards){
     var atrTxt=atr>0?'<span style="color:#dc2626">⏰ '+atr+'</span>':(atr<0?'<span style="color:#16a34a">⭐ -'+Math.abs(atr)+'</span>':'<span style="color:#16a34a">✅ al día</span>');
     var up=(c.pagos||[]).slice().sort(function(a,b){return a.fecha<b.fecha?1:-1;})[0];
     var tipo=c.tipo==='diario'?'☀️ Diario':'📅 Semanal'+(c.diaSemana?' '+String(c.diaSemana).charAt(0).toUpperCase()+String(c.diaSemana).slice(1):'');
-    var foto=(c.tieneFotoCliente||c.tieneFotoCasa)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':'casa')+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
+    var foto=(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?'<div class="foto-av cc2-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':(c.tieneFotoCasa?'casa':'otra'))+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'';
     var d=document.createElement('div'); d.className='cc2';
     d.innerHTML='<div class="cc2-top" onclick="toggleBody(\''+id+'\')"><div class="cc2-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto
       +'<div class="cc2-nom">'+(c.nombre||'')+'<small>'+(c.cedula?'<span style="white-space:nowrap">🪪 '+c.cedula+'</span> ':'')+(c.tel?'<span style="white-space:nowrap">📱 '+c.tel+'</span>':'')+'</small></div>'
