@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v217">
+<meta name="app-version" content="2026-11-27 v218">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1911,6 +1911,7 @@ button[onclick="exportarDatos()"]{
         </div>
         <div id="app-version-badge" style="font-size:22px">⏳</div>
       </div>
+      <button id="btn-pleno-notif" onclick="plenoNotifToggle()" style="width:100%;padding:14px;margin-bottom:10px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer">🎯 Pleno en la notificación: apagado</button>
       <button id="btn-buscar-actualizacion" onclick="buscarActualizacionManual()" style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#ff1493,#ff8a00);background-size:200% 100%;color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 16px rgba(168,85,247,0.4);margin-bottom:10px">🔍 Buscar actualización</button>
       <div id="buscar-act-msg" style="display:none;font-size:13px;font-weight:800;text-align:center;padding:10px 12px;border-radius:12px;margin-bottom:10px"></div>
       <button onclick="forzarActualizacion()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;border:none;border-radius:18px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(26,86,219,0.35)">🔄 Forzar recarga total</button>
@@ -2986,6 +2987,7 @@ function recalcularCuentas(){
   });
 
   const pleno = general - cancelados;
+  try{ if(window._plenoNotif && hoy===fechaHoy()) window._plenoNotif(pleno,general,hoy); }catch(e){}
 
   // ── Ícono flotante pleno — solo actualizar si está visible ──
   const fabEl = document.getElementById('pleno-fab');
@@ -6133,7 +6135,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v217';
+const APP_VERSION = '2026-11-27 v218';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -18111,6 +18113,39 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
   function bar(){ return document.getElementById('jrv-bar'); }
   document.addEventListener('focusin',function(e){ var b=bar(); if(b&&b.contains(e.target)&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) b.classList.add('kb'); });
   document.addEventListener('focusout',function(e){ var b=bar(); if(b&&b.contains(e.target)) setTimeout(function(){ var a=document.activeElement; if(!(b.contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName))) b.classList.remove('kb'); },120); });
+})();
+</script>
+<script>
+/* Notificación con el pleno del día (se ve sin abrir la app; se actualiza cada vez que se registra un pago) */
+(function(){
+  function on(){ try{ return localStorage.getItem('pleno_notif')==='1'; }catch(e){ return false; } }
+  function fm(n){ try{ return fmt(n); }catch(e){ return '$'+n; } }
+  var tm=null, ult=null;
+  function mostrar(pleno,general){
+    if(!on()||!window.Notification||Notification.permission!=='granted') return;
+    ult=[pleno,general];
+    clearTimeout(tm); tm=setTimeout(function(){
+      var hh=new Date(); var h=hh.getHours()%12||12, m=String(hh.getMinutes()).padStart(2,'0');
+      var tit='🎯 Pleno '+(pleno<0?'-':'')+fm(Math.abs(pleno)), op={body:'Cobrado hoy '+fm(general)+' · actualizado '+h+':'+m,tag:'pleno-dia',renotify:false,silent:true,requireInteraction:true,icon:'icon-192.png',badge:'icon-192.png'};
+      try{
+        if(navigator.serviceWorker&&navigator.serviceWorker.ready){ navigator.serviceWorker.ready.then(function(r){ r.showNotification(tit,op); }).catch(function(){ try{ new Notification(tit,op); }catch(e){} }); }
+        else new Notification(tit,op);
+      }catch(e){}
+    },800);
+  }
+  window._plenoNotif=mostrar;
+  function pintar(){ var b=document.getElementById('btn-pleno-notif'); if(!b) return; var perm=window.Notification?Notification.permission:'no'; b.textContent=(on()&&perm==='granted')?'🎯 Pleno en la notificación: ENCENDIDO':(perm==='denied'?'🎯 Pleno en notificación: bloqueado en el celular':'🎯 Pleno en la notificación: apagado'); }
+  window.plenoNotifToggle=function(){
+    try{
+      if(on()){ localStorage.setItem('pleno_notif','0'); pintar(); try{ navigator.serviceWorker.ready.then(function(r){ r.getNotifications({tag:'pleno-dia'}).then(function(l){ l.forEach(function(n){n.close();}); }); }); }catch(e){} showToast('🎯 Notificación del pleno apagada'); return; }
+      if(!window.Notification){ showToast('⚠️ Este celular no deja mostrar notificaciones desde la app'); return; }
+      Notification.requestPermission().then(function(p){
+        if(p==='granted'){ localStorage.setItem('pleno_notif','1'); pintar(); showToast('🎯 Listo, el pleno saldrá en la notificación'); try{ if(typeof actualizarSuperior==='function') actualizarSuperior(); else if(typeof calcularResumen==='function') calcularResumen(); }catch(e){} if(ult) mostrar(ult[0],ult[1]); }
+        else { pintar(); showToast('⚠️ Permiso de notificaciones negado. Actívalo en los ajustes del celular.'); }
+      });
+    }catch(e){ showToast('⚠️ No se pudo activar'); }
+  };
+  document.addEventListener('DOMContentLoaded',pintar); setTimeout(pintar,1500); setTimeout(pintar,5000);
 })();
 </script>
 </body>
