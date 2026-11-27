@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v218">
+<meta name="app-version" content="2026-11-27 v220">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6135,7 +6135,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v218';
+const APP_VERSION = '2026-11-27 v220';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -16864,7 +16864,7 @@ async function hidratarFotosTarjetas(){
         await Promise.all(els.slice(i,i+8).map(async el=>{
           const k=el.dataset.fid+'_'+el.dataset.ftipo;
           let src=window._fotoCache&&window._fotoCache[k];
-          if(!src){ try{ src=await FotosDB.get(k); }catch(e){} }
+          if(!src){ try{ src=await FotosDB.get(k, el._d>vh*1.5); }catch(e){} }  /* de la nube solo las que están cerca de la pantalla: ahorra datos */
           if(src && el.isConnected){ el.style.backgroundImage='url('+src+')'; el.textContent=''; el.dataset.h='1'; }
         }));
         if(window._hfOtra){ break; }
@@ -17441,7 +17441,8 @@ function renderVoladas(busq){
 .cc-sal{text-align:center;flex-shrink:0;align-self:stretch}
 .cc-sal b{display:block;font-size:17px;font-weight:900;color:#ef4444;line-height:1.1}
 .cc-sal span{font-size:10px;font-weight:800;color:#94a3b8}
-.cc-right{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0}
+.cc-right{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;position:relative}
+.cc-rf{position:absolute;right:2px;top:3px;width:36px;text-align:center;background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff;font-size:12px;font-weight:900;letter-spacing:.5px;padding:3px 0;border-radius:9px;box-shadow:0 2px 6px rgba(234,88,12,.45);line-height:1}
 .cc-right .cc-sal span{font-size:9px}
 .cc-right .cc-sal{padding-right:38px}
 .cc-cobro{display:flex;gap:4px;align-items:center}
@@ -17512,7 +17513,7 @@ function decorarCompacta(){
     row.setAttribute('onclick',"abrirCardCompacta('"+id+"')");
     var foto=(c.tieneFotoCliente||c.tieneFotoCasa||c.tieneFotoOtra)?'<div class="foto-av cc-foto" data-fid="'+id+'" data-ftipo="'+(c.tieneFotoCliente?'cliente':(c.tieneFotoCasa?'casa':'otra'))+'" onclick="event.stopPropagation();verFotosCliente(\''+id+'\')">'+(c.tieneFotoCliente?'👤':'🏠')+'</div>':'<div class="cc-foto-ph"></div>';
     row.innerHTML='<div class="cc-num '+((c.tipo||'diario')==='semanal'?'t-s':'t-d')+'">'+(i+1)+'</div>'+foto+'<div class="cc-mid">'+(pagoHoy>0?'<div class="cc-hoy">✓ HOY '+fmt(pagoHoy)+'</div>':'')+'<div class="cc-nom"><span class="nm" data-full="'+String(c.nombre||'').replace(/"/g,'&quot;')+'">'+(c.nombre||'')+'</span></div><div class="cc-sub">'+tipo+' · '+atrTxt+'</div>'+((c.prestamo>0)?'<div class="cc-prest" style="font-size:11px;font-weight:800;color:#7c3aed;margin-top:1px">'+fmt(c.capital>0&&c.capital!==c.prestamo?c.capital:c.prestamo)+(c.capital>0&&c.capital!==c.prestamo?' → '+fmt(c.prestamo):'')+'</div>':'')+'</div>'
-      +'<div class="cc-right"><div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
+      +'<div class="cc-right">'+((c.fechaRenovacion&&c.fechaRenovacion===getFechaActiva())?'<div class="cc-rf">RF</div>':'')+'<div class="cc-sal"><span>SALDO</span><b>'+fmt(c.saldo)+'</b></div>'
       +'<div class="cc-cobro" onclick="event.stopPropagation()"><input type="text" inputmode="numeric" pattern="[0-9]*" name="cuota_c'+id+'" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" class="cc-inp" id="cc-inp-'+id+'" autocomplete="off" placeholder="'+(c.cuotaSugerida>0?fmt(c.cuotaSugerida):'Cuota')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){cobroCompacto(\''+id+'\')}"><button class="cc-pay" onclick="event.stopPropagation();cobroCompacto(\''+id+'\')">💵</button></div></div>';
     var cl=document.createElement('div'); cl.className='cc-close'; cl.setAttribute('onclick',"cerrarCardCompacta('"+id+"')"); cl.textContent='▲ Cerrar';
     card.insertBefore(cl,card.firstChild); card.insertBefore(row,card.firstChild);
@@ -18147,6 +18148,9 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
   };
   document.addEventListener('DOMContentLoaded',pintar); setTimeout(pintar,1500); setTimeout(pintar,5000);
 })();
+</script>
+<script>
+(function(){ var t=null; window.addEventListener('scroll',function(){ clearTimeout(t); t=setTimeout(function(){ try{ hidratarFotosTarjetas(); }catch(e){} },450); },{passive:true,capture:true}); })();
 </script>
 </body>
 </html>
