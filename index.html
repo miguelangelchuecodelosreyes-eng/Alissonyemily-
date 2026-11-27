@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v211">
+<meta name="app-version" content="2026-11-27 v213">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6125,7 +6125,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v211';
+const APP_VERSION = '2026-11-27 v213';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -16802,14 +16802,14 @@ function elegirFotoCliente(tipo){
 async function procesarFotoCliente(tipo,input){
   const file = input.files && input.files[0];
   if(!file) return;
-  try{
-    const data = await comprimirImagenFoto(file, 800, 0.72);
-    window._fotosTemp[tipo] = data;
-    _fotoBoxActualizar(tipo,data);
-  }catch(e){
-    showToast('⚠️ No se pudo cargar la foto');
+  if(!window._fotosTemp) window._fotosTemp={};
+  let data=null;
+  for(const [mx,q] of [[800,0.72],[600,0.6],[420,0.5]]){
+    try{ data = await comprimirImagenFoto(file, mx, q); if(data) break; }catch(e){ await new Promise(r=>setTimeout(r,250)); }
   }
-  input.value='';
+  if(data){ window._fotosTemp[tipo] = data; try{ _fotoBoxActualizar(tipo,data); }catch(e){} }
+  else showToast('⚠️ No se pudo cargar la foto, intenta otra vez');
+  try{ input.value=''; }catch(e){}
 }
 function quitarFotoCliente(tipo){
   window._fotosTemp[tipo] = null;
@@ -16835,13 +16835,28 @@ function aplicarFotosA(cli){
   window._fotosTemp = {};
 }
 async function hidratarFotosTarjetas(){
-  const els = Array.from(document.querySelectorAll('.foto-av[data-fid]'));
-  for(let i=0;i<els.length;i+=6){
-    await Promise.all(els.slice(i,i+6).map(async el=>{
-      const src = await FotosDB.get(el.dataset.fid+'_'+el.dataset.ftipo);
-      if(src){ el.style.backgroundImage='url('+src+')'; el.textContent=''; }
-    }));
-  }
+  /* Rápido: solo las fotos que faltan, las visibles primero, y sin repetir el trabajo en cada pedazo de lista */
+  if(window._hfCorre){ window._hfOtra=true; return; }
+  window._hfCorre=true;
+  try{
+    do{
+      window._hfOtra=false;
+      const vh=window.innerHeight||800;
+      const els=Array.from(document.querySelectorAll('.foto-av[data-fid]')).filter(el=>!el.dataset.h);
+      els.forEach(el=>{ const r=el.getBoundingClientRect(); el._d=(r.bottom<0)?(-r.bottom+vh):(r.top>vh?(r.top-vh+vh):0); });
+      els.sort((a,b)=>a._d-b._d);
+      for(let i=0;i<els.length;i+=8){
+        await Promise.all(els.slice(i,i+8).map(async el=>{
+          const k=el.dataset.fid+'_'+el.dataset.ftipo;
+          let src=window._fotoCache&&window._fotoCache[k];
+          if(!src){ try{ src=await FotosDB.get(k); }catch(e){} }
+          if(src && el.isConnected){ el.style.backgroundImage='url('+src+')'; el.textContent=''; el.dataset.h='1'; }
+        }));
+        if(window._hfOtra){ break; }
+      }
+    }while(window._hfOtra);
+  }catch(e){}
+  window._hfCorre=false;
 }
 function _fotoNubeError(e){
   const m=String((e&&e.message)||e||'');
@@ -18055,15 +18070,25 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
 </script>
 <script>
 (function(){
- function fit(){ try{ document.querySelectorAll('#clientes-lista .cc-nom').forEach(function(e){
-   if(!e.offsetParent) return;
-   e.style.fontSize=''; var fs=13.5; var w=e.clientWidth; if(!w) return;
-   var nm=e.querySelector('.nm'); if(nm){ nm.textContent=nm.getAttribute('data-full')||nm.textContent; if(e.scrollWidth>w+1){ var pz=nm.textContent.trim().split(/\s+/); if(pz.length>2) nm.textContent=pz[0]+' '+pz[pz.length-1]; } }
-   e.style.whiteSpace='nowrap'; while(e.scrollWidth>w+1 && fs>7){ fs-=0.5; e.style.fontSize=fs+'px'; }
- }); }catch(x){} }
- var t=null; function pedir(){ clearTimeout(t); t=setTimeout(fit,120); setTimeout(fit,700); }
- function iniciar(){ var L=document.getElementById('clientes-lista'); if(!L){ setTimeout(iniciar,500); return; }
-   new MutationObserver(pedir).observe(L,{childList:true,subtree:true}); window.addEventListener('resize',pedir); pedir(); }
+ var obs=null, L=null, t=null;
+ function fit(){
+   try{
+     if(obs) obs.disconnect();
+     var els=[].slice.call(document.querySelectorAll('#clientes-lista .cc-nom'));
+     var info=els.map(function(e){ return e.offsetParent?{e:e,w:e.clientWidth}:null; }).filter(Boolean);
+     info.forEach(function(o){ var e=o.e; if(!o.w||e.getAttribute('data-fw')==String(o.w)) return;
+       e.style.fontSize=''; var fs=13.5; e.style.whiteSpace='nowrap';
+       var nm=e.querySelector('.nm');
+       if(nm){ nm.textContent=nm.getAttribute('data-full')||nm.textContent; if(e.scrollWidth>o.w+1){ var pz=nm.textContent.trim().split(/\s+/); if(pz.length>2) nm.textContent=pz[0]+' '+pz[pz.length-1]; } }
+       while(e.scrollWidth>o.w+1 && fs>7){ fs-=0.5; e.style.fontSize=fs+'px'; }
+       e.setAttribute('data-fw',String(o.w));
+     });
+   }catch(x){}
+   if(obs&&L) obs.observe(L,{childList:true,subtree:true});
+ }
+ function pedir(){ clearTimeout(t); t=setTimeout(fit,150); }
+ function iniciar(){ L=document.getElementById('clientes-lista'); if(!L){ setTimeout(iniciar,500); return; }
+   obs=new MutationObserver(pedir); obs.observe(L,{childList:true,subtree:true}); window.addEventListener('resize',function(){ document.querySelectorAll('#clientes-lista .cc-nom[data-fw]').forEach(function(e){e.removeAttribute('data-fw');}); pedir(); }); pedir(); }
  iniciar();
 })();
 </script>
