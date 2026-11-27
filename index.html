@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v216">
+<meta name="app-version" content="2026-11-27 v217">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -747,6 +747,8 @@ body.panel-manual-oculto .nav-tabs{ display:none !important; }
 /* ══ PANEL IA ══ */
 #jrv-bar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:999997;display:none;border-radius:26px;background:linear-gradient(170deg,#0b0b22,#1b1250);border:1px solid #3a2f7a;color:#fff;padding:10px;box-shadow:0 10px 36px rgba(0,0,0,.55);font-family:inherit;animation:orbFadeIn .2s ease}
 #jrv-bar.show{display:block}
+#jrv-bar{transition:bottom .15s ease}
+#jrv-bar.kb{bottom:calc(78px + env(safe-area-inset-bottom,0px)) !important}
 #jrv-bar .jb-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px}
 #jrv-bar .jb-orb{flex:0 0 34px;width:34px;height:34px;min-width:34px;min-height:34px;max-height:34px;align-self:flex-start;box-sizing:border-box;border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#7fe3ff,#1a7cff 50%,#3a1c9e);display:flex;align-items:center;justify-content:center;gap:2px;padding:0}
 #jrv-bar .jb-orb i{display:block;width:3px;height:8px;border-radius:2px;background:#fff;opacity:.9}
@@ -6131,7 +6133,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v216';
+const APP_VERSION = '2026-11-27 v217';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -18101,6 +18103,14 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
  function iniciar(){ L=document.getElementById('clientes-lista'); if(!L){ setTimeout(iniciar,500); return; }
    obs=new MutationObserver(pedir); obs.observe(L,{childList:true,subtree:true}); window.addEventListener('resize',function(){ document.querySelectorAll('#clientes-lista .cc-nom[data-fw]').forEach(function(e){e.removeAttribute('data-fw');}); pedir(); }); pedir(); }
  iniciar();
+})();
+</script>
+<script>
+/* Jarvis barra: subirla cuando sale el teclado para que la barra de claves/tarjeta/ubicación no la tape */
+(function(){
+  function bar(){ return document.getElementById('jrv-bar'); }
+  document.addEventListener('focusin',function(e){ var b=bar(); if(b&&b.contains(e.target)&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) b.classList.add('kb'); });
+  document.addEventListener('focusout',function(e){ var b=bar(); if(b&&b.contains(e.target)) setTimeout(function(){ var a=document.activeElement; if(!(b.contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName))) b.classList.remove('kb'); },120); });
 })();
 </script>
 </body>
