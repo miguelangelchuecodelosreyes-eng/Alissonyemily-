@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-28 v226">
+<meta name="app-version" content="2026-11-28 v227">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -1471,7 +1471,7 @@ button[onclick="exportarDatos()"]{
         <div id="prestamos-detalle" style="font-size:9px;color:#ff6600;font-weight:700;text-align:right;margin-top:1px"></div>
       </div>
       <div style="padding:4px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:22px;font-weight:900;color:#ef4444;line-height:1;white-space:nowrap">−</span>
+        <span style="display:flex;align-items:center;gap:8px"><span style="font-size:22px;font-weight:900;color:#ef4444;line-height:1;white-space:nowrap">−</span><button type="button" onclick="negAgregar()" style="border:none;background:#fee2e2;color:#dc2626;font-weight:900;border-radius:8px;width:26px;height:26px;font-size:15px;line-height:1;cursor:pointer">+</button></span>
         <input type="number" id="input-negativo" placeholder="0" inputmode="numeric"
           style="width:90px;border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#111;text-align:right;background:transparent"
           oninput="recalcularCuentas()" autocomplete="off">
@@ -1544,6 +1544,7 @@ button[onclick="exportarDatos()"]{
           <div><div style="font-size:13px;font-weight:800;color:#c4b5fd">🤝 Base prestada</div><div style="font-size:10px;font-weight:700;color:#8b8fa3">Se devuelve · aparte, no suma en los gastos</div></div>
           <div style="font-size:15px;font-weight:900;color:#c4b5fd" id="cuentas-base-prestada-val">$0</div>
         </div>
+        <div id="cuentas-negativos" style="display:none;border-top:1px dashed rgba(255,255,255,0.15);padding:6px 14px"></div>
         <div id="caja-pleno" style="border-top:1px solid rgba(255,255,255,0.08);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
           <div style="font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8" id="pleno-label">PLENO</div>
           <div style="font-size:28px;font-weight:900;line-height:1;color:white" id="pleno-num">—</div>
@@ -3101,6 +3102,7 @@ function recalcularCuentas(){
 
 /* ══════════ GUARDADO AUTOMÁTICO DE DÍAS ══════════ */
 function _guardarEnHistorial(d){
+  try{ const _ni=JSON.parse(lsGet('sup_neg_'+d.fecha)||'[]'); if(_ni.length) d.negItems=_ni; }catch(e){}
   const h = JSON.parse(lsGet('hist_v3')||'[]');
   const idx = h.findIndex(x=>x.fecha===d.fecha);
   if(idx>=0) h[idx]=d; else h.unshift(d);
@@ -3196,7 +3198,7 @@ function guardarDia(limpiar){
         renderDetalles();
       }, 50);
       if(limpiar){
-        lsRemove('sup_manual_'+d.fecha);
+        lsRemove('sup_manual_'+d.fecha); lsRemove('sup_neg_'+d.fecha);
         lsSet('no_auto_'+d.fecha,'1');   // el dia ya quedo guardado: que el auto-guardado no lo pise con ceros
         ['input-base','input-papeleria','input-neki','input-negativo','input-gasto','input-entregado'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
         recalcularCuentas();
@@ -3625,7 +3627,7 @@ function limpiarCuentas(){
     '#888',
     () => {
       const hoy = fechaHoy();
-      lsRemove('sup_manual_'+hoy);
+      lsRemove('sup_manual_'+hoy); lsRemove('sup_neg_'+hoy);
       lsSet('no_auto_'+hoy,'1');   // lo que ya estaba guardado no se pisa con ceros
       document.getElementById('input-base').value = '';
       document.getElementById('input-papeleria').value = '';
@@ -6145,7 +6147,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-28 v226';
+const APP_VERSION = '2026-11-28 v227';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -17880,6 +17882,21 @@ function _jBaseAplicar(n,tipo){
 }
 function _jXIntent(texto,t){
   var c0;
+  // CÓMO QUEDÓ AYER (pendiente / base de ayer)
+  if(/\b(ayer|anoche)\b/.test(t) && /\b(pendiente|quedo|quedaron|quedamos|debiendo|debo|base|sistema|negativo|cierre|resultado)\b/.test(t) && !/\b(cobr\w*|pag\w*|gast\w*|prest\w*|cuota\w*|entrad\w*|salid\w*|nuevo\w*|renov\w*)\b/.test(t)){
+    var hh=[]; try{ hh=JSON.parse(lsGet('hist_v3')||'[]'); }catch(e){}
+    var act=getFechaActiva(), dA=new Date(act+'T00:00:00'); dA.setDate(dA.getDate()-1);
+    var fa=dA.getFullYear()+'-'+String(dA.getMonth()+1).padStart(2,'0')+'-'+String(dA.getDate()).padStart(2,'0');
+    var rec=hh.find(function(x){ return x.fecha===fa; });
+    var previo=false;
+    if(!rec){ rec=hh.filter(function(x){ return x.fecha<act; }).sort(function(a,b){ return a.fecha<b.fecha?1:-1; })[0]; previo=true; }
+    if(!rec) return 'Jefe, no tengo guardado el cierre de ayer.';
+    var rs=(rec.resultado!=null)?rec.resultado:((rec.totalEntradas||0)-(rec.totalSalidas||0));
+    var cab=previo?('Jefe, el último cierre que tengo es del '+rec.fecha+': '):'Jefe, ';
+    var cuando=previo?'quedó':'ayer';
+    if(rs<0) return cab+(previo?'quedó':'ayer quedó')+' en negativo '+_jFm(Math.abs(rs))+'. Eso es lo que quedó debiendo a los clientes.';
+    return cab+(previo?'en sistema quedó ':'ayer en sistema quedó ')+_jFm(rs)+'.';
+  }
   // BASE: "pon de base 86" -> pregunta si es de cobro o prestada
   if(/\bbase\b/.test(t) && !/\b(cuanto|cual|cuales|que|como|cuantos|nota|notas)\b/.test(t) && !/\b(gasto|neki|nequi|papeleria)\b/.test(t)){
     var nb=_jNum(texto);
@@ -18222,6 +18239,49 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
   function pedir(txt){ try{ localStorage.setItem('jrv_pend_notif',txt||''); }catch(e){} intentar(); }
   try{ var q=new URLSearchParams(location.search); if(q.has('jarvis')){ var v=q.get('jarvis')||''; history.replaceState(null,'',location.pathname); pedir(v); } }catch(e){}
   try{ navigator.serviceWorker.addEventListener('message',function(e){ if(e.data&&typeof e.data.jarvis==='string') pedir(e.data.jarvis); }); }catch(e){}
+})();
+</script>
+<script>
+/* Pagos del "−" con descripción (a quién se le pagó), abajo junto a la base prestada y los gastos */
+(function(){
+  function K(){ return 'sup_neg_'+getFechaActiva(); }
+  function items(){ try{ return JSON.parse(lsGet(K())||'[]'); }catch(e){ return []; } }
+  function esc(x){ return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function render(){
+    var box=document.getElementById('cuentas-negativos'), inp=document.getElementById('input-negativo'); if(!box) return;
+    var l=items();
+    if(inp){ inp.readOnly=l.length>0; }
+    if(!l.length){ box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display='block';
+    box.innerHTML='<div style="font-size:11px;font-weight:900;color:#f87171;letter-spacing:1px;margin-bottom:2px">− PAGOS A CLIENTES</div>'+l.map(function(x,i){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px;font-weight:800;color:#fca5a5"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">− '+esc(x.d)+'</span><span style="margin:0 10px;color:#fff">'+fmt(x.v)+'</span><button type="button" onclick="negQuitar('+i+')" style="border:none;background:rgba(255,255,255,.1);color:#fca5a5;border-radius:6px;width:24px;height:24px;font-weight:900;cursor:pointer">✖</button></div>';
+    }).join('');
+  }
+  function guardar(l){
+    lsSet(K(),JSON.stringify(l));
+    var inp=document.getElementById('input-negativo'); var sum=l.reduce(function(a,x){return a+(x.v||0);},0);
+    if(inp){ inp.value=sum>0?sum:''; inp.dispatchEvent(new Event('input')); }
+    render();
+  }
+  window.negQuitar=function(i){ var l=items(); l.splice(i,1); guardar(l); if(typeof showToast==='function') showToast('Pago quitado'); };
+  window.negAgregar=function(){
+    var ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML='<div style="background:#fff;border-radius:22px;padding:18px;width:100%;max-width:340px;font-family:Nunito,sans-serif"><div style="font-size:16px;font-weight:900;color:#b91c1c;margin-bottom:10px">− Pago a un cliente</div><div style="font-size:12px;font-weight:700;color:#6b7280">A quién y por qué</div><input id="neg-desc" type="text" placeholder="Ej: Ana Méndez · deuda" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px;border:2px solid #e5e7eb;border-radius:14px;font-size:15px;margin:4px 0 10px"><div style="font-size:12px;font-weight:700;color:#6b7280">Valor</div><input id="neg-val" type="number" inputmode="numeric" placeholder="0" style="width:100%;box-sizing:border-box;padding:12px;border:2px solid #e5e7eb;border-radius:14px;font-size:15px;margin:4px 0 14px"><div style="display:flex;gap:10px"><button id="neg-no" type="button" style="flex:1;padding:12px;border:none;border-radius:14px;background:#f3f4f6;font-weight:800;font-size:14px">Cancelar</button><button id="neg-ok" type="button" style="flex:2;padding:12px;border:none;border-radius:14px;background:#dc2626;color:#fff;font-weight:900;font-size:14px">Agregar a salidas</button></div></div>';
+    document.body.appendChild(ov);
+    var cerrar=function(){ ov.remove(); };
+    ov.querySelector('#neg-no').onclick=cerrar; ov.addEventListener('click',function(e){ if(e.target===ov) cerrar(); });
+    ov.querySelector('#neg-ok').onclick=function(){
+      var d=ov.querySelector('#neg-desc').value.trim(), v=parseFloat(ov.querySelector('#neg-val').value)||0;
+      if(!v||v<=0){ if(typeof showToast==='function') showToast('⚠️ Escribe el valor'); return; }
+      var l=items();
+      if(!l.length){ var inp=document.getElementById('input-negativo'); var ant=parseFloat(inp&&inp.value)||0; if(ant>0) l.push({d:'Anterior',v:ant}); }
+      l.push({d:d||'Pago a cliente',v:v}); guardar(l); cerrar();
+    };
+    setTimeout(function(){ var e=ov.querySelector('#neg-desc'); if(e) e.focus(); },100);
+  };
+  var orig=window.recalcularCuentas;
+  if(typeof orig==='function'){ window.recalcularCuentas=function(){ var r=orig.apply(this,arguments); try{ render(); }catch(e){} return r; }; }
+  setTimeout(render,1500);
 })();
 </script>
 </body>
