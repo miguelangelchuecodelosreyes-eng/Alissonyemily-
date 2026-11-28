@@ -41,3 +41,20 @@ self.addEventListener('fetch', (e) => {
     }
   })());
 });
+
+// Toque en la notificación del pleno: abrir la app y, si escribiste algo, mandárselo a Jarvis
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const quiereJarvis = e.action === 'reply' || e.action === 'jarvis';
+  const texto = ((e.reply || '') + '').trim();
+  e.waitUntil((async () => {
+    const todas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (todas.length) {
+      const c = todas[0];
+      try { await c.focus(); } catch (err) {}
+      if (quiereJarvis) c.postMessage({ jarvis: texto });
+      return;
+    }
+    await self.clients.openWindow(quiereJarvis ? './?jarvis=' + encodeURIComponent(texto) : './');
+  })());
+});
