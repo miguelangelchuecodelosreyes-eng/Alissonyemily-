@@ -36,7 +36,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alisson & Emily</title>
-<meta name="app-version" content="2026-11-27 v222">
+<meta name="app-version" content="2026-11-28 v225">
 
 <!-- PWA Manifest -->
 <meta name="application-name" content="Alisson & Emily">
@@ -6145,7 +6145,7 @@ function cerrarDetalle(){
   } catch(e){}
 })();
 // ===== ACTUALIZACIÓN DE LA APP =====
-const APP_VERSION = '2026-11-27 v222';
+const APP_VERSION = '2026-11-28 v225';
 (function(){ // salida de emergencia: 5 toques seguidos en la fecha del encabezado muestran el panel manual
   let n=0,t0=0;
   document.addEventListener('click',function(e){
@@ -18134,12 +18134,29 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
   function on(){ try{ return localStorage.getItem('pleno_notif')==='1'; }catch(e){ return false; } }
   function fm(n){ try{ return fmt(n); }catch(e){ return '$'+n; } }
   var tm=null, ult=null;
+  function semanalesHoy(){
+    var out={lista:[],total:0};
+    try{
+      var hoy=getFechaActiva(), dow=new Date(hoy+'T00:00:00').getDay();
+      getClientes().forEach(function(c){
+        if(!c||c.volado||(c.tipo||'')!=='semanal'||!(c.saldo>0)) return;
+        if(diaSemanaNombre2Num(c.diaSemana)!==dow) return;
+        if((c.pagos||[]).some(function(p){ return p.fecha===hoy; })) return;
+        var q=c.cuotaSugerida||0; out.lista.push({n:String(c.nombre||'').toLowerCase().replace(/(^|\s)\S/g,function(x){return x.toUpperCase();}),q:q}); out.total+=q;
+      });
+    }catch(e){}
+    return out;
+  }
   function mostrar(pleno,general){
     if(!on()||!window.Notification||Notification.permission!=='granted') return;
     ult=[pleno,general];
     clearTimeout(tm); tm=setTimeout(function(){
       var hh=new Date(); var h=hh.getHours()%12||12, m=String(hh.getMinutes()).padStart(2,'0');
-      var tit='🎯 Pleno '+(pleno<0?'-':'')+fm(Math.abs(pleno)), op={body:'Cobrado hoy '+fm(general)+' · actualizado '+h+':'+m,tag:'pleno-dia',renotify:false,silent:true,requireInteraction:true,icon:'icon-192.png',badge:'icon-192.png'};
+      var sem=semanalesHoy();
+      var l1='Cobrado hoy '+fm(general)+(sem.lista.length?' · semanales hoy: '+sem.lista.length+' ('+fm(sem.total)+')':'');
+      var cuerpo=l1+' · '+h+':'+m;
+      if(sem.lista.length){ cuerpo=l1+'\n📅 Semanales de hoy:\n'+sem.lista.slice(0,8).map(function(x){ return '• '+x.n+' '+fm(x.q); }).join('\n')+(sem.lista.length>8?'\n… y '+(sem.lista.length-8)+' más':'')+'\nActualizado '+h+':'+m; }
+      var tit='🎯 Pleno '+(pleno<0?'-':'')+fm(Math.abs(pleno)), op={body:cuerpo,tag:'pleno-dia',renotify:false,silent:true,requireInteraction:true,icon:'icon-192.png',badge:'icon-192.png',actions:[{action:'reply',type:'text',title:'💬 Escríbele a Jarvis',placeholder:'Pregúntale a Jarvis…'},{action:'jarvis',title:'🤖 Abrir Jarvis'}]};
       try{
         if(navigator.serviceWorker&&navigator.serviceWorker.ready){ navigator.serviceWorker.ready.then(function(r){ r.showNotification(tit,op); }).catch(function(){ try{ new Notification(tit,op); }catch(e){} }); }
         else new Notification(tit,op);
@@ -18163,6 +18180,24 @@ setTimeout(function(){ try{ _baseTipoRender(); }catch(e){} },1500);
 </script>
 <script>
 (function(){ var t=null; window.addEventListener('scroll',function(){ clearTimeout(t); t=setTimeout(function(){ try{ hidratarFotosTarjetas(); }catch(e){} },450); },{passive:true,capture:true}); })();
+</script>
+<script>
+/* Jarvis desde la notificación: abre Jarvis y manda lo que escribiste */
+(function(){
+  var tries=0, tmr=null;
+  function listo(){ try{ var lg=document.getElementById('login-usuario'); return typeof abrirOrbeIA==='function' && document.getElementById('orb-input') && !(lg&&lg.offsetParent); }catch(e){ return false; } }
+  function intentar(){
+    var t=null; try{ t=localStorage.getItem('jrv_pend_notif'); }catch(e){} if(t===null) return;
+    if(!listo()){ if(++tries<80){ clearTimeout(tmr); tmr=setTimeout(intentar,500); } else { try{ localStorage.removeItem('jrv_pend_notif'); }catch(e){} } return; }
+    try{ localStorage.removeItem('jrv_pend_notif'); }catch(e){}
+    tries=0;
+    try{ abrirOrbeIA(true); }catch(e){}
+    if(t){ setTimeout(function(){ try{ document.getElementById('orb-input').value=t; orbIAEnviarMensaje(); }catch(e){} },500); }
+  }
+  function pedir(txt){ try{ localStorage.setItem('jrv_pend_notif',txt||''); }catch(e){} intentar(); }
+  try{ var q=new URLSearchParams(location.search); if(q.has('jarvis')){ var v=q.get('jarvis')||''; history.replaceState(null,'',location.pathname); pedir(v); } }catch(e){}
+  try{ navigator.serviceWorker.addEventListener('message',function(e){ if(e.data&&typeof e.data.jarvis==='string') pedir(e.data.jarvis); }); }catch(e){}
+})();
 </script>
 </body>
 </html>
